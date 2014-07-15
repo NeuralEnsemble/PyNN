@@ -15,13 +15,17 @@ import quantities as pq
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mock import Mock, patch
 from .mocks import MockRNG
-import pyNN.mock as sim
+import pyNN.hardware.brainscales as sim
 
 
 class AssemblyTest(unittest.TestCase):
 
     def setUp(self):
-        sim.setup()
+        extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+        sim.setup(**extra)
+        
+    def tearDown(self):
+        sim.end()
 
     def test_create_with_zero_populations(self):
         a = sim.Assembly()
@@ -217,8 +221,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test_all_iterator(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p1, p2, p3)
         assert hasattr(a.all(), "next")
         ids = list(a.all())
@@ -226,8 +230,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test__homogeneous_synapses(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p1, p3)
         self.assertTrue(a1._homogeneous_synapses)
@@ -235,8 +239,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test_conductance_based(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p1, p3)
         self.assertTrue(a1.conductance_based)
@@ -244,16 +248,16 @@ class AssemblyTest(unittest.TestCase):
 
     def test_first_and_last_id(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a.first_id, p1[0])
         self.assertEqual(a.last_id, p3[-1])
 
     def test_id_to_index(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a.id_to_index(p3[0]), 0)
         self.assertEqual(a.id_to_index(p1[0]), 3)
@@ -262,15 +266,15 @@ class AssemblyTest(unittest.TestCase):
     
     def test_id_to_index_with_nonexistent_id(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         self.assertRaises(IndexError, a.id_to_index, p3.last_id+1)
 
     def test_getitem_int(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a[0], p3[0])
         self.assertEqual(a[3], p1[0])
@@ -278,8 +282,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test_getitem_slice(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         a1 = a[0:3]
         self.assertIsInstance(a1, sim.Assembly)
@@ -292,8 +296,8 @@ class AssemblyTest(unittest.TestCase):
 
     def test_getitem_array(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         a1 = a[3, 5, 6, 10]
         self.assertIsInstance(a1, sim.Assembly)
@@ -307,56 +311,14 @@ class AssemblyTest(unittest.TestCase):
 
     def test_sample(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.IF_curr_exp())
+        p2 = sim.Population(6, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         a1 = a.sample(10, rng=MockRNG())
         # MockRNG.permutation reverses the order
         self.assertEqual(len(a1.populations), 2)
         assert_array_equal(a1.populations[0].all_cells, p1[11:6:-1])
         assert_array_equal(a1.populations[1].all_cells, p2[6::-1])
-
-    def test_get_data_with_gather(self):
-        t1 = 12.3
-        t2 = 13.4
-        t3 = 14.5
-        p1 = sim.Population(11, sim.IF_cond_exp())
-        p2 = sim.Population(6, sim.IF_cond_alpha())
-        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
-        a = sim.Assembly(p3, p1, p2)
-        a.record('v')
-        sim.run(t1)
-        # what if we call p.record between two run statements?
-        # would be nice to get an AnalogSignalArray with a non-zero t_start
-        # but then need to make sure we get the right initial value
-        sim.run(t2)
-        sim.reset()
-        a.record('spikes')
-        p3.record('w')
-        sim.run(t3)
-        data = a.get_data(gather=True)
-        self.assertEqual(len(data.segments), 2)
-        seg0 = data.segments[0]
-        self.assertEqual(len(seg0.analogsignalarrays), 1)
-        v = seg0.filter(name='v')[0]
-        self.assertEqual(v.name, 'v')
-        num_points = int(round((t1 + t2)/sim.get_time_step())) + 1
-        self.assertEqual(v.shape, (num_points, a.size))
-        self.assertEqual(v.t_start, 0.0*pq.ms)
-        self.assertEqual(v.units, pq.mV)
-        self.assertEqual(v.sampling_period, 0.1*pq.ms)
-        self.assertEqual(len(seg0.spiketrains), 0)
-        
-        seg1 = data.segments[1]
-        self.assertEqual(len(seg1.analogsignalarrays), 2)
-        w = seg1.filter(name='w')[0]
-        self.assertEqual(w.name, 'w')
-        num_points = int(round(t3/sim.get_time_step())) + 1
-        self.assertEqual(w.shape, (num_points, p3.size))
-        self.assertEqual(v.t_start, 0.0)
-        self.assertEqual(len(seg1.spiketrains), a.size)
-        #assert_array_equal(seg1.spiketrains[7],
-        #                   numpy.array([a.first_id+7, a.first_id+7+5]) % t3)
 
     def test_printSpikes(self):
         # TODO: implement assert_deprecated
