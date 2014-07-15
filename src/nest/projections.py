@@ -13,7 +13,10 @@ import logging
 from itertools import repeat
 from pyNN import common, errors
 from pyNN.space import Space
+from pyNN.nest import NEST_RDEV_TYPES
 from . import simulator
+from pyNN.random import RandomDistribution
+from pyNN.nest.random import NativeRNG
 from .standardmodels.synapses import StaticSynapse
 from .conversion import make_sli_compatible
 
@@ -90,6 +93,33 @@ class Projection(common.Projection):
             tau_syn = nest.GetStatus(targets, (param_name))
             nest.SetStatus(self.connections, 'tau_psc', tau_syn)
 
+    def synapse_parameters(self):
+        params = {'model' : self.synapse_type.nest_name}
+        parameter_space = self.synapse_type.native_parameters
+        for ii,jj in parameter_space.items() :
+            if isinstance(jj.base_value,RandomDistribution) :                # Random Distribution specified
+                if jj.base_value.name in NEST_RDEV_TYPES  :                          
+                    logger.warning("Random values will be created inside NEST with NEST's own RNGs")
+                    params[ii] = NativeRNG(jj.base_value).parameters 
+                else :
+                    jj.shape = (self.pre.size,self.post.size)
+                    params[ii] = jj.evaluate()
+                                    
+            else :                                                           # explicit values given
+                if jj.shape :
+                    params[ii] = jj.evaluate()  # If ii is given as an array
+                else :
+                    jj.shape = (1,1)
+                    params[ii] = float(jj.evaluate()) # If ii is given as a single number. Checking of the dimensions should be done in NEST
+        return params
+
+    def _connect(self, rule_params, syn_params) :
+        """
+        Create connections by calling nest.Connect on the presynaptic and postsynaptic population 
+        with the parameters provided by params.
+        """
+        nest.Connect(list(self.pre.all_cells), list(self.post.all_cells), rule_params, syn_params)
+        
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
         """
