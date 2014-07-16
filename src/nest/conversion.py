@@ -3,8 +3,8 @@ Conversion functions to nest-compatible data types.
 """
 
 import numpy
-
 from pyNN.parameters import Sequence
+
 
 def make_sli_compatible_single(value):
     if isinstance(value, Sequence):

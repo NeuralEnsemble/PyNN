@@ -14,6 +14,7 @@ UNITS_MAP = {
     'V_m': 'mV',
 }
 
+
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
@@ -24,18 +25,21 @@ def get_defaults(model_name):
               'node_type', 'type', 'type_id']
     default_params = {}
     default_initial_values = {}
-    for name,value in defaults.items():
+    for name, value in defaults.items():
         if name in variables:
             default_initial_values[name] = value
         elif name not in ignore:
             default_params[name] = conversion.make_pynn_compatible(value)
     return default_params, default_initial_values
 
+
 def get_receptor_types(model_name):
-    return nest.GetDefaults(model_name).get("receptor_types", ('excitatory', 'inhibitory'))
+    return list(nest.GetDefaults(model_name).get("receptor_types", ('excitatory', 'inhibitory')))
+
 
 def get_recordables(model_name):
-    return nest.GetDefaults(model_name).get("recordables", [])
+    return [sl.name for sl in nest.GetDefaults(model_name).get("recordables", [])]
+
 
 def native_cell_type(model_name):
     """

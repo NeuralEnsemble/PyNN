@@ -8,6 +8,11 @@ Connection method classes for nest
 
 from pyNN import random, core, errors
 from pyNN.connectors import Connector, \
+                            AllToAllConnector, \
+                            FixedProbabilityConnector, \
+                            OneToOneConnector, \
+                            FixedNumberPreConnector, \
+                            FixedNumberPostConnector, \
                             DistanceDependentProbabilityConnector, \
                             DisplacementDependentProbabilityConnector, \
                             IndexBasedProbabilityConnector, \
@@ -44,19 +49,19 @@ else:
         iterates the connection-set on the C++ level in NEST.
 
         See Djurfeldt et al. (2014) doi:10.3389/fninf.2014.00043 for
-	more details about the new interface and a comparison between
-	this and PyNN's native CSAConnector.
-    
+        more details about the new interface and a comparison between
+        this and PyNN's native CSAConnector.
+
         Takes any of the standard :class:`Connector` optional
         arguments and, in addition:
-    
+
             `cset`:
                 a connection set object.
         """
         parameter_names = ('cset',)
-    
+
         if haveCSA:
-            def __init__ (self, cset, safe=True, callback=None):
+            def __init__(self, cset, safe=True, callback=None):
                 """
                 """
                 Connector.__init__(self, safe=safe, callback=callback)
@@ -64,15 +69,15 @@ else:
                 arity = csa.arity(cset)
                 assert arity in (0, 2), 'must specify mask or connection-set with arity 0 or 2'
         else:
-            def __init__ (self, cset, safe=True, callback=None):
-                raise RuntimeError, "CSAConnector not available---couldn't import csa module"
-    
+            def __init__(self, cset, safe=True, callback=None):
+                raise RuntimeError("CSAConnector not available---couldn't import csa module")
+
         def connect(self, projection):
             """Connect-up a Projection."""
-    
+
             presynaptic_cells = projection.pre.all_cells.astype('int64')
             postsynaptic_cells = projection.post.all_cells.astype('int64')
-    
+
             if csa.arity(self.cset) == 2:
                 param_map = {'weight': 0, 'delay': 1}
                 nest.CGConnect(presynaptic_cells, postsynaptic_cells, self.cset,
@@ -80,103 +85,111 @@ else:
             else:
                 nest.CGConnect(presynaptic_cells, postsynaptic_cells, self.cset,
                                model=projection.nest_synapse_model)
-    
+
             projection._connections = None  # reset the caching of the connection list, since this will have to be recalculated
             projection._sources.extend(presynaptic_cells)
 
 
-class FixedProbabilityConnector() :
-    def __init__(self, p_connect, allow_self_connections=True, with_replacement=True,
-                 rng=None, safe=True, callback=None): 
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-        
-        self.p_connect = float(p_connect)
-#        self.rng = _get_rng(rng)
-
-
-    def connect(self, projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                       'rule' : 'pairwise_bernoulli',
-                       'p' : self.p_connect}
-        projection._connect(rule_params, syn_params)
-
-class AllToAllConnector() :
-    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
-                 callback=None):
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-        
-    def connect(self,projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                      'rule' : 'all_to_all'}
-
-        projection._connect(rule_params, syn_params)
-
-class OneToOneConnector() :
-    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
-                 callback=None):
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-    
-    def connect(self,projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                       'rule' : 'one_to_one'}
-
-        projection._connect(rule_params, syn_params)
-
-class FixedNumberPreConnector() :
-    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
-                 callback=None):
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-        self.n = n
-
-    def connect(self,projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                       'rule' : 'fixed_indegree',
-                       'indegree' : self.n }
-
-        projection._connect(rule_params, syn_params)
-
-class FixedNumberPostConnector() :
-    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
-                 callback=None):
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-        self.n = n
-
-    def connect(self,projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                       'rule' : 'fixed_outdegree',
-                       'outdegree' : self.n }
-
-        projection._connect(rule_params, syn_params)
-
-class FixedTotalNumberConnector() :
-    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
-                 callback=None):
-        self.allow_self_connections = allow_self_connections
-        self.with_replacement = with_replacement
-        self.n = n
-
-    def connect(self,projection) :
-        syn_params = projection.synapse_parameters()
-        rule_params = {'autapses' : self.allow_self_connections,
-                       'multapses' : self.with_replacement,
-                       'rule' : 'fixed_total_number',
-                       'N' : self.n
-                   }
-
-        projection._connect(rule_params, syn_params)
-
+#class FixedProbabilityConnector():
+#
+#    def __init__(self, p_connect, allow_self_connections=True, with_replacement=True,
+#                 rng=None, safe=True, callback=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#
+#        self.p_connect = float(p_connect)
+##        self.rng = _get_rng(rng)
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'pairwise_bernoulli',
+#                       'p': self.p_connect}
+#        projection._connect(rule_params, syn_params)
+#
+#
+#class AllToAllConnector():
+#
+#    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
+#                 callback=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'all_to_all'}
+#
+#        projection._connect(rule_params, syn_params)
+#
+#
+#class OneToOneConnector():
+#
+#    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
+#                 callback=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'one_to_one'}
+#
+#        projection._connect(rule_params, syn_params)
+#
+#
+#class FixedNumberPreConnector():
+#
+#    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
+#                 callback=None, rng=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#        self.n = n
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'fixed_indegree',
+#                       'indegree': self.n }
+#
+#        projection._connect(rule_params, syn_params)
+#
+#
+#class FixedNumberPostConnector():
+#
+#    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
+#                 callback=None, rng=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#        self.n = n
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'fixed_outdegree',
+#                       'outdegree': self.n }
+#
+#        projection._connect(rule_params, syn_params)
+#
+#
+#class FixedTotalNumberConnector():
+#
+#    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
+#                 callback=None):
+#        self.allow_self_connections = allow_self_connections
+#        self.with_replacement = with_replacement
+#        self.n = n
+#
+#    def connect(self, projection):
+#        syn_params = projection.synapse_parameters()
+#        rule_params = {'autapses': self.allow_self_connections,
+#                       'multapses': self.with_replacement,
+#                       'rule': 'fixed_total_number',
+#                       'N': self.n
+#                   }
+#        projection._connect(rule_params, syn_params)
