@@ -188,9 +188,10 @@ class Projection(common.Projection):
                 if name not in self._common_synapse_property_names:
                     #logger.debug("Setting %s=%s for connections %s" % (name, value, connections))
                     if isinstance(value, numpy.ndarray):
-                        nest.SetStatus(connections, name, value[sort_indices].tolist())
+                        # the str() is to work around a bug handling unicode names in SetStatus in NEST 2.4.1 when using Python 2
+                        nest.SetStatus(connections, str(name), value[sort_indices].tolist())
                     else:
-                        nest.SetStatus(connections, name, value)
+                        nest.SetStatus(connections, str(name), value)
                 else:
                     self._set_common_synapse_property(name, value)
 
