@@ -37,6 +37,12 @@ def handle_options(ax, options):
         plt.setp(ax.get_xticklabels(), visible=False)
     if "xlabel" in options:
         ax.set_xlabel(options.pop("xlabel"))
+    if "yticks" not in options or options.pop("yticks") is False:
+        plt.setp(ax.get_yticklabels(), visible=False)
+    if "ylabel" in options:
+        ax.set_ylabel(options.pop("ylabel"))
+    if "ylim" in options:
+        ax.set_ylim(options.pop("ylim"))
 
 
 def plot_signal(ax, signal, index=None, label='', **options):
@@ -88,6 +94,17 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     ax.set_ylabel("Neuron index")
     ax.set_xlim(0, spiketrain.t_stop/ms)
     ax.set_ylim(-0.5, max_index + 0.5)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+	
+def plot_array(ax, arr, label='', **options):
+    """
+    Plots a numpy array as an image.
+    """
+    handle_options(ax, options)
+    plt.pcolormesh(arr, **options)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -194,6 +211,8 @@ class Panel(object):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
+	    elif isinstance(datum, np.ndarray):
+		plot_array(axes, datum, label=label, **properties)
             else:
                 raise Exception("Can't handle type %s" % type(datum))
     
