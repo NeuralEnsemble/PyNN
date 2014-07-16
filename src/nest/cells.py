@@ -21,7 +21,7 @@ def get_defaults(model_name):
               'frozen', 'instantiations', 'local', 'model', 'recordables',
               'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
-              'type', 'type_id']
+              'node_type', 'type', 'type_id']
     default_params = {}
     default_initial_values = {}
     for name,value in defaults.items():
