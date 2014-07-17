@@ -2,11 +2,16 @@ REG_ATTR = ''
 
 registry = []
 
-def register(exclude=[]):
+def register(include_only='', exclude=[]):
     def inner_register(scenario):
-        print "registering %s with exclude=%s" % (scenario, exclude)
         setattr(scenario, REG_ATTR, True)
         scenario.exclude = exclude
+        scenario.include_only = include_only
+        if include_only:
+            scenario.exclude = []
+        else:
+            scenario.exclude = exclude
+        print "registering %s with include_only =%s, exclude=%s" % (scenario, scenario.include_only, scenario.exclude)
         return scenario
     return inner_register
 

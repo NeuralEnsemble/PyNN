@@ -53,7 +53,7 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for t_c in registry:
         c = t_c()
         for scenario in c.registry:
-            if sim_name not in scenario.exclude:
+            if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
                 if have_sim:
                     func_setup()
