@@ -1,22 +1,29 @@
-from .. import test_population
-from registry import registry
-from sys import modules
+# --------------------------------------------------
+# get common imports from __init__.py
+# --------------------------------------------------
 
+from .glob_import import *
+   
+# --------------------------------------------------
+# CHANGE the name below for a new simulator backend
+# --------------------------------------------------
+
+sim_name = "mock"
+ 
+# --------------------------------------------------
+# CHANGE below only for a new hardware simulator backend
+# -------------------------------------------------- 
+ 
 try:
-    import unittest2 as unittest
+    exec("import pyNN.%s" % sim_name)
+    exec("sim = pyNN.%s" % sim_name)
+    have_sim = True
 except ImportError:
-    import unittest
-    
-try:
-    import pyNN.mock
-    sim = pyNN.mock
-    have_mock = True
-except ImportError:
-    have_mock = False
+    have_sim = False
 
 def setUp():
-    for t_c in registry:
-        m = modules[t_c.__module__]
+    for c in registry:
+        m = modules[c.__module__]
         m.alias_cell_types(
             alias_IF_cond_exp=sim.IF_cond_exp,
             alias_IF_cond_alpha=sim.IF_cond_alpha,
@@ -36,20 +43,24 @@ def func_setup():
     
 def func_teardown():
     sim.end()
-    
-def test_scenarios():
+
+# --------------------------------------------------
+# DON'T CHANGE below this line
+# --------------------------------------------------
+
+def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     print registry[0].__module__
     for t_c in registry:
         c = t_c()
         for scenario in c.registry:
-            if "mock" not in scenario.exclude:
+            if sim_name not in scenario.exclude:
                 scenario.description = scenario.__name__
-                if have_mock:
+                if have_sim:
                     func_setup()
                     yield scenario, c, sim
                     func_teardown()
                 else:
                     raise SkipTest
-                
+
 if __name__ == "__main__":
     unittest.main()
