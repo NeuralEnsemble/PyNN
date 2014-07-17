@@ -19,7 +19,7 @@ import pyNN.mock as sim
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from backends.registry import register_class, register
+from .backends.registry import register_class, register
 
 def alias_cell_types(alias_IF_cond_exp,
                      alias_IF_cond_alpha,
