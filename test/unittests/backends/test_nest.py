@@ -9,7 +9,7 @@ from .glob_import import *
 # --------------------------------------------------
 
 sim_name = "nest"
- 
+
 # --------------------------------------------------
 # CHANGE below only for a new hardware simulator backend
 # -------------------------------------------------- 
@@ -22,18 +22,9 @@ except ImportError:
     have_sim = False
 
 def setUp():
-    for c in registry:
-        m = modules[c.__module__]
-        m.alias_cell_types(
-            alias_IF_cond_exp=sim.IF_cond_exp,
-            alias_IF_cond_alpha=sim.IF_cond_alpha,
-            alias_HH_cond_exp=sim.HH_cond_exp,
-            alias_IF_curr_exp=sim.IF_curr_exp,
-            alias_IF_curr_alpha=sim.IF_curr_alpha,
-            alias_EIF_cond_exp_isfa_ista=sim.EIF_cond_exp_isfa_ista,
-            alias_SpikeSourceArray=sim.SpikeSourceArray,
-            alias_SpikeSourcePoisson=sim.SpikeSourcePoisson
-            )
+    for TestClass in registry:
+        m = modules[TestClass.__module__]
+        alias_cell_types(m, **take_all_cell_classes(sim))
     
 def tearDown():
     assert True
@@ -46,21 +37,20 @@ def func_teardown():
 
 # --------------------------------------------------
 # DON'T CHANGE below this line
-# --------------------------------------------------
-
-def test_scenarios(sim_name=sim_name, have_sim=have_sim):
-    print registry[0].__module__
-    for t_c in registry:
-        c = t_c()
-        for scenario in c.registry:
+# -------------------------------------------------- 
+    
+def test_scenarios(sim_name=sim_name, have_sim=have_sim, func_setup=func_setup, func_teardown=func_teardown):
+    for TestClass in registry:
+        test_class = TestClass()
+        for scenario in test_class.registry:
             if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
                 if have_sim:
                     func_setup()
-                    yield scenario, c, sim
+                    yield scenario, test_class, sim
                     func_teardown()
                 else:
-                    raise SkipTest
-
+                    raise SkipTest  
+                
 if __name__ == "__main__":
     unittest.main()

@@ -11,55 +11,25 @@ try:
 except ImportError:
     import unittest
 import numpy
+import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import quantities as pq
 from mock import Mock, patch
-from .mocks import MockRNG
+from mocks import MockRNG
 import pyNN.mock as sim
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from .backends.registry import register_class, register
-
-def alias_cell_types(alias_IF_cond_exp,
-                     alias_IF_cond_alpha,
-                     alias_HH_cond_exp,
-                     alias_IF_curr_exp,
-                     alias_IF_curr_alpha,
-                     alias_EIF_cond_exp_isfa_ista,
-                     alias_SpikeSourceArray, 
-                     alias_SpikeSourcePoisson
-                     ):
-    global IF_cond_exp
-    global IF_cond_alpha
-    global HH_cond_exp
-    global IF_curr_exp
-    global IF_curr_alpha
-    global EIF_cond_exp_isfa_ista
-    global SpikeSourceArray
-    global SpikeSourcePoisson
-    IF_cond_exp = alias_IF_cond_exp
-    IF_cond_alpha = alias_IF_cond_alpha
-    HH_cond_exp = alias_HH_cond_exp
-    IF_curr_exp = alias_IF_curr_exp
-    IF_curr_alpha = alias_IF_curr_alpha
-    EIF_cond_exp_isfa_ista = alias_EIF_cond_exp_isfa_ista
-    SpikeSourceArray = alias_SpikeSourceArray
-    SpikeSourcePoisson = alias_SpikeSourcePoisson
+from backends.registry import register_class, register
+from alias_cell_types import alias_cell_types, take_all_cell_classes
  
 @register_class()
 class PopulationTest(unittest.TestCase):
     
     def setUp(self):
         alias_cell_types(
-            alias_IF_cond_exp=sim.IF_cond_exp,
-            alias_IF_cond_alpha=sim.IF_cond_alpha,
-            alias_HH_cond_exp=sim.HH_cond_exp,
-            alias_IF_curr_exp=sim.IF_curr_exp,
-            alias_IF_curr_alpha=sim.IF_curr_alpha,
-            alias_EIF_cond_exp_isfa_ista=sim.EIF_cond_exp_isfa_ista,
-            alias_SpikeSourceArray=sim.SpikeSourceArray,
-            alias_SpikeSourcePoisson=sim.SpikeSourcePoisson
+            sys.modules[__name__],
+            **take_all_cell_classes(sim)
             )
         sim.setup()
 

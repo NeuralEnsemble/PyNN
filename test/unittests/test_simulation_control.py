@@ -17,10 +17,15 @@ try:
 except ImportError:
     MPI = None
 
+from .backends.registry import register_class, register
+
 if MPI:
     mpi_comm = MPI.COMM_WORLD
 
+@register_class()
 class TestSimulationControl(unittest.TestCase):
+    
+    @register()
     def test_setup(self):
         self.assertRaises(Exception, sim.setup, min_delay=1.0, max_delay=0.9)
         self.assertRaises(Exception, sim.setup, mindelay=1.0)  # } common
@@ -28,21 +33,25 @@ class TestSimulationControl(unittest.TestCase):
         self.assertRaises(Exception, sim.setup, dt=0.1)        # }
         self.assertRaises(Exception, sim.setup, timestep=0.1, min_delay=0.09)
 
+    @register()
     def test_end(self):
         sim.setup()
         sim.end() # need a better test
     
+    @register()
     def test_run(self):
         sim.setup()
         self.assertEqual(sim.run(1000.0), 1000.0)
         self.assertEqual(sim.run(1000.0), 2000.0)
     
+    @register()
     def test_reset(self):
         sim.setup()
         sim.run(1000.0)
         sim.reset()
         self.assertEqual(sim.get_current_time(), 0.0)
     
+    @register()
     def test_current_time(self):
         sim.setup(timestep=0.1)
         sim.run(10.1)
@@ -50,18 +59,22 @@ class TestSimulationControl(unittest.TestCase):
         sim.run(23.4)
         self.assertEqual(sim.get_current_time(), 33.5)
     
+    @register()
     def test_time_step(self):
         sim.setup(0.123, min_delay=0.246)
         self.assertEqual(sim.get_time_step(), 0.123)
     
+    @register()
     def test_min_delay(self):
         sim.setup(0.123, min_delay=0.246)
         self.assertEqual(sim.get_min_delay(), 0.246)
     
+    @register()
     def test_max_delay(self):
         sim.setup(max_delay=9.87)
         self.assertEqual(sim.get_max_delay(), 9.87)
 
+    @register()
     def test_callbacks(self):
         total_time = 100.
         callback_steps = [10., 10., 20., 25.]
