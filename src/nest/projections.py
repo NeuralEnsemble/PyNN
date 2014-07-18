@@ -13,10 +13,8 @@ import logging
 from itertools import repeat
 from pyNN import common, errors
 from pyNN.space import Space
-from pyNN.nest import NEST_RDEV_TYPES
 from . import simulator
 from pyNN.random import RandomDistribution
-from pyNN.nest.random import NativeRNG
 from .standardmodels.synapses import StaticSynapse
 from .conversion import make_sli_compatible
 
@@ -93,28 +91,6 @@ class Projection(common.Projection):
             tau_syn = nest.GetStatus(targets, (param_name))
             nest.SetStatus(self.connections, 'tau_psc', tau_syn)
 
-    def synapse_parameters(self):
-        params = {'model': self.nest_synapse_model}
-        parameter_space = self.synapse_type.native_parameters
-        for ii, jj in parameter_space.items():
-            if isinstance(jj.base_value, RandomDistribution):               # Random Distribution specified
-                if jj.base_value.name in NEST_RDEV_TYPES:
-                    logger.warning("Random values will be created inside NEST with NEST's own RNGs")
-                    params[ii] = NativeRNG(jj.base_value).parameters
-                else:
-                    jj.shape = (self.pre.size, self.post.size)
-                    params[ii] = jj.evaluate()
-
-            else:                                                           # explicit values given
-                if jj.shape:
-                    params[ii] = jj.evaluate()  # If ii is given as an array
-                else:
-                    jj.shape = (1, 1)
-                    params[ii] = float(jj.evaluate())  # If ii is given as a single number. Checking of the dimensions should be done in NEST
-                if ii == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
-                    params[ii] *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
-        return params
-
     def _connect(self, rule_params, syn_params):
         """
         Create connections by calling nest.Connect on the presynaptic and postsynaptic population
@@ -140,12 +116,16 @@ class Projection(common.Projection):
         postsynaptic_cell = self.post[postsynaptic_index]
         assert presynaptic_cells.size == presynaptic_indices.size
         assert len(presynaptic_cells) > 0, presynaptic_cells
+
         weights = connection_parameters.pop('weight')
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
         if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
             weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
         delays = connection_parameters.pop('delay')
+
+        # Create connections, with weights and delays
+        # Setting other connection parameters is done afterwards
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:
                 nest.ConvergentConnect(presynaptic_cells.astype(int).tolist(),
@@ -167,16 +147,22 @@ class Projection(common.Projection):
                              'one_to_one',
                              {'weight': w, 'delay': d, 'receptor_type': receptor_type,
                               'model': self.nest_synapse_model})
+
+        # Book-keeping
         self._connections = None  # reset the caching of the connection list, since this will have to be recalculated
         self._sources.extend(presynaptic_cells)
+
+        # Clean the connection parameters
         connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
-        # We need to distinguish between common synapse parameters from local ones
+
+        # We need to distinguish between common synapse parameters and local ones
         # We just get the parameters of the first connection (is there an easier way?)
         if self._common_synapse_property_names is None:
             self._identify_common_synapse_properties()
 
+        # Set connection parameters other than weight and delay
         if connection_parameters:
             #logger.debug(connection_parameters)
             sort_indices = numpy.argsort(presynaptic_cells)

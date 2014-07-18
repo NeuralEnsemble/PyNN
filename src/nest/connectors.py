@@ -6,6 +6,13 @@ Connection method classes for nest
 
 """
 
+import logging
+import nest
+try:
+    import csa
+    haveCSA = True
+except ImportError:
+    haveCSA = False
 from pyNN import random, core, errors
 from pyNN.connectors import Connector, \
                             AllToAllConnector, \
@@ -22,14 +29,10 @@ from pyNN.connectors import Connector, \
                             CloneConnector, \
                             ArrayConnector
 
+from .random import NativeRNG, NEST_RDEV_TYPES
 
-import nest
 
-try:
-    import csa
-    haveCSA = True
-except ImportError:
-    haveCSA = False
+logger = logging.getLogger("PyNN")
 
 
 if not nest.sli_func("statusdict/have_libneurosim ::"):
@@ -90,6 +93,34 @@ else:
             projection._sources.extend(presynaptic_cells)
 
 
+class NESTConnectorMixin(object):
+
+    def synapse_parameters(self, projection):
+        params = {'model': projection.nest_synapse_model}
+        parameter_space = self._parameters_from_synapse_type(projection, distance_map=None)
+        for name, value in parameter_space.items():
+            if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):
+                continue
+            if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
+                if value.base_value.name in NEST_RDEV_TYPES:
+                    logger.warning("Random values will be created inside NEST with NEST's own RNGs")
+                    params[name] = NativeRNG(value.base_value).parameters
+                else:
+                    value.shape = (projection.pre.size, projection.post.size)
+                    params[name] = value.evaluate()
+            else:                                             # explicit values given
+                if value.is_homogeneous:
+                    params[name] = value.evaluate(simplify=True)
+                elif value.shape:
+                    params[name] = value.evaluate().flatten()    # If parameter is given as an array or function
+                else:
+                    value.shape = (1, 1)
+                    params[name] = float(value.evaluate())  # If parameter is given as a single number. Checking of the dimensions should be done in NEST
+                if name == "weight" and projection.receptor_type == 'inhibitory' and self.post.conductance_based:
+                    params[name] *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
+        return params
+
+
 #class FixedProbabilityConnector():
 #
 #    def __init__(self, p_connect, allow_self_connections=True, with_replacement=True,
@@ -107,24 +138,19 @@ else:
 #                       'rule': 'pairwise_bernoulli',
 #                       'p': self.p_connect}
 #        projection._connect(rule_params, syn_params)
-#
-#
-#class AllToAllConnector():
-#
-#    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
-#                 callback=None):
-#        self.allow_self_connections = allow_self_connections
-#        self.with_replacement = with_replacement
+
+
+#class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 #
 #    def connect(self, projection):
-#        syn_params = projection.synapse_parameters()
+#        syn_params = self.synapse_parameters(projection)
 #        rule_params = {'autapses': self.allow_self_connections,
-#                       'multapses': self.with_replacement,
+#                       'multapses': False,
 #                       'rule': 'all_to_all'}
 #
 #        projection._connect(rule_params, syn_params)
-#
-#
+
+
 #class OneToOneConnector():
 #
 #    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
