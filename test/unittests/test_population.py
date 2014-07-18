@@ -27,10 +27,7 @@ from alias_cell_types import alias_cell_types, take_all_cell_classes
 class PopulationTest(unittest.TestCase):
     
     def setUp(self):
-        alias_cell_types(
-            sys.modules[__name__],
-            **take_all_cell_classes(sim)
-            )
+        alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
         sim.setup()
 
     def runTest():

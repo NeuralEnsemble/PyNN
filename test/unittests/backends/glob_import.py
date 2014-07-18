@@ -1,8 +1,9 @@
 # encoding: utf-8
 
 from ..alias_cell_types import alias_cell_types, take_all_cell_classes
-from .. import test_population
 from .. import test_simulation_control
+from .. import test_population
+from .. import test_assembly
 try:
     import unittest2 as unittest
 except ImportError:
@@ -20,5 +21,4 @@ def is_included(sim_name, scenario):
         included = True
     elif sim_name not in scenario.exclude:
         included = True
-    
     return included
