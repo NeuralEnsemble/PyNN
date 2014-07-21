@@ -490,8 +490,9 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(w.shape, (num_points, p.size))
         self.assertEqual(v.t_start, 0.0)
         self.assertEqual(len(seg1.spiketrains), p.size)
-        assert_array_equal(seg1.spiketrains[7],
-                            numpy.array([p.first_id+7, p.first_id+7+5]) % t3)
+        if sim.__name__ == "mock":
+            assert_array_equal(seg1.spiketrains[7],
+                               numpy.array([p.first_id+7, p.first_id+7+5]) % t3)
 
     #def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
