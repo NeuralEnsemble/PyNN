@@ -22,9 +22,10 @@ except ImportError:
     have_sim = False
 
 def setUp():
-    for TestClass in registry:
-        m = modules[TestClass.__module__]
-        alias_cell_types(m, **take_all_cell_classes(sim))
+    if have_sim:
+        for TestClass in registry:
+            m = modules[TestClass.__module__]
+            alias_cell_types(m, **take_all_cell_classes(sim))
     
 def tearDown():
     pass
@@ -46,7 +47,9 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
                     yield scenario, test_class, sim
                     test_class.tearDown(sim)
                 else:
-                    raise SkipTest  
+                    yield skip
+            else:
+                yield skip
                 
 if __name__ == "__main__":
     unittest.main()

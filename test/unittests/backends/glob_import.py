@@ -13,6 +13,7 @@ try:
 except ImportError:
     import unittest
     
+from nose.plugins.skip import SkipTest
 from registry import registry
 from sys import modules 
 
@@ -26,3 +27,6 @@ def is_included(sim_name, scenario):
     elif (not scenario.include_only) and (sim_name not in scenario.exclude):
         included = True
     return included
+
+def skip():
+    raise SkipTest

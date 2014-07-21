@@ -22,20 +22,21 @@ except ImportError:
     have_sim = False
 
 def setUp():
-    for TestClass in registry:
-        m = modules[TestClass.__module__]
-        alias_cell_types(m, 
-                         IF_cond_exp = sim.Hardware_IF_cond_exp,
-                         EIF_cond_exp_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
-                         SpikeSourceArray = sim.SpikeSourceArray,
-                         SpikeSourcePoisson = sim.SpikeSourcePoisson,
-                         EIF_cond_alpha_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
-                         IF_curr_alpha = sim.Hardware_IF_cond_exp,
-                         IF_curr_exp = sim.Hardware_IF_cond_exp,
-                         IF_cond_alpha = sim.Hardware_IF_cond_exp,
-                         IF_cond_exp_gsfa_grr = sim.Hardware_IF_cond_exp,
-                         HH_cond_exp = sim.Hardware_IF_cond_exp
-                         )
+    if have_sim:
+        for TestClass in registry:
+            m = modules[TestClass.__module__]
+            alias_cell_types(m, 
+                            IF_cond_exp = sim.Hardware_IF_cond_exp,
+                            EIF_cond_exp_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
+                            SpikeSourceArray = sim.SpikeSourceArray,
+                            SpikeSourcePoisson = sim.SpikeSourcePoisson,
+                            EIF_cond_alpha_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
+                            IF_curr_alpha = sim.Hardware_IF_cond_exp,
+                            IF_curr_exp = sim.Hardware_IF_cond_exp,
+                            IF_cond_alpha = sim.Hardware_IF_cond_exp,
+                            IF_cond_exp_gsfa_grr = sim.Hardware_IF_cond_exp,
+                            HH_cond_exp = sim.Hardware_IF_cond_exp
+                            )
     
 def tearDown():
     pass
@@ -57,7 +58,9 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
                     yield scenario, test_class, sim
                     test_class.tearDown(sim)
                 else:
-                    raise SkipTest  
+                    yield skip
+            else:
+                yield skip
                 
 if __name__ == "__main__":
     unittest.main()

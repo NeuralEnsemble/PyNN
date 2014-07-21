@@ -11,7 +11,7 @@ def register(include_only='', exclude=[]):
             scenario.exclude = []
         else:
             scenario.exclude = exclude
-        #print "registering %s with include_only =%s, exclude=%s" % (scenario, scenario.include_only, scenario.exclude)
+        print "registering %s with include_only =%s, exclude=%s" % (scenario, scenario.include_only, scenario.exclude)
         return scenario
     return inner_register
 

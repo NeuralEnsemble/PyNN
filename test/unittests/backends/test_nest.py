@@ -17,17 +17,19 @@ sim_name = "nest"
 try:
     exec("import pyNN.%s" % sim_name)
     exec("sim = pyNN.%s" % sim_name)
+    import nest
     have_sim = True
 except ImportError:
     have_sim = False
 
 def setUp():
-    for TestClass in registry:
-        m = modules[TestClass.__module__]
-        alias_cell_types(m, **take_all_cell_classes(sim))
+    if have_sim:
+        for TestClass in registry:
+            m = modules[TestClass.__module__]
+            alias_cell_types(m, **take_all_cell_classes(sim))
     
 def tearDown():
-    pass
+    sim.setup(verbosity='error')
 
 extra = {}
 
@@ -41,12 +43,16 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
         for scenario in test_class.registry:
             if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
+                print scenario.description
                 if have_sim:
                     test_class.setUp(sim, **extra)
                     yield scenario, test_class, sim
                     test_class.tearDown(sim)
                 else:
-                    raise SkipTest  
+                    yield skip 
+            else:
+                yield skip
                 
 if __name__ == "__main__":
     unittest.main()
+    
