@@ -30,7 +30,7 @@ def setUp():
 class PopulationViewTest(unittest.TestCase):
 
     def setUp(self, sim=sim, **extra):
-        sim.setup()
+        sim.setup(**extra)
         
     def tearDown(self, sim=sim):
         sim.end()

@@ -23,11 +23,13 @@ from pyNN.parameters import Sequence
 from backends.registry import register_class, register
 from alias_cell_types import alias_cell_types, take_all_cell_classes
  
+def setUp():
+    alias_cell_types(sys.modules[__name__], **take_all_cell_classes(sim)) 
+ 
 @register_class()
 class PopulationTest(unittest.TestCase):
     
     def setUp(self, sim=sim, **extra):
-        alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
         sim.setup(**extra)
         
     def tearDown(self, sim=sim):
