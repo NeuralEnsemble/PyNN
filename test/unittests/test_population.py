@@ -490,9 +490,32 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(w.shape, (num_points, p.size))
         self.assertEqual(v.t_start, 0.0)
         self.assertEqual(len(seg1.spiketrains), p.size)
-        if sim.__name__ == "mock":
-            assert_array_equal(seg1.spiketrains[7],
-                               numpy.array([p.first_id+7, p.first_id+7+5]) % t3)
+            
+    @register(include_only='mock')
+    def test_get_spikes_with_gather(self, sim=sim):
+        t1 = 12.3
+        t2 = 13.4
+        t3 = 14.5
+        p = sim.Population(14, EIF_cond_exp_isfa_ista())
+        p.record('v')
+        sim.run(t1)
+        sim.run(t2)
+        sim.reset()
+        p.record('spikes')
+        p.record('w')
+        sim.run(t3)
+        data = p.get_data(gather=True)
+        self.assertEqual(len(data.segments), 2)
+
+        seg0 = data.segments[0]
+        self.assertEqual(len(seg0.analogsignalarrays), 1)
+        self.assertEqual(len(seg0.spiketrains), 0)
+
+        seg1 = data.segments[1]
+        self.assertEqual(len(seg1.analogsignalarrays), 2)
+        self.assertEqual(len(seg1.spiketrains), p.size)
+        assert_array_equal(seg1.spiketrains[7],
+                            numpy.array([p.first_id+7, p.first_id+7+5]) % t3)
 
     #def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
