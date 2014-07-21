@@ -26,12 +26,12 @@ from alias_cell_types import alias_cell_types, take_all_cell_classes
 @register_class()
 class PopulationTest(unittest.TestCase):
     
-    def setUp(self):
+    def setUp(self, sim=sim, **extra):
         alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
-        sim.setup()
-
-    def runTest():
-        assert True
+        sim.setup(**extra)
+        
+    def tearDown(self, sim=sim):
+        sim.end()
         
     @register()
     def test_create_with_standard_cell_simple(self, sim=sim):
@@ -49,7 +49,7 @@ class PopulationTest(unittest.TestCase):
                                                     'cm': lambda i: 0.987 + 0.01*i,
                                                     'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
         cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=True)
-        assert_array_equal(cm, numpy.array([0.987, 0.997, 1.007, 1.017]))
+        assert_array_almost_equal(cm, numpy.array([0.987, 0.997, 1.007, 1.017]))
         self.assertEqual(tau_m, 12.3)
         assert_array_equal(i_offset, numpy.array([-0.21, -0.20, -0.19, -0.18]))
 
@@ -306,7 +306,7 @@ class PopulationTest(unittest.TestCase):
         p.set(cm=random.RandomDistribution('uniform', (0.5, 1.5), rng=rng), tau_m=9.87)
         tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([1.21, 1.22, 1.23, 1.24]))
-        assert_array_equal(tau_m, 9.87*numpy.ones((4,)))
+        assert_array_almost_equal(tau_m, 9.87*numpy.ones((4,)))
         assert_array_equal(i_offset, -0.21*numpy.ones((4,)))
 
     @register()

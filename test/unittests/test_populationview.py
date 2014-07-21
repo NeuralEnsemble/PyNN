@@ -26,12 +26,12 @@ from alias_cell_types import alias_cell_types, take_all_cell_classes
 @register_class()
 class PopulationViewTest(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self, sim=sim, **extra):
         alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
         sim.setup()
-
-    def runTest():
-        assert True
+        
+    def tearDown(self, sim=sim):
+        sim.end()
         
     # test create with population parent and mask selector
     @register()
@@ -309,12 +309,12 @@ class PopulationViewTest(unittest.TestCase):
         pv.set(cm=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng), tau_m=9.87)
         tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([1.21, 1.22, 1.23, 0.987]))
-        assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
+        assert_array_almost_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
         assert_array_equal(i_offset, -0.21*numpy.ones((4,)))
 
         tau_m, cm, i_offset = pv.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([1.21, 1.22, 1.23]))
-        assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87]))
+        assert_array_almost_equal(tau_m, numpy.array([9.87, 9.87, 9.87]))
         assert_array_equal(i_offset, -0.21*numpy.ones((3,)))
 
     @register()
@@ -488,7 +488,7 @@ class PopulationViewTest(unittest.TestCase):
     #def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
 
-    @register()
+    @register(include_only='mock')
     def test_get_spike_counts(self, sim=sim):
         p = sim.Population(5, EIF_cond_exp_isfa_ista())
         pv = p[0, 1, 4]
@@ -499,7 +499,7 @@ class PopulationViewTest(unittest.TestCase):
                           p.all_cells[1]: 2,
                           p.all_cells[4]: 2})
 
-    @register()
+    @register(include_only='mock')
     def test_mean_spike_count(self, sim=sim):
         p = sim.Population(14, EIF_cond_exp_isfa_ista())
         pv = p[2::3]

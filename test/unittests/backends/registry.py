@@ -15,11 +15,16 @@ def register(include_only='', exclude=[]):
         return scenario
     return inner_register
 
+def runTest(self):
+    pass
+
+
 def register_class():
     def inner_register(cls):
         cls.registry = []
         print "registering %s" % (cls)
         if cls not in registry:
+            setattr(cls, "runTest", eval("runTest"))
             registry.append(cls)
         for name, func in list(cls.__dict__.items()):
             if hasattr(func, REG_ATTR):

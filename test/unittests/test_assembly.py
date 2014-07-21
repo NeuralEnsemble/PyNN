@@ -24,13 +24,13 @@ from alias_cell_types import alias_cell_types
 @register_class()
 class AssemblyTest(unittest.TestCase):
 
-    def setUp(self):
+    def setUp(self, sim=sim, **extra):
         alias_cell_types(sys.modules[__name__], IF_cond_exp=sim.IF_cond_exp)
         sim.setup()
 
-    def runTest():
-        assert True
-
+    def tearDown(self, sim=sim):
+        sim.end()
+        
     @register()
     def test_create_with_zero_populations(self, sim=sim):
         a = sim.Assembly()

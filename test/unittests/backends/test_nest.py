@@ -27,28 +27,24 @@ def setUp():
         alias_cell_types(m, **take_all_cell_classes(sim))
     
 def tearDown():
-    assert True
-    
-def func_setup():
-    sim.setup()
-    
-def func_teardown():
-    sim.end()
+    pass
+
+extra = {}
 
 # --------------------------------------------------
 # DON'T CHANGE below this line
 # -------------------------------------------------- 
     
-def test_scenarios(sim_name=sim_name, have_sim=have_sim, func_setup=func_setup, func_teardown=func_teardown):
+def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
         test_class = TestClass()
         for scenario in test_class.registry:
             if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
                 if have_sim:
-                    func_setup()
+                    test_class.setUp(sim, **extra)
                     yield scenario, test_class, sim
-                    func_teardown()
+                    test_class.tearDown(sim)
                 else:
                     raise SkipTest  
                 

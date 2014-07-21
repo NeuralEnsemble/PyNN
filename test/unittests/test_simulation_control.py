@@ -24,9 +24,12 @@ if MPI:
 
 @register_class()
 class TestSimulationControl(unittest.TestCase):
-
-    def runTest():
-        assert True
+        
+    def setUp(self, sim=sim, **extra):
+        pass
+    
+    def tearDown(self, sim=sim):
+        pass
         
     @register()
     def test_setup(self, sim=sim):
@@ -44,8 +47,9 @@ class TestSimulationControl(unittest.TestCase):
     @register()
     def test_run(self, sim=sim):
         sim.setup()
-        self.assertEqual(sim.run(1000.0), 1000.0)
-        self.assertEqual(sim.run(1000.0), 2000.0)
+        self.assertAlmostEqual(sim.run(1000.0), 1000.0)
+        self.assertAlmostEqual(sim.run(1000.0), 2000.0)
+        sim.end()
     
     @register()
     def test_reset(self, sim=sim):
@@ -53,29 +57,34 @@ class TestSimulationControl(unittest.TestCase):
         sim.run(1000.0)
         sim.reset()
         self.assertEqual(sim.get_current_time(), 0.0)
+        sim.end()
     
     @register()
     def test_current_time(self, sim=sim):
         sim.setup(timestep=0.1)
         sim.run(10.1)
-        self.assertEqual(sim.get_current_time(), 10.1)
+        self.assertAlmostEqual(sim.get_current_time(), 10.1)
         sim.run(23.4)
-        self.assertEqual(sim.get_current_time(), 33.5)
+        self.assertAlmostEqual(sim.get_current_time(), 33.5)
+        sim.end()
     
     @register()
     def test_time_step(self, sim=sim):
         sim.setup(0.123, min_delay=0.246)
-        self.assertEqual(sim.get_time_step(), 0.123)
+        self.assertAlmostEqual(sim.get_time_step(), 0.123)
+        sim.end()
     
     @register()
     def test_min_delay(self, sim=sim):
         sim.setup(0.123, min_delay=0.246)
         self.assertEqual(sim.get_min_delay(), 0.246)
+        sim.end()
     
     @register()
     def test_max_delay(self, sim=sim):
         sim.setup(max_delay=9.87)
-        self.assertEqual(sim.get_max_delay(), 9.87)
+        self.assertAlmostEqual(sim.get_max_delay(), 9.87)
+        sim.end()
 
     @register()
     def test_callbacks(self, sim=sim):
@@ -96,6 +105,7 @@ class TestSimulationControl(unittest.TestCase):
         callbacks = [make_callback(i) for i in range(num_callbacks)]
         sim.setup(timestep=0.1, min_delay=0.1)
         sim.run_until(total_time, callbacks=callbacks)
+        sim.end()
 
         self.assertTrue(all(callback_callcount[i] == expected_callcount[i]
             for i in range(num_callbacks)))
