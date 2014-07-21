@@ -54,20 +54,33 @@ class TestSimulationControl(unittest.TestCase):
     @register()
     def test_run(self, sim=sim):
         sim.setup(**self.extra)
-        self.assertAlmostEqual(sim.run(1000.0), 1000.0)
-        self.assertAlmostEqual(sim.run(1000.0), 2000.0)
+        self.assertAlmostEqual(sim.run(100.0), 100.0)
+        sim.end()
+        
+    @register(exclude=['hardware.brainscales'])
+    def test_run_twice(self, sim=sim):
+        sim.setup(**self.extra)
+        self.assertAlmostEqual(sim.run(100.0), 100.0)
+        self.assertAlmostEqual(sim.run(100.0), 200.0)
         sim.end()
     
     @register()
     def test_reset(self, sim=sim):
         sim.setup(**self.extra)
-        sim.run(1000.0)
+        sim.run(100.0)
         sim.reset()
         self.assertEqual(sim.get_current_time(), 0.0)
         sim.end()
-    
+ 
     @register()
     def test_current_time(self, sim=sim):
+        sim.setup(timestep=0.1, **self.extra)
+        sim.run(10.1)
+        self.assertAlmostEqual(sim.get_current_time(), 10.1)
+        sim.end()
+        
+    @register(exclude=['hardware.brainscales'])
+    def test_current_time_two_runs(self, sim=sim):
         sim.setup(timestep=0.1, **self.extra)
         sim.run(10.1)
         self.assertAlmostEqual(sim.get_current_time(), 10.1)
