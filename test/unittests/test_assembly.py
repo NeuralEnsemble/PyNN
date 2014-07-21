@@ -21,12 +21,14 @@ import pyNN.mock as sim
 from .backends.registry import register_class, register
 from alias_cell_types import alias_cell_types
 
+def setUp():
+    alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
+    
 @register_class()
 class AssemblyTest(unittest.TestCase):
 
     def setUp(self, sim=sim, **extra):
-        alias_cell_types(sys.modules[__name__], IF_cond_exp=sim.IF_cond_exp)
-        sim.setup()
+        sim.setup(**extra)
 
     def tearDown(self, sim=sim):
         sim.end()

@@ -6,6 +6,7 @@ from .. import test_population
 from .. import test_populationview
 from .. import test_assembly
 #from .. import test_connectors
+
 try:
     import unittest2 as unittest
 except ImportError:
