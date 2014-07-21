@@ -18,8 +18,6 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mock import Mock, patch
 from .mocks import MockRNG
 import pyNN.mock as sim
-#import pyNN.neuron as sim
-#import pyNN.nest as sim
 
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
