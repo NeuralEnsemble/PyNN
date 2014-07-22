@@ -1,8 +1,8 @@
 # encoding: utf-8
 
 from ..alias_cell_types import alias_cell_types, take_all_cell_classes
-from .. import test_simulation_control
-#from .. import test_population
+#from .. import test_simulation_control
+from .. import test_population
 #from .. import test_populationview
 #from .. import test_assembly
 #from .. import test_connectors

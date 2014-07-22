@@ -48,12 +48,12 @@ class PopulationTest(unittest.TestCase):
     @register()
     def test_create_with_parameters(self, sim=sim):
         p = sim.Population(4, IF_cond_exp(**{'tau_m': 12.3,
-                                                    'cm': lambda i: 0.987 + 0.01*i,
-                                                    'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
-        cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=True)
-        assert_array_almost_equal(cm, numpy.array([0.987, 0.997, 1.007, 1.017]))
+                                                    'tau_syn_E': lambda i: 0.987 + 0.01*i,
+                                                    'tau_syn_I': numpy.array([0.5, 0.6, 0.7, 0.8])}))
+        tau_syn_E, tau_m, tau_syn_I = p.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
+        assert_array_almost_equal(tau_syn_E, numpy.array([0.987, 0.997, 1.007, 1.017]))
         self.assertEqual(tau_m, 12.3)
-        assert_array_equal(i_offset, numpy.array([-0.21, -0.20, -0.19, -0.18]))
+        assert_array_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]))
 
     # test create native cell
 
@@ -252,41 +252,41 @@ class PopulationTest(unittest.TestCase):
 
     @register()
     def test_get_multiple_homogeneous_params_with_gather(self, sim=sim):
-        p = sim.Population(4, IF_cond_exp(**{'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21}))
-        cm, tau_m = p.get(('cm', 'tau_m'), gather=True)
-        self.assertIsInstance(cm, float)
-        self.assertEqual(cm, 0.987)
+        p = sim.Population(4, IF_cond_exp(**{'tau_m': 12.3, 'tau_syn_E': 0.987, 'tau_syn_I': 0.7}))
+        tau_syn_E, tau_m = p.get(('tau_syn_E', 'tau_m'), gather=True)
+        self.assertIsInstance(tau_syn_E, float)
+        self.assertEqual(tau_syn_E, 0.987)
         self.assertEqual(tau_m, 12.3)
 
     @register()
     def test_get_single_param_with_gather(self, sim=sim):
-        p = sim.Population(4, IF_cond_exp(tau_m=12.3, cm=0.987, i_offset=0.21))
-        cm = p.get('cm', gather=True)
-        self.assertEqual(cm, 0.987)
+        p = sim.Population(4, IF_cond_exp(tau_m=12.3, tau_syn_E=0.987, tau_syn_I=0.7))
+        tau_syn_E = p.get('tau_syn_E', gather=True)
+        self.assertEqual(tau_syn_E, 0.987)
 
     @register()
     def test_get_multiple_inhomogeneous_params_with_gather(self, sim=sim):
         p = sim.Population(4, IF_cond_exp(tau_m=12.3,
-                                                cm=[0.987, 0.988, 0.989, 0.990],
-                                                i_offset=lambda i: -0.2*i))
-        cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=True)
+                                                tau_syn_E=[0.987, 0.988, 0.989, 0.990],
+                                                tau_syn_I=lambda i: 0.5+0.1*i))
+        tau_syn_E, tau_m, tau_syn_I = p.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
         self.assertIsInstance(tau_m, float)
-        self.assertIsInstance(cm, numpy.ndarray)
-        assert_array_equal(cm, numpy.array([0.987, 0.988, 0.989, 0.990]))
+        self.assertIsInstance(tau_syn_E, numpy.ndarray)
+        assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.989, 0.990]))
         self.assertEqual(tau_m, 12.3)
-        assert_array_almost_equal(i_offset, numpy.array([-0.0, -0.2, -0.4, -0.6]), decimal=12)
+        assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]), decimal=12)
 
     @register(include_only='mock')
     def test_get_multiple_params_no_gather(self, sim=sim):
         sim.simulator.state.num_processes = 2
         sim.simulator.state.mpi_rank = 1
         p = sim.Population(4, IF_cond_exp(tau_m=12.3,
-                                                cm=[0.987, 0.988, 0.989, 0.990],
+                                                tau_syn_E=[0.987, 0.988, 0.989, 0.990],
                                                 i_offset=lambda i: -0.2*i))
-        cm, tau_m, i_offset = p.get(('cm', 'tau_m', 'i_offset'), gather=False)
+        tau_syn_E, tau_m, i_offset = p.get(('tau_syn_E', 'tau_m', 'i_offset'), gather=False)
         self.assertIsInstance(tau_m, float)
-        self.assertIsInstance(cm, numpy.ndarray)
-        assert_array_equal(cm, numpy.array([0.988, 0.990]))
+        self.assertIsInstance(tau_syn_E, numpy.ndarray)
+        assert_array_equal(tau_syn_E, numpy.array([0.988, 0.990]))
         self.assertEqual(tau_m, 12.3)
         assert_array_almost_equal(i_offset, numpy.array([-0.2, -0.6]), decimal=12)
         sim.simulator.state.num_processes = 1
@@ -303,13 +303,13 @@ class PopulationTest(unittest.TestCase):
 
     @register()
     def test_set(self, sim=sim):
-        p = sim.Population(4, IF_cond_exp, {'tau_m': 12.3, 'cm': 0.987, 'i_offset': -0.21})
+        p = sim.Population(4, IF_cond_exp, {'tau_m': 12.3, 'tau_syn_E': 0.987, 'tau_syn_I': 0.7})
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
-        p.set(cm=random.RandomDistribution('uniform', (0.5, 1.5), rng=rng), tau_m=9.87)
-        tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
-        assert_array_equal(cm, numpy.array([1.21, 1.22, 1.23, 1.24]))
+        p.set(tau_syn_E=random.RandomDistribution('uniform', (0.5, 1.5), rng=rng), tau_m=9.87)
+        tau_m, tau_syn_E, tau_syn_I = p.get(('tau_m', 'tau_syn_E', 'tau_syn_I'), gather=True)
+        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22, 1.23, 1.24]))
         assert_array_almost_equal(tau_m, 9.87*numpy.ones((4,)))
-        assert_array_equal(i_offset, -0.21*numpy.ones((4,)))
+        assert_array_equal(tau_syn_I, 0.7*numpy.ones((4,)))
 
     @register()
     def test_set_invalid_name(self, sim=sim):
@@ -345,11 +345,11 @@ class PopulationTest(unittest.TestCase):
         random.get_mpi_config = lambda: (1, 2)
         sim.simulator.state.num_processes = 2
         sim.simulator.state.mpi_rank = 1
-        p = sim.Population(4, IF_cond_exp(cm=0.987))
+        p = sim.Population(4, IF_cond_exp(tau_syn_E=0.987))
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=False)
-        p.set(cm=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng))
-        cm = p.get('cm', gather=False)
-        assert_array_equal(cm, numpy.array([1.21, 1.22]))
+        p.set(tau_syn_E=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng))
+        tau_syn_E = p.get('tau_syn_E', gather=False)
+        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22]))
         random.get_mpi_config = orig_rcfg
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
@@ -360,11 +360,11 @@ class PopulationTest(unittest.TestCase):
         random.get_mpi_config = lambda: (1, 2)
         sim.simulator.state.num_processes = 2
         sim.simulator.state.mpi_rank = 1
-        p = sim.Population(4, IF_cond_exp(cm=0.987))
+        p = sim.Population(4, IF_cond_exp(tau_syn_E=0.987))
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
-        p.set(cm=random.RandomDistribution('uniform', (0.1, 1), rng=rng))
-        cm = p.get('cm', gather=False)
-        assert_array_equal(cm, numpy.array([1.22, 1.24]))
+        p.set(tau_syn_E=random.RandomDistribution('uniform', (0.1, 1), rng=rng))
+        tau_syn_E = p.get('tau_syn_E', gather=False)
+        assert_array_equal(tau_syn_E, numpy.array([1.22, 1.24]))
         random.get_mpi_config = orig_rcfg
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
@@ -397,12 +397,21 @@ class PopulationTest(unittest.TestCase):
         assert_array_equal(p.initial_values['w'].evaluate(simplify=True), w_init)
         # should call p.record(('v', 'w')) and check that the recorded data starts with the initial value
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_can_record(self, sim=sim):
         p = sim.Population(17, EIF_cond_exp_isfa_ista())
         assert p.can_record('v')
         assert p.can_record('w')
         assert p.can_record('gsyn_inh')
+        assert p.can_record('spikes')
+        assert not p.can_record('foo')
+        
+    @register(include_only='hardware.brainscales')
+    def test_can_record(self, sim=sim):
+        p = sim.Population(17, EIF_cond_exp_isfa_ista())
+        assert p.can_record('v')
+        assert not p.can_record('w')
+        assert not p.can_record('gsyn_inh')
         assert p.can_record('spikes')
         assert not p.can_record('foo')
 
@@ -417,7 +426,7 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(data.analogsignalarrays[0].name, 'v')
         self.assertEqual(data.analogsignalarrays[0].shape, (n_values, p.size))
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_record_with_multiple_variables(self, sim=sim):
         p = sim.Population(2, EIF_cond_exp_isfa_ista())
         p.record(('v', 'w', 'gsyn_exc'))
@@ -427,6 +436,19 @@ class PopulationTest(unittest.TestCase):
         n_values = int(round(10.0/sim.get_time_step())) + 1
         names = set(arr.name for arr in data.analogsignalarrays)
         self.assertEqual(names, set(('v', 'w', 'gsyn_exc')))
+        for arr in data.analogsignalarrays:
+            self.assertEqual(arr.shape, (n_values, p.size))
+            
+    @register()
+    def test_record_with_v_and_spikes(self, sim=sim):
+        p = sim.Population(2, EIF_cond_exp_isfa_ista())
+        p.record(('v', 'spikes'))
+        sim.run(10.0)
+        data = p.get_data(gather=True).segments[0]
+        self.assertEqual(len(data.analogsignalarrays), 1)
+        n_values = int(round(10.0/sim.get_time_step())) + 1
+        names = set(arr.name for arr in data.analogsignalarrays)
+        self.assertEqual(names, set(('v')))
         for arr in data.analogsignalarrays:
             self.assertEqual(arr.shape, (n_values, p.size))
 
@@ -454,7 +476,7 @@ class PopulationTest(unittest.TestCase):
     #    self.fail()
     #
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_get_data_with_gather(self, sim=sim):
         t1 = 12.3
         t2 = 13.4
@@ -559,7 +581,7 @@ class PopulationTest(unittest.TestCase):
         p.get_v()
         p.get_data.assert_called_with('v', True)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_print_gsyn(self, sim=sim):
         p = sim.Population(3, IF_cond_alpha())
         p.record_gsyn()
@@ -568,7 +590,7 @@ class PopulationTest(unittest.TestCase):
         p.print_gsyn("foo.txt")
         p.write_data.assert_called_with('foo.txt', ['gsyn_exc', 'gsyn_inh'], True)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_get_gsyn(self, sim=sim):
         p = sim.Population(3, IF_cond_alpha())
         p.record_gsyn()
