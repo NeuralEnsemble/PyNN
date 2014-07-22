@@ -13,6 +13,7 @@ try:
 except ImportError:
     pass
 import nest
+
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 
