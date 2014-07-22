@@ -38,14 +38,14 @@ class ProjectionTest(unittest.TestCase):
 
     def setUp(self, sim=sim, **extra):
         sim.setup(**extra)
-        self.p1 = sim.Population(7, sim.IF_cond_exp())
-        self.p2 = sim.Population(4, sim.IF_cond_exp())
-        self.p3 = sim.Population(5, sim.IF_curr_alpha())
-        self.syn1 = sim.StaticSynapse(weight=0.123, delay=0.5)
+        self.p1 = sim.Population(7, IF_cond_exp())
+        self.p2 = sim.Population(4, IF_cond_exp())
+        self.p3 = sim.Population(5, IF_curr_alpha())
+        self.syn1 = sim.StaticSynapse(weight=0.006, delay=0.5)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
-        self.syn2 = sim.StaticSynapse(weight=0.456, delay=0.4)
+        self.syn2 = sim.StaticSynapse(weight=0.012, delay=0.4)
         self.all2all = sim.AllToAllConnector()
-        self.syn3 = sim.TsodyksMarkramSynapse(weight=0.789, delay=0.6, U=100.0, tau_rec=500)
+        self.syn3 = sim.TsodyksMarkramSynapse(weight=0.012, delay=0.6, U=0.2, tau_rec=50)
 
     def tearDown(self, sim=sim):
         sim.end()
@@ -96,8 +96,8 @@ class ProjectionTest(unittest.TestCase):
     #def test_randomize_weights(self, sim=sim):
     #    orig_len = sim.Projection.__len__
     #    sim.Projection.__len__ = Mock(return_value=42)
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    rd = Mock()
@@ -108,8 +108,8 @@ class ProjectionTest(unittest.TestCase):
     #    sim.Projection.__len__ = orig_len
     #
     #def test_set_delays(self, sim=sim):
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    prj.setDelays(0.5)
@@ -118,8 +118,8 @@ class ProjectionTest(unittest.TestCase):
     #def test_randomize_delays(self, sim=sim):
     #    orig_len = sim.Projection.__len__
     #    sim.Projection.__len__ = Mock(return_value=42)
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    rd = Mock()
@@ -130,8 +130,8 @@ class ProjectionTest(unittest.TestCase):
     #    sim.Projection.__len__ = orig_len
     #
     #def test_set_synapse_dynamics_param(self, sim=sim):
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.set = Mock()
     #    prj.setComposedSynapseType('U', 0.5)
@@ -204,8 +204,8 @@ class ProjectionTest(unittest.TestCase):
         assert_array_equal(tau_rec, tau_rec_target)
 
     #def test_get_delays(self, sim=sim):
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock()
     #    prj.getDelays(format='list', gather=False)
@@ -225,8 +225,8 @@ class ProjectionTest(unittest.TestCase):
     #    filename = "test.weights"
     #    if os.path.exists(filename):
     #        os.remove(filename)
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock(return_value=range(5))
     #    prj.printWeights(filename, format='list', gather=False)
@@ -238,8 +238,8 @@ class ProjectionTest(unittest.TestCase):
     #    filename = "test.weights"
     #    if os.path.exists(filename):
     #        os.remove(filename)
-    #    p1 = sim.Population(7, sim.IF_cond_exp)
-    #    p2 = sim.Population(7, sim.IF_cond_exp)
+    #    p1 = sim.Population(7, IF_cond_exp)
+    #    p2 = sim.Population(7, IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
     #    prj.get = Mock(return_value=numpy.arange(5.0))
     #    prj.printWeights(filename, format='array', gather=False)
