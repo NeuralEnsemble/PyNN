@@ -4,6 +4,17 @@ NEST_RDEV_TYPES = ['binomial', 'binomial_clipped', 'binomial_clipped_to_boundary
                    'poisson', 'poisson_clipped', 'poisson_clipped_to_boundary',
                    'uniform', 'uniform_int']
 
+NEST_RDIST_TRANSFORMATIONS = {'normal' : {'mu' : 'mu*1000', 'sigma' : 'sigma*1000'},
+                         'normal_clipped' : {'mu' : 'mu*1000', 'sigma' : 'sigma*1000', 'high' : 'high', 'low' : 'low'},
+                         'normal_clipped_to_boundary' : {'mu' : 'mu*1000', 'sigma' : 'sigma*1000', 'high' : 'high', 'low' : 'low'},
+                         'uniform' : {'low' : 'low*1000', 'high' : 'high*1000'},
+                         'gamma' : {'order' : 'order', 'scale' : 'scale*1000'},
+                         'gamma_clipped' : {'order' : 'order', 'scale' : 'scale*1000', 'high' : 'high', 'low' : 'low'},
+                         'gamma_clipped_to_boundary' : {'order' : 'order', 'scale' : 'scale*1000', 'high' : 'high', 'low' : 'low'},
+                         'lognormal' : {'mu' : "mu+__import__('numpy').log(1000.)", 'sigma' : 'sigma'},
+                         'lognormal_clipped' : {'mu' : "mu+__import__('numpy').log(1000.)", 'sigma' : 'sigma', 'high' : 'high', 'low' : 'low'},
+                         'lognormal_clipped_to_boundary' : {'mu' : "mu+__import__('numpy').log(1000.)", 'sigma' : 'sigma', 'high' : 'high', 'low' : 'low'}}
+
 
 class NativeRNG():
     """
