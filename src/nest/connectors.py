@@ -29,7 +29,7 @@ from pyNN.connectors import Connector, \
                             CloneConnector, \
                             ArrayConnector
 
-from .random import NativeRNG, NEST_RDEV_TYPES
+from .random import NativeRNG, NEST_RDEV_TYPES, NEST_RDIST_TRANSFORMATIONS
 
 
 logger = logging.getLogger("PyNN")
@@ -109,7 +109,16 @@ class NESTConnectorMixin(object):
             if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
                 if value.base_value.name in NEST_RDEV_TYPES:
                     logger.warning("Random values will be created inside NEST with NEST's own RNGs")
-                    params[name] = NativeRNG(value.base_value).parameters
+                    dist_params = {}
+                    ### Transform distribution parameters to nest-specific units
+                    rng = NativeRNG(value.base_value)
+                    for name in rng.parameters.keys() :
+                        if name =='distribution' or name != 'weight' :
+                            pval = rng.parameters[name]
+                        else :
+                            pval = eval(NEST_RDIST_TRANSFORMATIONS[value.base_value.name][name],rng.parameters)
+                        dist_params[name] = pval
+                    params[name] = dist_params
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
