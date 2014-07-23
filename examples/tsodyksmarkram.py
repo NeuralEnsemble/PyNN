@@ -45,6 +45,6 @@ for label,p in populations.items():
                                    "pkl", options.simulator)
     p.write_data(filename, annotations={'script_name': __file__})
 
-print spike_source.get_data('spikes')
+print spike_source.get_data().segments[0].spiketrains
 
 sim.end()

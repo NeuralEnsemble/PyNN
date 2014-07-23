@@ -119,6 +119,9 @@ class Population(common.Population, PopulationMixin):
                                    None,
                                    size=self.size)
         try:
+	    #hack: force the spike_times array to be float, and not int
+	    if params and hasattr(params, '__iter__') and 'spike_times' in params and params['spike_times'].dtype == int:
+		params['spike_times'] = params['spike_times'].astype(float)
             self.all_cells = nest.Create(nest_model, self.size, params=params)
         except nest.NESTError, err:
             if "UnknownModelName" in err.message and "cond" in err.message:
