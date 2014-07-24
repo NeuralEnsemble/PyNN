@@ -69,7 +69,7 @@ class ProjectionTest(unittest.TestCase):
 
     @register()
     def test_create_with_fast_synapse_dynamics(self, sim=sim):
-        depressing = sim.TsodyksMarkramSynapse(U=0.5, tau_rec=800.0, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=0.5, tau_rec=80.0, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
 
@@ -143,25 +143,25 @@ class ProjectionTest(unittest.TestCase):
         weights = prj.get("weight", format="list")
         weights = _sort_by_column(weights, 1)[:5]
         target = numpy.array(
-            [(0, 0, 0.456),
-             (1, 0, 0.456),
-             (2, 0, 0.456),
-             (3, 0, 0.456),
-             (4, 0, 0.456),])
+            [(0, 0, 0.012),
+             (1, 0, 0.012),
+             (2, 0, 0.012),
+             (3, 0, 0.012),
+             (4, 0, 0.012),])
         assert_array_equal(weights, target)
 
     @register()
     def test_get_weights_as_list_no_address(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list", with_address=False)[:5]
-        target = 0.456*numpy.ones((5,))
+        target = 0.012*numpy.ones((5,))
         assert_array_equal(weights, target)
 
     @register()
     def test_get_weights_as_array(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
-        target = 0.456*numpy.ones((self.p1.size, self.p2.size))
+        target = 0.012*numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     @register()
@@ -170,10 +170,10 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
         # because we use a fake RNG, it is always the last three presynaptic cells which receive the double connection
         target = numpy.array([
-            [0.123, 0.123, 0.123, 0.123, 0.123],
-            [0.246, 0.246, 0.246, 0.246, 0.246],
-            [0.246, 0.246, 0.246, 0.246, 0.246],
-            [0.246, 0.246, 0.246, 0.246, 0.246],
+            [0.006, 0.006, 0.006, 0.006, 0.006],
+            [0.012, 0.012, 0.012, 0.012, 0.012],
+            [0.012, 0.012, 0.012, 0.012, 0.012],
+            [0.012, 0.012, 0.012, 0.012, 0.012],
             ])
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
         assert_array_equal(weights, target)
@@ -181,7 +181,7 @@ class ProjectionTest(unittest.TestCase):
     @register()
     def test_get_plasticity_attribute_as_list(self, sim=sim):
         U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
-        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0+d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
         U = prj.get("U", format="list")
@@ -196,11 +196,11 @@ class ProjectionTest(unittest.TestCase):
         tau_rec = prj.get("tau_rec", format="list")
         tau_rec = _sort_by_column(tau_rec, 1)[:5]
         tau_rec_target = numpy.array(
-            [(0, 0, 800),
-             (1, 0, 801),
-             (2, 0, 802),
-             (3, 0, 803),
-             (4, 0, 804),])
+            [(0, 0, 80),
+             (1, 0, 81),
+             (2, 0, 82),
+             (3, 0, 83),
+             (4, 0, 84),])
         assert_array_equal(tau_rec, tau_rec_target)
 
     #def test_get_delays(self, sim=sim):
@@ -258,6 +258,6 @@ class ProjectionTest(unittest.TestCase):
     def test_weightHistogram(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=self.syn2)
-        n, bins = prj.weightHistogram(min=0.0, max=1.0)
-        assert_array_equal(bins, numpy.linspace(0, 1.0, num=11))
-        assert_array_equal(n, numpy.array([0, 0, 0, 0, prj.size(), 0, 0, 0, 0, 0]))
+        n, bins = prj.weightHistogram(min=0.0, max=0.05)
+        assert_array_equal(bins, numpy.linspace(0, 0.05, num=11))
+        assert_array_equal(n, numpy.array([0, 0, prj.size(), 0, 0, 0, 0, 0, 0, 0]))
