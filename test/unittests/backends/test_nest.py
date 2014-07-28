@@ -44,7 +44,6 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
         for scenario in test_class.registry:
             if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
-                print scenario.description
                 if have_sim:
                     test_class.setUp(sim, **extra)
                     yield scenario, test_class, sim

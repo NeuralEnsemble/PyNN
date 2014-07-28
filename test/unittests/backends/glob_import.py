@@ -4,9 +4,9 @@ from ..alias_cell_types import alias_cell_types, take_all_cell_classes
 #from .. import test_simulation_control
 #from .. import test_population
 #from .. import test_populationview
-from .. import test_assembly
+#from .. import test_assembly
 #from .. import test_connectors
-#from .. import test_projection
+from .. import test_projection
 
 try:
     import unittest2 as unittest
