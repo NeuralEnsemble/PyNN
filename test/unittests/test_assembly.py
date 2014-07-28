@@ -263,13 +263,13 @@ class AssemblyTest(unittest.TestCase):
     def test__homogeneous_synapses(self, sim=sim):
         p1 = sim.Population(11, IF_cond_exp())
         p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p3 = sim.Population(3, EIF_cond_exp_isfa_ista())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p1, p3)
         self.assertTrue(a1._homogeneous_synapses)
         self.assertFalse(a2._homogeneous_synapses)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_conductance_based(self, sim=sim):
         p1 = sim.Population(11, IF_cond_exp())
         p2 = sim.Population(6, IF_cond_alpha())
@@ -360,7 +360,7 @@ class AssemblyTest(unittest.TestCase):
         assert_array_equal(a1.populations[0].all_cells, p1[11:6:-1])
         assert_array_equal(a1.populations[1].all_cells, p2[6::-1])
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_get_data_with_gather(self, sim=sim):
         t1 = 12.3
         t2 = 13.4
@@ -448,7 +448,7 @@ class AssemblyTest(unittest.TestCase):
         a.get_v()
         a.get_data.assert_called_with('v', True)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_print_gsyn(self, sim=sim):
         p1 = sim.Population(11, IF_cond_exp())
         p2 = sim.Population(11, IF_cond_exp())
@@ -459,7 +459,7 @@ class AssemblyTest(unittest.TestCase):
         a.print_gsyn("foo.txt")
         a.write_data.assert_called_with('foo.txt', ['gsyn_exc', 'gsyn_inh'], True)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_get_gsyn(self, sim=sim):
         p1 = sim.Population(11, IF_cond_exp())
         p2 = sim.Population(11, IF_cond_exp())

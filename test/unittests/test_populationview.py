@@ -485,7 +485,7 @@ class PopulationViewTest(unittest.TestCase):
         self.assertEqual(v.t_start, 0.0)
         self.assertEqual(len(seg1.spiketrains), pv.size)
             
-    @register(include_only='mock')
+    @register(include_only=['mock'])
     def test_get_data_with_gather(self, sim=sim):
         t1 = 12.3
         t2 = 13.4
@@ -518,7 +518,7 @@ class PopulationViewTest(unittest.TestCase):
     #def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
 
-    @register(include_only='mock')
+    @register(include_only=['mock'])
     def test_get_spike_counts(self, sim=sim):
         p = sim.Population(5, EIF_cond_exp_isfa_ista())
         pv = p[0, 1, 4]
@@ -529,7 +529,7 @@ class PopulationViewTest(unittest.TestCase):
                           p.all_cells[1]: 2,
                           p.all_cells[4]: 2})
 
-    @register(include_only='mock')
+    @register(include_only=['mock'])
     def test_mean_spike_count(self, sim=sim):
         p = sim.Population(14, EIF_cond_exp_isfa_ista())
         pv = p[2::3]
