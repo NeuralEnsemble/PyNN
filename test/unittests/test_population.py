@@ -52,7 +52,7 @@ class PopulationTest(unittest.TestCase):
                                                     'tau_syn_I': numpy.array([0.5, 0.6, 0.7, 0.8])}))
         tau_syn_E, tau_m, tau_syn_I = p.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
         assert_array_almost_equal(tau_syn_E, numpy.array([0.987, 0.997, 1.007, 1.017]))
-        self.assertEqual(tau_m, 12.3)
+        self.assertAlmostEqual(tau_m, 12.3)
         assert_array_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]))
 
     # test create native cell
@@ -256,7 +256,7 @@ class PopulationTest(unittest.TestCase):
         tau_syn_E, tau_m = p.get(('tau_syn_E', 'tau_m'), gather=True)
         self.assertIsInstance(tau_syn_E, float)
         self.assertEqual(tau_syn_E, 0.987)
-        self.assertEqual(tau_m, 12.3)
+        self.assertAlmostEqual(tau_m, 12.3)
 
     @register()
     def test_get_single_param_with_gather(self, sim=sim):
@@ -273,7 +273,7 @@ class PopulationTest(unittest.TestCase):
         self.assertIsInstance(tau_m, float)
         self.assertIsInstance(tau_syn_E, numpy.ndarray)
         assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.989, 0.990]))
-        self.assertEqual(tau_m, 12.3)
+        self.assertAlmostEqual(tau_m, 12.3)
         assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]), decimal=12)
 
     @register(include_only='mock')
