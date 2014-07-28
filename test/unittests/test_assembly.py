@@ -259,11 +259,11 @@ class AssemblyTest(unittest.TestCase):
         ids = list(a.all())
         self.assertEqual(ids, p1.all_cells.tolist() + p2.all_cells.tolist() + p3.all_cells.tolist())
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test__homogeneous_synapses(self, sim=sim):
         p1 = sim.Population(11, IF_cond_exp())
         p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, EIF_cond_exp_isfa_ista())
+        p3 = sim.Population(3, IF_curr_exp())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p1, p3)
         self.assertTrue(a1._homogeneous_synapses)
