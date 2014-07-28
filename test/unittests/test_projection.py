@@ -62,7 +62,7 @@ class ProjectionTest(unittest.TestCase):
     def test_create_with_homogeneous_postsynaptic_assembly(self, sim=sim):
         prj = sim.Projection(self.p1, self.p1 + self.p2, connector=self.all2all, synapse_type=self.syn2)
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_create_with_inhomogeneous_postsynaptic_assembly(self, sim=sim):
         self.assertRaises(errors.ConnectionError, sim.Projection,
                           self.p1, self.p1 + self.p3, connector=self.all2all, synapse_type=self.syn2)
@@ -177,6 +177,11 @@ class ProjectionTest(unittest.TestCase):
             ])
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
         assert_array_equal(weights, target)
+
+    @register()
+    def test_synapse_with_lambda_parameter(self, sim=sim):
+        syn = sim.StaticSynapse(weight=lambda d: 0.01+0.001*d)
+        prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=syn)
 
     @register()
     def test_get_plasticity_attribute_as_list(self, sim=sim):

@@ -41,7 +41,12 @@ def setUp():
 def tearDown():
     pass
 
-extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+extra = {
+    'loglevel':0, 
+    'ignoreHWParameterRanges': True, 
+    'useSystemSim': True, 
+    'hardware': sim.hardwareSetup['one-hicann']
+    }
 
 # --------------------------------------------------
 # DON'T CHANGE below this line

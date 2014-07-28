@@ -2,7 +2,7 @@ REG_ATTR = ''
 
 registry = []
 
-def register(include_only='', exclude=[]):
+def register(include_only=[], exclude=[]):
     def inner_register(scenario):
         setattr(scenario, REG_ATTR, True)
         scenario.exclude = exclude
@@ -28,7 +28,6 @@ def register_class():
             registry.append(cls)
         for name, func in list(cls.__dict__.items()):
             if hasattr(func, REG_ATTR):
-                #print "name =", name
                 cls.registry.append(func)
         return cls
     return inner_register
