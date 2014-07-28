@@ -184,6 +184,18 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=syn)
 
     @register()
+    def test_parameter_StaticSynapse_random_distribution(self, sim=sim):
+        weight = random.RandomDistribution('uniform', low=0.005, high=0.015, rng=MockRNG(start=0.01, delta=0.001))
+        syn = sim.StaticSynapse(weight=weight)
+        self.assertEqual(weight.next(), 0.01)
+        
+    @register()
+    def test_parameter_TsodyksMarkramSynapse_random_distribution(self, sim=sim):
+        U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0+d, tau_facil=0.0)
+        self.assertEqual(U_distr.next(), 0.5)
+        
+    @register()
     def test_get_plasticity_attribute_as_list(self, sim=sim):
         U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
         depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0+d, tau_facil=0.0)
