@@ -58,7 +58,7 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
         for scenario in test_class.registry:
             if is_included(sim_name=sim_name, scenario=scenario):
                 scenario.description = scenario.__name__
-                if have_sim and (scenario.description == "test_parameter_StaticSynapse_random_distribution" or scenario.description == "test_parameter_TsodyksMarkramSynapse_random_distribution"):
+                if have_sim:
                     test_class.setUp(sim, **extra)
                     yield scenario, test_class, sim
                     test_class.tearDown(sim)
