@@ -83,7 +83,7 @@ class _State(common.control.BaseState):
             min_delay = float(min_delay)
             max_delay = float(max_delay)
             for synapse_model in nest.Models(mtype='synapses'):
-                nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                nest.SetDefaults(synapse_model, {'delay': min_delay+self.dt,
                                                  'min_delay': min_delay,
                                                  'max_delay': max_delay})
 
