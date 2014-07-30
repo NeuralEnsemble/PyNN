@@ -73,7 +73,7 @@ class TestOneToOneConnector(unittest.TestCase):
 class TestAllToAllConnector(unittest.TestCase):
 
     def setUp(self, sim=sim, **extra):
-        sim.setup(num_processes=1, rank=1, min_delay=0.123, **extra)
+        sim.setup(min_delay=0.123, **extra)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
 
@@ -86,20 +86,32 @@ class TestAllToAllConnector(unittest.TestCase):
         syn = sim.StaticSynapse(weight=5.0, delay=0.5)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 1, 5.0, 0.5),
+                         [(0, 0, 5.0, 0.5),
+                          (1, 0, 5.0, 0.5),
+                          (2, 0, 5.0, 0.5),
+                          (3, 0, 5.0, 0.5),
+                          (0, 1, 5.0, 0.5),
                           (1, 1, 5.0, 0.5),
                           (2, 1, 5.0, 0.5),
                           (3, 1, 5.0, 0.5),
+                          (0, 2, 5.0, 0.5),
+                          (1, 2, 5.0, 0.5),
+                          (2, 2, 5.0, 0.5),
+                          (3, 2, 5.0, 0.5),
                           (0, 3, 5.0, 0.5),
                           (1, 3, 5.0, 0.5),
                           (2, 3, 5.0, 0.5),
-                          (3, 3, 5.0, 0.5)])
+                          (3, 3, 5.0, 0.5),
+                          (0, 4, 5.0, 0.5),
+                          (1, 4, 5.0, 0.5),
+                          (2, 4, 5.0, 0.5),
+                          (3, 4, 5.0, 0.5)])
         nan = numpy.nan
         assert_array_equal(prj.get('weight', format='array', gather=False),
-                           numpy.array([[nan, 5.0, nan, 5.0, nan],
-                                        [nan, 5.0, nan, 5.0, nan],
-                                        [nan, 5.0, nan, 5.0, nan],
-                                        [nan, 5.0, nan, 5.0, nan]]))
+                           numpy.array([[5.0, 5.0, 5.0, 5.0, 5.0],
+                                        [5.0, 5.0, 5.0, 5.0, 5.0],
+                                        [5.0, 5.0, 5.0, 5.0, 5.0],
+                                        [5.0, 5.0, 5.0, 5.0, 5.0]]))
 
     @register()
     def test_connect_with_array_weights(self, sim=sim):
@@ -108,20 +120,34 @@ class TestAllToAllConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, syn)
         assert_array_almost_equal(
             numpy.array(prj.get(["weight", "delay"], format='list', gather=False)),  # use gather False because we are faking the MPI
-            numpy.array([(0, 1, 0.1, 0.5),
-                         (1, 1, 0.6, 0.5),
-                         (2, 1, 1.1, 0.5),
-                         (3, 1, 1.6, 0.5),
-                         (0, 3, 0.3, 0.5),
-                         (1, 3, 0.8, 0.5),
-                         (2, 3, 1.3, 0.5),
-                         (3, 3, 1.8, 0.5)]))
-        nan = numpy.nan
+            numpy.array([
+                        (0, 0, 0.0, 0.5),
+                        (1, 0, 0.5, 0.5),
+                        (2, 0, 1.0, 0.5),
+                        (3, 0, 1.5, 0.5),
+                        (0, 1, 0.1, 0.5),
+                        (1, 1, 0.6, 0.5),
+                        (2, 1, 1.1, 0.5),
+                        (3, 1, 1.6, 0.5),
+                        (0, 2, 0.2, 0.5),
+                        (1, 2, 0.7, 0.5),
+                        (2, 2, 1.2, 0.5),
+                        (3, 2, 1.7, 0.5),
+                        (0, 3, 0.3, 0.5),
+                        (1, 3, 0.8, 0.5),
+                        (2, 3, 1.3, 0.5),
+                        (3, 3, 1.8, 0.5),
+                        (0, 4, 0.4, 0.5),
+                        (1, 4, 0.9, 0.5),
+                        (2, 4, 1.4, 0.5),
+                        (3, 4, 1.9, 0.5)]
+                       )
+            )
         assert_array_almost_equal(prj.get('weight', format='array', gather=False),
-                                  numpy.array([[nan, 0.1, nan, 0.3, nan],
-                                               [nan, 0.6, nan, 0.8, nan],
-                                               [nan, 1.1, nan, 1.3, nan],
-                                               [nan, 1.6, nan, 1.8, nan]]),
+                                  numpy.array([[0. ,  0.1,  0.2,  0.3,  0.4],
+                                               [0.5,  0.6,  0.7,  0.8,  0.9],
+                                               [1. ,  1.1,  1.2,  1.3,  1.4],
+                                               [1.5,  1.6,  1.7,  1.8,  1.9]]),
                                   9)
 
     @register()
@@ -132,20 +158,31 @@ class TestAllToAllConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, syn)
         # note that the outer loop is over the post-synaptic cells, the inner loop over the pre-synaptic
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 1, 4.0, 0.5),
-                          (1, 1, 5.0, 0.5),
-                          (2, 1, 6.0, 0.5),
-                          (3, 1, 7.0, 0.5),
-                          (0, 3, 12.0, 0.5),
-                          (1, 3, 13.0, 0.5),
-                          (2, 3, 14.0, 0.5),
-                          (3, 3, 15.0, 0.5)])
-        nan = numpy.nan
+                           [(0, 0, 0.0, 0.5),
+                            (1, 0, 1.0, 0.5),
+                            (2, 0, 2.0, 0.5),
+                            (3, 0, 3.0, 0.5),
+                            (0, 1, 4.0, 0.5),
+                            (1, 1, 5.0, 0.5),
+                            (2, 1, 6.0, 0.5),
+                            (3, 1, 7.0, 0.5),
+                            (0, 2, 8.0, 0.5),
+                            (1, 2, 9.0, 0.5),
+                            (2, 2, 10.0, 0.5),
+                            (3, 2, 11.0, 0.5),
+                            (0, 3, 12.0, 0.5),
+                            (1, 3, 13.0, 0.5),
+                            (2, 3, 14.0, 0.5),
+                            (3, 3, 15.0, 0.5),
+                            (0, 4, 16.0, 0.5),
+                            (1, 4, 17.0, 0.5),
+                            (2, 4, 18.0, 0.5),
+                            (3, 4, 19.0, 0.5)])
         assert_array_almost_equal(prj.get('weight', format='array', gather=False),
-                                  numpy.array([[nan, 4.0, nan, 12.0, nan],
-                                               [nan, 5.0, nan, 13.0, nan],
-                                               [nan, 6.0, nan, 14.0, nan],
-                                               [nan, 7.0, nan, 15.0, nan]]),
+                                  numpy.array([[0., 4.,  8., 12., 16.],
+                                               [1., 5.,  9., 13., 17.],
+                                               [2., 6., 10., 14., 18.],
+                                               [3., 7., 11., 15., 19.]]),
                                   9)
 
     @register()
@@ -155,14 +192,26 @@ class TestAllToAllConnector(unittest.TestCase):
         C = connectors.AllToAllConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 1, 101.0, 0.5),
-                          (1, 1, 100.0, 0.5),
-                          (2, 1, 101.0, 0.5),
-                          (3, 1, 102.0, 0.5),
-                          (0, 3, 103.0, 0.5),
-                          (1, 3, 102.0, 0.5),
-                          (2, 3, 101.0, 0.5),
-                          (3, 3, 100.0, 0.5)])
+                           [(0, 0, 100.0, 0.5),
+                            (1, 0, 101.0, 0.5),
+                            (2, 0, 102.0, 0.5),
+                            (3, 0, 103.0, 0.5),
+                            (0, 1, 101.0, 0.5),
+                            (1, 1, 100.0, 0.5),
+                            (2, 1, 101.0, 0.5),
+                            (3, 1, 102.0, 0.5),
+                            (0, 2, 102.0, 0.5),
+                            (1, 2, 101.0, 0.5),
+                            (2, 2, 100.0, 0.5),
+                            (3, 2, 101.0, 0.5),
+                            (0, 3, 103.0, 0.5),
+                            (1, 3, 102.0, 0.5),
+                            (2, 3, 101.0, 0.5),
+                            (3, 3, 100.0, 0.5),
+                            (0, 4, 104.0, 0.5),
+                            (1, 4, 103.0, 0.5),
+                            (2, 4, 102.0, 0.5),
+                            (3, 4, 101.0, 0.5)])
 
     @register()
     def test_connect_with_distance_dependent_weights_and_delays(self, sim=sim):
@@ -170,14 +219,26 @@ class TestAllToAllConnector(unittest.TestCase):
         C = connectors.AllToAllConnector(safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-                         [(0, 1, 101.0, 2.2),
-                          (1, 1, 100.0, 0.2),
-                          (2, 1, 101.0, 2.2),
-                          (3, 1, 102.0, 4.2),
-                          (0, 3, 103.0, 6.2),
-                          (1, 3, 102.0, 4.2),
-                          (2, 3, 101.0, 2.2),
-                          (3, 3, 100.0, 0.2)])
+                           [(0, 0, 100.0, 0.2),
+                            (1, 0, 101.0, 2.2),
+                            (2, 0, 102.0, 4.2),
+                            (3, 0, 103.0, 6.2),
+                            (0, 1, 101.0, 2.2),
+                            (1, 1, 100.0, 0.2),
+                            (2, 1, 101.0, 2.2),
+                            (3, 1, 102.0, 4.2),
+                            (0, 2, 102.0, 4.2),
+                            (1, 2, 101.0, 2.2),
+                            (2, 2, 100.0, 0.2),
+                            (3, 2, 101.0, 2.2),
+                            (0, 3, 103.0, 6.2),
+                            (1, 3, 102.0, 4.2),
+                            (2, 3, 101.0, 2.2),
+                            (3, 3, 100.0, 0.2),
+                            (0, 4, 104.0, 8.2),
+                            (1, 4, 103.0, 6.2),
+                            (2, 4, 102.0, 4.2),
+                            (3, 4, 101.0, 2.2)])
 
     @register()
     def test_connect_with_delays_None(self, sim=sim):
@@ -208,7 +269,7 @@ class TestAllToAllConnector(unittest.TestCase):
 @register_class()
 class TestFixedProbabilityConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
@@ -315,7 +376,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
 @register_class()
 class TestDistanceDependentProbabilityConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
@@ -342,7 +403,7 @@ class TestDistanceDependentProbabilityConnector(unittest.TestCase):
 @register_class()
 class TestFromListConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
@@ -399,7 +460,7 @@ class TestFromListConnector(unittest.TestCase):
 @register_class()
 class TestFromFileConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
@@ -479,7 +540,7 @@ class TestFromFileConnector(unittest.TestCase):
 @register_class()
 class TestFixedNumberPreConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
@@ -644,7 +705,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
 @register_class()
 class TestArrayConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(3, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(4, HH_cond_exp(), structure=space.Line())
@@ -689,7 +750,7 @@ class TestArrayConnector(unittest.TestCase):
 @register_class()
 class TestCloneConnector(unittest.TestCase):
 
-    def setUp(self, sim=sim):
+    def setUp(self, sim=sim, **extra):
         sim.setup(num_processes=1, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, HH_cond_exp(), structure=space.Line())
