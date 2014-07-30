@@ -38,9 +38,10 @@ extra = {}
     
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
+        module_name = TestClass.__module__
         test_class = TestClass()
         for scenario in test_class.registry:
-            if is_included(sim_name=sim_name, scenario=scenario):
+            if is_included(sim_name=sim_name, scenario=scenario, module_name=module_name):
                 scenario.description = scenario.__name__
                 if have_sim:
                     test_class.setUp(sim, **extra)
