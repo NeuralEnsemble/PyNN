@@ -170,7 +170,10 @@ class MapConnector(Connector):
             if source_mask is True or source_mask.any():
                 _proceed = True
             elif type(source_mask) == numpy.ndarray:
-                if len(source_mask) > 0:
+                if source_mask.dtype == bool:
+                    if source_mask.any():
+                        _proceed = True
+                elif len(source_mask) > 0:
                     _proceed = True
             if _proceed:
                 # Convert from boolean to integer mask, if necessary
