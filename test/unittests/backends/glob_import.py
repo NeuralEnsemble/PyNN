@@ -9,7 +9,7 @@ from .. import test_connectors_parallel
 from .. import test_connectors_serial
 from .. import test_projection
 
-exclude_modules = ['test_connectors_parallel', 'test_connectors_serial']
+exclude_modules = ['test_connectors_parallel']
 
 try:
     import unittest2 as unittest

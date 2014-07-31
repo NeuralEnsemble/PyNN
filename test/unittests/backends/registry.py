@@ -11,7 +11,6 @@ def register(include_only=[], exclude=[]):
             scenario.exclude = []
         else:
             scenario.exclude = exclude
-        print "registering %s with include_only =%s, exclude=%s" % (scenario, scenario.include_only, scenario.exclude)
         return scenario
     return inner_register
 
@@ -22,7 +21,6 @@ def runTest(self):
 def register_class():
     def inner_register(cls):
         cls.registry = []
-        print "registering %s" % (cls)
         if cls not in registry:
             setattr(cls, "runTest", eval("runTest"))
             registry.append(cls)

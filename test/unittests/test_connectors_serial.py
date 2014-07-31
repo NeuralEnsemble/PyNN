@@ -689,7 +689,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
                           ])
 
     @register()
-    #XXX
+    #TOCHECK
     def test_with_replacement_no_self_connections(self, sim=sim):
         C = connectors.FixedNumberPreConnector(n=3, with_replacement=True,
                                                allow_self_connections=False, rng=MockRNG(start=2, delta=1))
@@ -716,7 +716,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
                           ])
 
     @register()
-    #XXX
+    #TOCHECK
     def test_no_replacement_no_self_connections(self, sim=sim):
         C = connectors.FixedNumberPreConnector(n=3, with_replacement=False,
                                                allow_self_connections=False, rng=MockRNG(start=2, delta=1))
@@ -740,7 +740,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
                           (1, 4, 0.0, 0.123)])
 
     @register()
-    #XXX
+    #TOCHECK
     def test_with_replacement_parallel_unsafe(self, sim=sim):
         C = connectors.FixedNumberPreConnector(n=3, with_replacement=True, rng=MockRNG(delta=1, parallel_safe=False))
         syn = sim.StaticSynapse()
@@ -808,8 +808,11 @@ class TestArrayConnector(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
                          [(1, 0, 5.0, 0.5),
+                          (0, 1, 5.0, 0.5),
+                          (1, 1, 5.0, 0.5),
                           (0, 2, 5.0, 0.5),
-                          (2, 2, 5.0, 0.5)])
+                          (2, 2, 5.0, 0.5),
+                          (1, 3, 5.0, 0.5)])
 
     @register()
     def test_connect_with_random_weights_parallel_safe(self, sim=sim):
@@ -823,10 +826,14 @@ class TestArrayConnector(unittest.TestCase):
             ], dtype=bool)
         C = connectors.ArrayConnector(connections, safe=False)
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        self.assertEqual(prj.get(["weight", "delay"], format='list'),  
+        rec = prj.get(["weight", "delay"], format='list')
+        assert_array_almost_equal([tuple(r) for r in rec],  
                          [(1, 0, 0.0, 1.0),
+                          (0, 1, 1.0, 1.1),
+                          (1, 1, 2.0, 1.2),
                           (0, 2, 3.0, 1.3),
-                          (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
+                          (2, 2, 4.0, 1.4),
+                          (1, 3, 5.0, 1.5)]) 
 
 
 
@@ -866,7 +873,10 @@ class TestCloneConnector(unittest.TestCase):
         C = connectors.CloneConnector(self.ref_prj)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
-                         [(0, 1, 5.0, 0.5),
+                         [(0, 0, 5.0, 0.5),
+                          (3, 0, 5.0, 0.5),
+                          (0, 1, 5.0, 0.5),
+                          (2, 2, 5.0, 0.5),
                           (2, 3, 5.0, 0.5)])
 
     @register()
@@ -906,11 +916,14 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
         C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
-                         [(0, 0, 1, 2),
-                          (3, 0, 1, 2),
-                          (1, 2, 1, 2),
-                          (4, 2, 1, 2),
-                          (2, 4, 1, 2)])
+                         [(0, 0, 1., 2),
+                          (3, 0, 1., 2),
+                          (2, 1, 1., 2),
+                          (1, 2, 1., 2),
+                          (4, 2, 1., 2),
+                          (0, 3, 1., 2),
+                          (3, 3, 1., 2),
+                          (2, 4, 1., 2)])
 
     @register()
     def test_connect_with_index_based_weights(self, sim=sim):
@@ -918,11 +931,14 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
         C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
-                         [(0, 0, 1, 2),
-                          (3, 0, 1, 2),
-                          (1, 2, 3, 2),
-                          (4, 2, 9, 2),
-                          (2, 4, 9, 2)])
+                         [(0, 0, 1., 2),
+                          (3, 0, 1., 2),
+                          (2, 1, 3., 2),
+                          (1, 2, 3., 2),
+                          (4, 2, 9., 2),
+                          (0, 3, 1., 2),
+                          (3, 3, 10., 2),
+                          (2, 4, 9., 2)])
 
     @register()
     def test_connect_with_index_based_delays(self, sim=sim):
@@ -930,14 +946,17 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
         C = connectors.IndexBasedProbabilityConnector(self.IndexBasedProbability())
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
-                         [(0, 0, 1, 1),
-                          (3, 0, 1, 4),
-                          (1, 2, 1, 4),
-                          (4, 2, 1, 7),
-                          (2, 4, 1, 7)])
+                         [(0, 0, 1., 1),
+                          (3, 0, 1., 4),
+                          (2, 1, 1., 4),
+                          (1, 2, 1., 4),
+                          (4, 2, 1., 7),
+                          (0, 3, 1., 4),
+                          (3, 3, 1., 7),
+                          (2, 4, 1., 7)])
 
 
-@register_class()
+#TOCHECK
 class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     def setUp(self, sim=sim, **extra):
@@ -949,7 +968,7 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     def tearDown(self, sim=sim):
         sim.end()
-    @register()
+   
     def test_connect(self, sim=sim):
         syn = sim.StaticSynapse(weight=1.0, delay=2)
         def displacement_expression(d):
