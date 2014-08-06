@@ -956,7 +956,7 @@ class TestIndexBasedProbabilityConnector(unittest.TestCase):
                           (2, 4, 1., 7)])
 
 
-#TOCHECK
+#TOCHECK, not included
 #class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     #def setUp(self, sim=sim, **extra):
