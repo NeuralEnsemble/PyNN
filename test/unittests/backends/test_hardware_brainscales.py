@@ -48,6 +48,31 @@ extra = {
     'hardware': sim.hardwareSetup['one-hicann']
     }
 
+
+class PopulationViewTest(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup(**extra)
+        
+    def tearDown(self):
+        sim.end()
+        
+    def test_can_record_populationview(self):
+        pv = sim.Population(17, sim.EIF_cond_exp_isfa_ista())[::2]
+        assert pv.can_record('v')
+        assert not pv.can_record('w')
+        assert not pv.can_record('gsyn_inh')
+        assert pv.can_record('spikes')
+        assert not pv.can_record('foo')
+        
+    def test_can_record_population(self, sim=sim):
+        p = sim.Population(17, sim.EIF_cond_exp_isfa_ista())
+        assert p.can_record('v')
+        assert not p.can_record('w')
+        assert not p.can_record('gsyn_inh')
+        assert p.can_record('spikes')
+        assert not p.can_record('foo')
+        
 # --------------------------------------------------
 # DON'T CHANGE below this line
 # -------------------------------------------------- 

@@ -394,15 +394,6 @@ class PopulationViewTest(unittest.TestCase):
         assert pv.can_record('gsyn_inh')
         assert pv.can_record('spikes')
         assert not pv.can_record('foo')
-        
-    @register(include_only='hardware.brainscales')
-    def test_can_record(self, sim=sim):
-        pv = sim.Population(17, EIF_cond_exp_isfa_ista())[::2]
-        assert pv.can_record('v')
-        assert not pv.can_record('w')
-        assert not pv.can_record('gsyn_inh')
-        assert pv.can_record('spikes')
-        assert not pv.can_record('foo')
 
     @register()
     def test_record_with_single_variable(self, sim=sim):
