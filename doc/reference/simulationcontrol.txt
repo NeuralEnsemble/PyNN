@@ -6,6 +6,8 @@ Simulation control
 
 .. autofunction:: pyNN.neuron.run
 
+.. autofunction:: pyNN.neuron.run_until
+
 .. autofunction:: pyNN.neuron.reset
 
 .. autofunction:: pyNN.neuron.end

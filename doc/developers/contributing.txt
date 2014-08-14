@@ -190,22 +190,28 @@ Once you've confirmed all the above, create a source package using::
 
     $ python setup.py sdist
 
-and check that it installs properly.
+and check that it installs properly (you will find it in the :file:`dist`
+subdirectory.
 
 Now you should commit any changes, then tag with the release number as follows::
 
     $ git tag x.y.z
 
 where ``x.y.z`` is the release number. You should now upload the documentation
-to http://neuralensemble.org/docs/PyNN/.
+to http://neuralensemble.org/docs/PyNN/ by running::
 
-.. todo:: more details on this
+    $ make zip
+    
+in the :file:`doc` directory, and then unpacking the resulting archive on the
+NeuralEnsemble server.
 
 If this is a development release (i.e. an *alpha* or *beta*), the final step is
-to upload the source package to the INCF Software Center [more instructions needed here].
+to upload the source package to the INCF Software Center.
 Do **not** upload development releases to PyPI.
 
-.. todo:: more details on this
+To upload a package to the INCF Software Center, log-in, and then go to the
+Contents_ tab. Click on "Add new..." then "File", then fill in the form and
+upload the source package.
 
 If this is a final release, there are a few more steps:
 
@@ -241,3 +247,4 @@ If this is a final release, there are a few more steps:
 .. _`issue tracker`: https://neuralensemble.org/trac/PyNN
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
+.. _contents: http://software.incf.org/software/pynn/pynn/folder_contents

@@ -3,7 +3,7 @@ A selection of Izhikevich neurons.
 
 Run as:
 
-$ python IF_curr_exp.py <simulator>
+$ python Izhikevich.py <simulator>
 
 where <simulator> is 'neuron', 'nest', etc.
 

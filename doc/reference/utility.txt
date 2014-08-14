@@ -21,3 +21,17 @@ Utility classes and functions
 .. autofunction:: pyNN.utility.save_population
 
 .. autofunction:: pyNN.utility.load_population
+
+
+Basic plotting
+==============
+
+.. autoclass:: pyNN.utility.plotting.Figure
+   :members:
+   :undoc-members:
+
+.. autoclass:: pyNN.utility.plotting.Panel
+   :members:
+   :undoc-members:
+   
+.. autofunction:: pyNN.utility.plotting.comparison_plot

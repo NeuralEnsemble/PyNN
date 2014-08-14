@@ -7,6 +7,13 @@ Definition of NativeCellType class for NEST.
 
 import nest
 from pyNN.models import BaseCellType
+from . import conversion
+
+UNITS_MAP = {
+    'spikes': 'ms',
+    'V_m': 'mV',
+}
+
 
 def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
@@ -15,21 +22,24 @@ def get_defaults(model_name):
               'frozen', 'instantiations', 'local', 'model', 'recordables',
               'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
-              'type', 'type_id']
+              'node_type', 'type', 'type_id']
     default_params = {}
     default_initial_values = {}
-    for name,value in defaults.items():
+    for name, value in defaults.items():
         if name in variables:
             default_initial_values[name] = value
         elif name not in ignore:
-            default_params[name] = value
+            default_params[name] = conversion.make_pynn_compatible(value)
     return default_params, default_initial_values
 
+
 def get_receptor_types(model_name):
-    return nest.GetDefaults(model_name).get("receptor_types", ('excitatory', 'inhibitory'))
+    return list(nest.GetDefaults(model_name).get("receptor_types", ('excitatory', 'inhibitory')))
+
 
 def get_recordables(model_name):
-    return nest.GetDefaults(model_name).get("recordables", [])
+    return [sl.name for sl in nest.GetDefaults(model_name).get("recordables", [])]
+
 
 def native_cell_type(model_name):
     """
@@ -46,6 +56,7 @@ def native_cell_type(model_name):
                  'receptor_types': receptor_types,
                  'injectable': ("V_m" in default_initial_values),
                  'recordable': recordable,
+                 'units': dict(((var, UNITS_MAP.get(var, 'unknown')) for var in recordable)),
                  'standard_receptor_type': (receptor_types == ('excitatory', 'inhibitory')),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),

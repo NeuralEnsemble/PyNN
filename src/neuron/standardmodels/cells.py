@@ -235,12 +235,12 @@ class EIF_cond_exp_isfa_ista(base_cells.EIF_cond_exp_isfa_ista):
 
 class Izhikevich(base_cells.Izhikevich):
     __doc__ = base_cells.Izhikevich.__doc__
-    
+
     translations = build_translations(
-        ('a',        'a'),
+        ('a',        'a_'),
         ('b',        'b'),
         ('c',        'c'),
         ('d',        'd'),
-        ('i_offset', 'i_inj')
+        ('i_offset', 'i_offset')
     )
     model = Izhikevich_

@@ -24,7 +24,7 @@ def main_pyNN(parameters):
     sim = import_module(parameters.simulator)
     timer.mark("import")
 
-    sim.setup()
+    sim.setup(threads=parameters.threads)
     timer.mark("setup")
 
     populations = {}
@@ -54,9 +54,11 @@ def main_pyNN(parameters):
     sim.run(parameters.sim_time)
     timer.mark("run")
 
+    spike_counts = {}
     if parameters.recording:
         for pop_name in parameters.recording.names():
             block = populations[pop_name].get_data()  # perhaps include some summary statistics in the data returned?
+            spike_counts["spikes_%s" % pop_name] = populations[pop_name].mean_spike_count()
         timer.mark("get_data")
 
     mpi_rank = sim.rank()
@@ -65,6 +67,7 @@ def main_pyNN(parameters):
     
     data = dict(timer.marks)
     data.update(num_processes=num_processes)
+    data.update(spike_counts)
     return mpi_rank, data
 
 
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     
     parameters = ParameterSet(args.parameter_file)
     
-    print parameters.pretty()
+    #print parameters.pretty()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if parameters.simulator == "pynest":
         main = main_pynest

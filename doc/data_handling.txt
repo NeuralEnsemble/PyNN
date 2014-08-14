@@ -126,5 +126,53 @@ object. If you wish to do so (for example to release memory), use *clear=True*:
             os.remove(filename)
 
 
+Simple plotting
+===============
+
+Plotting Neo data with Matplotlib, as shown above, can be rather verbose, with
+a lot of repetitive boilerplate code. PyNN therefore provides a couple of
+classes, :class:`~pyNN.utility.plotting.Figure` and :class:`~pyNN.utility.plotting.Panel`,
+to make quick-and-easy plots of recorded data. It is possible to
+customize the plots to some extent, but for publication-quality or
+highly-customized plots you should probably use Matplotlib or some other
+plotting package directly.
+
+A simple example::
+
+    from pyNN.utility.plotting import Figure, Panel  
+    
+    ...
+    
+    population.record('spikes')
+    population[0:2].record(('v', 'gsyn_exc'))
+    
+    ...
+    
+    data = population.get_data().segments[0]
+    
+    vm = data.filter(name="v")[0]
+    gsyn = data.filter(name="gsyn_exc")[0]
+    
+    Figure(
+        Panel(vm, ylabel="Membrane potential (mV)"),
+        Panel(gsyn, ylabel="Synaptic conductance (uS)"),
+        Panel(data.spiketrains, xlabel="Time (ms)", xticks=True)
+    ).save("simulation_results.png")
+
+
+.. image:: images/release_0.8b1_example.png
+   :width: 600px
+   :alt: Image generated using the Figure and Panel classes from pyNN.utility.plotting
+
+
+Other packages for working with Neo data
+========================================
+
+A variety of software tools are available for working with Neo-format data,
+for example SpykeViewer_ and OpenElectrophy_.
+
+
 .. _Neo: http://neuralensemble.org/neo
 .. _`variety of different file formats`: http://packages.python.org/neo/io.html#module-neo.io
+.. _SpykeViewer: http://spyke-viewer.readthedocs.org/en/0.4.0/
+.. _OpenElectrophy: http://neuralensemble.org/OpenElectrophy/

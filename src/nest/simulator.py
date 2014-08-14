@@ -69,6 +69,8 @@ class _State(common.control.BaseState):
 
     threads = nest_property('local_num_threads', int)
 
+    grng_seed = nest_property('grng_seed', int)
+
     rng_seeds = nest_property('rng_seeds', list)
 
     @property
@@ -225,12 +227,14 @@ class Connection(object):
     weight = property(_get_weight, _set_weight)
     delay  = property(_get_delay, _set_delay)
 
+
 def generate_synapse_property(name):
     def _get(self):
         return nest.GetStatus([self.id()], name)[0]
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)
+
 setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))
 setattr(Connection, 'tau_facil', generate_synapse_property('tau_fac'))

@@ -28,6 +28,7 @@ DEFAULT_FIG_SETTINGS = {
     'axes.labelsize': 'small',
     'legend.fontsize': 'small',
     'font.size': 8,
+    'savefig.dpi': 150,
 }
 
 
@@ -36,6 +37,12 @@ def handle_options(ax, options):
         plt.setp(ax.get_xticklabels(), visible=False)
     if "xlabel" in options:
         ax.set_xlabel(options.pop("xlabel"))
+    if "yticks" not in options or options.pop("yticks") is False:
+        plt.setp(ax.get_yticklabels(), visible=False)
+    if "ylabel" in options:
+        ax.set_ylabel(options.pop("ylabel"))
+    if "ylim" in options:
+        ax.set_ylim(options.pop("ylim"))
 
 
 def plot_signal(ax, signal, index=None, label='', **options):
@@ -50,7 +57,7 @@ def plot_signal(ax, signal, index=None, label='', **options):
         signal = signal[:, index]
     ax.plot(signal.times.rescale(ms), signal, label=label, **options)
     ax.set_ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
-    plt.legend()
+    ax.legend()
 
 
 def plot_signals(ax, signal_array, label_prefix='', **options):
@@ -65,9 +72,12 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     for i in signal_array.channel_index.argsort():
         channel = signal_array.channel_index[i]
         signal = signal_array[:, i]
-        label = "%s (Neuron %d)" % (label_prefix, channel)
+        if label_prefix:
+            label = "%s (Neuron %d)" % (label_prefix, channel)
+        else:
+            label = "Neuron %d" % channel
         ax.plot(signal.times.rescale(ms), signal, label=label, **options)
-    plt.legend()
+    ax.legend()
 
 
 def plot_spiketrains(ax, spiketrains, label='', **options):
@@ -77,13 +87,24 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     handle_options(ax, options)
     max_index = 0
     for spiketrain in spiketrains:
-        plt.plot(spiketrain,
+        ax.plot(spiketrain,
                  np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
                  'k.')
         max_index = max(max_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
-    plt.xlim(0, spiketrain.t_stop/ms)
-    plt.ylim(-0.5, max_index - 0.5)
+    ax.set_xlim(0, spiketrain.t_stop/ms)
+    ax.set_ylim(-0.5, max_index + 0.5)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+	
+def plot_array(ax, arr, label='', **options):
+    """
+    Plots a numpy array as an image.
+    """
+    handle_options(ax, options)
+    plt.pcolormesh(arr, **options)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -111,10 +132,12 @@ class Figure(object):
       ).save("figure3.png")
     
     Valid options are:
-    
-        `settings` - for figure settings, e.g. {'font.size': 9}
-        `annotations` - a (multi-line) string to be printed at the bottom of the figure.
-        `title` - a string to be printed at the top of the figure.
+        `settings`:
+            for figure settings, e.g. {'font.size': 9}
+        `annotations`:
+            a (multi-line) string to be printed at the bottom of the figure.
+        `title`:
+            a string to be printed at the top of the figure.
     """
     
     def __init__(self, *panels, **options):
@@ -146,7 +169,7 @@ class Figure(object):
         Save the figure to file. The format is taken from the file extension.
         """
         dirname = path.dirname(filename)
-        if not path.exists(dirname):
+        if dirname and not path.exists(dirname):
             makedirs(dirname)
         self.fig.savefig(filename)
 
@@ -160,15 +183,14 @@ class Panel(object):
     automatically choose an appropriate representation. Multiple data items may
     be plotted in the same panel.
     
-    Valid options any valid Matplotlib formatting options that should be applied
-    to the Axes/Subplot, plus in addition:
-    
-        `data_labels`: a list of strings of the same length as the number of
-                       data items.
-        `line_properties`: a list of dicts containing Matplotlib formatting
-                           options, of the same length as the number of data
-                           items.
-        
+    Valid options are any valid Matplotlib formatting options that should be
+    applied to the Axes/Subplot, plus in addition:
+        `data_labels`:
+            a list of strings of the same length as the number of data items.
+        `line_properties`:
+            a list of dicts containing Matplotlib formatting options, of the
+            same length as the number of data items.
+
     """
         
     def __init__(self, *data, **options):
@@ -189,6 +211,8 @@ class Panel(object):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
+	    elif isinstance(datum, np.ndarray):
+		plot_array(axes, datum, label=label, **properties)
             else:
                 raise Exception("Can't handle type %s" % type(datum))
     
@@ -224,7 +248,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
         panels += [Panel(*array_list,
                          line_properties=line_properties,
                          data_labels=labels) for array_list in by_channel.values()]
-    if with_spikes:
+    if with_spikes and len(segments[0].spiketrains) > 0:
         panels += [Panel(segment.spiketrains, data_labels=[label])
                    for segment, label in zip(segments, labels)]
     panels[-1].options["xticks"] = True

@@ -111,6 +111,7 @@ For each cell model, you must also define a cell type:
         default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
         default_initial_values = {'v': -65.0}
         recordable = ['soma(0.5).v', 'soma(0.5).ina']
+        units = {'soma(0.5).v' : 'mV', 'soma(0.5).ina': 'nA'}
         model = SimpleNeuron
 
 The requirement to explicitly list all variables you might wish to record in the

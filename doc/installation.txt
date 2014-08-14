@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8alpha2.tar.gz
-    $ cd PyNN-0.8alpha2
+    $ tar xzf PyNN-0.8beta1.tar.gz
+    $ cd PyNN-0.8beta1
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -143,7 +143,7 @@ Now try it out::
                   -- N E S T --
 
       Copyright (C) 2004 The NEST Initiative
-      Version 2.2.1 Feb 11 2013 17:42:00
+      Version 2.4.1 Jul 15 2014 14:55:04
     ...
     >>> nest.Models()
     ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',

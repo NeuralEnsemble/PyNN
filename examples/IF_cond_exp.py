@@ -18,7 +18,6 @@ from pyNN.utility import get_script_args, normalized_filename
 simulator_name = get_script_args(1)[0]  
 exec("from pyNN.%s import *" % simulator_name)
 
-
 setup(timestep=0.1, min_delay=0.1, max_delay=4.0)
 
 ifcell = create(IF_cond_exp, {'i_offset' : 0.1,   'tau_refrac': 3.0,
