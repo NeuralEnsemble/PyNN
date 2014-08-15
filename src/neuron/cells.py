@@ -10,10 +10,14 @@ Definition of cell classes for the neuron module.
 from pyNN.models import BaseCellType
 from pyNN import errors
 from neuron import h, nrn, hclass
-from simulator import state
+from .simulator import state
 from math import pi
 import logging
 from .recording import recordable_pattern
+try:
+    reduce
+except NameError:
+    from functools import reduce
 
 logger = logging.getLogger("PyNN")
 

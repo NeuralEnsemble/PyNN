@@ -211,7 +211,7 @@ def connection_plot(projection):
     image[connection_array > 0] = 'O'
     image[connection_array == 0] = '.'
     image[numpy.isnan(connection_array)] = ' '
-    return u'\n'.join([u''.join(row) for row in image])
+    return '\n'.join([''.join(row) for row in image])
 
 
 class Timer(object):
@@ -340,8 +340,8 @@ class ProgressBar(object):
             # build a progress bar with self.char and spaces (to create a
             # fixed bar (the percent string doesn't move)
             bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
-        bar = u'[ %s ] %3.0f%%' % (bar, 100*level)
-        print(bar, end=u" \r")
+        bar = '[ %s ] %3.0f%%' % (bar, 100*level)
+        print(bar, end=" \r")
         sys.stdout.flush()
 
     def __call__(self, level):

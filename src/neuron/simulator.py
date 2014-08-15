@@ -20,6 +20,10 @@ modules.
 
 """
 
+try:
+    xrange
+except NameError:
+    xrange = range
 from pyNN import __path__ as pyNN_path
 from pyNN import common
 import logging
