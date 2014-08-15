@@ -175,7 +175,7 @@ class _State(common.control.BaseState):
 
     def register_gid(self, gid, source, section=None):
         """Register a global ID with the global `ParallelContext` instance."""
-        ###print "registering gid %s to %s (section=%s)" % (gid, source, section)
+        ###print("registering gid %s to %s (section=%s)" % (gid, source, section))
         self.parallel_context.set_gid2node(gid, self.mpi_rank) # assign the gid to this node
         if is_point_process(source):
             nc = h.NetCon(source, None)                          # } associate the cell spike source

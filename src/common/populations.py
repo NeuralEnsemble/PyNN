@@ -1081,7 +1081,7 @@ class Assembly(object):
             boundaries.append(count)
         boundaries = numpy.array(boundaries, dtype=numpy.int)
 
-        if isinstance(index, int): # return an ID
+        if isinstance(index, (int, numpy.integer)): # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index-boundaries[pindex]]
         elif isinstance(index, (slice, tuple, list, numpy.ndarray)):

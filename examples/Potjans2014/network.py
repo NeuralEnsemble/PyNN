@@ -82,7 +82,7 @@ class Network:
 
 
         if sim.rank() == 0:
-            print 'w:', self.w
+            print('w: %g' % self.w)
 
         for target_layer in layers :
             for target_pop in pops :
@@ -100,7 +100,7 @@ class Network:
                 if thalamic_input:
                     # Thalamic inputs
                     if sim.rank() == 0 :
-                        print 'creating thalamic connections to ' + target_layer + target_pop
+                        print('creating thalamic connections to %s%s') % (target_layer, target_pop))
                     C_thal = thal_params['C'][target_layer][target_pop]
                     n_target = N_full[target_layer][target_pop]
                     K_thal = round(np.log(1-C_thal)/np.log((n_target*thal_params['n_thal']-1.)/ \
@@ -112,8 +112,7 @@ class Network:
                     for source_pop in pops :
                         source_index = structure[source_layer][source_pop]
                         if sim.rank() == 0:
-                            print 'creating connections from ' + source_layer + \
-                            source_pop + ' to ' + target_layer + target_pop
+                            print('creating connections from %s%s to %s%s' % (source_layer, source_pop, target_layer, target_pop))
                         weight = self.w[target_index][source_index]
                         if source_pop == 'E' and source_layer == 'L4' and target_layer == 'L23' and target_pop == 'E':
                             w_sd = weight*w_rel_234

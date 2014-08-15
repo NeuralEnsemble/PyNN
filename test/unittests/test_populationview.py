@@ -27,8 +27,8 @@ import pyNN.mock as sim
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from backends.registry import register_class, register
-from alias_cell_types import alias_cell_types, take_all_cell_classes
+from .backends.registry import register_class, register
+from .alias_cell_types import alias_cell_types, take_all_cell_classes
 
 def setUp():
     alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))

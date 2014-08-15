@@ -22,10 +22,10 @@ from pyNN.utility import assert_arrays_equal
     #    
     #    start_time = time.time()
     #    all_data = gather(local_data)
-    #    #print comm.rank, "local", local_data
+    #    #print(comm.rank, "local", local_data)
     #    if comm.rank == 0:
-    #    #    print "all", all_data
-    #        print N, time.time()-start_time
+    #    #    print("all", all_data)
+    #        print(N, time.time()-start_time)
     
 #def test_gather_no_MPI():
 

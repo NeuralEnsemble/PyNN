@@ -247,7 +247,7 @@ class Network(object):
     #        assert len(possible_cell_classes) == 1
     #        cell_class = list(possible_cell_classes)[0]
     #    else:
-    #        print "Population '%s' is not the target of any Projections, so we do not have a synapse model." % nineml_population.name
+    #        print("Population '%s' is not the target of any Projections, so we do not have a synapse model." % nineml_population.name)
     #    return cell_class
     
 
@@ -401,5 +401,5 @@ if __name__ == "__main__":
     
     sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
     network = Network(sim, nineml_file)
-    print network.describe()
+    print(network.describe())
     sim.end()

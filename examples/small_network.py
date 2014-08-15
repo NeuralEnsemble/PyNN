@@ -74,7 +74,7 @@ filename = normalized_filename("Results", "small_network", "pkl",
                                options.simulator, sim.num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
+print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel

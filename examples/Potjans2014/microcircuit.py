@@ -26,16 +26,16 @@ n = network.Network(sim)
 n.setup(sim)
 end_netw = time.time()
 if sim.rank() == 0 :
-    print 'Creating the network took ', end_netw - start_netw, ' s'
+    print('Creating the network took %g s' % (end_netw - start_netw,))
 
 # simulate
 if sim.rank() == 0 :
-    print "Simulating..."
+    print("Simulating...")
 start_sim = time.time()
 t = sim.run(simulator_params[simulator]['sim_duration'])
 end_sim = time.time()
 if sim.rank() == 0 :
-    print 'Simulation took ', end_sim - start_sim, ' s'
+    print('Simulation took %g s' % (end_sim - start_sim,))
 
  
 start_writing = time.time()
@@ -55,10 +55,10 @@ for layer in n.pops :
                     io.write_segment(segment)
                 except AssertionError :
                     pass
-            
+
 
 end_writing = time.time()
-print "Writing data took ", end_writing-start_writing, " s"
+print("Writing data took %g s" % (end_writing - start_writing,))
 
 if create_raster_plot and sim.rank()==0 :
     # Numbers of neurons from which spikes were recorded

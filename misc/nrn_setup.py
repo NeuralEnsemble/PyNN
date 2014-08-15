@@ -90,7 +90,7 @@ def download_and_install(pkg,extra_options=''):
     Download and install NEURON or Interviews.
     """
     assert pkg in ('iv','nrn')
-    print colour(bright+blue, "Downloading %s" % fullname[pkg])
+    print(colour(bright+blue, "Downloading %s" % fullname[pkg]))
     urllib.urlretrieve("%s/%s" % (base_url,current_packages[pkg]), install_dir+"/%s" % current_packages[pkg])
     cmd = """
             dir=%s
@@ -99,10 +99,10 @@ def download_and_install(pkg,extra_options=''):
             tar xzf $p-*.tar.gz
             mv $p-*[0-9] $p
           """ % (install_dir,pkg)
-    print cmd
+    print(cmd)
     os.system(cmd)
     
-    print colour(bright+blue, "Building %s" % fullname[pkg])
+    print(colour(bright+blue, "Building %s" % fullname[pkg]))
     if pkg == 'nrn':
         extra_options += " --with-nrnpython"
     cmd = """
@@ -111,28 +111,28 @@ def download_and_install(pkg,extra_options=''):
             ./configure --prefix=`pwd` %s > config.out
             make > make.log 2> make.errors
           """ % (install_dir,pkg,extra_options)
-    print cmd
+    print(cmd)
     retval = os.system(cmd)
     if retval != 0: # error during compilation
-        print colour(red,"Compilation errors: ")
+        print(colour(red, "Compilation errors: "))
         f = open('%s/%s/make.errors' % (install_dir,pkg),'r'); errors = f.read(); f.close()
         if errors:
-            print colour(red, errors)
+            print(colour(red, errors))
         sys.exit(2) # should probably try to clean up first
         
-    print colour(bright+blue, "Installing %s in %s/%s" % (fullname[pkg],install_dir,pkg))
+    print(colour(bright+blue, "Installing %s in %s/%s" % (fullname[pkg], install_dir,pkg)))
     cmd = """
             dir=%s/%s
             cd $dir
             make install > install.log 2> install.errors
           """ % (install_dir,pkg)
-    print cmd
+    print(cmd)
     retval = os.system(cmd)
     if retval != 0: # error during installation
-        print colour(red,"Installation errors: ")
+        print(colour(red,"Installation errors: "))
         f = open('%s/%s/install.errors' % (install_dir,pkg),'r'); errors = f.read(); f.close()
         if errors:
-            print colour(red, errors)
+            print(colour(red, errors))
             sys.exit(2) # should probably try to clean up first
     return "%s/%s" % (install_dir,pkg)
 
@@ -143,12 +143,12 @@ if __name__ == "__main__":
     existing_nrn_installations = search_for_neuron()
     if existing_nrn_installations:
        nrniv_path = select_most_recent(existing_nrn_installations)
-       print colour(bright+blue,"Using existing NEURON installation at %s" % nrniv_path)
+       print(colour(bright+blue,"Using existing NEURON installation at %s" % nrniv_path))
     else:
        # If no suitable NEURON installations are found, check for an existing Interviews installation
         iv_path = search_for_iv()
         if iv_path:
-            print colour(bright+blue,"Using existing Interviews installation at %s" % iv_path)
+            print(colour(bright+blue,"Using existing Interviews installation at %s" % iv_path))
         else:
             # If not found, download and install Interviews in the current directory
             iv_path = download_and_install('iv')

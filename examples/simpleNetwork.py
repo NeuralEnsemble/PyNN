@@ -25,7 +25,7 @@ number = int(2*tstop*rate/1000.0)
 numpy.random.seed(26278342)
 spike_times = numpy.add.accumulate(numpy.random.exponential(1000.0/rate, size=number))
 assert spike_times.max() > tstop
-print spike_times.min()
+print(spike_times.min())
 
 input_population  = Population(1, SpikeSourceArray(spike_times=spike_times), label="input")
 

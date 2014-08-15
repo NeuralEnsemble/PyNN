@@ -20,6 +20,24 @@ def is_listlike(obj):
     return isinstance(obj, (list, numpy.ndarray, tuple, set))
 
 
+def iteritems(obj):
+    """Handle the disappearance of `dict.iteritems` in Python 3"""
+    try:
+        itr = obj.iteritems()  # Python 2
+    except AttributeError:
+        itr = obj.items()
+    return itr
+
+
+def itervalues(obj):
+    """Handle the disappearance of `dict.itervalues` in Python 3"""
+    try:
+        itr = obj.itervalues()  # Python 2
+    except AttributeError:
+        itr = obj.values()
+    return itr
+
+
 class deprecated(object):
     """
     Decorator to mark functions/methods as deprecated. Emits a warning when

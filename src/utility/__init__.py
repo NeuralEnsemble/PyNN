@@ -392,7 +392,7 @@ class forgetful_memoize(object):
             print("using cached value")
             return self.cached_value
         else:
-            #print "calculating value"
+            #print("calculating value")
             value = self.func(*args)
             self.cached_args = args
             self.cached_value = value

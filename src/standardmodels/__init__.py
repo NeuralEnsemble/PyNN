@@ -21,7 +21,7 @@ Classes:
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 import numpy
-from pyNN.core import is_listlike
+from pyNN.core import is_listlike, itervalues
 from copy import deepcopy
 
 # ==============================================================================
@@ -126,7 +126,7 @@ class StandardModelType(models.BaseModelType):
         if names:
             translations = (self.translations[name] for name in names)
         else:  # return all names
-            translations = self.translations.itervalues()
+            translations = itervalues(self.translations)
         return [D['translated_name'] for D in translations]
 
 

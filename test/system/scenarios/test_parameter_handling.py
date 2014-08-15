@@ -2,7 +2,7 @@
 import numpy
 from nose.tools import assert_equal
 from pyNN.utility import assert_arrays_equal
-from registry import register
+from .registry import register
 
 
 @register()

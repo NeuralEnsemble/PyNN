@@ -159,17 +159,17 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         self.v_init = v_rest # default value
 
     def __set_tau_m(self, value):
-        #print "setting tau_m to", value, "cm =", self.seg.cm
+        #print("setting tau_m to", value, "cm =", self.seg.cm))
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
     def __get_tau_m(self):
-        #print "tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm
+        #print("tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm)
         return 1e-3*self.seg.cm/self.seg.pas.g
 
     def __get_cm(self):
-        #print "cm = ", self.seg.cm
+        #print("cm = ", self.seg.cm)
         return self.seg.cm
     def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
-        #print "setting cm to", value
+        #print("setting cm to", value)
         tau_m = self.tau_m
         self.seg.cm = value
         self.tau_m = tau_m

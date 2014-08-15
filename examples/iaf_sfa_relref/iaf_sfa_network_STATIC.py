@@ -111,7 +111,7 @@ class LatticeConnector(connectors.Connector):
             chosenPresIndexes = list(numpy.random.permutation(numpy.arange(countPre))[0:n])
             chosenPresIDs = list(projection.pre[chosenPresIndexes].all_cells)
             #if rank==0:
-            #    print chosenPresIDs
+            #    print(chosenPresIDs)
             #chosenPresIDs = chosenPresIDs.tolist()
             timer0 += time.time() - myTimer
             
@@ -135,7 +135,7 @@ class LatticeConnector(connectors.Connector):
             delaysClipped = numpy.clip(delays,sim.get_min_delay(),sim.get_max_delay())
             howManyClipped = len((delays != delaysClipped).nonzero()[0])
             if (howManyClipped > 1):
-                print "Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n)
+                print("Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n))
             delaysClipped = delaysClipped.tolist()
             timer3 += time.time() - myTimer
                 
@@ -147,11 +147,11 @@ class LatticeConnector(connectors.Connector):
         
         # Print timings
         if rank==0:
-            print "\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m"
-            print "\033[2;46m" + ("Timer 1: %5.4f seconds" % timer1).ljust(60) + "\033[m"
-            print "\033[2;46m" + ("Timer 2: %5.4f seconds" % timer2).ljust(60) + "\033[m"
-            print "\033[2;46m" + ("Timer 3: %5.4f seconds" % timer3).ljust(60) + "\033[m"
-            print "\033[2;46m" + ("Timer 4: %5.4f seconds" % timer4).ljust(60) + "\033[m"
+            print("\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m")
+            print("\033[2;46m" + ("Timer 1: %5.4f seconds" % timer1).ljust(60) + "\033[m")
+            print("\033[2;46m" + ("Timer 2: %5.4f seconds" % timer2).ljust(60) + "\033[m")
+            print("\033[2;46m" + ("Timer 3: %5.4f seconds" % timer3).ljust(60) + "\033[m")
+            print("\033[2;46m" + ("Timer 4: %5.4f seconds" % timer4).ljust(60) + "\033[m")
 
 
 
@@ -161,13 +161,13 @@ def printTimer(message):
     if rank==0:
         string1 = "\033[0;46m" + (message + ": ").ljust(30) + "\033[m"
         string2 = "\033[1;46m" + ("%5.2f" % (time.time() - currentTimer) + " seconds").rjust(30) + "\033[m"
-        print string1+string2
+        print(string1 + string2)
         currentTimer = time.time()
 
 def printMessage(message):
     global rank
     if rank==0:
-        print "\033[2;46m" + (message).ljust(60) + "\033[m"
+        print("\033[2;46m" + (message).ljust(60) + "\033[m")
 
 
 ###################### MAIN BODY ###########################
@@ -181,8 +181,8 @@ init_logging('sim.log',num_processes=numberOfNodes,rank=rank,level=logging.DEBUG
 
 ## Start message ##
 if rank==0:
-    print "\033[1;45m" + (("Lattice Simulation").rjust(38)).ljust(60) + "\033[m"
-    print "\033[0;44m" + ("MPI_Rank: %d  " % rank + " MPI_Size: %d " % numberOfNodes).ljust(60) + "\033[m"
+    print("\033[1;45m" + (("Lattice Simulation").rjust(38)).ljust(60) + "\033[m")
+    print("\033[0;44m" + ("MPI_Rank: %d  " % rank + " MPI_Size: %d " % numberOfNodes).ljust(60) + "\033[m")
 
 
 ## Timer ##
@@ -224,7 +224,7 @@ NumOfConI_I = int(connectionsI_I * ICFactorI_I)
 
 # Print out chosen values
 if rank==0:
-    print "\033[0;44m" + ("E_E:%5.2f  " % ICFactorE_E + " E_I:%5.2f  " % ICFactorE_I + " I_E:%5.2f  " % ICFactorI_E + " I_I:%5.2f" % ICFactorI_I).ljust(60) + "\033[m"
+    print("\033[0;44m" + ("E_E:%5.2f  " % ICFactorE_E + " E_I:%5.2f  " % ICFactorE_I + " I_E:%5.2f  " % ICFactorI_E + " I_I:%5.2f" % ICFactorI_I).ljust(60) + "\033[m")
 
 # The max distance is 15 approx
 printMessage("Now strating lattice simulation setup.")
@@ -399,7 +399,7 @@ if rank==0:
     listTimesI = list(spikesI[:,1])
 
 ## Kill the bad dir ##
-#print "Tempdir: ", sim.tempdirs
+#print("Tempdir: ", sim.tempdirs)
 #theBadDir = sim.tempdirs
 #thePipe = os.popen("lsof -F f +D " + theBadDir[0])
 #theText = thePipe.read()
@@ -446,8 +446,8 @@ if rank==0:
 
     string1 = "\033[0;44m" + ("Total simulation time: ").ljust(30) + "\033[m"
     string2 = "\033[1;44m" + ("%5.2f" % (simTimer - totalTimer) + " seconds").rjust(30) + "\033[m"
-    print string1+string2
+    print(string1 + string2)
 
     string1 = "\033[0;44m" + ("Total time: ").ljust(30) + "\033[m"
     string2 = "\033[1;44m" + ("%5.2f" % (time.time() - totalTimer) + " seconds").rjust(30) + "\033[m"
-    print string1+string2
+    print(string1 + string2)

@@ -10,6 +10,10 @@ try:
     import unittest2 as unittest
 except ImportError:
     import unittest
+try:
+    basestring
+except NameError:
+    basestring = str
 import numpy
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -18,13 +22,13 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
-from mocks import MockRNG
+from .mocks import MockRNG
 import pyNN.mock as sim
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from backends.registry import register_class, register
-from alias_cell_types import alias_cell_types, take_all_cell_classes
+from .backends.registry import register_class, register
+from .alias_cell_types import alias_cell_types, take_all_cell_classes
  
 def setUp():
     alias_cell_types(sys.modules[__name__], **take_all_cell_classes(sim)) 
@@ -136,7 +140,7 @@ class PopulationTest(unittest.TestCase):
     @register()
     def test_set_positions(self, sim=sim):
         p = sim.Population(11, IF_cond_exp())
-        assert p._structure != None
+        assert p._structure is not None
         new_positions = numpy.random.uniform(size=(3,11))
         p.positions = new_positions
         self.assertEqual(p.structure, None)
@@ -174,7 +178,7 @@ class PopulationTest(unittest.TestCase):
     @register()
     def test__getitem__list(self, sim=sim):
         p = sim.Population(23, HH_cond_exp())
-        pv = p[range(3,9)]
+        pv = p[list(range(3,9))]
         self.assertEqual(pv.parent, p)
         assert_array_almost_equal(pv.all_cells, p.all_cells[3:9])
 
@@ -200,7 +204,7 @@ class PopulationTest(unittest.TestCase):
     def test_iter(self, sim=sim):
         p = sim.Population(6, IF_curr_exp())
         itr = p.__iter__()
-        assert hasattr(itr, "next")
+        assert hasattr(itr, "next") or hasattr(itr, "__next__")
         self.assertEqual(len(list(itr)), 6)
 
     @register()

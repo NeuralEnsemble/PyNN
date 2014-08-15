@@ -149,9 +149,9 @@ def test_record_native_model():
 
     parameters = {'g_leak': 0.0003}
     p1 = nrn.Population(10, SimpleNeuronType(**parameters))
-    print p1.get('g_leak')
+    print(p1.get('g_leak'))
     p1.rset('gnabar', RandomDistribution('uniform', low=0.10, high=0.14))
-    print p1.get('gnabar')
+    print(p1.get('gnabar'))
     p1.initialize(v=-63.0)
 
     current_source = nrn.StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],

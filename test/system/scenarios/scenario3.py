@@ -3,7 +3,7 @@
 from nose.tools import assert_equal
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
-from registry import register
+from .registry import register
 
 
 @register(exclude=["moose", "nemo"])

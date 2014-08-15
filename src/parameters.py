@@ -338,7 +338,7 @@ class ParameterSpace(object):
         >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
         >>> ps.evaluate()
         >>> for D in ps:
-        ...     print D
+        ...     print(D)
         ...
         {'a': 2, 'c': 2, 'b': 7}
         {'a': 3, 'c': 5, 'b': 7}

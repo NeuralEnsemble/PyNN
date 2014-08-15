@@ -187,7 +187,7 @@ class PoissonGroup(brian.PoissonGroup):
                                     clock=simulator.state.network.clock)
 
     def update_rates(self, t):
-        #print t, self.rate
+        #print(t, self.rate)
         idx = (self.start <= t) & (t <= self.start + self.duration)
         return numpy.where(idx, self.firing_rate, 0)
 

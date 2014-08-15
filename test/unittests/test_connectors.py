@@ -19,7 +19,7 @@ from .mocks import MockRNG, MockRNG2
 import pyNN.mock as sim
 
 from .backends.registry import register_class, register
-from alias_cell_types import alias_cell_types
+from .alias_cell_types import alias_cell_types
 
 orig_mpi_get_config = random.get_mpi_config
 
