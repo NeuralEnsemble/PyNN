@@ -25,6 +25,10 @@ try:
 except ImportError:
     SMTPHOST = None
     EMAIL = None
+try:
+    u = unicode    # hack for Python 3.2, which does not support the 'u' prefix
+except NameError:
+    u = str
 import sys
 import logging
 import time
@@ -340,8 +344,8 @@ class ProgressBar(object):
             # build a progress bar with self.char and spaces (to create a
             # fixed bar (the percent string doesn't move)
             bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
-        bar = '[ %s ] %3.0f%%' % (bar, 100*level)
-        print(bar, end=" \r")
+        bar = u('[ %s ] %3.0f%%' % (bar, 100*level))
+        print(bar, end=u(' \r'))
         sys.stdout.flush()
 
     def __call__(self, level):
