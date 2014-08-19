@@ -43,3 +43,7 @@ cover
 # files from running examples
 examples/Results
 examples/tools/Results
+
+# Other
+*.btr
+*.log

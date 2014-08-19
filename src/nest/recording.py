@@ -24,7 +24,7 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.hl_api.NESTError, e:
+    except nest.hl_api.NESTError as e:
         raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 

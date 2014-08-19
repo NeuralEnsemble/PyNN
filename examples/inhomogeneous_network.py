@@ -39,11 +39,11 @@ cells = sim.Population(n_cells, cell_type,
                        initial_values={'v': lambda i: -60.0 - i},
                        label="cells")
 
-print "positions:"
-print cells.positions
+print("positions:")
+print(cells.positions)
 
 for name in ('tau_m', 'v_rest', 'v_thresh'):
-    print name, "=", cells.get(name)
+    print(name, "=", cells.get(name))
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
@@ -64,10 +64,10 @@ connections = sim.Projection(spike_source, cells,
                                                delay=0.5)
                             )
 
-print "weights:"
-print str(connections.get('weight', format='array')).replace('nan', ' . ')
-print "delays:"
-print str(connections.get('delay', format='array')).replace('nan', ' . ')
+print("weights:")
+print(str(connections.get('weight', format='array')).replace('nan', ' . '))
+print("delays:")
+print(str(connections.get('delay', format='array')).replace('nan', ' . '))
 
 cells.record(['spikes', 'v'])
 
@@ -78,6 +78,6 @@ filename = normalized_filename("Results", "inhomogeneous_network", "pkl",
                                args.simulator_name)
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print "Mean firing rate: ", cells.mean_spike_count()*1000.0/sim.get_current_time(), "Hz"
+print("Mean firing rate: ", cells.mean_spike_count()*1000.0/sim.get_current_time(), "Hz")
 
 sim.end()

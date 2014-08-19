@@ -55,8 +55,8 @@ def list_standard_models():
     for cell_class in standard_cell_types:
         try:
             create(cell_class())
-        except Exception, e:
-            print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
+        except Exception as e:
+            print("Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e))
             standard_cell_types.remove(cell_class)
     return [obj.__name__ for obj in standard_cell_types]
 

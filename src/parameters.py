@@ -5,6 +5,12 @@ Parameter set handling
 :license: CeCILL, see LICENSE for details.
 """
 
+try:  # Python 2
+    basestring
+    long
+except NameError:  # Python 3
+    basestring = str
+    long = int
 import numpy
 import collections
 from pyNN.core import is_listlike
@@ -51,7 +57,7 @@ class LazyArray(larray):
                 raise errors.InvalidParameterValueError(errmsg + "Incorrect syntax.")
             try:
                 value(0.0)
-            except NameError, err:
+            except NameError as err:
                 raise errors.InvalidParameterValueError(errmsg + str(err))
         super(LazyArray, self).__init__(value, shape, dtype)
 
@@ -205,7 +211,7 @@ class ParameterSpace(object):
         self._evaluated = False
 
     def _set_shape(self, shape):
-        for value in self._parameters.itervalues():
+        for value in self._parameters.values():
             value.shape = shape
         self._shape = shape
     shape = property(fget=lambda self: self._shape, fset=_set_shape,
@@ -223,7 +229,10 @@ class ParameterSpace(object):
 
         Note that the values will all be :class:`LazyArray` objects.
         """
-        return self._parameters.iteritems()
+        if hasattr(self._parameters, "iteritems"):
+            return self._parameters.iteritems()
+        else:
+            return self._parameters.items()
 
     def __repr__(self):
         return "<ParameterSpace %s, shape=%s>" % (", ".join(self.keys()), self.shape)
@@ -329,7 +338,7 @@ class ParameterSpace(object):
         >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
         >>> ps.evaluate()
         >>> for D in ps:
-        ...     print D
+        ...     print(D)
         ...
         {'a': 2, 'c': 2, 'b': 7}
         {'a': 3, 'c': 5, 'b': 7}

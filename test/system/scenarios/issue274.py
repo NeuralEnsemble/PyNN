@@ -1,4 +1,4 @@
-from registry import register
+from .registry import register
 
 from pyNN.random import RandomDistribution as rnd
 

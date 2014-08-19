@@ -29,13 +29,13 @@ def plot_signal(panel, signal, index, colour='b', linewidth='1', label=''):
     
 
 def plot(datafiles, output_file, extra_annotation=None):
-    print datafiles
-    print output_file
+    print(datafiles)
+    print(output_file)
     # load data
     blocks = [get_io(datafile).read_block() for datafile in datafiles]
     #   note: Neo needs a pretty printer that is not tied to IPython
 #    for block in blocks:
-#        print (block.describe())
+#        print(block.describe())
     #   for now take only the first segment
     segments = [block.segments[0] for block in blocks]
     labels = [block.annotations['simulator'] for block in blocks]

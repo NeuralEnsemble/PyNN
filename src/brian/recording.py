@@ -78,8 +78,8 @@ class Recorder(recording.Recorder):
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
         values = numpy.array(device._values)
-        #print ids
-        #print device.record
+        #print(ids)
+        #print(device.record)
         current_values = device.P.state_(device.varname)[device.record]
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
         logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)

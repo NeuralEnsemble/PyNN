@@ -3,7 +3,7 @@ import numpy
 import quantities as pq
 from nose.tools import assert_equal
 from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging
-from registry import register
+from .registry import register
 
 
 @register(exclude=['pcsim', 'nemo'])
@@ -100,13 +100,13 @@ def issue259(sim):
     p.record('spikes')
     sim.run(10.0)
     spiketrains0 = p.get_data('spikes', clear=True).segments[0].spiketrains
-    print spiketrains0[0]
+    print(spiketrains0[0])
     sim.run(10.0)
     spiketrains1 = p.get_data('spikes', clear=True).segments[0].spiketrains
-    print spiketrains1[0]
+    print(spiketrains1[0])
     sim.run(10.0)
     spiketrains2 = p.get_data('spikes', clear=True).segments[0].spiketrains
-    print spiketrains2[0]
+    print(spiketrains2[0])
     sim.end()
 
     assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.025])*pq.ms, 1e-17)

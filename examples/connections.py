@@ -83,9 +83,9 @@ def build_connections(connector_type, connector_parameters):
     np = sim.num_processes()
 
     host_name = socket.gethostname()
-    print "Host #%d is on %s" % (node_id + 1, host_name)
+    print("Host #%d is on %s" % (node_id + 1, host_name))
 
-    print "%s Initialising the simulator with %d thread(s)..." % (node_id, extra['threads'])
+    print("%s Initialising the simulator with %d thread(s)..." % (node_id, extra['threads']))
 
     # === Type references ====================================================
     celltype = sim.IF_cond_exp
@@ -94,7 +94,7 @@ def build_connections(connector_type, connector_parameters):
     # === Definition of the types of neurons, synapses and connections =======
     progress_bar = ProgressBar(width=20)
 
-    cell_stim = sim.SpikeSourceArray(spike_times=[0.0])
+    cell_stim = sim.SpikeSourceArray(spike_times=[1.0])
     cell_exc = celltype()
     cell_inh = celltype()
     syn_stim = synapsetype()
@@ -106,12 +106,12 @@ def build_connections(connector_type, connector_parameters):
 
     # === Populations ========================================================
 
-    print "%s Creating cell populations..." % node_id
+    print("%s Creating cell populations..." % node_id)
     pop_stim = sim.Population(n_ext, cell_stim, label="spikes")
     pop_exc = sim.Population(n_exc, cell_exc, label="Excitatory_Cells")
     pop_inh = sim.Population(n_inh, cell_inh, label="Inhibitory_Cells")
 
-    print "%s Connecting populations..." % node_id
+    print("%s Connecting populations..." % node_id)
 
     connections = {}
     connections['stim2e'] = sim.Projection(
@@ -144,20 +144,20 @@ def build_connections(connector_type, connector_parameters):
         connections['stim2e'].size(), connections['stim2i'].size())
 
     if node_id == 0:
-        print "\n\n--- Connector : %s ---"  % connector_type.__name__
-        print "Nodes                  : %d" % np
-        print "Number of Stims        : %d" % n_ext
-        print "Number of Exc Neurons  : %d" % n_exc
-        print "Number of Inh Neurons  : %d" % n_inh
-        print "Number of Synapses     : %s" % str_connections
-        print "Number of inputs       : %s" % str_stim_connections
-        print "\n"
+        print("\n\n--- Connector : %s ---"  % connector_type.__name__)
+        print("Nodes                  : %d" % np)
+        print("Number of Stims        : %d" % n_ext)
+        print("Number of Exc Neurons  : %d" % n_exc)
+        print("Number of Inh Neurons  : %d" % n_inh)
+        print("Number of Synapses     : %s" % str_connections)
+        print("Number of inputs       : %s" % str_stim_connections)
+        print("\n")
 
     def normalize_array(arr):
         res = nan_to_num(arr)
         res = (res != 0)
         return res.astype(int)
-    
+
     if options.plot_figure:
         filename = options.plot_figure + '_' + connector_type.__name__
         from pyNN.utility.plotting import Figure, Panel

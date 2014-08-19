@@ -108,53 +108,53 @@ cell_params = {'tau_m'      : tauMem,
 extra = {}
 
 rank = setup(timestep=dt, max_delay=delay, **extra)
-print "rank =", rank
+print("rank =", rank)
 np = num_processes()
-print "np =", np
+print("np =", np)
 import socket
 host_name = socket.gethostname()
-print "Host #%d is on %s" % (rank+1, host_name)
+print("Host #%d is on %s" % (rank+1, host_name))
 
-if extra.has_key('threads'):
-    print "%d Initialising the simulator with %d threads..." %(rank, extra['threads'])
+if 'threads' in extra:
+    print("%d Initialising the simulator with %d threads..." % (rank, extra['threads']))
 else:
-    print "%d Initialising the simulator with single thread..." %(rank)
+    print("%d Initialising the simulator with single thread..." % rank)
 
 # Small function to display information only on node 1
 def nprint(s):
-    if (rank == 0):
-        print s
+    if rank == 0:
+        print(s)
 
 timer.start() # start timer on construction
 
-print "%d Setting up random number generator" %rank
+print("%d Setting up random number generator" % rank)
 rng = NumpyRNG(kernelseed, parallel_safe=True)
 
-print "%d Creating excitatory population with %d neurons." % (rank, NE)
+print("%d Creating excitatory population with %d neurons." % (rank, NE))
 celltype = IF_curr_alpha(**cell_params)
 E_net = Population(NE, celltype, label="E_net")
 
-print "%d Creating inhibitory population with %d neurons." % (rank, NI)
+print("%d Creating inhibitory population with %d neurons." % (rank, NI))
 I_net = Population(NI, celltype, label="I_net")
 
-print "%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta)
+print("%d Initialising membrane potential to random values between %g mV and %g mV." % (rank, U0, theta))
 uniformDistr = RandomDistribution('uniform', low=U0, high=theta, rng=rng)
 E_net.initialize(v=uniformDistr)
 I_net.initialize(v=uniformDistr)
 
-print "%d Creating excitatory Poisson generator with rate %g spikes/s." % (rank, p_rate)
+print("%d Creating excitatory Poisson generator with rate %g spikes/s." % (rank, p_rate))
 source_type = SpikeSourcePoisson(rate=p_rate)
 expoisson = Population(NE, source_type, label="expoisson")
 
-print "%d Creating inhibitory Poisson generator with the same rate." % rank
+print("%d Creating inhibitory Poisson generator with the same rate." % rank)
 inpoisson = Population(NI, source_type, label="inpoisson")
 
 # Record spikes
-print "%d Setting up recording in excitatory population." % rank
+print("%d Setting up recording in excitatory population." % rank)
 E_net.sample(Nrec).record('spikes')
 E_net[0:2].record('v')
 
-print "%d Setting up recording in inhibitory population." % rank
+print("%d Setting up recording in inhibitory population." % rank)
 I_net.sample(Nrec).record('spikes')
 I_net[0:2].record('v')
 
@@ -165,21 +165,21 @@ I_syn = StaticSynapse(weight=JI, delay=delay)
 ext_Connector = OneToOneConnector(callback=progress_bar)
 ext_syn = StaticSynapse(weight=JE, delay=dt)
 
-print "%d Connecting excitatory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JE, delay)
+print("%d Connecting excitatory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JE, delay))
 E_to_E = Projection(E_net, E_net, connector, E_syn, receptor_type="excitatory")
-print "E --> E\t\t", len(E_to_E), "connections"
+print("E --> E\t\t", len(E_to_E), "connections")
 I_to_E = Projection(I_net, E_net, connector, I_syn, receptor_type="inhibitory")
-print "I --> E\t\t", len(I_to_E), "connections"
+print("I --> E\t\t", len(I_to_E), "connections")
 input_to_E = Projection(expoisson, E_net, ext_Connector, ext_syn, receptor_type="excitatory")
-print "input --> E\t", len(input_to_E), "connections"
+print("input --> E\t", len(input_to_E), "connections")
 
-print "%d Connecting inhibitory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JI, delay)
+print("%d Connecting inhibitory population with connection probability %g, weight %g nA and delay %g ms." % (rank, epsilon, JI, delay))
 E_to_I = Projection(E_net, I_net, connector, E_syn, receptor_type="excitatory")
-print "E --> I\t\t", len(E_to_I), "connections"
+print("E --> I\t\t", len(E_to_I), "connections")
 I_to_I = Projection(I_net, I_net, connector, I_syn, receptor_type="inhibitory")
-print "I --> I\t\t", len(I_to_I), "connections"
+print("I --> I\t\t", len(I_to_I), "connections")
 input_to_I = Projection(inpoisson, I_net, ext_Connector, ext_syn, receptor_type="excitatory")
-print "input --> I\t", len(input_to_I), "connections"
+print("input --> I\t", len(input_to_I), "connections")
 
 # read out time used for building
 buildCPUTime = timer.elapsedTime()
@@ -187,12 +187,12 @@ buildCPUTime = timer.elapsedTime()
 
 # run, measure computer time
 timer.start() # start timer on construction
-print "%d Running simulation for %g ms." % (rank, simtime)
+print("%d Running simulation for %g ms." % (rank, simtime))
 run(simtime)
 simCPUTime = timer.elapsedTime()
 
 # write data to file
-print "%d Writing data to file." % rank
+print("%d Writing data to file." % rank)
 (E_net + I_net).write_data("Results/brunel_np%d_%s.pkl" % (np, simulator_name))
 
 E_rate = E_net.mean_spike_count()*1000.0/simtime

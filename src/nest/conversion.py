@@ -4,6 +4,7 @@ Conversion functions to nest-compatible data types.
 
 import numpy
 from pyNN.parameters import Sequence
+from pyNN.core import iteritems
 
 
 def make_sli_compatible_single(value):
@@ -47,7 +48,7 @@ def make_sli_compatible(container):
     elif isinstance(container, dict):
         compatible = {}
 
-        for k,v in container.iteritems():
+        for k,v in iteritems(container):
             compatible[k] = make_sli_compatible_single(v)
 
     else:
@@ -79,7 +80,7 @@ def make_pynn_compatible(container):
     elif isinstance(container, dict):
         compatible = {}
 
-        for k,v in container.iteritems():
+        for k,v in iteritems(container):
             compatible[k] = make_pynn_compatible_single(v)
 
     else:

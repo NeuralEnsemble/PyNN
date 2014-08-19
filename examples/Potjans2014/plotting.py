@@ -38,7 +38,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
 
     # Plot raster plot
     id_count = 0
-    print "Mean rates"
+    print("Mean rates")
     for i in range(8)[::-1]:
         layer = i/2
         pop = i%2
@@ -52,7 +52,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
         # Compute rates with all neurons
         rate = 1000*len(t_spikes)/(t_stop-t_start)*1/float(n_rec[layer][pop])
         rates[i] = rate
-        print pops[-i], np.round(rate,2)
+        print(pops[-i] + np.round(rate, 2))
         # Reduce data for raster plot
         num_neurons = frac_to_plot*np.unique(ids).size
         t_spikes = t_spikes[np.where(ids<num_neurons+id_count+1)[0]]

@@ -29,22 +29,17 @@ from pyNN.connectors import Connector, \
                             CloneConnector, \
                             ArrayConnector
 
-from .random import NativeRNG, NEST_RDEV_TYPES, NEST_RDIST_TRANSFORMATIONS
+from .random import NativeRNG, NEST_RDEV_TYPES
 
 
 logger = logging.getLogger("PyNN")
 
 
-if nest.version() < "NEST 2.4.0":
+if not nest.sli_func("statusdict/have_libneurosim ::"):
 
-    print ("CSAConnector: using PyNN's default CSAConnector.")    
-    from pyNN.connectors import CSAConnector
-
-elif not nest.sli_func("statusdict/have_libneurosim ::"):
-
-    print ("CSAConnector: libneurosim support not available in NEST.\n" +
+    print(("CSAConnector: libneurosim support not available in NEST.\n" +
            "Falling back on PyNN's default CSAConnector.\n" +
-           "Please re-compile NEST using --with-libneurosim=PATH")
+           "Please re-compile NEST using --with-libneurosim=PATH"))
 
     from pyNN.connectors import CSAConnector
 
@@ -109,16 +104,7 @@ class NESTConnectorMixin(object):
             if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
                 if value.base_value.name in NEST_RDEV_TYPES:
                     logger.warning("Random values will be created inside NEST with NEST's own RNGs")
-                    dist_params = {}
-                    ### Transform distribution parameters to nest-specific units
-                    rng = NativeRNG(value.base_value)
-                    for name in rng.parameters.keys() :
-                        if name =='distribution' or name != 'weight' :
-                            pval = rng.parameters[name]
-                        else :
-                            pval = eval(NEST_RDIST_TRANSFORMATIONS[value.base_value.name][name],rng.parameters)
-                        dist_params[name] = pval
-                    params[name] = dist_params
+                    params[name] = NativeRNG(value.base_value).parameters
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
