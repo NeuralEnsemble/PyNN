@@ -295,6 +295,9 @@ class Izhikevich_(BaseSingleCompartmentNeuron):
 
     def __init__(self, a_=0.02, b=0.2, c=-65.0, d=2.0, i_offset=0.0):
         BaseSingleCompartmentNeuron.__init__(self, 1.0, i_offset)
+        self.L = 10
+        self.seg.diam = 10/pi
+        self.c_m = 1.0
 
         # insert Izhikevich mechanism
         self.izh = h.Izhikevich(0.5, sec=self)
