@@ -58,7 +58,7 @@ popE.record_gsyn(to_file=False)
 t1 = time()
 sim.run(tsim)
 t2 = time()
-print "Elapsed %f seconds." % (t2-t1,)
+print("Elapsed %f seconds." % (t2-t1,))
 
 ## Get spikes ##
 spikesE = popE.getSpikes()
@@ -66,12 +66,10 @@ v_E = popE.get_v()
 gsyn = popE.get_gsyn()
 spikesI = popI.getSpikes()
 
-#print spikesE
+#print(spikesE)
 # should be about 6.0Hz
-print float(len(spikesE))/tsim*1000.0
+print(float(len(spikesE))/tsim*1000.0)
 # should be about 10.0Hz
-print float(len(spikesI))/tsim*1000.0
-
-
+print(float(len(spikesI))/tsim*1000.0)
 
 sim.end()

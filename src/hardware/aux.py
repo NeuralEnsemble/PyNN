@@ -76,4 +76,4 @@ def import_all_submodules(module_path):
     for importer, module_name, ispkg in iter_modules(module_path):
         if ispkg == True:
             import_module(version=module_name)
-            print "Linked: submodule hardware.%s" % module_name
+            print("Linked: submodule hardware.%s" % module_name)

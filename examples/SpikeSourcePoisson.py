@@ -21,11 +21,11 @@ poissonsource.record('spikes')
 
 run(300.0)
 
-print "Mean spike count:", poissonsource.mean_spike_count()
-print "First few spikes:"
+print("Mean spike count:", poissonsource.mean_spike_count())
+print("First few spikes:")
 all_spikes = poissonsource.get_data()
 for spiketrain in all_spikes.segments[0].spiketrains:
-    print "cell #%d: %s" % (spiketrain.annotations['source_id'], spiketrain[:5])
+    print("cell #%d: %s" % (spiketrain.annotations['source_id'], spiketrain[:5]))
 
 poissonsource.write_data("Results/SpikeSourcePoisson_%s.pkl" % simulator_name)
 

@@ -15,6 +15,8 @@ March 2010
 
 from pyNN.utility import get_script_args
 
+make_plot = False
+
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
@@ -52,23 +54,24 @@ if simulator_name in var_names:
 
 run(20.0)
 
-import matplotlib.pyplot as plt
-#pylab.rcParams['interactive'] = True
-plt.ion()
+if make_plot:
+        import matplotlib.pyplot as plt
+        #pylab.rcParams['interactive'] = True
+        plt.ion()
 
-data = hhcell.get_data()
-signal_names = [s.name for s in data.segments[0].analogsignalarrays]
-vm = data.segments[0].analogsignalarrays[signal_names.index('v')]
-plt.plot(vm.times, vm)
-plt.xlabel("time (ms)")
-plt.ylabel("Vm (mV)")
+        data = hhcell.get_data()
+        signal_names = [s.name for s in data.segments[0].analogsignalarrays]
+        vm = data.segments[0].analogsignalarrays[signal_names.index('v')]
+        plt.plot(vm.times, vm)
+        plt.xlabel("time (ms)")
+        plt.ylabel("Vm (mV)")
 
-if simulator_name in var_names:
-    plt.figure(2)
-    for var_name, native_name in var_names[simulator_name].items():
-        signal = data.segments[0].analogsignalarrays[signal_names.index(native_name)]
-        plt.plot(signal.times, signal, label=var_name)
-    plt.xlabel("time (ms)")
-    plt.legend()
+        if simulator_name in var_names:
+            plt.figure(2)
+            for var_name, native_name in var_names[simulator_name].items():
+                signal = data.segments[0].analogsignalarrays[signal_names.index(native_name)]
+                plt.plot(signal.times, signal, label=var_name)
+            plt.xlabel("time (ms)")
+            plt.legend()
 
 end()

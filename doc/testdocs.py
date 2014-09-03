@@ -62,7 +62,7 @@ def print_script(filename, simulator):
     parser = doctest.DocTestParser()
     s = open(filename).read()
     script = "".join([ex.source for ex in parser.get_examples(s) if "+SKIP" not in ex.source])
-    print "from pyNN.%s import *\nsetup(max_delay=10.0, debug=True)\n" % simulator + script
+    print("from pyNN.%s import *\nsetup(max_delay=10.0, debug=True)\n%s" % (simulator, script))
 
 def remove_data_files():
     import glob

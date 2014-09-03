@@ -41,7 +41,7 @@ w.extend(prj.get('weight', format='list', with_address=False))
 p1.write_data("Results/simple_STDP_1_%s.pkl" % sim_name)
 p2.write_data("Results/simple_STDP_2_%s.pkl" % sim_name)
 
-print w
+print(w)
 f = open("Results/simple_STDP_%s.w" % sim_name, 'w')
 f.write("\n".join([str(ww) for ww in w]))
 f.close()

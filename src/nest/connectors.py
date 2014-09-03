@@ -37,9 +37,9 @@ logger = logging.getLogger("PyNN")
 
 if not nest.sli_func("statusdict/have_libneurosim ::"):
 
-    print ("CSAConnector: libneurosim support not available in NEST.\n" +
+    print(("CSAConnector: libneurosim support not available in NEST.\n" +
            "Falling back on PyNN's default CSAConnector.\n" +
-           "Please re-compile NEST using --with-libneurosim=PATH")
+           "Please re-compile NEST using --with-libneurosim=PATH"))
 
     from pyNN.connectors import CSAConnector
 

@@ -2,7 +2,7 @@
 
 from nose.tools import assert_equal
 import quantities as pq
-from registry import register
+from .registry import register
 
 
 @register(exclude=["pcsim", "nemo"])

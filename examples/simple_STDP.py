@@ -24,7 +24,7 @@ stdp_model = STDPMechanism(timing_dependence=SpikePairRule(tau_plus=20.0, tau_mi
                            weight_dependence=AdditiveWeightDependence(w_min=0, w_max=0.04),
                            weight=0.024,
                            delay=0.2)
-print "####"
+print("####")
 pprint(stdp_model.translations)
 
 connection_method = AllToAllConnector()
@@ -43,7 +43,7 @@ for i in range(60):
 filename = normalized_filename("Results", "simple_STDP", "pkl", sim_name, num_processes())
 p2.write_data(filename, annotations={'script_name': __file__})
 
-print w
+print(w)
 f = open("Results/simple_STDP_%s.w" % sim_name, 'w')
 f.write("\n".join([str(ww) for ww in w]))
 f.close()

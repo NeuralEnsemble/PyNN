@@ -1,6 +1,6 @@
 import os
 from nose.plugins.skip import SkipTest
-from scenarios.registry import registry
+from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
@@ -123,7 +123,7 @@ def test_electrical_synapse():
                                                        [3, 2, 1.0]]),
                                           column_names=['weight'])
     prj = pyNN.neuron.Projection(p1, p2, C, syn,
-                                 source='source_section.gap', receptor_type='source_section.gap') 
+                                 source='source_section.gap', receptor_type='source_section.gap')
     current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
     p1[0:1].inject(current_source)
     p2[2:3].inject(current_source)
@@ -133,11 +133,11 @@ def test_electrical_synapse():
     p1_trace = p1.get_data(('v',)).segments[0].analogsignalarrays[0]
     p2_trace = p2.get_data(('v',)).segments[0].analogsignalarrays[0]
     # Check the local forward connection
-    assert p2_trace[:,0].max() - p2_trace[:,0].min() > 50 
+    assert p2_trace[:,0].max() - p2_trace[:,0].min() > 50
     # Check the remote forward connection
-    assert p2_trace[:,1].max() - p2_trace[:,1].min() > 50 
+    assert p2_trace[:,1].max() - p2_trace[:,1].min() > 50
     # Check the local backward connection
-    assert p1_trace[:,2].max() - p2_trace[:,2].min() > 50 
+    assert p1_trace[:,2].max() - p2_trace[:,2].min() > 50
     # Check the remote backward connection
     assert p1_trace[:,3].max() - p2_trace[:,3].min() > 50
 
@@ -149,9 +149,9 @@ def test_record_native_model():
 
     parameters = {'g_leak': 0.0003}
     p1 = nrn.Population(10, SimpleNeuronType(**parameters))
-    print p1.get('g_leak')
+    print(p1.get('g_leak'))
     p1.rset('gnabar', RandomDistribution('uniform', low=0.10, high=0.14))
-    print p1.get('gnabar')
+    print(p1.get('gnabar'))
     p1.initialize(v=-63.0)
 
     current_source = nrn.StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],

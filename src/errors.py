@@ -30,8 +30,7 @@ class NonExistentParameterError(KeyError):
         Exception.__init__(self)
         self.parameter_name = parameter_name
         self.model_name = model_name
-        self.valid_parameter_names = valid_parameter_names
-        self.valid_parameter_names.sort()
+        self.valid_parameter_names = sorted(valid_parameter_names)
 
     def __str__(self):
         return "%s (valid parameters for %s are: %s)" % (self.parameter_name,

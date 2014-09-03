@@ -81,7 +81,7 @@ filename = normalized_filename("Results", "specific_network", "pkl",
                                simulator_name, num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
+print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
 
 # === Clean up and quit ========================================================
 

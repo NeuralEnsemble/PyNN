@@ -153,7 +153,7 @@ class Figure(object):
         if "annotations" in options:
             gs.update(bottom=1.2/height)  # leave space for annotations
         gs.update(top=1 - 0.8/height, hspace=0.1) 
-        print gs.get_grid_positions(self.fig)
+        print(gs.get_grid_positions(self.fig))
         
         for i, panel in enumerate(panels):
             panel.plot(plt.subplot(gs[i, 0]))
@@ -211,11 +211,10 @@ class Panel(object):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
-	    elif isinstance(datum, np.ndarray):
-		plot_array(axes, datum, label=label, **properties)
+            elif isinstance(datum, np.ndarray):
+                plot_array(axes, datum, label=label, **properties)
             else:
                 raise Exception("Can't handle type %s" % type(datum))
-    
 
 
 def comparison_plot(segments, labels, title='', annotations=None,
@@ -227,7 +226,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
     Return a Figure instance.
     """
     variables_to_plot = set.union(*(variable_names(s) for s in segments))
-    print "Plotting the following variables: %s" % ", ".join(variables_to_plot)
+    print("Plotting the following variables: %s" % ", ".join(variables_to_plot))
 
     # group signal arrays by name        
     n_seg = len(segments)

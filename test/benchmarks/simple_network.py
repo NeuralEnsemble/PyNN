@@ -107,7 +107,7 @@ if __name__ == "__main__":
     
     parameters = ParameterSet(args.parameter_file)
     
-    #print parameters.pretty()
+    #print(parameters.pretty())
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if parameters.simulator == "pynest":
         main = main_pynest

@@ -82,15 +82,15 @@ stim_connections = sim.Projection(ext_stim, all_cells,
                                   synapse_type=sim.StaticSynapse(**synaptic_parameters['input']),
                                   label='Input connections')
 
-print __doc__
-print "The network consists of:\n"
-print all_cells.describe()
-print exc_cells.describe()
-print inh_cells.describe()
-print ext_stim.describe()
-print "connected as follows:\n"
-print exc_connections.describe()
-print inh_connections.describe()
-print stim_connections.describe()
+print(__doc__)
+print("The network consists of:\n")
+print(all_cells.describe())
+print(exc_cells.describe())
+print(inh_cells.describe())
+print(ext_stim.describe())
+print("connected as follows:\n")
+print(exc_connections.describe())
+print(inh_connections.describe())
+print(stim_connections.describe())
 
 sim.end()
