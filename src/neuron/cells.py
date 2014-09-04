@@ -332,7 +332,7 @@ class Izhikevich_(BaseSingleCompartmentNeuron):
         assert self.u_init is not None
         for seg in self:
             seg.v = self.v_init
-            seg.uinit = self.u_init
+            seg.u = self.u_init
 
 
 class GsfaGrrIF(StandardIF):
