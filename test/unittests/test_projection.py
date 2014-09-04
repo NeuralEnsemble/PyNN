@@ -15,15 +15,22 @@ import os
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mock import Mock, patch
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
+try:
+    basestring
+except NameError:
+    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from backends.registry import register_class, register
-from alias_cell_types import alias_cell_types, take_all_cell_classes
+from .backends.registry import register_class, register
+from .alias_cell_types import alias_cell_types, take_all_cell_classes
 
 def _sort_by_column(A, col):
     A = numpy.array(A)

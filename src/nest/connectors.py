@@ -35,16 +35,11 @@ from .random import NativeRNG, NEST_RDEV_TYPES
 logger = logging.getLogger("PyNN")
 
 
-if nest.version() < "NEST 2.4.0":
+if not nest.sli_func("statusdict/have_libneurosim ::"):
 
-    print ("CSAConnector: using PyNN's default CSAConnector.")    
-    from pyNN.connectors import CSAConnector
-
-elif not nest.sli_func("statusdict/have_libneurosim ::"):
-
-    print ("CSAConnector: libneurosim support not available in NEST.\n" +
+    print(("CSAConnector: libneurosim support not available in NEST.\n" +
            "Falling back on PyNN's default CSAConnector.\n" +
-           "Please re-compile NEST using --with-libneurosim=PATH")
+           "Please re-compile NEST using --with-libneurosim=PATH"))
 
     from pyNN.connectors import CSAConnector
 

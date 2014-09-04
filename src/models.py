@@ -99,7 +99,7 @@ class BaseSynapseType(BaseModelType):
             if all_parameters['delay'] is None:
                 all_parameters['delay'] = self._get_minimum_delay()
         except KeyError as e:
-            if e.message != 'delay': # ElectricalSynapses don't have delays 
+            if e.args[0] != 'delay':  # ElectricalSynapses don't have delays
                 raise e
         self.parameter_space = ParameterSpace(all_parameters,
                                               self.get_schema(),

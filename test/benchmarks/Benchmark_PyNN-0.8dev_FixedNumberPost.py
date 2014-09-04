@@ -40,11 +40,11 @@ try:
     USE_MPI = True
     comm = MPI.COMM_WORLD
     node_id, n_proc = comm.rank, comm.size
-    print "USE_MPI:", USE_MPI, 'pc_id, n_proc:', node_id, n_proc
+    print("USE_MPI:", USE_MPI, 'pc_id, n_proc:', node_id, n_proc)
 except:
     USE_MPI = False
     node_id, n_proc, comm = 0, 1, None
-    print "MPI not used"
+    print("MPI not used")
 
 from pyNN.random import NumpyRNG, RandomDistribution
 times['t_import'] = timer.diff()
@@ -79,31 +79,31 @@ node_id = setup(timestep=dt, min_delay=delay, max_delay=delay)
 times['t_setup'] = timer.diff()
 
 host_name = socket.gethostname()
-print "Host #%d is on %s" % (node_id+1, host_name)
+print("Host #%d is on %s" % (node_id+1, host_name))
 
 
 # === CREATE 
-print "%s Creating cell populations..." % node_id
+print("%s Creating cell populations..." % node_id)
 #celltype = IF_cond_exp
 exc_cells = Population(n_exc, IF_cond_exp(), label="Excitatory_Cells")
 inh_cells = Population(n_inh, IF_cond_exp(), label="Inhibitory_Cells")
 times['t_create'] = timer.diff()
 
-print "Creating noise sources ..."
+print("Creating noise sources ...")
 exc_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate' : f_noise_exc})
 inh_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate' : f_noise_inh})
 exc_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate' : f_noise_exc})
 inh_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate' : f_noise_inh})
 times['t_create_noise'] = timer.diff()
 
-print "%s Initialising membrane potential to random values..." % node_id
+print("%s Initialising membrane potential to random values..." % node_id)
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', [-50, -70], rng=rng)
 exc_cells.initialize(v=uniformDistr)
 inh_cells.initialize(v=uniformDistr)
 times['t_vinit'] = timer.diff()
 
-print "%s Connecting populations..." % node_id
+print("%s Connecting populations..." % node_id)
 ee_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
 ei_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
 ie_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
@@ -136,7 +136,7 @@ times['t_connect_noise'] = timer.diff()
 
 
 # === Setup recording ==========================================================
-print "%s Setting up recording..." % node_id
+print("%s Setting up recording..." % node_id)
 exc_cells.record()
 inh_cells.record()
 cells_to_record = range(n_cells_to_record)
@@ -144,30 +144,30 @@ exc_cells[cells_to_record].record_v()
 times['t_record'] = timer.diff()
 
 
-print "%d Print exc spikes to file..." % node_id
+print("%d Print(exc spikes to file..." % node_id)
 if not(os.path.isdir(folder_name)) and (rank() == 0):
     os.mkdir(folder_name)
 
 # === Save connections to file =================================================
-#print "%s Saving projections ..." % node_id
+#print("%s Saving projections ..." % node_id
 #for prj in connections.keys():
 #    connections[prj].saveConnections('%s/VAbenchmark_%s_%s_%s_np%d.conn' % (folder_name, benchmark, prj, simulator_name, np))
 #times['t_save_connections'] = timer.diff()
 
 
 # === Run simulation ===========================================================
-print "%d Running simulation..." % node_id
+print("%d Running simulation..." % node_id)
 run(t_sim)
 times['t_run'] = timer.diff()
 
 
-# === Print results to file ====================================================
+# === Print(results to file ====================================================
 exc_spike_fn = "%s/VAbenchmark_%s_exc_%s_np%d_%d.ras" % (folder_name, benchmark, simulator_name, np, node_id)
 exc_cells.printSpikes(exc_spike_fn, gather=gather)
-print "%d Print inh spikes to file..." % node_id
+print("%d Print(inh spikes to file..." % node_id)
 inh_spike_fn = "%s/VAbenchmark_%s_inh_%s_np%d_%d.ras" % (folder_name, benchmark, simulator_name, np, node_id)
 inh_cells.printSpikes(inh_spike_fn, gather=gather)
-print "%d Print voltage to file..." % node_id
+print("%d Print(voltage to file..." % node_id)
 exc_cells[cells_to_record].print_v("%s/VAbenchmark_%s_exc_%s_np%d_%d.v" % (folder_name, benchmark, simulator_name, np, node_id), gather=gather)
 times['t_printSpikes'] = timer.diff()
 
@@ -193,20 +193,20 @@ n_conn_ee, n_conn_ei, n_conn_ie, n_conn_ii = connections['e2e'].size(), connecti
 times['t_analysis'] = timer.diff()
 
 if node_id == 0:
-    print "\n--- Vogels-Abbott Network Simulation ---"
-    print "Nodes                  : %d" % np
-    print "Simulation type        : %s" % benchmark
-    print "Simulator name         : %s" % simulator_name
-    print "Number of Neurons      : %d  n_exc %d  n_inh %d" % (n_cells, n_exc, n_inh)
-    print "Number of Synapses     : %s" % connections_string
-    print "Total Num Synapses     : %s" % n_total
-#    print "Excitatory rate        : %g Hz" % f_exc
-#    print "Inhibitory rate        : %g Hz" % f_inh
-#    print timing_info
+    print("\n--- Vogels-Abbott Network Simulation ---")
+    print("Nodes                  : %d" % np)
+    print("Simulation type        : %s" % benchmark)
+    print("Simulator name         : %s" % simulator_name)
+    print("Number of Neurons      : %d  n_exc %d  n_inh %d" % (n_cells, n_exc, n_inh))
+    print("Number of Synapses     : %s" % connections_string)
+    print("Total Num Synapses     : %s" % n_total)
+#    print("Excitatory rate        : %g Hz" % f_exc)
+#    print("Inhibitory rate        : %g Hz" % f_inh)
+#    print(timing_info)
 
-print "%d PyNN end" % node_id
+print("%d PyNN end" % node_id)
 end()
-print "%d PyNN end finish" % node_id
+print("%d PyNN end finish" % node_id)
 times['t_end'] = timer.diff()
 
 if node_id == 0:

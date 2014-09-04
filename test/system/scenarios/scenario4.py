@@ -4,7 +4,7 @@ import logging
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from pyNN.utility import init_logging
-from registry import register
+from .registry import register
 
 
 logger = logging.getLogger("TEST")

@@ -1,6 +1,7 @@
 
 import numpy
 import quantities as pq
+
 from registry import register
     
 @register(include_only=['hardware.brainscales'])

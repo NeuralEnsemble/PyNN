@@ -401,7 +401,7 @@ class TestFromFileConnector(unittest.TestCase):
             (2, 2, 0.4, 0.13, 130, 97),
             (0, 1, 0.5, 0.14, 140, 96),  # local
             ]
-        file = recording.files.StandardTextFile("test.connections.2", mode='w')
+        file = recording.files.StandardTextFile("test.connections.2", mode='wb')
         file.write(connection_list, {"columns": ["i", "j", "weight", "delay", "U", "tau_rec"]})
         C = connectors.FromFileConnector("test.connections.2", distributed=False)
         syn = sim.TsodyksMarkramSynapse(tau_facil=88.8)

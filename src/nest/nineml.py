@@ -105,7 +105,7 @@ class _nest_build_nineml_celltype(type):
             recv_event_ports = list(syn_component.query.event_recv_ports)
             # check there's only one
             if len(recv_event_ports)!=1:
-                raise ValueError, "A synapse component has multiple recv ports.  Cannot dis-ambiguate"
+                raise ValueError("A synapse component has multiple recv ports.  Cannot dis-ambiguate")
             synapse_ports.append(syn.namespace+'_'+recv_event_ports[0].name)
 
         

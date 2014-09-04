@@ -32,7 +32,7 @@ class RecorderMixin(object):
         self.vmTable.stepMode = 3
         self.vmTable.connect("inputRequest", self.comp, "Vm")
         self.vmTable.useClock(2)
-        print "vmTable is at %s" % self.vmTable.path
+        print("vmTable is at %s" % self.vmTable.path)
 
     def record_gsyn(self, syn_name):
         syn_map = {
@@ -54,8 +54,8 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
                  ESynI=-70*mV, tauE=2*ms, tauI=5*ms, inject=0*nA, initVm=-65*mV):
         moose.Neutral.__init__(self, path)
         self.comp = moose.Compartment("compartment", self)
-        print "compartment is at %s" % self.comp.path
-        print locals()
+        print("compartment is at %s" % self.comp.path)
+        print(locals())
         self.comp.initVm = initVm
         self.comp.Rm = 1/GLeak
         self.comp.Cm = Cm

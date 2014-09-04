@@ -11,7 +11,7 @@ class build(_build):
         _build.run(self)
         nrnivmodl = self.find_nrnivmodl()
         if nrnivmodl:
-            print "nrnivmodl found at", nrnivmodl
+            print("nrnivmodl found at", nrnivmodl)
             import subprocess
             p = subprocess.Popen(nrnivmodl, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -20,12 +20,12 @@ class build(_build):
             result = p.wait()
             # test if nrnivmodl was successful
             if result != 0:
-                print "Unable to compile NEURON extensions. Output was:"
-                print '  '.join([''] + stdout) # indent error msg for easy comprehension
+                print("Unable to compile NEURON extensions. Output was:")
+                print('  '.join([''] + stdout)) # indent error msg for easy comprehension
             else:
-                print "Successfully compiled NEURON extensions."
+                print("Successfully compiled NEURON extensions.")
         else:
-            print "Unable to find nrnivmodl. It will not be possible to use the pyNN.neuron module."
+            print("Unable to find nrnivmodl. It will not be possible to use the pyNN.neuron module.")
         
     def find_nrnivmodl(self):
         """Try to find the nrnivmodl executable."""
@@ -72,7 +72,11 @@ PyNN is a work in progress, but is already being used for several large-scale si
                    'License :: Other/Proprietary License',
                    'Natural Language :: English',
                    'Operating System :: OS Independent',
-                   'Programming Language :: Python',
+                   'Programming Language :: Python :: 2',
+                   'Programming Language :: Python :: 2.6',
+                   'Programming Language :: Python :: 2.7',
+                   'Programming Language :: Python :: 3',
+                   'Programming Language :: Python :: 3.4',
                    'Topic :: Scientific/Engineering'],
     cmdclass = {'build': build},
 )

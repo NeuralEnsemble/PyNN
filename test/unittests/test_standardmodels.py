@@ -4,7 +4,14 @@ from pyNN.standardmodels.synapses import StaticSynapse, STDPMechanism
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
 from nose.tools import assert_equal, assert_raises
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
+try:
+    basestring
+except NameError:
+    basestring = str
 import numpy
 
 def test_build_translations():

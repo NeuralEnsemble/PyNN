@@ -1,6 +1,9 @@
 from pyNN import recording, errors
 from nose.tools import assert_equal, assert_raises
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 import numpy
 import os
 from datetime import datetime
@@ -19,10 +22,10 @@ from pyNN.utility import assert_arrays_equal
     #    
     #    start_time = time.time()
     #    all_data = gather(local_data)
-    #    #print comm.rank, "local", local_data
+    #    #print(comm.rank, "local", local_data)
     #    if comm.rank == 0:
-    #    #    print "all", all_data
-    #        print N, time.time()-start_time
+    #    #    print("all", all_data)
+    #        print(N, time.time()-start_time)
     
 #def test_gather_no_MPI():
 

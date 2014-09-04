@@ -17,7 +17,15 @@ from pyNN.recording import files
 from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
 import numpy
-from itertools import izip, repeat
+try:
+    from itertools import izip
+except ImportError:  #python3.x
+    izip = zip
+try:
+    basestring
+except NameError:
+    basestring = str
+from itertools import repeat
 import logging
 from copy import copy, deepcopy
 
@@ -331,7 +339,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
             if isinstance(d_expression, str):
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
                 d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
-        except ZeroDivisionError, err:
+        except ZeroDivisionError as err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections

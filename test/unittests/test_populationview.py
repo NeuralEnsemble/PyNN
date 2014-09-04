@@ -14,14 +14,21 @@ import numpy
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import quantities as pq
-from mock import Mock, patch
+try:
+    from unittest.mock import Mock, patch
+except ImportError:
+    from mock import Mock, patch
+try:
+    basestring
+except NameError:
+    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 from pyNN import random, errors, space
 from pyNN.parameters import Sequence
 
-from backends.registry import register_class, register
-from alias_cell_types import alias_cell_types, take_all_cell_classes
+from .backends.registry import register_class, register
+from .alias_cell_types import alias_cell_types, take_all_cell_classes
 
 def setUp():
     alias_cell_types(sys.modules[__name__],**take_all_cell_classes(sim))
@@ -187,7 +194,7 @@ class PopulationViewTest(unittest.TestCase):
        p = sim.Population(23, HH_cond_exp())
        pv1 = p[1, 5, 6, 8, 11, 12, 15, 16, 19, 20]
 
-       pv2 = pv1[range(3,8)]
+       pv2 = pv1[list(range(3,8))]
        self.assertEqual(pv2.parent, pv1)
        assert_array_almost_equal(pv2.all_cells, p.all_cells[[8, 11, 12, 15, 16]])
 
@@ -218,7 +225,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(33, IF_curr_exp())
         pv = p[1, 5, 6, 8, 11, 12]
         itr = pv.__iter__()
-        assert hasattr(itr, "next")
+        assert hasattr(itr, "next") or hasattr(itr, "__next__")
         self.assertEqual(len(list(itr)), 6)
 
     @register()

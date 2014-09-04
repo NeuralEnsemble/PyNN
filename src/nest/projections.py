@@ -133,7 +133,7 @@ class Projection(common.Projection):
                                        listify(weights),
                                        listify(delays),
                                        self.nest_synapse_model)
-            except nest.NESTError, e:
+            except nest.NESTError as e:
                 raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, presynaptic_cells, postsynaptic_cell, weights, delays, self.nest_synapse_model))
         else:

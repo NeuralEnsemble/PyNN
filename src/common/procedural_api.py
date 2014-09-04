@@ -6,7 +6,7 @@ Alternative, procedural API for creating, connecting and recording from individu
 :license: CeCILL, see LICENSE for details.
 """
 
-from populations import IDMixin, BasePopulation, Assembly
+from .populations import IDMixin, BasePopulation, Assembly
 
 
 def build_create(population_class):

@@ -21,7 +21,12 @@ except ImportError:
 class HardwareTest(unittest.TestCase):
 
     def setUp(self):
-        extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+        extra = {
+            'loglevel':0, 
+            'ignoreHWParameterRanges': True, 
+            'useSystemSim': True, 
+            'hardware': sim.hardwareSetup['one-hicann']
+            }
         sim.setup(**extra)
 
     def test_IF_cond_exp_default_values(self):
@@ -29,55 +34,49 @@ class HardwareTest(unittest.TestCase):
         
     def test_IF_cond_exp_default_values2(self):
         ifcell  = sim.IF_cond_exp()
+
+def test_restart_loop():
+    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    sim.setup(**extra)
+    sim.end()
+    sim.setup(**extra)
+    sim.end()
+    sim.setup(**extra)
+    sim.run(10.0)
+    sim.end()
+    sim.setup(**extra)
+    sim.run(10.0)
+    sim.end()
     
-    def test_scenarios():
-        sim=pyNN.hardware.brainscales
-        extra = {'loglevel':0, 'useSystemSim': True}
-        if sim.__name__ == "pyNN.hardware.brainscales":
-            extra['hardware'] = sim.hardwareSetup['small']
-        sim.setup(**extra)
-        for scenario in registry:
-            if (scenario.include_only and "hardware.brainscales" in scenario.include_only):
-                #if "hardware.brainscales" not in scenario.exclude:
-                scenario.description = scenario.__name__
-                print scenario.description
-                if have_hardware_brainscales:
-                    yield scenario, sim
-                else:
-                    raise SkipTest
-        sim.end()
+#def test_several_runs():
+    #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    #sim.setup(**extra)
+    #sim.run(10.0)
+    #sim.run(10.0)
+    #sim.end()
 
-    #def test_restart_loop():
-        #sim = pyNN.hardware.brainscales
-        #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
-        #sim.setup(**extra)
-        #sim.end()
-        #sim.setup(**extra)
-        #sim.end()
-        #sim.setup(**extra)
-        #sim.run(10.0)
-        #sim.end()
-        #sim.setup(**extra)
-        #sim.run(10.0)
-        #sim.end()
-        
-    #def test_several_runs():
-        #sim = pyNN.hardware.brainscales
-        #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
-        #sim.setup(**extra)
-        #sim.run(10.0)
-        #sim.run(10.0)
-        #sim.end()
-
-    #def test_sim_without_clearing():
-        #sim = pyNN.hardware.brainscales
-        #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
-        #sim.setup(**extra)    
-        
-    #def test_sim_without_setup():
-        #sim = pyNN.hardware.brainscales
-        #sim.end()   
-  
+def test_sim_without_clearing():
+    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    sim.setup(**extra)    
+    
+def test_sim_without_setup():
+    sim.end()   
+ 
+def test_scenarios():
+    extra = {'loglevel':0, 'useSystemSim': True}
+    if sim.__name__ == "pyNN.hardware.brainscales":
+        extra['hardware'] = sim.hardwareSetup['small']
+    
+    for scenario in registry:
+        if (scenario.include_only and "hardware.brainscales" in scenario.include_only):
+            if have_hardware_brainscales:
+                sim.setup(**extra)
+                yield scenario, sim
+                sim.end() 
+            else:
+                raise SkipTest
+    
+ 
 if __name__ == '__main__':
     #test_scenarios()
     #test_restart_loop()

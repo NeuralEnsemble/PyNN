@@ -65,7 +65,7 @@ run(simtime)
 #spike_source.write_data("Results/small_network_input_np%d_%s.pkl" % (num_processes(), simulator_name))
 cells.write_data("Results/small_network2_np%d_%s.pkl" % (num_processes(), simulator_name))
 
-print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
+print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
 
 # === Clean up and quit ========================================================
 
