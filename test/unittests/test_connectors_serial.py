@@ -20,7 +20,7 @@ from .mocks import MockRNG, MockRNG2
 import pyNN.mock as sim
 
 from .backends.registry import register_class, register
-from alias_cell_types import alias_cell_types
+from .alias_cell_types import alias_cell_types
 
 orig_mpi_get_config = random.get_mpi_config
 
@@ -674,7 +674,6 @@ class TestFixedNumberPreConnector(unittest.TestCase):
         C = connectors.FixedNumberPreConnector(n=n, with_replacement=True, rng=MockRNG(start=0, delta=1))
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
-        print prj.get(["weight", "delay"], format='list')
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
                          [(0, 0, 0.0, 0.123),
                           (1, 1, 0.0, 0.123),
