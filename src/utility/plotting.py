@@ -98,7 +98,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
                  bbox=dict(facecolor='white', alpha=1.0))
-	
+
 def plot_array(ax, arr, label='', **options):
     """
     Plots a numpy array as an image.
@@ -109,7 +109,7 @@ def plot_array(ax, arr, label='', **options):
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
                  bbox=dict(facecolor='white', alpha=1.0))
-    
+
 
 def variable_names(segment):
     """
@@ -122,15 +122,15 @@ def variable_names(segment):
 class Figure(object):
     """
     Provide simple, declarative specification of multi-panel figures.
-    
+
     Example::
-    
+
       Figure(
           Panel(segment.filter(name="v")[0], ylabel="Membrane potential (mV)")
           Panel(segment.spiketrains, xlabel="Time (ms)"),
           title="Network activity",
       ).save("figure3.png")
-    
+
     Valid options are:
         `settings`:
             for figure settings, e.g. {'font.size': 9}
@@ -139,7 +139,7 @@ class Figure(object):
         `title`:
             a string to be printed at the top of the figure.
     """
-    
+
     def __init__(self, *panels, **options):
         n_panels = len(panels)
         if "settings" in options and options["settings"] is not None:
@@ -152,12 +152,12 @@ class Figure(object):
         gs = gridspec.GridSpec(n_panels, 1)
         if "annotations" in options:
             gs.update(bottom=1.2/height)  # leave space for annotations
-        gs.update(top=1 - 0.8/height, hspace=0.1) 
-        print(gs.get_grid_positions(self.fig))
-        
+        gs.update(top=1 - 0.8/height, hspace=0.1)
+        #print(gs.get_grid_positions(self.fig))
+
         for i, panel in enumerate(panels):
             panel.plot(plt.subplot(gs[i, 0]))
-        
+
         if "title" in options:
             self.fig.text(0.5, 1 - 0.5/height, options["title"],
                           ha="center", va="top", fontsize="large")
@@ -177,12 +177,12 @@ class Figure(object):
 class Panel(object):
     """
     Represents a single panel in a multi-panel figure.
-    
+
     A panel is a Matplotlib Axes or Subplot instance. A data item may be an
     AnalogSignal, AnalogSignalArray, or a list of SpikeTrains. The Panel will
     automatically choose an appropriate representation. Multiple data items may
     be plotted in the same panel.
-    
+
     Valid options are any valid Matplotlib formatting options that should be
     applied to the Axes/Subplot, plus in addition:
         `data_labels`:
@@ -192,13 +192,13 @@ class Panel(object):
             same length as the number of data items.
 
     """
-        
+
     def __init__(self, *data, **options):
         self.data = list(data)
         self.options = options
         self.data_labels = options.pop("data_labels", repeat(None))
         self.line_properties = options.pop("line_properties", repeat({}))
-        
+
     def plot(self, axes):
         """
         Plot the Panel's data in the provided Axes/Subplot instance.
@@ -222,13 +222,13 @@ def comparison_plot(segments, labels, title='', annotations=None,
     """
     Given a list of segments, plot all the data they contain so as to be able
     to compare them.
-    
+
     Return a Figure instance.
     """
     variables_to_plot = set.union(*(variable_names(s) for s in segments))
     print("Plotting the following variables: %s" % ", ".join(variables_to_plot))
 
-    # group signal arrays by name        
+    # group signal arrays by name
     n_seg = len(segments)
     by_var_and_channel = defaultdict(lambda: defaultdict(list))
     line_properties = []
@@ -243,7 +243,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
                 by_var_and_channel[array.name][channel].append(signal)
     # each panel plots the signals for a given variable.
     panels = []
-    for by_channel in by_var_and_channel.values():    
+    for by_channel in by_var_and_channel.values():
         panels += [Panel(*array_list,
                          line_properties=line_properties,
                          data_labels=labels) for array_list in by_channel.values()]
