@@ -35,6 +35,20 @@ class HardwareTest(unittest.TestCase):
     def test_IF_cond_exp_default_values2(self):
         ifcell  = sim.IF_cond_exp()
 
+
+def test_scenarios():
+    extra = {'loglevel':0, 'useSystemSim': True}
+    extra['hardware'] = sim.hardwareSetup['small']
+    
+    for scenario in registry:
+        if "hardware.brainscales" not in scenario.exclude:
+            if have_hardware_brainscales:
+                sim.setup(**extra)
+                yield scenario, sim
+                sim.end() 
+            else:
+                raise SkipTest
+            
 def test_restart_loop():
     extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)
@@ -61,20 +75,6 @@ def test_sim_without_clearing():
     
 def test_sim_without_setup():
     sim.end()   
- 
-def test_scenarios():
-    extra = {'loglevel':0, 'useSystemSim': True}
-    if sim.__name__ == "pyNN.hardware.brainscales":
-        extra['hardware'] = sim.hardwareSetup['small']
-    
-    for scenario in registry:
-        if (scenario.include_only and "hardware.brainscales" in scenario.include_only):
-            if have_hardware_brainscales:
-                sim.setup(**extra)
-                yield scenario, sim
-                sim.end() 
-            else:
-                raise SkipTest
     
  
 if __name__ == '__main__':
@@ -82,4 +82,4 @@ if __name__ == '__main__':
     #test_restart_loop()
     #test_sim_without_clearing()
     #test_sim_without_setup()
-    test_several_runs()
+    #test_several_runs()
