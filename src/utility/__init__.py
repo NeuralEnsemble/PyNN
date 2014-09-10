@@ -105,8 +105,9 @@ def get_simulator(*arguments):
                         help="neuron, nest, brian, pcsim or another backend simulator")
     for argument in arguments:
         arg_name, help_text = argument[:2]
+        extra_args = {}
         if len(argument) > 2:
-            extra_args = argument[2] or {}
+            extra_args = argument[2]
         parser.add_argument(arg_name, help=help_text, **extra_args)
     args = parser.parse_args()
     sim = import_module("pyNN.%s" % args.simulator)

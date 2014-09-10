@@ -4,15 +4,28 @@ An implementation of benchmarks 1 and 2 from
 
     Brette et al. (2007) Journal of Computational Neuroscience 23: 349-398
 
-The IF network is based on the CUBA and COBA models of Vogels & Abbott
+The network is based on the CUBA and COBA models of Vogels & Abbott
 (J. Neurosci, 2005).  The model consists of a network of excitatory and
 inhibitory neurons, connected via current-based "exponential"
 synapses (instantaneous rise, exponential decay).
 
-Usage: python VAbenchmarks.py <simulator> <benchmark>
 
-    <simulator> is either neuron, nest, brian or pcsim
-    <benchmark> is either CUBA or COBA.
+Usage: python VAbenchmarks.py [-h] [--plot-figure] [--use-views] [--use-assembly]
+                              [--use-csa] [--debug DEBUG]
+                              simulator benchmark
+
+positional arguments:
+  simulator       neuron, nest, brian, pcsim or another backend simulator
+  benchmark       either CUBA or COBA
+
+optional arguments:
+  -h, --help      show this help message and exit
+  --plot-figure   plot the simulation results to a file
+  --use-views     use population views in creating the network
+  --use-assembly  use assemblies in creating the network
+  --use-csa       use the Connection Set Algebra to define the connectivity
+  --debug DEBUG   print debugging information
+
 
 Andrew Davison, UNIC, CNRS
 August 2006
@@ -22,13 +35,26 @@ August 2006
 import os
 import socket
 from math import *
-
 from pyNN.utility import get_simulator, Timer, ProgressBar, init_logging, normalized_filename
-sim, options = get_simulator(("benchmark", "Either CUBA or COBA"))
-
 from pyNN.random import NumpyRNG, RandomDistribution
 
-init_logging(None, debug=True)
+
+# === Configure the simulator ================================================
+
+sim, options = get_simulator(
+                    ("benchmark", "either CUBA or COBA"),
+                    ("--plot-figure", "plot the simulation results to a file", {"action": "store_true"}),
+                    ("--use-views", "use population views in creating the network", {"action": "store_true"}),
+                    ("--use-assembly", "use assemblies in creating the network", {"action": "store_true"}),
+                    ("--use-csa", "use the Connection Set Algebra to define the connectivity", {"action": "store_true"}),
+                    ("--debug", "print debugging information"))
+
+if options.use_csa:
+    import csa
+
+if options.debug:
+    init_logging(None, debug=True)
+
 timer = Timer()
 
 # === Define parameters ========================================================
@@ -121,8 +147,22 @@ if (options.benchmark == "COBA"):
 timer.start()
 
 print("%s Creating cell populations..." % node_id)
-exc_cells = sim.Population(n_exc, celltype(**cell_params), label="Excitatory_Cells")
-inh_cells = sim.Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
+if options.use_views:
+    # create a single population of neurons, and then use population views to define
+    # excitatory and inhibitory sub-populations
+    all_cells = sim.Population(n_exc + n_inh, celltype(**cell_params), label="All Cells")
+    exc_cells = all_cells[:n_exc]
+    exc_cells.label = "Excitatory cells"
+    inh_cells = all_cells[n_exc:]
+    inh_cells.label = "Inhibitory cells"
+else:
+    # create separate populations for excitatory and inhibitory neurons
+    exc_cells = sim.Population(n_exc, celltype(**cell_params), label="Excitatory_Cells")
+    inh_cells = sim.Population(n_inh, celltype(**cell_params), label="Inhibitory_Cells")
+    if options.use_assembly:
+        # group the populations into an assembly
+        all_cells = exc_cells + inh_cells
+
 if options.benchmark == "COBA":
     ext_stim = sim.Population(20, sim.SpikeSourcePoisson(rate=rate, duration=stim_dur), label="expoisson")
     rconn = 0.01
@@ -132,29 +172,45 @@ if options.benchmark == "COBA":
 print("%s Initialising membrane potential to random values..." % node_id)
 rng = NumpyRNG(seed=rngseed, parallel_safe=parallel_safe)
 uniformDistr = RandomDistribution('uniform', low=v_reset, high=v_thresh, rng=rng)
-exc_cells.initialize(v=uniformDistr)
-inh_cells.initialize(v=uniformDistr)
+if options.use_views:
+    all_cells.initialize(v=uniformDistr)
+else:
+    exc_cells.initialize(v=uniformDistr)
+    inh_cells.initialize(v=uniformDistr)
 
 print("%s Connecting populations..." % node_id)
 progress_bar = ProgressBar(width=20)
-connector = sim.FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
+if options.use_csa:
+    connector = CSAConnector(csa.cset(csa.random(pconn)))
+else:
+    connector = sim.FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
 exc_syn = sim.StaticSynapse(weight=w_exc, delay=delay)
 inh_syn = sim.StaticSynapse(weight=w_inh, delay=delay)
 
-connections={}
-connections['e2e'] = sim.Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory')
-connections['e2i'] = sim.Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory')
-connections['i2e'] = sim.Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory')
-connections['i2i'] = sim.Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory')
-if (options.benchmark == "COBA"):
-    connections['ext2e'] = sim.Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
-    connections['ext2i'] = sim.Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')
+connections = {}
+if options.use_views or options.use_assembly:
+    connections['exc'] = sim.Projection(exc_cells, all_cells, connector, exc_syn, receptor_type='excitatory')
+    connections['inh'] = sim.Projection(inh_cells, all_cells, connector, inh_syn, receptor_type='inhibitory')
+    if (options.benchmark == "COBA"):
+        connections['ext'] = sim.Projection(ext_stim, all_cells, ext_conn, ext_syn, receptor_type='excitatory')
+else:
+    connections['e2e'] = sim.Projection(exc_cells, exc_cells, connector, exc_syn, receptor_type='excitatory')
+    connections['e2i'] = sim.Projection(exc_cells, inh_cells, connector, exc_syn, receptor_type='excitatory')
+    connections['i2e'] = sim.Projection(inh_cells, exc_cells, connector, inh_syn, receptor_type='inhibitory')
+    connections['i2i'] = sim.Projection(inh_cells, inh_cells, connector, inh_syn, receptor_type='inhibitory')
+    if (options.benchmark == "COBA"):
+        connections['ext2e'] = sim.Projection(ext_stim, exc_cells, ext_conn, ext_syn, receptor_type='excitatory')
+        connections['ext2i'] = sim.Projection(ext_stim, inh_cells, ext_conn, ext_syn, receptor_type='excitatory')
 
 # === Setup recording ==========================================================
 print("%s Setting up recording..." % node_id)
-exc_cells.record('spikes')
-inh_cells.record('spikes')
-exc_cells[0, 1].record('v')
+if options.use_views or options.use_assembly:
+    all_cells.record('spikes')
+    exc_cells[[0, 1]].record('v')
+else:
+    exc_cells.record('spikes')
+    inh_cells.record('spikes')
+    exc_cells[0, 1].record('v')
 
 buildCPUTime = timer.diff()
 
@@ -165,6 +221,7 @@ buildCPUTime = timer.diff()
 saveCPUTime = timer.diff()
 
 # === Run simulation ===========================================================
+
 print("%d Running simulation..." % node_id)
 
 sim.run(tstop)
@@ -178,20 +235,23 @@ I_count = inh_cells.mean_spike_count()
 
 print("%d Writing data to file..." % node_id)
 
-exc_cells.write_data(
-    normalized_filename("Results", "VAbenchmarks_%s_exc" % options.benchmark, "pkl",
-                        options.simulator, np),
-    annotations={'script_name': __file__})
-inh_cells.write_data(
-    normalized_filename("Results", "VAbenchmarks_%s_inh" % options.benchmark, "pkl",
-                        options.simulator, np),
-    annotations={'script_name': __file__})
+filename = normalized_filename("Results", "VAbenchmarks_%s_exc" % options.benchmark, "pkl",
+                               options.simulator, np)
+exc_cells.write_data(filename,
+                     annotations={'script_name': __file__})
+inh_cells.write_data(filename.replace("exc", "inh"),
+                     annotations={'script_name': __file__})
+
 writeCPUTime = timer.diff()
 
-connections = u"%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
-                                                   connections['e2i'].size(),
-                                                   connections['i2e'].size(),
-                                                   connections['i2i'].size())
+if options.use_views or options.use_assembly:
+    connections = "%d e→e,i  %d i→e,i" % (connections['exc'].size(),
+                                          connections['inh'].size())
+else:
+    connections = u"%d e→e  %d e→i  %d i→e  %d i→i" % (connections['e2e'].size(),
+                                                       connections['e2i'].size(),
+                                                       connections['i2e'].size(),
+                                                       connections['i2i'].size())
 
 if node_id == 0:
     print("\n--- Vogels-Abbott Network Simulation ---")
@@ -204,7 +264,7 @@ if node_id == 0:
     print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
     print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
     print("Build time             : %g s" % buildCPUTime)
-    print("Save connections time  : %g s" % saveCPUTime)
+    #print("Save connections time  : %g s" % saveCPUTime)
     print("Simulation time        : %g s" % simCPUTime)
     print("Writing time           : %g s" % writeCPUTime)
 
