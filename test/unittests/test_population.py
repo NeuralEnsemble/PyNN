@@ -338,7 +338,7 @@ class PopulationTest(unittest.TestCase):
         spike_times = p.get('spike_times', gather=True)
         self.assertEqual(spike_times.size, 3)
         assert_array_equal(spike_times[1], Sequence([2, 3, 4, 5]))
-
+        
     @register()
     def test_set_array(self, sim=sim):
         p = sim.Population(5, IF_cond_exp())
