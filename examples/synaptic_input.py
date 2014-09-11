@@ -9,7 +9,7 @@ synapses it depends on the value of the membrane potential.
 Usage: python synaptic_input.py [-h] [--plot-figure] [--debug] simulator
 
 positional arguments:
-  simulator      neuron, nest, brian, pcsim or another backend simulator
+  simulator      neuron, nest, brian or another backend simulator
 
 optional arguments:
   -h, --help     show this help message and exit
@@ -113,8 +113,7 @@ if options.plot_figure:
         title="Responses of standard neuron models to synaptic input",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
-
-print(figure_filename)
+    print(figure_filename)
 
 # === Clean up and quit ========================================================
 

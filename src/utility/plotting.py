@@ -43,6 +43,8 @@ def handle_options(ax, options):
         ax.set_ylabel(options.pop("ylabel"))
     if "ylim" in options:
         ax.set_ylim(options.pop("ylim"))
+    if "xlim" in options:
+        ax.set_xlim(options.pop("xlim"))
 
 
 def plot_signal(ax, signal, index=None, label='', **options):
@@ -65,6 +67,7 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     Plot all signals in an AnalogSignalArray in a single panel.
     """
     handle_options(ax, options)
+    show_legend = options.pop("legend", True)
     ax.set_ylabel(
         options.pop("ylabel",
                     "%s (%s)" % (signal_array.name,
@@ -77,7 +80,8 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
         else:
             label = "Neuron %d" % channel
         ax.plot(signal.times.rescale(ms), signal, label=label, **options)
-    ax.legend()
+    if show_legend:
+        ax.legend()
 
 
 def plot_spiketrains(ax, spiketrains, label='', **options):
@@ -89,7 +93,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     for spiketrain in spiketrains:
         ax.plot(spiketrain,
                  np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
-                 'k.')
+                 'k.', **options)
         max_index = max(max_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
     ax.set_xlim(0, spiketrain.t_stop/ms)
@@ -99,12 +103,24 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
                  transform=ax.transAxes, ha='right', va='top',
                  bbox=dict(facecolor='white', alpha=1.0))
 
-def plot_array(ax, arr, label='', **options):
+
+def plot_array_as_image(ax, arr, label='', **options):
     """
     Plots a numpy array as an image.
     """
     handle_options(ax, options)
     plt.pcolormesh(arr, **options)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+
+
+def scatterplot(ax, data_table, label='', **options):
+    handle_options(ax, options)
+    if options.pop("show_fit", False):
+        plt.plot(data_table.x, data_table.y_fit, 'k-')
+    plt.scatter(data_table.x, data_table.y, **options)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -152,7 +168,7 @@ class Figure(object):
         gs = gridspec.GridSpec(n_panels, 1)
         if "annotations" in options:
             gs.update(bottom=1.2/height)  # leave space for annotations
-        gs.update(top=1 - 0.8/height, hspace=0.1)
+        gs.update(top=1 - 0.8/height, hspace=0.25)
         #print(gs.get_grid_positions(self.fig))
 
         for i, panel in enumerate(panels):
@@ -205,14 +221,19 @@ class Panel(object):
         """
         for datum, label, properties in zip(self.data, self.data_labels, self.line_properties):
             properties.update(self.options)
-            if isinstance(datum, AnalogSignal):
+            if isinstance(datum, DataTable):
+                scatterplot(axes, datum, label=label, **properties)
+            elif isinstance(datum, AnalogSignal):
                 plot_signal(axes, datum, label=label, **properties)
             elif isinstance(datum, AnalogSignalArray):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
             elif isinstance(datum, np.ndarray):
-                plot_array(axes, datum, label=label, **properties)
+                if datum.ndim == 2:
+                    plot_array_as_image(axes, datum, label=label, **properties)
+                else:
+                    raise Exception("Can't handle arrays with %s dimensions" % datum.ndim)
             else:
                 raise Exception("Can't handle type %s" % type(datum))
 
@@ -257,3 +278,22 @@ def comparison_plot(segments, labels, title='', annotations=None,
                  settings=fig_settings,
                  annotations=annotations)
     return fig
+
+
+class DataTable(object):
+    """A lightweight encapsulation of x, y data for scatterplots."""
+
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def fit_curve(self, f, p0, **fitting_parameters):
+        from scipy.optimize import curve_fit
+        self._f = f
+        self._p0 = p0
+        self._popt, self._pcov = curve_fit(f, self.x, self.y, p0, **fitting_parameters)
+        return self._popt, self._pcov
+
+    @property
+    def y_fit(self):
+        return self._f(self.x, *self._popt)
