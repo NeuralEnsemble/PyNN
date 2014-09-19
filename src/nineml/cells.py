@@ -60,6 +60,13 @@ def _add_prefix(synapse_model, prefix, port_map):
     return new_port_map
 
 
+_default_units = {
+    "time": "ms",
+    "voltage": "mV",
+    "current": "nA"
+}
+
+
 class build_nineml_celltype(type):
     """
     Metaclass for building NineMLCellType subclasses
@@ -93,12 +100,13 @@ class build_nineml_celltype(type):
         # New:
         dct["combined_model"] = flat_component
         dct["default_parameters"] = dict((param.name, 1.0) for param in flat_component.parameters)
-        dct["default_initial_values"] = dict((statevar.name, 0.0) for statevar in chain(flat_component.state_variables) )
+        dct["default_initial_values"] = dict((statevar.name, 0.0) for statevar in chain(flat_component.state_variables))
         dct["receptor_types"] = list(weight_vars.keys())
         dct["standard_receptor_type"] = (dct["receptor_types"] == ('excitatory', 'inhibitory'))
         dct["injectable"] = False        # how to determine this? neuron component has a receive analog port with dimension current, that is not connected to a synapse port?
         dct["conductance_based"] = True  # how to determine this? synapse component has a receive analog port with dimension voltage?
         dct["model_name"] = name
+        dct["units"] = dict((statevar.name, _default_units[statevar.dimension]) for statevar in chain(flat_component.state_variables))
 
         # Recording from bindings:
         dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime'] + [alias.lhs for alias in flat_component.aliases] + [statevar.name for statevar in flat_component.state_variables]

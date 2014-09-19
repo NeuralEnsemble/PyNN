@@ -280,8 +280,10 @@ class Network(object):
     def _build_synapse_dynamics(self, nineml_projection):
         # for now, just use static synapse
         ### HACK  - only works if parameters are called "weight" and "delay" ###
+        ### to be sorted out when we try some real plastic synapses ###
         parameters = resolve_parameters(nineml_projection.connection_type, self.random_distributions, "parameters", qualified_names=False)
         parameters.update(resolve_parameters(nineml_projection.connection_type, self.random_distributions, "initial_values", qualified_names=False))
+        parameters.pop("t_next")
         return self.sim.StaticSynapse(**parameters)
 
     def _build_projection(self, nineml_projection, assembly):
