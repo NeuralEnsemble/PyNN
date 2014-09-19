@@ -28,7 +28,7 @@ PARAMETER {
     c       = -65  (mV)   : reset potential after a spike
     d       = 2    (mV/ms)
     vthresh = 30   (mV)   : spike threshold
-    Cm      = 1    (nF)
+    Cm      = 0.001  (nF)
     uinit   = -14  (mV/ms)
 }
 

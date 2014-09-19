@@ -80,8 +80,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng1.seed, 1001)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1},)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1},)
-            self.assertEqual(len(draw0), 5/2+1)
-            self.assertEqual(len(draw1), 5/2+1)
+            self.assertEqual(len(draw0), 5//2+1)
+            self.assertEqual(len(draw1), 5//2+1)
             self.assertNotEqual(draw0.tolist(), draw1.tolist())
 
     def test_parallel_safe_with_mask_local(self):

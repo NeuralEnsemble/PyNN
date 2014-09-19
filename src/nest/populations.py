@@ -120,15 +120,15 @@ class Population(common.Population, PopulationMixin):
                                    size=self.size)
         try:
             self.all_cells = nest.Create(nest_model, self.size, params=params)
-        except nest.NESTError, err:
-            if "UnknownModelName" in err.message and "cond" in err.message:
+        except nest.NESTError as err:
+            if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             raise #errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
             self.all_cells = nest.Create("parrot_neuron", self.size)     # be used for connections and recording. all_cells_source
-            nest.Connect(self.all_cells_source, self.all_cells)  # should be used for setting parameters
+            nest.Connect(self.all_cells_source, numpy.array(self.all_cells))  # should be used for setting parameters
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
@@ -145,8 +145,8 @@ class Population(common.Population, PopulationMixin):
             local_values = value._partially_evaluate(self._mask_local, simplify=True)
         try:
             nest.SetStatus(self.local_cells.tolist(), variable, local_values)
-        except nest.NESTError, e:
-            if "Unused dictionary items" in e.message:
+        except nest.NESTError as e:
+            if "Unused dictionary items" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)
                 # should perhaps check whether value-to-be-set is the same as current value,
                 # and raise an Exception if not, rather than just emit a warning.

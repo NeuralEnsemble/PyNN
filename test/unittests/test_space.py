@@ -8,7 +8,10 @@ Tests of the `space` module.
 from pyNN import space
 import unittest
 import numpy
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 from nose.tools import assert_equal, assert_raises
 from pyNN.utility import assert_arrays_equal
 from math import sqrt

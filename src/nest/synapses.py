@@ -20,9 +20,9 @@ def get_synapse_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['max_delay', 'min_delay', 'num_connections',
               'num_connectors', 'receptor_type', 'synapsemodel',
-              'property_object', 'type']
+              'property_object', 'node_type', 'type']
     default_params = {}
-    for name,value in defaults.items():
+    for name, value in defaults.items():
         if name not in ignore:
             default_params[name] = value
     default_params['tau_minus'] = DEFAULT_TAU_MINUS
@@ -30,7 +30,7 @@ def get_synapse_defaults(model_name):
 
 
 class NESTSynapseMixin(object):
-    
+
     def _get_nest_synapse_model(self, suffix):
         synapse_defaults = {}
         for name, value in self.native_parameters.items():
@@ -44,20 +44,20 @@ class NESTSynapseMixin(object):
         label = "%s_%s" % (self.nest_name, suffix)
         nest.CopyModel(self.nest_name, label, synapse_defaults)
         return label
-    
+
     def _get_minimum_delay(self):
         return state.min_delay
-    
+
     def _set_tau_minus(self, cells):
         if len(cells) > 0 and self.has_parameter('tau_minus'):
             native_parameters = self.native_parameters
-            if not native_parameters["tau_minus"].is_homogeneous: # could allow inhomogeneous values as long as each column is internally homogeneous
+            if not native_parameters["tau_minus"].is_homogeneous:  # could allow inhomogeneous values as long as each column is internally homogeneous
                 raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
             native_parameters.shape = (1,)
             tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
             nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
 
-    
+
 class NativeSynapseType(BaseSynapseType, NESTSynapseMixin):
 
     @property

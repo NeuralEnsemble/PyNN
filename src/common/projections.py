@@ -7,6 +7,14 @@ backend-specific Projection classes.
 :license: CeCILL, see LICENSE for details.
 """
 
+try:
+    basestring
+    reduce
+    xrange
+except NameError:
+    basestring = str
+    from functools import reduce
+    xrange = range
 import numpy
 import logging
 import operator
@@ -15,7 +23,7 @@ from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
-from populations import BasePopulation, Assembly
+from .populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
 deprecated = core.deprecated
@@ -328,7 +336,7 @@ class Projection(object):
         if attribute_names in ('all', 'connections'):
             attribute_names = self.synapse_type.get_parameter_names()
         if isinstance(file, basestring):
-            file = recording.files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='wb')
         all_values = self.get(attribute_names, format=format, gather=gather, with_address=with_address)
         if format == 'array':
             all_values = [numpy.where(numpy.isnan(values), 0.0, values)
@@ -336,7 +344,7 @@ class Projection(object):
         if self._simulator.state.mpi_rank == 0:
             metadata = {"columns": attribute_names}
             if with_address:
-                metadata["columns"] = ["i", "j"] + metadata["columns"]
+                metadata["columns"] = ["i", "j"] + list(metadata["columns"])
             file.write(all_values, metadata)
             file.close()
 

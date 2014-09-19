@@ -14,7 +14,7 @@ cell.inject(current_source)
 cell.record('v')
 
 for a in (0.0, 4.0, 20.0, 100.0):
-    print "Setting current to %g nA" % a
+    print("Setting current to %g nA" % a)
     cell.set(a=a)
     sim.run(200.0)
 

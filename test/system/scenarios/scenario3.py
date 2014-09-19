@@ -1,9 +1,10 @@
 # encoding: utf-8
 
 from nose.tools import assert_equal
+from nose.plugins.skip import SkipTest
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
-from registry import register
+from .registry import register
 
 
 @register(exclude=["moose", "nemo"])

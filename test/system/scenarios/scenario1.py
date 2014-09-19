@@ -2,7 +2,7 @@
 import glob, os
 from nose.tools import assert_equal
 from pyNN.random import NumpyRNG, RandomDistribution
-from registry import register
+from .registry import register
 
 
 @register(exclude=["nemo"])
@@ -67,8 +67,8 @@ def scenario1(sim):
 
     E_count = cells['excitatory'].mean_spike_count()
     I_count = cells['inhibitory'].mean_spike_count()
-    print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
-    print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
+    print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
+    print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
     sim.end()
 
 
@@ -121,8 +121,8 @@ def scenario1a(sim):
 
     E_count = excitatory_cells.mean_spike_count()
     I_count = inhibitory_cells.mean_spike_count()
-    print "Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,)
-    print "Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,)
+    print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
+    print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
     sim.end()
     for filename in glob.glob("scenario1a_*"):
         os.remove(filename)

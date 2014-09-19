@@ -3,7 +3,6 @@
 A collection of utility functions and classes.
 
 Functions:
-    colour()          - allows output of different coloured text on stdout.
     notify()          - send an e-mail when a simulation has finished.
     get_script_args() - get the command line arguments to the script, however
                         it was run (python, nrniv, mpirun, etc.).
@@ -18,6 +17,7 @@ Functions:
 
 """
 
+from __future__ import print_function
 # If there is a settings.py file on the path, defaults will be
 # taken from there.
 try:
@@ -25,6 +25,10 @@ try:
 except ImportError:
     SMTPHOST = None
     EMAIL = None
+try:
+    u = unicode    # hack for Python 3.2, which does not support the 'u' prefix
+except NameError:
+    u = str
 import sys
 import logging
 import time
@@ -40,36 +44,12 @@ except ImportError:  # Python 2.6
     
 from pyNN.core import deprecated
 
-red     = 0010; green  = 0020; yellow = 0030; blue = 0040
-magenta = 0050; cyan   = 0060; bright = 0100
-try:
-    import ll.ansistyle
-    def colour(col, text):
-        """
-        Add ANSI colour codes to the given text to make it coloured when printed
-        to the terminal.
-
-        Examples::
-
-            >>> from pyNN.utility import colour, red, blue, bright
-            >>> print colour(red, "Hello world")
-            Hello world
-            >>> print colour(bright+blue, "Creating populations...")
-            Creating populations...
-        """
-        return str(ll.ansistyle.Text(col, str(text)))
-except ImportError:
-    def colour(col, text):
-        """:mod:`ll.ansistyle` module not available - install the ll-core package."""
-        return text
-color = colour
-
 
 def notify(msg="Simulation finished.", subject="Simulation finished.",
            smtphost=SMTPHOST, address=EMAIL):
     """Send an e-mail stating that the simulation has finished."""
     if not (smtphost and address):
-        print "SMTP host and/or e-mail address not specified.\nUnable to send notification message."
+        print("SMTP host and/or e-mail address not specified.\nUnable to send notification message.")
     else:
         import smtplib, datetime
         msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address,address,subject) + msg
@@ -124,8 +104,11 @@ def get_simulator(*arguments):
     parser.add_argument("simulator",
                         help="neuron, nest, brian, pcsim or another backend simulator")
     for argument in arguments:
-        arg_name, help_text = argument
-        parser.add_argument(arg_name, help=help_text)
+        arg_name, help_text = argument[:2]
+        extra_args = {}
+        if len(argument) > 2:
+            extra_args = argument[2]
+        parser.add_argument(arg_name, help=help_text, **extra_args)
     args = parser.parse_args()
     sim = import_module("pyNN.%s" % args.simulator)
     return sim, args
@@ -235,7 +218,7 @@ def connection_plot(projection):
     image[connection_array > 0] = 'O'
     image[connection_array == 0] = '.'
     image[numpy.isnan(connection_array)] = ' '
-    return u'\n'.join([u''.join(row) for row in image])
+    return '\n'.join([''.join(row) for row in image])
 
 
 class Timer(object):
@@ -364,8 +347,8 @@ class ProgressBar(object):
             # build a progress bar with self.char and spaces (to create a
             # fixed bar (the percent string doesn't move)
             bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
-        bar = '[ %s ] %3.0f%%' % (bar, 100*level)
-        print bar, "\r",
+        bar = u('[ %s ] %3.0f%%' % (bar, 100*level))
+        print(bar, end=u(' \r'))
         sys.stdout.flush()
 
     def __call__(self, level):
@@ -413,10 +396,10 @@ class forgetful_memoize(object):
     def __call__(self, *args):
         import pdb; pdb.set_trace()
         if args == self.cached_args:
-            print "using cached value"
+            print("using cached value")
             return self.cached_value
         else:
-            #print "calculating value"
+            #print("calculating value")
             value = self.func(*args)
             self.cached_args = args
             self.cached_value = value

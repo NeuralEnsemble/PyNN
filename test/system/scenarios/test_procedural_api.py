@@ -2,7 +2,7 @@
 import numpy
 import quantities as pq
 from pyNN.utility import init_logging, assert_arrays_almost_equal
-from registry import register
+from .registry import register
 
 
 @register(exclude=['nemo'])

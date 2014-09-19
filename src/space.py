@@ -24,6 +24,10 @@ Classes:
 # There must be some Python package out there that provides most of this stuff.
 # Distance computations are provided by scipy.spatial, but scipy is a fairly heavy dependency.
 
+try:
+    reduce
+except NameError:
+    from functools import reduce
 import numpy
 import math
 from operator import and_

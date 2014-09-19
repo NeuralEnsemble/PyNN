@@ -279,7 +279,7 @@ class Izhikevich(cells.Izhikevich):
         ('b',        'b'),
         ('c',        'c'),
         ('d',        'd'),
-        ('i_offset', 'I_e'),
+        ('i_offset', 'I_e', 1000.0),
     )
     nest_name = {"on_grid": "izhikevich",
                  "off_grid": "izhikevich"}

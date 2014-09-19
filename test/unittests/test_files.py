@@ -1,6 +1,9 @@
 from pyNN.recording import files
 from textwrap import dedent
-from mock import Mock
+try:
+    from unittest.mock import Mock
+except ImportError:
+    from mock import Mock
 from nose.tools import assert_equal
 import numpy
 import os
@@ -68,13 +71,13 @@ def test_StandardTextFile_read():
     files.open = builtin_open
     
 def test_PickleFile():
-    pf = files.PickleFile("tmp.pickle", "w")
+    pf = files.PickleFile("tmp.pickle", "wb")
     data=[(0, 2.3),(1, 3.4),(2, 4.3)]
     metadata = {'a': 1, 'b': 9.99}
     pf.write(data, metadata)
     pf.close()
     
-    pf = files.PickleFile("tmp.pickle", "r")
+    pf = files.PickleFile("tmp.pickle", "rb")
     assert_equal(pf.get_metadata(), metadata)
     assert_equal(pf.read(), data)
     pf.close()

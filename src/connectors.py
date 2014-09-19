@@ -9,7 +9,7 @@ for improved performance.
 """
 
 from __future__ import division
-from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG
+from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG, get_mpi_config
 from pyNN.common.populations import is_conductance
 from pyNN.core import IndexBasedExpression
 from pyNN import errors, descriptions
@@ -17,7 +17,15 @@ from pyNN.recording import files
 from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
 import numpy
-from itertools import izip, repeat
+try:
+    from itertools import izip
+except ImportError:  #python3.x
+    izip = zip
+try:
+    basestring
+except NameError:
+    basestring = str
+from itertools import repeat
 import logging
 from copy import copy, deepcopy
 
@@ -321,7 +329,7 @@ class DistanceDependentProbabilityConnector(MapConnector):
             if isinstance(d_expression, str):
                 d = 0; assert 0 <= eval(d_expression), eval(d_expression)
                 d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
-        except ZeroDivisionError, err:
+        except ZeroDivisionError as err:
             raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
@@ -882,3 +890,68 @@ class ArrayConnector(MapConnector):
     def connect(self, projection):
         connection_map = LazyArray(self.array, projection.shape)
         self._connect_with_map(projection, connection_map)
+
+
+class FixedTotalNumberConnector(FixedNumberConnector):
+    # base class - should not be instantiated
+    parameter_names = ('allow_self_connections', 'n')
+
+    def __init__(self, n, allow_self_connections=True, with_replacement=True,
+                 rng=None, safe=True, callback=None):
+        """
+        Create a new connector.
+        """
+        Connector.__init__(self, safe, callback)
+        assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
+        self.allow_self_connections = allow_self_connections
+        self.with_replacement = with_replacement
+        self.n = n
+        if isinstance(n, int):
+            assert n >= 0
+        elif isinstance(n, RandomDistribution):
+            # weak check that the random distribution is ok
+            assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
+        else:
+            raise TypeError("n must be an integer or a RandomDistribution object")
+        self.rng = _get_rng(rng)
+
+
+    def connect(self, projection):
+        # Determine number of processes and current rank
+        rank, num_processes = get_mpi_config()
+
+        # Assume that targets are equally distributed over processes
+        targets_per_process = int(len(projection.post)/num_processes)
+            
+        # Calculate the number of synapses on each process
+        bino = RandomDistribution('binomial',[self.n,targets_per_process/len(projection.post)], rng=self.rng)
+        num_conns_on_vp = numpy.zeros(num_processes)
+        sum_dist = 0
+        sum_partitions = 0
+        for k in xrange(num_processes) :
+            p_local = targets_per_process / ( len(projection.post) - sum_dist)
+            bino.parameters['p'] = p_local
+            bino.parameters['n'] = self.n - sum_partitions
+            num_conns_on_vp[k] = bino.next()
+            sum_dist += targets_per_process
+            sum_partitions += num_conns_on_vp[k]
+	
+        # Draw random sources and targets 
+        while num_conns_on_vp[rank] > 0 :
+            s_index = self.rng.rng.randint(low=0, high=len(projection.pre.all_cells))
+            t_index = self.rng.rng.randint(low=0, high=len(projection.post.local_cells))
+            t_index = numpy.where(projection.post.all_cells == int(projection.post.local_cells[t_index]))[0][0]
+
+            # Evaluate the lazy arrays containing the synaptic parameters
+            parameter_space = self._parameters_from_synapse_type(projection)
+            connection_parameters = {}
+            for name, map in parameter_space.items():
+                if map.is_homogeneous:
+                    connection_parameters[name] = map.evaluate(simplify=True)
+                else:
+                    connection_parameters[name] = map[source_mask, col]
+            
+            projection._convergent_connect(numpy.array([s_index]),t_index, **connection_parameters)
+            num_conns_on_vp[rank] -=1
+
+            

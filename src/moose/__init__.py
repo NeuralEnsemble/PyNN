@@ -104,7 +104,7 @@ class Population(common.Population):
         if isinstance(cellclass, type) and issubclass(cellclass, standardmodels.StandardCellType):
             celltype = cellclass(cellparams)
         else:
-            print cellclass
+            print(cellclass)
             raise Exception("Only standard cells currently supported.")
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + n - 1

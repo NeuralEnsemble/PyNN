@@ -1,7 +1,7 @@
 
 import numpy
 from nose.tools import assert_equal
-from registry import register
+from .registry import register
 
 @register(exclude=["moose", "nemo"])
 def scenario2(sim):
@@ -51,7 +51,7 @@ def scenario2(sim):
     a = spike_times = [numpy.array(st)[0] for st in spiketrains[1:]]
     b = expected_spike_times[1:]
     max_error = abs((a-b)/b).max()
-    print "max error =", max_error
+    print("max error =", max_error)
     assert max_error < 0.005, max_error
     sim.end()
     return a,b, spike_times

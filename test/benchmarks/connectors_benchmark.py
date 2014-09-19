@@ -28,7 +28,7 @@ def distances(pos_1, pos_2, N):
 
 timer.start()
 node_id = setup(timestep=0.1, min_delay=0.1, max_delay=4.)
-print "Creating cells population..."
+print("Creating cells population...")
 N       = 30
 
 structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(2652))
@@ -36,7 +36,7 @@ structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(
 
 x       = Population(N**2, IF_curr_exp(), structure=structure)
 mytime = timer.diff()
-print "Time to build the cell population:", mytime, 's'
+print("Time to build the cell population:", mytime, 's')
 
 def test(cases=[1]):
 
@@ -96,36 +96,36 @@ def test(cases=[1]):
             fig_name = "SmallWorld_%s_np_%d.png" %(simulator_name, np)
 
 
-        print "Generating data for %s" %fig_name
+        print("Generating data for %s" %fig_name)
         
         prj   = Projection(x, x, conn, synapse, space=sp)
 
         mytime = timer.diff()
-        print "Time to connect the cell population:", mytime, 's'
-        print "Nb synapses built", prj.size()
+        print("Time to connect the cell population:", mytime, 's')
+        print("Nb synapses built", prj.size())
 
         if to_file:
             if not(os.path.isdir('Results')):
                 os.mkdir('Results')
-            print "Saving Connections...."
+            print("Saving Connections....")
             prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='w'), gather=True)
 
         mytime = timer.diff()
-        print "Time to save the projection:", mytime, 's'
+        print("Time to save the projection:", mytime, 's')
 
         if render and to_file:
-            print "Saving Positions...."
+            print("Saving Positions....")
             x.save_positions('Results/positions.dat')
         end()
 
         if node_id == 0 and render and to_file:
             figure()
-            print "Generating and saving %s" %fig_name
+            print("Generating and saving %s" %fig_name)
             positions        = numpy.loadtxt('Results/positions.dat')
             
             positions[:,0]  -= positions[:,0].min()
             connections      = files.NumpyBinaryFile('Results/connections.dat', mode='r').read()
-            print positions.shape, connections.shape
+            print(positions.shape, connections.shape)
             connections[:,0]-= connections[:,0].min()
             connections[:,1]-= connections[:,1].min()
             idx_pre          = connections[:,0].astype(int)

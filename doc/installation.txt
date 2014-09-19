@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.6 or 2.7)
+    * Python (version 2.6, 2.7 or 3.4)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
@@ -143,7 +143,7 @@ Now try it out::
                   -- N E S T --
 
       Copyright (C) 2004 The NEST Initiative
-      Version 2.2.1 Feb 11 2013 17:42:00
+      Version 2.4.1 Jul 15 2014 14:55:04
     ...
     >>> nest.Models()
     ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',

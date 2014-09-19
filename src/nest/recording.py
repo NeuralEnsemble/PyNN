@@ -24,7 +24,7 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.hl_api.NESTError, e:
+    except nest.hl_api.NESTError as e:
         raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 
@@ -90,7 +90,7 @@ class SpikeDetector(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.ConvergentConnect(list(self._all_ids), self.device, model='static_synapse')
+        nest.Connect(list(self._all_ids), list(self.device),{'rule':'all_to_all'},{'model':'static_synapse'})
         self._connected = True
 
     def get_spiketimes(self, desired_ids):
@@ -125,7 +125,7 @@ class Multimeter(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.DivergentConnect(self.device, list(self._all_ids), model='static_synapse')
+        nest.Connect(list(self.device), list(self._all_ids),{'rule':'all_to_all'},{'model':'static_synapse'})
         self._connected = True
 
     @property

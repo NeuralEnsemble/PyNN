@@ -8,6 +8,10 @@ try:
     import unittest2 as unittest
 except ImportError:
     import unittest
+try:
+    basestring
+except NameError:
+    basestring = str
 import numpy
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
@@ -30,7 +34,7 @@ class TestFunctions(unittest.TestCase):
         ks = nest.GetKernelStatus()
         self.assertEqual(ks['resolution'], 0.05)
         self.assertEqual(ks['local_num_threads'], 2)
-        self.assertEqual(ks['rng_seeds'], [873465, 3487564])
+        self.assertEqual(ks['rng_seeds'], (873465, 3487564))
         #self.assertEqual(ks['min_delay'], 0.1)
         #self.assertEqual(ks['max_delay'], 1.0)
         self.assertTrue(ks['off_grid_spiking'])
@@ -52,7 +56,7 @@ class TestPopulation(unittest.TestCase):
         sim.setup()
         self.p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
                                                       'cm': lambda i: 0.987 + 0.01*i,
-                                                     'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
+                                                      'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
 
     def test_create_native(self):
         cell_type = sim.native_cell_type('iaf_neuron')
@@ -77,7 +81,6 @@ class TestPopulation(unittest.TestCase):
         self.p[0:1].set(tau_m=20.)
 
 
-
 @unittest.skipUnless(nest, "Requires NEST")
 class TestProjection(unittest.TestCase):
 
@@ -91,8 +94,7 @@ class TestProjection(unittest.TestCase):
         self.syn_a2a = sim.StaticSynapse(weight=0.456, delay=0.4)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
         self.all2all = sim.AllToAllConnector()
-        self.native_synapse_type = sim.native_synapse_type(
-                "stdp_facetshw_synapse_hom")
+        self.native_synapse_type = sim.native_synapse_type("stdp_facetshw_synapse_hom")
 
     def test_create_simple(self):
         prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=self.syn_a2a)
@@ -106,12 +108,12 @@ class TestProjection(unittest.TestCase):
         Native synapse with array-like parameters and CommonProperties.
         """
         prj = sim.Projection(self.p1, self.p2, self.all2all,
-                     synapse_type=self.native_synapse_type())
+                             synapse_type=self.native_synapse_type())
 
     def test_inhibitory_weight(self):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
-                synapse_type=self.syn_rnd,
-                receptor_type="inhibitory")
+                             synapse_type=self.syn_rnd,
+                             receptor_type="inhibitory")
 
         weights_list = prj.get("weight", format="list")
         for pre, post, weight in weights_list:

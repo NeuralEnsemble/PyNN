@@ -95,7 +95,7 @@ class NeuronCurrentSource(StandardCurrentSource):
             if id.local:
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
-                if not self._h_iclamps.has_key(id):
+                if not (id in self._h_iclamps):
                     self.cell_list += [id]
                     self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
                     self._devices.append(self._h_iclamps[id])
