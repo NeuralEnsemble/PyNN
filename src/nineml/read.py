@@ -66,7 +66,6 @@ def resolve_parameters(nineml_component, random_distributions, resolve="paramete
                 rand_distr = pyNN.random.RandomDistribution(rd_name, rd_params)
                 P[qname] = rand_distr
                 random_distributions[rd.name] = rand_distr
-            P[qname] = -999
         elif p.value in ('True', 'False'):
             P[qname] = eval(p.value)
         elif isinstance(p.value, basestring):

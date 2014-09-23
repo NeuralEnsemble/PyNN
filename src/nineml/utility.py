@@ -12,9 +12,10 @@ from pyNN.parameters import Sequence
 import nineml.user_layer as nineml
 
 #catalog_url = "http://svn.incf.org/svn/nineml/catalog"
-catalog_url = join(dirname(__file__), "catalog")
+#catalog_url = join(dirname(__file__), "catalog")
+catalog_url = "catalog"
 
-units_map = { # arguably we should do the units mapping with the PyNN names, i.e. before translation.
+units_map = {  # arguably we should do the units mapping with the PyNN names, i.e. before translation.
     "time": "ms",
     "potential": "mV",
     "threshold": "mV",
@@ -22,13 +23,14 @@ units_map = { # arguably we should do the units mapping with the PyNN names, i.e
     "frequency": "Hz",
     "duration": "ms",
     "onset": "ms",
-    "amplitude": "nA", # dodgy. Probably better to include units with class definitions
+    "amplitude": "nA",  # dodgy. Probably better to include units with class definitions
     "weight": "dimensionless",
     "delay": "ms",
     "dx": u"µm", "dy": u"µm", "dz": u"µm",
     "x0": u"µm", "y0": u"µm", "z0": u"µm",
     "aspectratio": "dimensionless",
 }
+
 
 def infer_units(parameter_name):
     unit = "unknown"
@@ -41,12 +43,15 @@ def infer_units(parameter_name):
 random_distribution_url_map = {
     'uniform': "%s/randomdistributions/uniform_distribution.xml" % catalog_url,
     'normal': "%s/randomdistributions/normal_distribution.xml" % catalog_url,
+    'exponential': "%s/randomdistributions/exponential_distribution.xml" % catalog_url,
 }
 
 random_distribution_parameter_map = {
     'normal': ('mean', 'standardDeviation'),
     'uniform': ('lowerBound', 'upperBound'),
+    'exponential': ('beta',),
 }
+
 
 def build_parameter_set(parameters, shape=None, dimensionless=False):
     parameter_list = []
@@ -80,6 +85,7 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
             unit = infer_units(name)
         parameter_list.append(nineml.Parameter(name, value, unit))
     return nineml.ParameterSet(*parameter_list)
+
 
 def map_random_distribution_parameters(name, parameters):
     parameter_map = random_distribution_parameter_map
