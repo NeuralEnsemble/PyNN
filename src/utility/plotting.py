@@ -88,6 +88,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
+    ax.set_xlim(0, spiketrains[0].t_stop/ms)
     handle_options(ax, options)
     max_index = 0
     for spiketrain in spiketrains:
@@ -96,7 +97,6 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
                  'k.', **options)
         max_index = max(max_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
-    ax.set_xlim(0, spiketrain.t_stop/ms)
     ax.set_ylim(-0.5, max_index + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
