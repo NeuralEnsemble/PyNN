@@ -212,13 +212,17 @@ def normalized_filename(root, basename, extension, simulator, num_processes=None
                                            timestamp.strftime("%Y%m%d-%H%M%S"),
                                            extension))
 
-def connection_plot(projection):
+
+def connection_plot(projection, positive='O', zero='.', empty=' ', spacer=''):
+    """ """
     connection_array = projection.get('weight', format='array')
-    image = numpy.zeros_like(connection_array, dtype=str)
-    image[connection_array > 0] = 'O'
-    image[connection_array == 0] = '.'
-    image[numpy.isnan(connection_array)] = ' '
-    return '\n'.join([''.join(row) for row in image])
+    image = numpy.zeros_like(connection_array, dtype=unicode)
+    old_settings = numpy.seterr(invalid='ignore')  # ignore the complaint that x > 0 is invalid for NaN
+    image[connection_array > 0] = positive
+    image[connection_array == 0] = zero
+    numpy.seterr(**old_settings)  # restore original floating point error settings
+    image[numpy.isnan(connection_array)] = empty
+    return '\n'.join([spacer.join(row) for row in image])
 
 
 class Timer(object):
