@@ -109,6 +109,22 @@ def fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     sim.end()
 
 
+@register()
+def issue309(sim):
+    # check that FixedProbability(1) gives the same results as AllToAll
+    sim.setup()
+    p = sim.Population(5, sim.IF_cond_exp())
+    synapse_type = sim.StaticSynapse(weight=0.1, delay="0.2+0.3*d")
+    prj_a2a = sim.Projection(p, p, sim.AllToAllConnector(allow_self_connections=False), synapse_type)
+    prj_fp1 = sim.Projection(p, p, sim.FixedProbabilityConnector(p_connect=1, allow_self_connections=False), synapse_type)
+    assert_equal(prj_a2a.get('weight', format='list', gather=False),
+                 prj_fp1.get('weight', format='list', gather=False))
+    assert_equal(prj_a2a.get('delay', format='list', gather=False),
+                 prj_fp1.get('delay', format='list', gather=False))
+    assert_equal(prj_fp1.size(), 20)  # 20 rather than 25 because self-connections are excluded
+    sim.end()
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -117,3 +133,4 @@ if __name__ == '__main__':
     fixed_number_pre_no_replacement(sim)
     fixed_number_pre_with_replacement(sim)
     fixed_number_pre_with_replacement_heterogeneous_parameters(sim)
+    issue309(sim)

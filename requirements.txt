@@ -1,4 +1,4 @@
-Jinja2==2.6
+Jinja2>=2.6
 docutils>=0.10
 mock>1.0
 numpy>=1.5

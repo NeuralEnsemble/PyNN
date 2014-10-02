@@ -253,6 +253,26 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                           (2, 3, 0.0, 0.123)])
 
     @register()
+    def test_connect_with_probability_1(self, sim=sim):
+        # see https://github.com/NeuralEnsemble/PyNN/issues/309
+        C = connectors.FixedProbabilityConnector(p_connect=1,
+                                                 rng=MockRNG(delta=0.01, parallel_safe=True))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+
+        # 20 connections, only some of which are created on this node
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123)
+                         ])
+
+    @register()
     def test_connect_with_weight_function(self, sim=sim):
         C = connectors.FixedProbabilityConnector(p_connect=0.85,
                                                  rng=MockRNG(delta=0.1))
