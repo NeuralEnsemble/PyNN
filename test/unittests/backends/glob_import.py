@@ -28,9 +28,7 @@ def is_included(sim_name, scenario, module_name):
     short_module_name = module_name.split('.')[-1]
     if short_module_name in exclude_modules:
         included = False
-    elif scenario.include_only and sim_name in scenario.include_only:
-        included = True
-    elif (not scenario.include_only) and (sim_name not in scenario.exclude):
+    elif sim_name not in scenario.exclude:
         included = True
     return included
 

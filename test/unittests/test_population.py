@@ -283,7 +283,7 @@ class PopulationTest(unittest.TestCase):
         self.assertAlmostEqual(tau_m, 12.3)
         assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]), decimal=12)
 
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_get_multiple_params_no_gather(self, sim=sim):
         sim.simulator.state.num_processes = 2
         sim.simulator.state.mpi_rank = 1
@@ -346,7 +346,7 @@ class PopulationTest(unittest.TestCase):
         assert_array_equal(p.get('v_thresh', gather=True),
                             numpy.array([-50.0, -49.0, -48.0, -47.0, -46.0]))
 
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_set_random_distribution_parallel_unsafe(self, sim=sim):
         orig_rcfg = random.get_mpi_config
         random.get_mpi_config = lambda: (1, 2)
@@ -361,7 +361,7 @@ class PopulationTest(unittest.TestCase):
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
 
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_set_random_distribution_parallel_safe(self, sim=sim):
         orig_rcfg = random.get_mpi_config
         random.get_mpi_config = lambda: (1, 2)
@@ -513,7 +513,7 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(v.t_start, 0.0)
         self.assertEqual(len(seg1.spiketrains), p.size)
             
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_get_spikes_with_gather(self, sim=sim):
         t1 = 12.3
         t2 = 13.4
@@ -597,7 +597,7 @@ class PopulationTest(unittest.TestCase):
         p.get_gsyn()
         p.get_data.assert_called_with(['gsyn_exc', 'gsyn_inh'], True)
 
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_get_spike_counts(self, sim=sim):
         p = sim.Population(3, EIF_cond_exp_isfa_ista())
         p.record('spikes')
@@ -607,7 +607,7 @@ class PopulationTest(unittest.TestCase):
                             p.all_cells[1]: 2,
                             p.all_cells[2]: 2})
 
-    @register(include_only=['mock'])
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
     def test_mean_spike_count(self, sim=sim):
         p = sim.Population(14, EIF_cond_exp_isfa_ista())
         p.record('spikes')
