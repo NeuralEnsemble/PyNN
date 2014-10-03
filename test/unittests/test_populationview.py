@@ -275,7 +275,7 @@ class PopulationViewTest(unittest.TestCase):
         pv = p[3:7]
         tau_syn_E, tau_m = pv.get(('tau_syn_E', 'tau_m'), gather=True)
         self.assertEqual(tau_syn_E, 0.987)
-        self.assertEqual(tau_m, 12.3)
+        self.assertAlmostEqual(tau_m, 12.3)
 
     @register()
     def test_get_single_homogeneous_param_with_gather(self, sim=sim):
@@ -294,7 +294,7 @@ class PopulationViewTest(unittest.TestCase):
         self.assertIsInstance(tau_m, float)
         self.assertIsInstance(tau_syn_E, numpy.ndarray)
         assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.990]))
-        self.assertEqual(tau_m, 12.3)
+        self.assertAlmostEqual(tau_m, 12.3)
         assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.8]), decimal=12)
 
     ##def test_get_multiple_params_no_gather(self, sim=sim):
