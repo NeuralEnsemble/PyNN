@@ -12,6 +12,7 @@
 .settings
 *.tmp*
 *.swp
+.idea
 
 # Compiled source
 *.py[ocd]

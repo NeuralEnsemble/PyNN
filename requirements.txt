@@ -1,4 +1,4 @@
-Jinja2==2.6
+Jinja2==2.6   # more recent versions don't work with Python 3.2
 docutils>=0.10
 mock>1.0
 numpy>=1.5
