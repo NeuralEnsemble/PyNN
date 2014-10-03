@@ -659,30 +659,17 @@ class Population(BasePopulation):
 
             >>> assert p.id_to_index(p[5]) == 5
         """
-        if self.first_id <= self.last_id:
-            if not numpy.iterable(id):
-                if not self.first_id <= id <= self.last_id:
-                    raise ValueError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
-                return int(id - self.first_id)  # this assumes ids are consecutive
-            else:
-                if isinstance(id, PopulationView):
-                    id = id.all_cells
-                id = numpy.array(id)
-                if (self.first_id > id.min()) or (self.last_id < id.max()):
-                    raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
-                return (id - self.first_id).astype(numpy.int)  # this assumes ids are consecutive
+        if not numpy.iterable(id):
+            if not self.first_id <= id <= self.last_id:
+                raise ValueError("id should be in the range [%d,%d], actually %d" % (self.first_id, self.last_id, id))
+            return int(id - self.first_id)  # this assumes ids are consecutive
         else:
-            if not numpy.iterable(id):
-                if not self.first_id >= id >= self.last_id:
-                    raise ValueError("id should be in the range [%d,%d], actually %d" % (self.last_id, self.first_id, id))
-                return int(self.first_id-id)  # this assumes ids are consecutive
-            else:
-                if isinstance(id, PopulationView):
-                    id = id.all_cells
-                id = numpy.array(id)
-                if (self.first_id < id.min()) or (self.last_id > id.max()):
-                    raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.last_id, self.first_id, id.min(), id.max()))
-                return (self.first_id-id).astype(numpy.int)  # this assumes ids are consecutive
+            if isinstance(id, PopulationView):
+                id = id.all_cells
+            id = numpy.array(id)
+            if (self.first_id > id.min()) or (self.last_id < id.max()):
+                raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (self.first_id, self.last_id, id.min(), id.max()))
+            return (id - self.first_id).astype(numpy.int)  # this assumes ids are consecutive
 
     def id_to_local_index(self, id):
         """
