@@ -7,19 +7,19 @@ Plain integrate-and-fire models:
     IF_curr_alpha
     IF_cond_exp
     IF_cond_alpha
-    
+
 Integrate-and-fire with adaptation:
     IF_cond_exp_gsfa_grr
     EIF_cond_alpha_isfa_ista
-    EIF_cond_exp_isfa_ista    
-    
+    EIF_cond_exp_isfa_ista
+
 Integrate-and-fire model for use with the FACETS hardware
     IF_facets_hardware1
-    
+
 Hodgkin-Huxley model
     HH_cond_exp
 
-Spike sources (input neurons) 
+Spike sources (input neurons)
     SpikeSourcePoisson
     SpikeSourceArray
     SpikeSourceInhGamma
@@ -37,12 +37,12 @@ class IF_curr_alpha(StandardCellType):
     Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current.
     """
-    
+
     default_parameters = {
-        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'v_rest'     : -65.0,   # Resting membrane potential in mV.
         'cm'         :   1.0,   # Capacity of the membrane in nF
         'tau_m'      :  20.0,   # Membrane time constant in ms.
-        'tau_refrac' :   0.1,   # Duration of refractory period in ms. 
+        'tau_refrac' :   0.1,   # Duration of refractory period in ms.
         'tau_syn_E'  :   0.5,   # Rise time of the excitatory synaptic alpha function in ms.
         'tau_syn_I'  :   0.5,   # Rise time of the inhibitory synaptic alpha function in ms.
         'i_offset'   :   0.0,   # Offset current in nA
@@ -69,12 +69,12 @@ class IF_curr_exp(StandardCellType):
     decaying-exponential post-synaptic current. (Separate synaptic currents for
     excitatory and inhibitory synapses.
     """
-    
+
     default_parameters = {
-        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'v_rest'     : -65.0,   # Resting membrane potential in mV.
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
-        'tau_refrac' : 0.1,     # Duration of refractory period in ms. 
+        'tau_refrac' : 0.1,     # Duration of refractory period in ms.
         'tau_syn_E'  : 5.0,     # Decay time of excitatory synaptic current in ms.
         'tau_syn_I'  : 5.0,     # Decay time of inhibitory synaptic current in ms.
         'i_offset'   : 0.0,     # Offset current in nA
@@ -100,9 +100,9 @@ class IF_cond_alpha(StandardCellType):
     Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance.
     """
-    
+
     default_parameters = {
-        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'v_rest'     : -65.0,   # Resting membrane potential in mV.
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
         'tau_refrac' : 0.1,     # Duration of refractory period in ms.
@@ -129,12 +129,12 @@ class IF_cond_alpha(StandardCellType):
 
 class IF_cond_exp(StandardCellType):
     """
-    Leaky integrate and fire model with fixed threshold and 
+    Leaky integrate and fire model with fixed threshold and
     exponentially-decaying post-synaptic conductance.
     """
-    
+
     default_parameters = {
-        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'v_rest'     : -65.0,   # Resting membrane potential in mV.
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
         'tau_refrac' : 0.1,     # Duration of refractory period in ms.
@@ -171,9 +171,9 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
 
     See also: EIF_cond_alpha_isfa_ista
     """
-    
+
     default_parameters = {
-        'v_rest'     : -65.0,   # Resting membrane potential in mV. 
+        'v_rest'     : -65.0,   # Resting membrane potential in mV.
         'cm'         : 1.0,     # Capacity of the membrane in nF
         'tau_m'      : 20.0,    # Membrane time constant in ms.
         'tau_refrac' : 0.1,     # Duration of refractory period in ms.
@@ -189,7 +189,7 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'q_sfa'      : 15.0,    # Quantal spike-frequency adaptation conductance increase in nS
         'tau_rr'     : 2.0,     # Time constant of the relative refractory mechanism in ms
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
-        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS   
+        'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
@@ -206,15 +206,15 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
 
 class IF_facets_hardware1(StandardCellType):
     """
-    Leaky integrate and fire model with conductance-based synapses and fixed 
-    threshold as it is resembled by the FACETS Hardware Stage 1. 
-    
+    Leaky integrate and fire model with conductance-based synapses and fixed
+    threshold as it is resembled by the FACETS Hardware Stage 1.
+
     The following parameters can be assumed for a corresponding software
-    simulation: cm = 0.2 nF, tau_refrac = 1.0 ms, e_rev_E = 0.0 mV.  
+    simulation: cm = 0.2 nF, tau_refrac = 1.0 ms, e_rev_E = 0.0 mV.
     For further details regarding the hardware model see the FACETS-internal Wiki:
     https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
     """
-    
+
     default_parameters = {
         'g_leak'    :   40.0,     # nS
         'tau_syn_E' :   30.0,     # ms
@@ -239,10 +239,10 @@ class IF_facets_hardware1(StandardCellType):
 
 class HH_cond_exp(StandardCellType):
     """Single-compartment Hodgkin-Huxley model.
-    Reference: 
+    Reference:
     Traub & Miles, Neuronal Networks of the Hippocampus, Cambridge, 1991.
     """
-    
+
     default_parameters = {
         'gbar_Na'   : 20.0, # uS
         'gbar_K'    : 6.0,  # uS
@@ -276,13 +276,13 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
     """
     Exponential integrate and fire neuron with spike triggered and
     sub-threshold adaptation currents (isfa, ista reps.) according to:
-    
+
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
     as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
     See also: IF_cond_exp_gsfa_grr, EIF_cond_exp_isfa_ista
     """
-    
+
     default_parameters = {
         'cm'        : 0.281,  # Capacitance of the membrane in nF
         'tau_refrac': 0.1,    # Duration of refractory period in ms.
@@ -320,13 +320,13 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     """
     Exponential integrate and fire neuron with spike triggered and
     sub-threshold adaptation currents (isfa, ista reps.) according to:
-    
+
     Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
     as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
     See also: IF_cond_exp_gsfa_grr, EIF_cond_alpha_isfa_ista
     """
-    
+
     default_parameters = {
         'cm'        : 0.281,  # Capacitance of the membrane in nF
         'tau_refrac': 0.1,    # Duration of refractory period in ms.
@@ -364,7 +364,7 @@ class Izhikevich(StandardCellType):
     """
     Izhikevich spiking model with a quadratic non-linearity according to:
 
-    E. Izhikevich (2003), IEEE transactions on neural networks, 14(6) 
+    E. Izhikevich (2003), IEEE transactions on neural networks, 14(6)
 
         dv/dt = 0.04*v^2 + 5*v + 140 - u + I
         du/dt = a*(b*v - u)
@@ -373,7 +373,7 @@ class Izhikevich(StandardCellType):
     
     NOTE: name should probably be changed to match standard nomenclature,
     e.g. QIF_cond_delta_etc_etc, although keeping "Izhikevich" as an alias would be good
-    
+
     """
 
     default_parameters = {
@@ -391,7 +391,7 @@ class Izhikevich(StandardCellType):
     }
     units = {
         'v': 'mV',
-        'w': 'mV/ms',
+        'u': 'mV/ms',
     }
 
 
@@ -431,7 +431,7 @@ class SpikeSourceInhGamma(StandardCellType):
 
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
-    
+
     default_parameters = { 'spike_times' : Sequence([]) } # list or numpy array containing spike times in milliseconds.
     recordable = ['spikes']
     injectable = False

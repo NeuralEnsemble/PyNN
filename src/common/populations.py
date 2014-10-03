@@ -461,7 +461,7 @@ class BasePopulation(object):
         file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
-        self.recorder.write(variables, io, gather, self._record_filter, clear=clear, 
+        self.recorder.write(variables, io, gather, self._record_filter, clear=clear,
                             annotations=annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
@@ -1234,7 +1234,7 @@ class Assembly(object):
             return self.positions[:,i]
         return gen
 
-    def get_data(self, variables='all', gather=True, clear=False):
+    def get_data(self, variables='all', gather=True, clear=False, annotations=None):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
         recorded from the Assembly.
@@ -1272,6 +1272,8 @@ class Assembly(object):
             merged_block.merge(block)
         merged_block.name = name
         merged_block.description = description
+        if annotations:
+            merged_block.annotate(**annotations)
         return merged_block
 
     @deprecated("get_data('spikes')")
@@ -1312,7 +1314,7 @@ class Assembly(object):
                 pass
         return spike_counts
 
-    def write_data(self, io, variables='all', gather=True, clear=False):
+    def write_data(self, io, variables='all', gather=True, clear=False, annotations=None):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
@@ -1337,7 +1339,7 @@ class Assembly(object):
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
-        data = self.get_data(variables, gather, clear)
+        data = self.get_data(variables, gather, clear, annotations)
         if self._simulator.state.mpi_rank == 0 or gather == False:
             logger.debug("Writing data to file %s" % io)
             io.write(data)

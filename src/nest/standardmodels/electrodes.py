@@ -25,7 +25,7 @@ class NestCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
     def __init__(self, **parameters):
-        self._device   = nest.Create(self.nest_name)
+        self._device = nest.Create(self.nest_name)
         self.cell_list = []
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
@@ -46,7 +46,6 @@ class NestCurrentSource(StandardCurrentSource):
         nest.DivergentConnect(self._device, self.cell_list)
 
     def _delay_correction(self, value):
-        # use dt or min_delay?
         return value - state.min_delay
 
     def set_native_parameters(self, parameters):
@@ -58,8 +57,12 @@ class NestCurrentSource(StandardCurrentSource):
                 numpy.append(times, 1e12)
                 amplitudes = value.value
                 numpy.append(amplitudes, amplitudes[-1])
+                if amplitudes[0] != 0:
+                    times[0] = max(times[0], state.dt)  # NEST ignores changes at time zero.
+                    # must it be dt, or would any positive value work?
+                    # this will fail if the second, third, etc. time points are also close to zero
                 nest.SetStatus(self._device, {key: amplitudes,
-                                                'amplitude_times': times})
+                                              'amplitude_times': times})
             elif key in ("start", "stop"):
                 nest.SetStatus(self._device, {key: self._delay_correction(value)})
             elif not key == "amplitude_times":
@@ -67,7 +70,7 @@ class NestCurrentSource(StandardCurrentSource):
 
     def get_native_parameters(self):
         all_params = nest.GetStatus(self._device)[0]
-        return ParameterSpace(dict((k,v) for k,v in all_params.items()
+        return ParameterSpace(dict((k, v) for k, v in all_params.items()
                                    if k in self.get_native_names()))
 
 
