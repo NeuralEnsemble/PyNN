@@ -16,7 +16,7 @@ from numpy import nan
 import os
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from .mocks import MockRNG, MockRNG2
+from .mocks import MockRNG, MockRNG2, MockRNG3
 import pyNN.mock as sim
 
 from .backends.registry import register_class, register
@@ -331,6 +331,34 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                           ])
 
     @register()
+    def test_connect_with_probability_one(self, sim=sim):
+        C = connectors.FixedProbabilityConnector(p_connect=1.)
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)   
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),  
+                         [(0, 0, 0.0, 0.123),
+                          (1, 0, 0.0, 0.123),
+                          (2, 0, 0.0, 0.123),
+                          (3, 0, 0.0, 0.123),
+                          (0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (0, 2, 0.0, 0.123),
+                          (1, 2, 0.0, 0.123),
+                          (2, 2, 0.0, 0.123),
+                          (3, 2, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (0, 4, 0.0, 0.123),
+                          (1, 4, 0.0, 0.123),
+                          (2, 4, 0.0, 0.123),
+                          (3, 4, 0.0, 0.123),
+                          ])
+        
+    @register()
     def test_connect_with_weight_function(self, sim=sim):
         C = connectors.FixedProbabilityConnector(p_connect=0.85,
                                                  rng=MockRNG(delta=0.1))
@@ -417,7 +445,18 @@ class TestFromListConnector(unittest.TestCase):
 
     def tearDown(self, sim=sim):
         sim.end()
-        
+
+    @register()
+    def test_connect_unique_connection_neuron_0_to_neuron_0(self, sim=sim):
+        connection_list = [
+            (0, 0, 0.1, 0.18)
+            ]
+        C = connectors.FromListConnector(connection_list)
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),  
+                         [(0, 0, 0.1, 0.18)])
+                         
     @register()
     def test_connect_with_valid_list(self, sim=sim):
         connection_list = [
@@ -665,6 +704,16 @@ class TestFixedNumberPreConnector(unittest.TestCase):
                           (1, 4, 0.0, 0.123),
                           (2, 4, 0.0, 0.123),])
 
+    @register()
+    def test_with_replacement_with_neuron_0_connecting_neuron_0(self, sim=sim):
+        n = random.RandomDistribution('binomial', (5, 0.5), rng=MockRNG3())
+        C = connectors.FixedNumberPreConnector(n=n, with_replacement=True, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),  
+                         [(0, 0, 0.0, 0.123),
+                          ])
+                         
     @register()
     def test_with_replacement_with_variable_n(self, sim=sim):
         n = random.RandomDistribution('binomial', (5, 0.5), rng=MockRNG(start=1, delta=2))
@@ -1048,3 +1097,7 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(connectors.check_delays(2*self.MIN_DELAY, self.MIN_DELAY, 1e99), 2*self.MIN_DELAY)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5*self.MIN_DELAY, self.MIN_DELAY, 1e99)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 3.0, self.MIN_DELAY, 2.0)
+
+if __name__ == "__main__":
+    unittest.main()
+    

@@ -55,3 +55,20 @@ class MockRNG2(random.WrappedRNG):
 
     def permutation(self, arr):
         return arr[::-1]
+    
+class MockRNG3(random.WrappedRNG):
+    """
+    returns [1, 0, 0, 0,..]
+    """
+    rng = None
+
+    def __init__(self, parallel_safe=True):
+        random.WrappedRNG.__init__(self, parallel_safe=parallel_safe)
+
+    def _next(self, distribution, n, parameters):
+        x = numpy.zeros(n)
+        x[0]=1
+        return x
+    
+    def permutation(self, arr):
+        return arr[::-1]
