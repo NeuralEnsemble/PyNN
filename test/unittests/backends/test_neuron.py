@@ -22,10 +22,7 @@ except ImportError:
     have_sim = False
 
 def setUp():
-    if have_sim:
-        for TestClass in registry:
-            m = modules[TestClass.__module__]
-            alias_cell_types(m, **take_all_cell_classes(sim))
+    pass
     
 def tearDown():
     pass

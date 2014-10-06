@@ -26,10 +26,12 @@ from .mocks import MockRNG
 import pyNN.mock as sim
 
 from .backends.registry import register_class, register
-from .alias_cell_types import alias_cell_types, take_all_cell_classes
 
 def setUp():
-    alias_cell_types(sys.modules[__name__], **take_all_cell_classes(sim))
+    pass
+
+def tearDown():
+    pass
     
 @register_class()
 class AssemblyTest(unittest.TestCase):
@@ -48,15 +50,15 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_create_with_one_population(self, sim=sim):
-        p = sim.Population(11, IF_cond_exp())
+        p = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p)
         self.assertEqual(a.populations, [p])
         self.assertIsInstance(a.label, basestring)
 
     @register()
     def test_create_with_two_populations(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         self.assertEqual(a.populations, [p1, p2])
         self.assertEqual(a.label, "test")
@@ -67,50 +69,50 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_size_property(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         self.assertEqual(a.size, p1.size + p2.size)
     
     @register()
     def test_positions_property(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         assert_array_equal(a.positions, numpy.concatenate((p1.positions, p2.positions), axis=1))
     
     @register()
     def test__len__(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         self.assertEqual(len(a), len(p1) + len(p2))
     
     @register()
     def test_local_cells(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         assert_array_equal(a.local_cells, numpy.append(p1.local_cells, p2.local_cells))
     
     @register()
     def test_all_cells(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         assert_array_equal(a.all_cells, numpy.append(p1.all_cells, p2.all_cells))
     
     @register()
     def test_iter(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         assembly_ids = [id for id in a]
     
     @register()
     def test__add__population(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a1 = sim.Assembly(p1)
         self.assertEqual(a1.populations, [p1])
         a2 = a1 + p2
@@ -119,9 +121,9 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test__add__assembly(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p2, p3)
         a3 = a1 + a2
@@ -129,17 +131,17 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_add_inplace_population(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1)
         a += p2
         self.assertEqual(a.populations, [p1, p2])
     
     @register()
     def test_add_inplace_assembly(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p2, p3)
         a1 += a2
@@ -147,16 +149,16 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_add_invalid_object(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2)
         self.assertRaises(TypeError, a.__add__, 42)
         self.assertRaises(TypeError, a.__iadd__, 42)
     
     @register()
     def test_initialize(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2)
         v_init = -54.3
         a.initialize(v=v_init)
@@ -164,17 +166,17 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_describe(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2)
         self.assertIsInstance(a.describe(), basestring)
         self.assertIsInstance(a.describe(template=None), dict)
     
     @register()
     def test_get_population(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
         p1.label = "pop1"
-        p2 = sim.Population(11, IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         p2.label = "pop2"
         a = sim.Assembly(p1, p2)
         self.assertEqual(a.get_population("pop1"), p1)
@@ -183,9 +185,9 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_all_cells(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, p3)
         self.assertEqual(a.all_cells.size,
                      p1.all_cells.size + p2.all_cells.size + p3.all_cells.size)
@@ -195,9 +197,9 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_local_cells(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, p3)
         self.assertEqual(a.local_cells.size,
                      p1.local_cells.size + p2.local_cells.size + p3.local_cells.size)
@@ -207,9 +209,9 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_mask_local(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, p3)
         self.assertEqual(a._mask_local.size,
                      p1._mask_local.size + p2._mask_local.size + p3._mask_local.size)
@@ -221,8 +223,8 @@ class AssemblyTest(unittest.TestCase):
     @register()
     def test_save_positions(self, sim=sim):
         import os
-        p1 = sim.Population(2, IF_cond_exp())
-        p2 = sim.Population(2, IF_cond_exp())
+        p1 = sim.Population(2, sim.IF_cond_exp())
+        p2 = sim.Population(2, sim.IF_cond_exp())
         p1.positions = numpy.arange(0,6).reshape((2,3)).T
         p2.positions = numpy.arange(6,12).reshape((2,3)).T
         a = sim.Assembly(p1, p2, label="test")
@@ -238,15 +240,15 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_repr(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, p3)
         self.assertIsInstance(repr(a), str)
 
     @register()
     def test_ids_should_not_be_counted_twice(self, sim=sim):
-        p = sim.Population(11, IF_cond_exp())
+        p = sim.Population(11, sim.IF_cond_exp())
         pv1 = p[0:5]
         a1 = sim.Assembly(p, pv1)
         self.assertEqual(a1.size, p.size)
@@ -258,9 +260,9 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_all_iterator(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p1, p2, p3)
         assert hasattr(a.all(), "next") or hasattr(a.all(), "__next__")  # 2nd form is for Py3
         ids = list(a.all())
@@ -268,46 +270,46 @@ class AssemblyTest(unittest.TestCase):
 
     @register(exclude=['hardware.brainscales'])
     def test__homogeneous_synapses(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
         a1 = sim.Assembly(p1, p2)
         self.assertTrue(a1._homogeneous_synapses)
         
     @register(exclude=['hardware.brainscales'])
     def test__non_homogeneous_synapses(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a2 = sim.Assembly(p1, p3)
         self.assertFalse(a2._homogeneous_synapses)
 
     @register(exclude=['hardware.brainscales'])
     def test_conductance_based(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
         a1 = sim.Assembly(p1, p2)
         self.assertTrue(a1.conductance_based)
         
     @register(exclude=['hardware.brainscales'])
     def test_not_conductance_based(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a2 = sim.Assembly(p1, p3)
         self.assertFalse(a2.conductance_based)
 
     @register()
     def test_first_and_last_id(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a.first_id, p1[0])
         self.assertEqual(a.last_id, p3[-1])
 
     @register()
     def test_id_to_index(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a.id_to_index(p3[0]), 0)
         self.assertEqual(a.id_to_index(p1[0]), 3)
@@ -316,17 +318,17 @@ class AssemblyTest(unittest.TestCase):
     
     @register()
     def test_id_to_index_with_nonexistent_id(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         self.assertRaises(IndexError, a.id_to_index, p3.last_id+1)
 
     @register()
     def test_getitem_int(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         self.assertEqual(a[0], p3[0])
         self.assertEqual(a[3], p1[0])
@@ -334,9 +336,9 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_getitem_slice(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         a1 = a[0:3]
         self.assertIsInstance(a1, sim.Assembly)
@@ -349,9 +351,9 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_getitem_array(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         a1 = a[3, 5, 6, 10]
         self.assertIsInstance(a1, sim.Assembly)
@@ -365,9 +367,9 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_sample(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, IF_curr_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
         a1 = a.sample(10, rng=MockRNG())
         # MockRNG.permutation reverses the order
@@ -380,9 +382,9 @@ class AssemblyTest(unittest.TestCase):
         t1 = 12.3
         t2 = 13.4
         t3 = 14.5
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(6, IF_cond_alpha())
-        p3 = sim.Population(3, EIF_cond_exp_isfa_ista())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(6, sim.IF_cond_alpha())
+        p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
         a.record('v')
         sim.run(t1)
@@ -421,8 +423,8 @@ class AssemblyTest(unittest.TestCase):
     @register()
     def test_printSpikes(self, sim=sim):
         # TODO: implement assert_deprecated
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record('spikes')
         sim.run(10.0)
@@ -432,8 +434,8 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_getSpikes(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record('spikes')
         sim.run(10.0)
@@ -443,8 +445,8 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_print_v(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record_v()
         sim.run(10.0)
@@ -454,8 +456,8 @@ class AssemblyTest(unittest.TestCase):
 
     @register()
     def test_get_v(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record_v()
         sim.run(10.0)
@@ -465,8 +467,8 @@ class AssemblyTest(unittest.TestCase):
 
     @register(exclude=['hardware.brainscales'])
     def test_print_gsyn(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record_gsyn()
         sim.run(10.0)
@@ -476,8 +478,8 @@ class AssemblyTest(unittest.TestCase):
 
     @register(exclude=['hardware.brainscales'])
     def test_get_gsyn(self, sim=sim):
-        p1 = sim.Population(11, IF_cond_exp())
-        p2 = sim.Population(11, IF_cond_exp())
+        p1 = sim.Population(11, sim.IF_cond_exp())
+        p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2, label="test")
         a.record_gsyn()
         sim.run(10.0)

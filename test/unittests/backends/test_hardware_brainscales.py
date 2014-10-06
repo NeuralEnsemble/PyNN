@@ -22,21 +22,7 @@ except ImportError:
     have_sim = False
 
 def setUp():
-    if have_sim:
-        for TestClass in registry:
-            m = modules[TestClass.__module__]
-            alias_cell_types(m, 
-                            IF_cond_exp = sim.Hardware_IF_cond_exp,
-                            EIF_cond_exp_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
-                            SpikeSourceArray = sim.SpikeSourceArray,
-                            SpikeSourcePoisson = sim.SpikeSourcePoisson,
-                            EIF_cond_alpha_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista,
-                            IF_curr_alpha = sim.Hardware_IF_cond_exp,
-                            IF_curr_exp = sim.Hardware_IF_cond_exp,
-                            IF_cond_alpha = sim.Hardware_IF_cond_exp,
-                            IF_cond_exp_gsfa_grr = sim.Hardware_IF_cond_exp,
-                            HH_cond_exp = sim.Hardware_IF_cond_exp
-                            )
+    pass
     
 def tearDown():
     pass
@@ -45,7 +31,8 @@ extra = {
     'loglevel':0, 
     'ignoreHWParameterRanges': True, 
     'useSystemSim': True, 
-    'hardware': sim.hardwareSetup['one-hicann']
+    'hardware': sim.hardwareSetup['one-hicann'],
+    'allowStandardTypeSubstitution': True
     }
 
 
