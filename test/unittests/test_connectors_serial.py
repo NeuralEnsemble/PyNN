@@ -16,10 +16,10 @@ from numpy import nan
 import os
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from .mocks import MockRNG, MockRNG2, MockRNG3
+from mocks import MockRNG, MockRNG2, MockRNG3
 import pyNN.mock as sim
 
-from .backends.registry import register_class, register
+from backends.registry import register_class, register
 
 orig_mpi_get_config = random.get_mpi_config
 
@@ -357,7 +357,26 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                           (2, 4, 0.0, 0.123),
                           (3, 4, 0.0, 0.123),
                           ])
-        
+  
+    @register()
+    def test_connect_weight_function_and_one_post_synaptic_neuron_not_connected(self, sim=sim):  
+        C = connectors.FixedProbabilityConnector(p_connect=0.8,
+                                                 rng=MockRNG(delta=0.05))
+        syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
+        prj = sim.Projection(self.p1, self.p2, C, syn)       
+        assert_array_almost_equal(prj.get(["weight", "delay"], format='array'),  
+                        numpy.array([
+                                        [[0., 0.1, 0.2, 0.3, nan],
+                                        [0.1,  0., 0.1, 0.2, nan],
+                                        [0.2, 0.1, 0.0, 0.1, nan],
+                                        [0.3, 0.2, 0.1, 0.0, nan]],
+                                    [[0.123, 0.123, 0.123, 0.123, nan],
+                                        [0.123, 0.123,   0.123, 0.123, nan],
+                                        [0.123, 0.123,   0.123, 0.123, nan],
+                                        [0.123, 0.123,   0.123, 0.123, nan]]
+                                        ]),
+                        9)
+  
     @register()
     def test_connect_with_weight_function(self, sim=sim):
         C = connectors.FixedProbabilityConnector(p_connect=0.85,
