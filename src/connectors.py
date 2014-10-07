@@ -827,7 +827,7 @@ class CSAConnector(MapConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         # Cut out finite part
-        c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset  # can't we cut out just the columns we want?
+        c = self.cset * csa.cross((0, projection.pre.size-1), (0, projection.post.size-1))  # can't we cut out just the columns we want?
 
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
