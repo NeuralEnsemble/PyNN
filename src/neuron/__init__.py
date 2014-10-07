@@ -12,6 +12,7 @@ from pyNN import common, core, space, __doc__
 from pyNN.standardmodels import StandardCellType
 from pyNN.recording import get_io
 from pyNN.space import Space
+from pyNN.random import NumpyRNG, GSLRNG, AbstractRNG
 from pyNN.neuron import simulator
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
@@ -66,15 +67,15 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     simulator.state.dt = timestep
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    if extra_params.has_key('use_cvode'):
+    if 'use_cvode' in extra_params:
         simulator.state.cvode.active(int(extra_params['use_cvode']))
-        if extra_params.has_key('rtol'):
+        if 'rtol' in extra_params:
             simulator.state.cvode.rtol(float(extra_params['rtol']))
-        if extra_params.has_key('atol'):
+        if 'atol' in extra_params:
             simulator.state.cvode.atol(float(extra_params['atol']))
-    if extra_params.has_key('native_rng_baseseed'):
+    if 'native_rng_baseseed' in extra_params:
         simulator.state.native_rng_baseseed = int(extra_params['native_rng_baseseed'])
-    if extra_params.has_key('default_maxstep'):
+    if 'default_maxstep' in extra_params:
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
 

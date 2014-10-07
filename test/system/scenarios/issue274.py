@@ -1,4 +1,4 @@
-from registry import register
+from .registry import register
 
 from pyNN.random import RandomDistribution as rnd
 
@@ -15,8 +15,8 @@ def issue274(sim):
 
     prj = sim.Projection(p1, p2, connector)
 
-    w_dist = rnd("uniform", [1e-6, 2e-6])
-    delay_dist = rnd("uniform", [0.5, 1.0])
+    w_dist = rnd("uniform", low=1e-6, high=2e-6)
+    delay_dist = rnd("uniform", low=0.5, high=1.0)
     prj.set(weight=w_dist, delay=delay_dist)
 
 

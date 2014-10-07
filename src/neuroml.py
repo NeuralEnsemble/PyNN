@@ -91,7 +91,7 @@ class IF_base(object):
         biophys_node  = build_node(':biophysics', units="Physiological Units")
         ifnode        = build_node('bio:mechanism', name="IandF_"+self.label, type='Channel Mechanism')
         passive_node  = build_node('bio:mechanism', name="pas_"+self.label, type='Channel Mechanism', passive_conductance="true")
-        # g_max = 10â?»Â³cm/tau_m  // cm(nF)/tau_m(ms) = G(ÂµS) = 10â?»â?¶G(S). Divide by area (10Â³) to get factor of 10â?»Â³
+        # g_max = 10ï¿½?ï¿½Â³cm/tau_m  // cm(nF)/tau_m(ms) = G(ÂµS) = 10ï¿½?ï¿½ï¿½?ï¿½G(S). Divide by area (10Â³) to get factor of 10ï¿½?ï¿½Â³
         gmax = str(1e-3*self.parameters['cm']/self.parameters['tau_m'])
         passive_node.appendChild(build_parameter_node('gmax', gmax))
         cm_node       = build_node('bio:specificCapacitance')

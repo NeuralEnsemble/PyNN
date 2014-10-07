@@ -31,7 +31,7 @@ def list_standard_models():
         try:
             create(cell_class)
         except Exception, e:
-            print "Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e)
+            print("Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e))
             standard_cell_types.remove(cell_class)
     return [obj.__name__ for obj in standard_cell_types]
 
@@ -58,7 +58,7 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
 	simulator.state.conf.set_cpu_backend()
     if "cuda_backend" in extra_params:
 	simulator.state.conf.set_cuda_backend(extra_params["cuda_backend"])
-    print "The backend used by nemo is: ", simulator.state.conf.backend_description()
+    print("The backend used by nemo is: ", simulator.state.conf.backend_description())
     return simulator.state.mpi_rank
 
 def end(compatible_output=True):
@@ -307,7 +307,7 @@ class Projection(common.Projection):
         `delays`  -- a list/1D array of connection delays, or a single delay.
                      Must have the same length as `targets`.
         """
-        #print "connecting", source, "to", targets, "with weights", weights, "and delays", delays
+        #print("connecting", source, "to", targets, "with weights", weights, "and delays", delays)
         if not core.is_listlike(targets):
             targets = [targets]
         if isinstance(weights, float):

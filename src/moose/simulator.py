@@ -44,14 +44,14 @@ class _State(object):
     def __get_dt(self):
         return self.ctx.getClocks()[0]*in_ms
     def __set_dt(self, dt):
-        print "setting dt to %g ms" % dt
+        print("setting dt to %g ms" % dt)
         self.ctx.setClock(0, dt*ms, 0) # integration clock
         self.ctx.setClock(1, dt*ms, 1) # ?
         self.ctx.setClock(2, dt*ms, 0) # recording clock
     dt = property(fget=__get_dt, fset=__set_dt)
 
 def run(simtime):
-    print "simulating for %g ms" % simtime
+    print("simulating for %g ms" % simtime)
     state.ctx.reset()
     state.ctx.step(simtime*ms)
 

@@ -1,0 +1,20 @@
+-------------------------------
+- RUNNING EXAMPLES
+-------------------------------
+
+1. If you want to run all the examples with a specific simulator (nest, neuron, brian or mock), you write the following commands:
+
+> cd tools
+> python run_all_examples.py NEST/NEURON/Brian/MOCK
+
+The logs, results and the plots as png files will all be put in tools/Results/*. 
+
+Note that 'mock' is a dummy backend, used to check the syntax of your PyNN code.
+
+
+2. If you want to run all the examples with all the available simulators, just run the run_all_examples.py script without argument:
+
+> cd tools
+> python run_all_examples.py 
+
+The logs, results and the plots as png files will all be put in tools/Results/*. 

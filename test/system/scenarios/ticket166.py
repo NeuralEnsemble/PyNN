@@ -1,6 +1,6 @@
 
 import numpy
-from registry import register
+from .registry import register
 
 
 @register(exclude=["nemo"])

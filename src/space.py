@@ -22,7 +22,12 @@ Classes:
 """
 
 # There must be some Python package out there that provides most of this stuff.
+# Distance computations are provided by scipy.spatial, but scipy is a fairly heavy dependency.
 
+try:
+    reduce
+except NameError:
+    from functools import reduce
 import numpy
 import math
 from operator import and_
@@ -96,37 +101,11 @@ class Space(object):
         """
         Calculate the distance matrix between two sets of coordinates, given
         the topology of the current space.
-        From http://mail.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
-        """
-        #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
-        if len(A.shape) == 1:
-            A = A.reshape(3, 1)
-        if len(B.shape) == 1:
-            B = B.reshape(3, 1)
-        B = self.scale_factor*(B + self.offset)
-        d = numpy.zeros((len(self.axes), A.shape[1], B.shape[1]), dtype=A.dtype)
-        for i,axis in enumerate(self.axes):
-            diff2 = A[axis,:,None] - B[axis, :]
-            if self.periodic_boundaries is not None:
-                boundaries = self.periodic_boundaries[axis]
-                if boundaries is not None:
-                    range = boundaries[1]-boundaries[0]
-                    ad2   = abs(diff2)
-                    diff2 = numpy.minimum(ad2, range-ad2)
-            diff2 **= 2
-            d[i] = diff2
-        if not expand:
-            d = numpy.sum(d, 0)
-        numpy.sqrt(d, d)
-        return d
-
-    def distances3D(self, A, B, expand=False):
-        """
-        Calculate the distance matrix between two sets of coordinates, given
-        the topology of the current space.
         From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
         #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
+        assert A.ndim <= 2
+        assert B.ndim <= 2
         assert A.shape[-1] == 3
         if len(A.shape) == 1:
             A = A.reshape(1, 3)
@@ -140,7 +119,7 @@ class Space(object):
                 boundaries = self.periodic_boundaries[axis]
                 if boundaries is not None:
                     range = boundaries[1] - boundaries[0]
-                    ad2   = abs(diff2)
+                    ad2 = abs(diff2)
                     diff2 = numpy.minimum(ad2, range-ad2)
             diff2 **= 2
             d[i] = diff2
@@ -150,22 +129,19 @@ class Space(object):
         return d.flatten()
 
     def distance_generator(self, f, g):
-        """
-        Return a function that calculates the distance matrix as a function of
-        indices i,j, given two functions f(i) and g(j) that return coordinates.
-        """
         def distance_map(i, j):
+            shape = []
+            if isinstance(i, numpy.ndarray) and i.ndim == 2:
+                i = i[:, 0]
+                shape.append(i.size)
+            if isinstance(j, numpy.ndarray) and j.ndim == 2:
+                j = j[0, :]
+                shape.append(j.size)
             d = self.distances(f(i), g(j))
-            if d.shape[0] == 1:
-                d = d[0,:] # arguably this transformation should go in distances()
-            elif d.shape[1] == 1:
-                d = d[:,0]
-            return d
-        return distance_map
-
-    def distance_generator3D(self, f, g):
-        def distance_map(i, j):
-            return self.distances3D(f(i), g(j))
+            if shape:
+                return d.reshape(shape)
+            else:
+                return d
         return distance_map
 
 

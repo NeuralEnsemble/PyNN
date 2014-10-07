@@ -1,9 +1,10 @@
 # encoding: utf-8
 
 from nose.tools import assert_equal
+from nose.plugins.skip import SkipTest
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
-from registry import register
+from .registry import register
 
 
 @register(exclude=["moose", "nemo"])
@@ -50,7 +51,7 @@ def scenario3(sim):
     assert_equal(pre[49].rate, r1)
     assert_equal(pre[50].rate, r2)
     post.set(**cell_parameters)
-    post.initialize(v=RandomDistribution('normal', (v_reset, 5.0)))
+    post.initialize(v=RandomDistribution('normal', mu=v_reset, sigma=5.0))
 
     stdp = sim.STDPMechanism(
                 sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0,
@@ -63,7 +64,7 @@ def scenario3(sim):
                                  synapse_type=stdp,
                                  receptor_type='excitatory')
 
-    initial_weight_distr = RandomDistribution('uniform', (w_min, w_max))
+    initial_weight_distr = RandomDistribution('uniform', low=w_min, high=w_max)
     connections.randomizeWeights(initial_weight_distr)
     initial_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights.min() >= w_min

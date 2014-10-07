@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios.registry import registry
+from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_not_equal
 from pyNN.utility import init_logging, assert_arrays_equal
 import numpy
@@ -9,6 +9,7 @@ try:
     have_nest = True
 except ImportError:
     have_nest = False
+
 
 def test_scenarios():
     for scenario in registry:
@@ -35,9 +36,9 @@ def test_record_native_model():
     p1.set(Theta_eq=-51.5)
     #assert_arrays_equal(p1.get('Theta_eq'), -51.5*numpy.ones((10,)))
     assert_equal(p1.get('Theta_eq'), -51.5)
-    print p1.get('Tau_m')
-    p1.set(Tau_m=RandomDistribution('uniform', [15.0, 20.0]))
-    print p1.get('Tau_m')
+    print(p1.get('Tau_m'))
+    p1.set(Tau_m=RandomDistribution('uniform', low=15.0, high=20.0))
+    print(p1.get('Tau_m'))
 
     current_source = nest.StepCurrentSource(times=[50.0, 110.0, 150.0, 210.0],
                                             amplitudes=[0.01, 0.02, -0.02, 0.01])
@@ -45,7 +46,7 @@ def test_record_native_model():
 
     p2 = nest.Population(1, nest.native_cell_type("poisson_generator")(rate=200.0))
 
-    print "Setting up recording"
+    print("Setting up recording")
     p2.record('spikes')
     p1.record('V_m')
 

@@ -1,9 +1,7 @@
 """
 Provides standard interfaces to various text and binary file formats for saving
-spikes, membrane potential and synaptic conductances.
-
-To record data in a given format, pass an instance of any of the File classes to
-the Population.printSpikes(), print_v() or print_gsyn() methods.
+position and connectivity data.  Note that saving spikes, membrane potential
+and synaptic conductances is now done via Neo.
 
 Classes:
     StandardTextFile
@@ -18,13 +16,17 @@ Classes:
 
 
 import numpy, os, shutil
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 try:
     import tables
     have_hdf5 = True
 except ImportError:
     have_hdf5 = False
+from pyNN.core import iteritems
 
 
 DEFAULT_BUFFER_SIZE = 10000
@@ -54,17 +56,17 @@ def savez(file, *args, **kwds):
     for i, val in enumerate(args):
         key = 'arr_%d' % i
         if key in namedict.keys():
-            raise ValueError, "Cannot use un-named variables and keyword %s" % key
+            raise ValueError("Cannot use un-named variables and keyword %s" % key)
         namedict[key] = val
 
-    zip = zipfile.ZipFile(file, mode="w")
+    zip = zipfile.ZipFile(file, mode="wb")
 
     # Place to write temporary .npy files
     #  before storing them in the zip. We need to path this to have a working
     # function in parallel !
     import tempfile
     direc = tempfile.mkdtemp()
-    for key, val in namedict.iteritems():
+    for key, val in iteritems(namedict):
         fname = key + '.npy'
         filename = os.path.join(direc, fname)
         fid = open(filename, 'wb')
@@ -80,7 +82,7 @@ class BaseFile(object):
     Base class for PyNN File classes.
     """
 
-    def __init__(self, filename, mode='r'):
+    def __init__(self, filename, mode='rb'):
         """
         Open a file with the given filename and mode.
         """
@@ -94,7 +96,7 @@ class BaseFile(object):
                 pass
         try: ## Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
-        except Exception, err:
+        except Exception as err:
             self.open_error = err
 
     def __del__(self):
@@ -151,7 +153,8 @@ class StandardTextFile(BaseFile):
         # to always put the header information at the top?
         # write header
         header_lines = ["# %s = %s" % item for item in metadata.items()]
-        self.fileobj.write("\n".join(header_lines) + '\n')
+        header = "\n".join(header_lines) + '\n'
+        self.fileobj.write(header.encode('utf-8'))
         # write data
         savetxt = getattr(numpy, 'savetxt', _savetxt)
         savetxt(self.fileobj, data, fmt='%r', delimiter='\t')
@@ -258,7 +261,7 @@ if have_hdf5:
             if len(data) > 0:
                 try:
                     node = self.fileobj.createArray(self.fileobj.root, "data", data)
-                except tables.HDF5ExtError, e:
+                except tables.HDF5ExtError as e:
                     raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" % (e, data.shape, metadata))
                 for name, value in metadata.items():
                     setattr(node.attrs, name, value)

@@ -1,4 +1,8 @@
-from itertools import repeat, izip
+from itertools import repeat
+try:
+    from itertools import izip
+except ImportError:
+    izip = zip  # Python 3 zip returns an iterator already
 from pyNN import common
 from pyNN.core import ezip
 from pyNN.parameters import ParameterSpace
@@ -43,7 +47,8 @@ class Projection(common.Projection):
         return len(self.connections)
 
     def set(self, **attributes):
-        parameter_space = ParameterSpace
+        #parameter_space = ParameterSpace
+        raise NotImplementedError
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):

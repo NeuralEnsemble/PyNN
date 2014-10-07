@@ -173,7 +173,7 @@ class NineMLCellType(BaseCellType):
 
 
 def unimplemented_builder(*args, **kwargs):
-    raise NotImplementedError, "TODO: 9ML neuron builder"
+    raise NotImplementedError("TODO: 9ML neuron builder")
 
 def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **synapse_models):
     """

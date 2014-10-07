@@ -63,9 +63,8 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:2].record(('v', 'gsyn_exc'))
 
-input_conns = sim.Projection(spike_source, cells, sim.FixedProbabilityConnector(0.5), sim.StaticSynapse())
-input_conns.setWeights(w)
-input_conns.setDelays(syn_delay)
+syn = sim.StaticSynapse(weight=w,delay=syn_delay)
+input_conns = sim.Projection(spike_source, cells, sim.FixedProbabilityConnector(0.5), syn)
 
 # === Run simulation ===========================================================
 
@@ -75,7 +74,7 @@ filename = normalized_filename("Results", "small_network", "pkl",
                                options.simulator, sim.num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print "Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz"
+print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel

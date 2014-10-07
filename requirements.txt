@@ -1,7 +1,7 @@
-Jinja2>=2
+Jinja2==2.6   # more recent versions don't work with Python 3.2
 docutils>=0.10
 mock>1.0
 numpy>=1.5
 quantities>=0.10
-lazyarray>=0.2.2
+lazyarray>=0.2.6
 neo>=0.3

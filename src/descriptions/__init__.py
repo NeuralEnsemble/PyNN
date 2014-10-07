@@ -22,6 +22,10 @@ descriptions.DEFAULT_TEMPLATE_ENGINE = 'jinja2'
 :license: CeCILL, see LICENSE for details.
 """
 
+try:
+    basestring
+except NameError:
+    basestring = str
 import string
 import os.path
 
@@ -33,7 +37,7 @@ def get_default_template_engine():
     """
     Return the default template engine class.
     """
-    default = DEFAULT_TEMPLATE_ENGINE or TEMPLATE_ENGINES.keys()[0]
+    default = DEFAULT_TEMPLATE_ENGINE or list(TEMPLATE_ENGINES.keys())[0]
     return TEMPLATE_ENGINES[default]
 
 def render(engine, template, context):

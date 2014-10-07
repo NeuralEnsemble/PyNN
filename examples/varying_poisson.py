@@ -20,7 +20,7 @@ class SetRate(object):
         
     def __call__(self, t):
         try:
-            self.population.set(rate=next(rate_generator))
+          self.population.set(rate=next(rate_generator))
         except StopIteration:
             pass
         return t + self.interval
@@ -45,8 +45,7 @@ p.record('spikes')
 
 rate_generator = iter(range(0, 100, 20))
 progress_bar = ProgressBar()
-sim.run(1000, callbacks=[SetRate(p, rate_generator, 200.0),
-                         MyProgressBar(10.0, 1000.0)])
+sim.run(1000, callbacks=[MyProgressBar(10.0, 1000.0), SetRate(p, rate_generator, 200.0)])
 
 data = p.get_data().segments[0]
 

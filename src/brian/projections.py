@@ -130,16 +130,16 @@ class Projection(common.Projection):
                 if isinstance(self.post, common.Assembly) and isinstance(self.post.populations[i], common.PopulationView):
                     partition = self._invert(partition, self.post.populations[i].mask)
                 self._brian_synapses[i][j][partition, local_index] = True
-        #print "CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions
+        #print("CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions)
         # set connection parameters
         for name, value in chain(connection_parameters.items(),
                                  self.synapse_type.initial_conditions.items()):
             for i, partition in enumerate(presynaptic_index_partitions):
-                #print i, partition, type(partition), bool(partition)
+                #print(i, partition, type(partition), bool(partition))
                 if partition.size > 0:
                     brian_var = getattr(self._brian_synapses[i][j], name)
                     brian_var[partition, local_index] = value  # units? don't we need to slice value to the appropriate size?
-                    #print "----", i, j, partition, local_index, name, value
+                    #print("----", i, j, partition, local_index, name, value)
                     self._n_connections += partition.size
 
     def _set_attributes(self, connection_parameters):
@@ -147,7 +147,7 @@ class Projection(common.Projection):
             raise NotImplementedError
         connection_parameters.evaluate()
         for name, value in connection_parameters.items():
-            print "@@@@", name, value
+            print("@@@@", name, value)
             filtered_value = numpy.extract(1 - numpy.isnan(value), value)
             setattr(self._brian_synapses[0][0], name, filtered_value)
     

@@ -69,6 +69,8 @@ class _State(common.control.BaseState):
 
     threads = nest_property('local_num_threads', int)
 
+    grng_seed = nest_property('grng_seed', int)
+
     rng_seeds = nest_property('rng_seeds', list)
 
     @property
@@ -81,7 +83,7 @@ class _State(common.control.BaseState):
             min_delay = float(min_delay)
             max_delay = float(max_delay)
             for synapse_model in nest.Models(mtype='synapses'):
-                nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                nest.SetDefaults(synapse_model, {'delay': min_delay,
                                                  'min_delay': min_delay,
                                                  'max_delay': max_delay})
 

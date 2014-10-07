@@ -2,9 +2,11 @@ language: python
 python:
   - "2.7"
   - "2.6"
+  - "3.2"
+  - "3.4"
 # command to install dependencies
 install:
   - pip install -r requirements.txt --use-mirrors
   - pip install . --use-mirrors
 # command to run tests, e.g. python setup.py test
-script:  nosetests -w test/unittests
+script:  nosetests -w test/unittests -c test/unittests/setup.cfg
