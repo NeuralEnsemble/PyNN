@@ -158,7 +158,7 @@ class Multimeter(RecordingDevice):
 #            device_parameters.update(to_file=True, to_memory=False)
 #        try:
 #            nest.SetStatus(self.device, device_parameters)
-#        except nest.hl_api.NESTError, e:
+#        except nest.hl_api.NESTError as e:
 #            raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
 #
 #        self.record_from = []
@@ -284,11 +284,11 @@ class Multimeter(RecordingDevice):
 #            # possibly we can just keep on saving to the end of self._merged_file, instead of concatenating everything in memory
 #            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
 #            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
-#            if len(non_empty_nest_files) > 0: 
-#                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files] 
-#                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file)) 
-#                             for nest_file in non_empty_nest_files] 
-#                data = numpy.concatenate(data_list) 
+#            if len(non_empty_nest_files) > 0:
+#                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+#                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file))
+#                             for nest_file in non_empty_nest_files]
+#                data = numpy.concatenate(data_list)
 #            if len(non_empty_nest_files) == 0 or data.size == 0:
 #                if self.type is "spike_detector":
 #                    ncol = 2
@@ -300,7 +300,7 @@ class Multimeter(RecordingDevice):
 #                data = self.add_initial_values(data)
 #            self._merged_file = tempfile.TemporaryFile()
 #            numpy.save(self._merged_file, data)
-#            self._local_files_merged = True  # this is set back to False by run() 
+#            self._local_files_merged = True  # this is set back to False by run()
 #        return data
 #
 #    def read_data(self, gather, compatible_output, always_local=False):
@@ -446,7 +446,7 @@ class Recorder(recording.Recorder):
         """
         nest.SetStatus(self._spike_detector.device, 'n_events', 0)
         nest.SetStatus(self._multimeter.device, 'n_events', 0)
-        
+
     def store_to_cache(self, annotations={}):
         # we over-ride the implementation from the parent class so as to
         # do some reinitialisation.
