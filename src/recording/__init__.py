@@ -174,22 +174,23 @@ class Recorder(object):
             - `False` (write to memory).
         """
         self.file = file
-        self.population = population # needed for writing header information
+        self.population = population  # needed for writing header information
         self.recorded = defaultdict(set)
         self.cache = DataCache()
         self._simulator.state.recorders.add(self)
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
-        
+        self.sampling_interval = self._simulator.state.dt
 
     def record(self, variables, ids, sampling_interval=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
-        if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
-            raise Exception("All neurons in a population must be recorded with the same sampling interval.")
-            
+        if sampling_interval is not None:
+            if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
+                raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
+
         ids = set([id for id in ids if id.local])
         for variable in normalize_variables_arg(variables):
             if not self.population.can_record(variable):

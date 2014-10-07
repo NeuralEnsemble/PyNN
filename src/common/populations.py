@@ -1176,7 +1176,7 @@ class Assembly(object):
     def rset(self, parametername, rand_distr):
         self.set(parametername=rand_distr)
 
-    def record(self, variables, to_file=None):
+    def record(self, variables, to_file=None, sampling_interval=None):
         """
         Record the specified variable or variables for all cells in the Assembly.
 
@@ -1188,7 +1188,7 @@ class Assembly(object):
         will be automatically called when `end()` is called.
         """
         for p in self.populations:
-            p.record(variables, to_file)
+            p.record(variables, to_file, sampling_interval)
 
     @deprecated("record('v')")
     def record_v(self, to_file=True):

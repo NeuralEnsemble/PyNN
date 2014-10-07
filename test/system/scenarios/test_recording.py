@@ -114,9 +114,30 @@ def issue259(sim):
     assert_equal(spiketrains2[0].size, 0)
 
 
+@register()
+def test_sampling_interval(sim):
+    """
+    A test of the sampling_interval argument.
+    """
+    sim.setup(0.1)
+    p1 = sim.Population(3, sim.IF_cond_exp())
+    p2 = sim.Population(4, sim.IF_cond_exp())
+    p1.record('v', sampling_interval=1.0)
+    p2.record('v', sampling_interval=0.5)
+    sim.run(10.0)
+    d1 = p1.get_data().segments[0].analogsignalarrays[0]
+    d2 = p2.get_data().segments[0].analogsignalarrays[0]
+    assert_equal(d1.sampling_period, 1.0*pq.ms)
+    assert_equal(d1.shape, (11, 3))
+    assert_equal(d2.sampling_period, 0.5*pq.ms)
+    assert_equal(d2.shape, (21, 4))
+    sim.end()
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
     test_reset_recording(sim)
     test_record_vm_and_gsyn_from_assembly(sim)
     issue259(sim)
+    test_sampling_interval(sim)
