@@ -28,7 +28,7 @@ class TestFunctions(unittest.TestCase):
         self.assertIsInstance(cell_types[0], basestring)
 
     def test_setup(self):
-        sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
+        sim.setup(timestep=0.05, min_delay=0.123, max_delay=1.0,
                   verbosity='debug', spike_precision='off_grid',
                   recording_precision=4, threads=2, rng_seeds=[873465, 3487564])
         ks = nest.GetKernelStatus()

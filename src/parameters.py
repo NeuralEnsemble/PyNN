@@ -393,8 +393,11 @@ def simplify(value):
     If `value` is a homogeneous array, return the single value that all elements
     share. Otherwise, pass the value through.
     """
-    if isinstance(value, numpy.ndarray) and (value==value[0]).all():
-        return value[0]
+    if isinstance(value, numpy.ndarray):
+        if (value==value[0]).all():
+            return value[0]
+        else:
+            return value
     else:
         return value
     # alternative - need to benchmark

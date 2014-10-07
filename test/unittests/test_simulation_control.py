@@ -106,7 +106,7 @@ class TestSimulationControl(unittest.TestCase):
         self.assertAlmostEqual(sim.get_max_delay(), 9.87)
         sim.end()
 
-    @register()
+    @register(exclude=['hardware.brainscales'])
     def test_callbacks(self, sim=sim):
         total_time = 100.
         callback_steps = [10., 10., 20., 25.]
