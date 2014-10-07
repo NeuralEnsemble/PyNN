@@ -44,4 +44,15 @@ the :attr:`recordable` attribute of the population's :attr:`celltype` attribute:
     ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
 
 
+By default, variables are recorded at every time step. It is possible to record at a lower frequency using the
+:attr:`sampling_interval` argument, e.g.:
+
+.. doctest::
+
+    >>> population.record('v', sampling_interval=1.0)
+
+You should ensure that the sampling interval is an integer multiple of the simulation time step. Other values may
+work, but have not been tested.
+
+
 .. todo:: document the low-level :func:`record` function
