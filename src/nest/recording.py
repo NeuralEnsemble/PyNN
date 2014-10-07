@@ -365,9 +365,9 @@ class Recorder(recording.Recorder):
 
     def __init__(self, population, file=None):
         __doc__ = recording.Recorder.__doc__
-        recording.Recorder.__init__(self, population, file)
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
+        recording.Recorder.__init__(self, population, file)
 #        self._create_device()
 
 #    def _create_device(self, variable):
