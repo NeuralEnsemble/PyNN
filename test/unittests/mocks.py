@@ -67,6 +67,7 @@ class MockRNG3(random.WrappedRNG):
 
     def _next(self, distribution, n, parameters):
         x = numpy.zeros(n)
+        x.dtype=int
         x[0]=1
         return x
     

@@ -16,10 +16,10 @@ from numpy import nan
 import os
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from mocks import MockRNG, MockRNG2, MockRNG3
+from .mocks import MockRNG, MockRNG2, MockRNG3
 import pyNN.mock as sim
 
-from backends.registry import register_class, register
+from .backends.registry import register_class, register
 
 orig_mpi_get_config = random.get_mpi_config
 
@@ -726,7 +726,7 @@ class TestFixedNumberPreConnector(unittest.TestCase):
     @register()
     def test_with_replacement_with_neuron_0_connecting_neuron_0(self, sim=sim):
         n = random.RandomDistribution('binomial', (5, 0.5), rng=MockRNG3())
-        C = connectors.FixedNumberPreConnector(n=n, with_replacement=True, rng=MockRNG(delta=1))
+        C = connectors.FixedNumberPreConnector(n=n, with_replacement=True, rng=MockRNG(start=0, delta=1))
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list'),  
