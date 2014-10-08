@@ -111,13 +111,13 @@ def test_record():
     r.record('spam', first_ids)
     assert_equal(r.recorded['spam'], set(id for id in first_ids if id.local))
     assert_equal(len(r.recorded['spam']), 2)
-    r._record.assert_called_with('spam', r.recorded['spam'])
+    r._record.assert_called_with('spam', r.recorded['spam'], None)
     
     more_ids = all_ids[2:5]
     r.record('spam', more_ids)
     assert_equal(r.recorded['spam'], set(id for id in all_ids if id.local))
     assert_equal(len(r.recorded['spam']), 3)
-    r._record.assert_called_with('spam', set(all_ids[3:4]))
+    r._record.assert_called_with('spam', set(all_ids[3:4]), None)
 
 def test_filter_recorded():
     p = MockPopulation()

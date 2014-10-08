@@ -365,9 +365,9 @@ class Recorder(recording.Recorder):
 
     def __init__(self, population, file=None):
         __doc__ = recording.Recorder.__doc__
-        recording.Recorder.__init__(self, population, file)
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
+        recording.Recorder.__init__(self, population, file)
 #        self._create_device()
 
 #    def _create_device(self, variable):
@@ -384,7 +384,7 @@ class Recorder(recording.Recorder):
 #                self._device = RecordingDevice("multimeter", to_memory)
 #            self._device.add_variables(*VARIABLE_MAP.get(self.variable, [self.variable]))
 
-    def _record(self, variable, new_ids):
+    def _record(self, variable, new_ids, sampling_interval=None):
         """
         Add the cells in `new_ids` to the set of recorded cells for the given
         variable. Since a given node can only be recorded from by one multimeter
@@ -394,8 +394,18 @@ class Recorder(recording.Recorder):
         if variable == 'spikes':
             self._spike_detector.add_ids(new_ids)
         else:
+            self.sampling_interval = sampling_interval
             self._multimeter.add_variable(variable)
             self._multimeter.add_ids(new_ids)
+
+    def _get_sampling_interval(self):
+        return nest.GetStatus(self._multimeter.device, "interval")[0]
+        
+    def _set_sampling_interval(self, value):
+        if value is not None:
+            nest.SetStatus(self._multimeter.device, {"interval": value})
+    sampling_interval = property(fget=_get_sampling_interval,
+                                 fset=_set_sampling_interval)
 
     def _reset(self):
         """ """

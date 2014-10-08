@@ -62,7 +62,7 @@ def set(cells, **parameters):
 
 
 def build_record(simulator):
-    def record(variables, source, filename, annotations=None):
+    def record(variables, source, filename, sampling_interval=None, annotations=None):
         """
         Record variables to a file. source can be an individual cell, a
         Population, PopulationView or Assembly.
@@ -71,7 +71,7 @@ def build_record(simulator):
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             source = source.parent
-        source.record(variables, to_file=filename)
+        source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)
         simulator.state.write_on_end.append((source, variables, filename))
