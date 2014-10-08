@@ -31,7 +31,7 @@ def run(cmd,engine):
         cmd = sys.executable + ' ../examples/' + cmd + '.py ' + engine
     else:
         logging.error('Invalid simulation engine "%s". Valid values are "nest", "pcsim", "neuron", "brian"' % engine)
-        
+
     p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
     p.wait()
     logfile.close()
@@ -64,16 +64,16 @@ def sortTracesByCells(traces, gids):
 
 def compare_traces(script, mse_threshold, engines):
     """For scripts that write a voltage trace to file."""
-    
+
     #print script, ": ",
     traces = {}
     fail = False
     fail_message = ""
-    
+
     if plotting:
         fig = pylab.figure()
         pylab.title(script)
-    
+
     for engine in engines:
         logging.debug("Running %s with %s" % (script, engine))
         traces[engine] = []
@@ -96,7 +96,7 @@ def compare_traces(script, mse_threshold, engines):
                         print engine
                         print line
                         raise
-                    trace = N.array([float(line.split()[0]) for line in trace]) # take first column 
+                    trace = N.array([float(line.split()[0]) for line in trace]) # take first column
                     trace = sortTracesByCells(trace, position)
                     traces[engine].append(trace)
                     if plotting:
@@ -122,7 +122,7 @@ def compare_traces(script, mse_threshold, engines):
                         trace1 = trace1[:l2]
                     elif l2 > l1:
                         trace2 = trace2[:l1]
-                    
+
                     diff = trace1 - trace2
                     mse += N.sqrt(N.mean(N.square(diff)))
                 else:
@@ -142,12 +142,12 @@ def compare_traces(script, mse_threshold, engines):
 
 def compare_rasters(script,mse_threshold,engines):
     """For scripts that write a voltage trace to file."""
-    
+
     #print script, ": ",
     rasters = {}
     fail = False
     fail_message = ""
-    
+
     for engine in engines:
         rasters[engine] = []
         try:
@@ -170,7 +170,7 @@ def compare_rasters(script,mse_threshold,engines):
                         print engine
                         print line
                         raise
-                    raster = N.array([float(line.split()[0]) for line in raster]) # take first column 
+                    raster = N.array([float(line.split()[0]) for line in raster]) # take first column
                     raster = sortTracesByCells(raster, position)
                     rasters[engine].append(raster)
             else:
@@ -204,23 +204,23 @@ def compare_rasters(script,mse_threshold,engines):
             logging.info("%s:  Fail (mse = %f, threshold = %f)" % (script, mse, mse_threshold))
     else:
         logging.info("%s: Fail - %s" % (script, fail_message))
-        
+
 if __name__ == "__main__":
-    
+
     engine_list = ["neuron", "pcsim", "nest", "brian"]
     for engine in engine_list:
         try:
             exec("import pyNN.%s" % engine)
-        except ImportError, errmsg:
+        except ImportError as errmsg:
             engine_list.remove(engine)
             logging.warning("Unable to use %s: %s" % (engine, errmsg))
     if len(engine_list) < 2:
         logging.error("Need at least two simulators to run tests.")
         sys.exit(1)
     logging.debug("Using the following simulators: %s" % ", ".join(engine_list))
-            
+
     thresholds_v = {"IF_curr_alpha"  : 0.26,
-                    "IF_curr_exp"    : 0.25, 
+                    "IF_curr_exp"    : 0.25,
                     "IF_cond_alpha"  : 0.25,
                     "IF_cond_exp"    : 0.25,
                     "simpleNetworkL" : 0.5,
@@ -228,13 +228,13 @@ if __name__ == "__main__":
                     "IF_curr_alpha2" : 5.0,
                     "small_network"  : 5.0,
                     "IF_curr_exp2"   : 0.6}
-    
+
     thresholds_ras = {"SpikeSourcePoisson" : 50.,
                       "IF_curr_exp2": 0.25,}
-    
+
     scripts_v   = []
     scripts_ras = []
-    
+
     if len(sys.argv) > 1:
         for item in sys.argv[1:]:
             if item in thresholds_v.keys():
@@ -246,12 +246,12 @@ if __name__ == "__main__":
         scripts_ras = thresholds_ras.keys()
 
     logging.debug("Running the following examples: %s,%s using engines %s" % (scripts_v, scripts_ras,engine_list))
-    
+
     for script in scripts_v:
         compare_traces(script, thresholds_v[script]*(len(engine_list)-1), engine_list)
 
     for script in scripts_ras:
         compare_rasters(script, thresholds_ras[script]*(len(engine_list)-1), engine_list)
-    
+
     if len(scripts_v)+len(scripts_ras) == 0:
         logging.error("Invalid example name(s).")
