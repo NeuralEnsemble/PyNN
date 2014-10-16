@@ -14,20 +14,20 @@ try:
 except ImportError:
     haveCSA = False
 from pyNN import random, core, errors
-from pyNN.connectors import Connector, \
-                            AllToAllConnector, \
-                            FixedProbabilityConnector, \
-                            OneToOneConnector, \
-                            FixedNumberPreConnector, \
-                            FixedNumberPostConnector, \
-                            DistanceDependentProbabilityConnector, \
-                            DisplacementDependentProbabilityConnector, \
-                            IndexBasedProbabilityConnector, \
-                            SmallWorldConnector, \
-                            FromListConnector, \
-                            FromFileConnector, \
-                            CloneConnector, \
-                            ArrayConnector
+from pyNN.connectors import (Connector,
+                             AllToAllConnector,
+                             FixedProbabilityConnector,
+                             OneToOneConnector,
+                             FixedNumberPreConnector,
+                             FixedNumberPostConnector,
+                             DistanceDependentProbabilityConnector,
+                             DisplacementDependentProbabilityConnector,
+                             IndexBasedProbabilityConnector,
+                             SmallWorldConnector,
+                             FromListConnector,
+                             FromFileConnector,
+                             CloneConnector,
+                             ArrayConnector)
 
 from .random import NativeRNG, NEST_RDEV_TYPES
 
@@ -102,9 +102,9 @@ class NESTConnectorMixin(object):
             if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):
                 continue
             if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
-                if value.base_value.name in NEST_RDEV_TYPES:
+                if isinstance(value.base_value.rng, NativeRNG):
                     logger.warning("Random values will be created inside NEST with NEST's own RNGs")
-                    params[name] = NativeRNG(value.base_value).parameters
+                    params[name] = value.evaluate().repr()
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
@@ -121,34 +121,41 @@ class NESTConnectorMixin(object):
         return params
 
 
-#class FixedProbabilityConnector():
-#
-#    def __init__(self, p_connect, allow_self_connections=True, with_replacement=True,
-#                 rng=None, safe=True, callback=None):
-#        self.allow_self_connections = allow_self_connections
-#        self.with_replacement = with_replacement
-#
-#        self.p_connect = float(p_connect)
-##        self.rng = _get_rng(rng)
-#
-#    def connect(self, projection):
-#        syn_params = projection.synapse_parameters()
-#        rule_params = {'autapses': self.allow_self_connections,
-#                       'multapses': self.with_replacement,
-#                       'rule': 'pairwise_bernoulli',
-#                       'p': self.p_connect}
-#        projection._connect(rule_params, syn_params)
+class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
+
+    def connect(self, projection):
+        if projection.synapse_type.native_parameters.has_native_rngs:
+            print("Native connect")
+            return self.native_connect(projection)
+        else:
+            print("Common connect")
+            return super(FixedProbabilityConnector, self).connect(projection)
+
+    def native_connect(self, projection):
+        syn_params = self.synapse_parameters(projection)
+        rule_params = {'autapses': self.allow_self_connections,
+                       'multapses': False,
+                       'rule': 'pairwise_bernoulli',
+                       'p': self.p_connect}
+        projection._connect(rule_params, syn_params)
 
 
-#class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
-#
-#    def connect(self, projection):
-#        syn_params = self.synapse_parameters(projection)
-#        rule_params = {'autapses': self.allow_self_connections,
-#                       'multapses': False,
-#                       'rule': 'all_to_all'}
-#
-#        projection._connect(rule_params, syn_params)
+class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
+
+    def connect(self, projection):
+        if projection.synapse_type.native_parameters.has_native_rngs:
+            print("Native connect")
+            return self.native_connect(projection)
+        else:
+            print("Common connect")
+            return super(AllToAllConnector, self).connect(projection)
+
+    def native_connect(self, projection):
+        syn_params = self.synapse_parameters(projection)
+        rule_params = {'autapses': self.allow_self_connections,
+                       'multapses': False,
+                       'rule': 'all_to_all'}
+        projection._connect(rule_params, syn_params)
 
 
 #class OneToOneConnector():

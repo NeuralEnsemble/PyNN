@@ -35,7 +35,8 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG, GSLRNG, NativeRNG
+from pyNN.random import NumpyRNG, GSLRNG
+from pyNN.nest.random import NativeRNG
 from pyNN.space import Space
 from pyNN.standardmodels import StandardCellType
 from pyNN.nest.populations import Population, PopulationView, Assembly
