@@ -1,7 +1,9 @@
 
+import os
 import numpy
 import quantities as pq
 from nose.tools import assert_equal
+from neo.io import get_io
 from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging
 from .registry import register
 
@@ -134,6 +136,27 @@ def test_sampling_interval(sim):
     sim.end()
 
 
+@register()
+def test_mix_procedural_and_oo(sim):
+    # cf Issues #217, #234
+    fn_proc = "test_write_procedural.pkl"
+    fn_oo = "test_write_oo.pkl"
+    sim.setup(timestep=0.1, min_delay=0.1)
+    cells = sim.Population(5, sim.IF_cond_exp(i_offset=0.2))
+    sim.record('v', cells, fn_proc)
+    sim.run(10.0)
+    cells.write_data(fn_oo)   # explicitly write data
+    sim.end()                 # implicitly write data using filename provided previously
+
+    data_proc = get_io(fn_proc).read()[0]
+    data_oo = get_io(fn_oo).read()[0]
+    assert_arrays_equal(data_proc.segments[0].analogsignalarrays[0],
+                        data_oo.segments[0].analogsignalarrays[0])
+
+    os.remove(fn_proc)
+    os.remove(fn_oo)
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -141,3 +164,4 @@ if __name__ == '__main__':
     test_record_vm_and_gsyn_from_assembly(sim)
     issue259(sim)
     test_sampling_interval(sim)
+    test_mix_procedural_and_oo(sim)
