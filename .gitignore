@@ -24,6 +24,7 @@ i686
 build
 dist
 doc/_build
+doc/images/examples
 # Egg metadata
 *.egg-info
 *.egg

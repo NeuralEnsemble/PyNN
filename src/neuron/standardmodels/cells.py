@@ -151,7 +151,7 @@ class IF_cond_exp_gsfa_grr(base_cells.IF_cond_exp_gsfa_grr):
     __doc__ = base_cells.IF_cond_exp_gsfa_grr.__doc__
 
     translations = build_translations(
-        ('v_rest',     'v_reset'),
+        ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
         ('cm',         'c_m'),
         ('tau_m',      'tau_m'),
