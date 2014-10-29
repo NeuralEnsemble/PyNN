@@ -463,23 +463,123 @@ class TestFromFileConnector(unittest.TestCase):
                           (2, 3, 0.3, 0.12, 120.0, 98.0, 88.8)])
 
 
-#class TestFixedNumberPostConnector(unittest.TestCase):
-#
-#    def setUp(self, sim=sim):
-#        sim.setup(num_processes=2, rank=1, min_delay=0.123)
-#        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
-#        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
-#        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
-#
-#    def test_with_n_smaller_than_population_size(self, sim=sim):
-#        C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
-#        syn = sim.StaticSynapse()
-#        prj = sim.Projection(self.p1, self.p2, C, syn)
-#        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
-#                         [(0, 3, 0.0, 0.123),
-#                          (1, 3, 0.0, 0.123),
-#                          (2, 3, 0.0, 0.123),
-#                          (3, 3, 0.0, 0.123),])
+@register_class()
+class TestFixedNumberPostConnector(unittest.TestCase):
+
+    def setUp(self, sim=sim):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([0,1,0,1,0], dtype=bool))
+
+    @register()
+    def test_with_n_smaller_than_population_size(self, sim=sim):
+        C = connectors.FixedNumberPostConnector(n=3, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse(weight="0.5*d")
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        # MockRNG.permutation(arr) returns the reverse of arr, so each pre neuron will connect to neurons 4, 3, 2
+        # however, only neuron 3 is on the "local" (fake MPI) node
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 3, 1.5, 0.123),
+                          (1, 3, 1.0, 0.123),
+                          (2, 3, 0.5, 0.123),
+                          (3, 3, 0.0, 0.123)])
+
+    @register()
+    def test_with_n_larger_than_population_size(self, sim=sim):
+        C = connectors.FixedNumberPostConnector(n=7, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        # each pre neuron will connect to all post neurons (population size 5 is less than n), then to 4, 3 (MockRNG.permutation)
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (1, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123),
+                          (3, 3, 0.0, 0.123)])
+
+    @register()
+    def test_with_n_larger_than_population_size_no_self_connections(self, sim=sim):
+        C = connectors.FixedNumberPostConnector(n=7, allow_self_connections=False, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p2, self.p2, C, syn)
+        # connections as follows: (pre - list of post)
+        #   0 - 1 2 3 4 4 3 2
+        #   1 - 0 2 3 4 4 3 2
+        #   2 - 0 1 3 4 4 3 1
+        #   3 - 0 1 2 4 4 2 1
+        #   4 - 0 1 2 3 3 2 1
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (4, 1, 0.0, 0.123),
+                          (4, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123),])
+
+    @register()
+    def test_with_replacement(self, sim=sim):
+        C = connectors.FixedNumberPostConnector(n=3, with_replacement=True, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        # 0 - 0 1 2
+        # 1 - 3 4 0
+        # 2 - 1 2 3
+        # 3 - 4 0 1
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.0, 0.123),
+                          (2, 1, 0.0, 0.123),
+                          (3, 1, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (2, 3, 0.0, 0.123)])
+    @register()
+    def test_with_replacement_with_variable_n(self, sim=sim):
+        n = random.RandomDistribution('binomial', (5, 0.5), rng=MockRNG(start=1, delta=2))
+            # should give (1, 3, 0, 2)
+        C = connectors.FixedNumberPostConnector(n=n, with_replacement=True, rng=MockRNG(delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        # 0 - 0
+        # 1 - 1 2 3
+        # 2 -
+        # 3 - 4 0
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(1, 1, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123)])
+
+    @register()
+    def test_with_replacement_no_self_connections(self, sim=sim):
+        C = connectors.FixedNumberPostConnector(n=3, with_replacement=True,
+                                               allow_self_connections=False, rng=MockRNG(start=2, delta=1))
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p2, self.p2, C, syn)
+        # 0 - 2 3 4
+        # 1 - 0 2 3
+        # 2 - 4 0 1
+        # 3 - 2 4 0
+        # 4 - 1 2 3
+        self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(2, 1, 0.0, 0.123),
+                          (4, 1, 0.0, 0.123),
+                          (0, 3, 0.0, 0.123),
+                          (1, 3, 0.0, 0.123),
+                          (4, 3, 0.0, 0.123)])
 
 
 @register_class()
