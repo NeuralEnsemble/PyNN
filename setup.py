@@ -52,7 +52,7 @@ setup(
     author = "The PyNN team",
     author_email = "andrew.davison@unic.cnrs-gif.fr",
     description = "A Python package for simulator-independent specification of neuronal network models",
-    long_description = open("README").read(),
+    long_description = open("README.rst").read(),
     license = "CeCILL http://www.cecill.info",
     keywords = "computational neuroscience simulation neuron nest brian neuromorphic",
     url = "http://neuralensemble.org/PyNN/",
