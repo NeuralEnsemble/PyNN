@@ -9,7 +9,7 @@ from .registry import register
 
 
 @register()
-def test_all_to_all_static_no_self(sim):
+def all_to_all_static_no_self(sim):
     sim.setup()
     p = sim.Population(5, sim.IF_cond_exp())
     synapse_type = sim.StaticSynapse(weight=RandomDistribution('gamma', k=2.0, theta=0.5), delay="0.2+0.3*d")
@@ -24,7 +24,7 @@ def test_all_to_all_static_no_self(sim):
 
 
 @register()
-def test_all_to_all_tsodyksmarkram(sim):
+def all_to_all_tsodyksmarkram(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -193,8 +193,8 @@ def issue309(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    test_all_to_all_static_no_self(sim)
-    test_all_to_all_tsodyksmarkram(sim)
+    all_to_all_static_no_self(sim)
+    all_to_all_tsodyksmarkram(sim)
     fixed_number_pre_no_replacement(sim)
     fixed_number_pre_with_replacement(sim)
     fixed_number_pre_with_replacement_heterogeneous_parameters(sim)

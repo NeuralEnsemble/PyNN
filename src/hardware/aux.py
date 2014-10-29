@@ -16,14 +16,14 @@ from os import environ, path
  
 def get_symap2ic_path(): 
     if not environ.has_key('SYMAP2IC_PATH'):
-        raise Exception(
+        raise ImportError(
             """
             symap2ic software is not available!
             - is symap2ic installed?
             - is environment variable SYMAP2IC_PATH set?""")
     symap2ic_path = environ['SYMAP2IC_PATH']
     if not path.exists(symap2ic_path):
-        raise Exception(
+        raise ImportError(
             """
             SYMAP2IC_PATH = %s
             SYMAP2IC_PATH points to a non existing directory""" 

@@ -134,6 +134,7 @@ def test_sampling_interval(sim):
     assert_equal(d2.sampling_period, 0.5*pq.ms)
     assert_equal(d2.shape, (21, 4))
     sim.end()
+test_sampling_interval.__test__ = False
 
 
 @register()
@@ -155,6 +156,7 @@ def test_mix_procedural_and_oo(sim):
 
     os.remove(fn_proc)
     os.remove(fn_oo)
+test_mix_procedural_and_oo.__test__ = False
 
 
 if __name__ == '__main__':
