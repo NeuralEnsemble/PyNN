@@ -405,6 +405,7 @@ class Connection(object):
         self.nc.delay = d
         if hasattr(self, 'pre2wa'):
             self.pre2wa.delay = float(d)*(1-self.ddf)
+        if hasattr(self, 'post2wa'):
             self.post2wa.delay = float(d)*self.ddf
 
     def _get_delay(self):
