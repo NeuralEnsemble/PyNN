@@ -66,6 +66,7 @@ def native_cell_type(model_name):
                  'standard_receptor_type': (receptor_types == ['excitatory', 'inhibitory']),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),
+                 'always_local': False,  # is there a way to introspect this? Otherwise need to create a list
                  })
 
 

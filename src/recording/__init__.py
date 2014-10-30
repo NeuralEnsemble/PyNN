@@ -150,6 +150,18 @@ def filter_by_variables(segment, variables):
         return new_segment
 
 
+def remove_duplicate_spiketrains(data):
+    for segment in data.segments:
+        spiketrains = {}
+        for spiketrain in segment.spiketrains:
+            index = spiketrain.annotations["source_index"]
+            spiketrains[index] = spiketrain
+        min_index = min(spiketrains.keys())
+        max_index = max(spiketrains.keys())
+        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index+1)]
+    return data
+
+
 class DataCache(object):
     # primitive implementation for now, storing in memory - later can consider caching to disk
     def __init__(self):
@@ -281,6 +293,8 @@ class Recorder(object):
             data.annotate(**annotations)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
+            if hasattr(self.population.celltype, "always_local") and self.population.celltype.always_local:
+                data = remove_duplicate_spiketrains(data)
         if clear:
             self.clear()
         return data

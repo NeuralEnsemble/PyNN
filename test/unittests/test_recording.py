@@ -58,7 +58,7 @@ class MockPopulation(object):
     first_id = 2454
     last_id = first_id + size
     label = "mock population"
-    celltype = Mock()
+    celltype = Mock(always_local=False)
     annotations = {'knights_say': 'Ni!'}
     def __len__(self):
         return self.size
