@@ -5,6 +5,7 @@ from pyNN.random import RandomDistribution as rnd
 
 @register()
 def issue274(sim):
+    """Issue with offset in GIDs"""
     sim.setup(min_delay=0.5)
 
     p0 = sim.Population(13, sim.IF_cond_exp())
