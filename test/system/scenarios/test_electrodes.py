@@ -40,7 +40,7 @@ def ticket226(sim):
     Check that the start time of DCSources is correctly taken into account
     http://neuralensemble.org/trac/PyNN/ticket/226)
     """
-    sim.setup(timestep=0.1)
+    sim.setup(timestep=0.1, min_delay=0.1)
 
     cell = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
                                                v_reset=-60.0))
@@ -74,7 +74,7 @@ def issue165(sim):
 @register()
 def issue321(sim):
     """Check that non-zero currents at t=0 are taken into account."""
-    sim.setup(timestep=0.1)
+    sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(3, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
                                                v_reset=-60.0))
     cells.initialize(v=-60.0)

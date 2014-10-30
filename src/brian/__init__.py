@@ -8,6 +8,7 @@ Brian implementation of the PyNN API.
 import logging
 import brian
 from pyNN import common, space
+from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.connectors import *
 from . import simulator
 from .standardmodels.cells import *
@@ -25,7 +26,8 @@ def list_standard_models():
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+          max_delay=DEFAULT_MAX_DELAY, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given

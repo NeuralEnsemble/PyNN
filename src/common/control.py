@@ -14,7 +14,7 @@ This module contains:
 
 DEFAULT_MAX_DELAY = 10.0
 DEFAULT_TIMESTEP = 0.1
-DEFAULT_MIN_DELAY = DEFAULT_TIMESTEP
+DEFAULT_MIN_DELAY = 'auto'
 
 ##if not 'simulator' in locals():
 ##    simulator = None  # should be set by simulator-specific modules

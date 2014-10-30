@@ -16,6 +16,7 @@ import nest
 
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
+from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 
 try:
     nest.GetStatus([numpy.int32(0)])
@@ -80,7 +81,8 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+          max_delay=DEFAULT_MAX_DELAY, **extra_params):
     """
     Should be called at the very beginning of a script.
 
