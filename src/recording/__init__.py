@@ -77,7 +77,7 @@ def gather_dict(D, all=False):
     return D
 
 
-def gather_blocks(data):
+def gather_blocks(data, ordered=True):
     """Gather Neo Blocks"""
     mpi_comm, mpi_flags = get_mpi_comm()
     assert isinstance(data, neo.Block)
@@ -90,6 +90,10 @@ def gather_blocks(data):
         merged = blocks[0]
         for block in blocks[1:]:
             merged.merge(block)
+    if ordered:
+        for segment in merged.segments:
+            ordered_spiketrains = sorted(segment.spiketrains, key=lambda s: s.annotations['source_id'])
+            segment.spiketrains = ordered_spiketrains
     return merged
 
 
