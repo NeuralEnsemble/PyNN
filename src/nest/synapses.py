@@ -72,7 +72,7 @@ def native_synapse_type(model_name):
     """
     Return a new NativeSynapseType subclass.
     """
-    assert isinstance(model_name, str)
+    
     default_parameters = get_synapse_defaults(model_name)
 
     default_parameters = make_pynn_compatible(default_parameters)

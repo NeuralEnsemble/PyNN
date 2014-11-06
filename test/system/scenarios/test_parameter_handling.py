@@ -94,6 +94,8 @@ def test_set_synaptic_parameters(sim):
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
         assert_arrays_equal(actual[ind], expected)
+test_set_synaptic_parameters.__test__ = False
+
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator

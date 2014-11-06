@@ -1,8 +1,8 @@
 
 import numpy
 import quantities as pq
-from .registry import register
 
+from registry import register
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
@@ -61,5 +61,6 @@ if __name__ == '__main__':
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
+    test_IF_cond_exp(sim, plot_figure=args.plot_figure)
     test_EIF_cond_alpha_isfa_ista(sim, plot_figure=args.plot_figure)
     test_HH_cond_exp(sim, plot_figure=args.plot_figure)

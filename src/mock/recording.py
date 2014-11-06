@@ -6,7 +6,7 @@ from . import simulator
 class Recorder(recording.Recorder):
     _simulator = simulator
 
-    def _record(self, variable, new_ids):
+    def _record(self, variable, new_ids, sampling_interval=None):
         pass
 
     def _get_spiketimes(self, id):

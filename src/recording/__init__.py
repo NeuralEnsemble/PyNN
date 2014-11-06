@@ -77,7 +77,7 @@ def gather_dict(D, all=False):
     return D
 
 
-def gather_blocks(data):
+def gather_blocks(data, ordered=True):
     """Gather Neo Blocks"""
     mpi_comm, mpi_flags = get_mpi_comm()
     assert isinstance(data, neo.Block)
@@ -90,6 +90,10 @@ def gather_blocks(data):
         merged = blocks[0]
         for block in blocks[1:]:
             merged.merge(block)
+    if ordered:
+        for segment in merged.segments:
+            ordered_spiketrains = sorted(segment.spiketrains, key=lambda s: s.annotations['source_id'])
+            segment.spiketrains = ordered_spiketrains
     return merged
 
 
@@ -146,6 +150,18 @@ def filter_by_variables(segment, variables):
         return new_segment
 
 
+def remove_duplicate_spiketrains(data):
+    for segment in data.segments:
+        spiketrains = {}
+        for spiketrain in segment.spiketrains:
+            index = spiketrain.annotations["source_index"]
+            spiketrains[index] = spiketrain
+        min_index = min(spiketrains.keys())
+        max_index = max(spiketrains.keys())
+        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index+1)]
+    return data
+
+
 class DataCache(object):
     # primitive implementation for now, storing in memory - later can consider caching to disk
     def __init__(self):
@@ -178,25 +194,30 @@ class Recorder(object):
             - `False` (write to memory).
         """
         self.file = file
-        self.population = population # needed for writing header information
+        self.population = population  # needed for writing header information
         self.recorded = defaultdict(set)
         self.cache = DataCache()
         self._simulator.state.recorders.add(self)
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
+        self.sampling_interval = self._simulator.state.dt
 
-    def record(self, variables, ids):
+    def record(self, variables, ids, sampling_interval=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
+        if sampling_interval is not None:
+            if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
+                raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
+
         ids = set([id for id in ids if id.local])
         for variable in normalize_variables_arg(variables):
             if not self.population.can_record(variable):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
             self.recorded[variable] = self.recorded[variable].union(ids)
-            self._record(variable, new_ids)
+            self._record(variable, new_ids, sampling_interval)
 
     def reset(self):
         """Reset the list of things to be recorded."""
@@ -232,7 +253,7 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
-                sampling_period = self._simulator.state.dt*pq.ms # must run on all MPI nodes
+                sampling_period = self.sampling_interval*pq.ms
                 current_time = self._simulator.state.t*pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
@@ -272,6 +293,8 @@ class Recorder(object):
             data.annotate(**annotations)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
+            if hasattr(self.population.celltype, "always_local") and self.population.celltype.always_local:
+                data = remove_duplicate_spiketrains(data)
         if clear:
             self.clear()
         return data

@@ -24,6 +24,7 @@ modules.
 import nest
 import logging
 import tempfile
+import numpy
 from pyNN import common, random
 from pyNN.core import reraise
 
@@ -75,15 +76,20 @@ class _State(common.control.BaseState):
 
     @property
     def min_delay(self):
-        # any reason why not nest.GetKernelStatus('min_delay')?
-        return nest.GetDefaults('static_synapse')['min_delay']
+        # this rather complex implementation is needed to handle min_delay='auto'
+        kernel_delay = nest.GetKernelStatus('min_delay')
+        syn_delay = nest.GetDefaults('static_synapse')['min_delay']
+        if syn_delay == numpy.inf:
+            return kernel_delay
+        else:
+            return max(kernel_delay, syn_delay)
 
     def set_delays(self, min_delay, max_delay):
         if min_delay != 'auto': 
             min_delay = float(min_delay)
             max_delay = float(max_delay)
             for synapse_model in nest.Models(mtype='synapses'):
-                nest.SetDefaults(synapse_model, {'delay'    : min_delay,
+                nest.SetDefaults(synapse_model, {'delay': min_delay,
                                                  'min_delay': min_delay,
                                                  'max_delay': max_delay})
 

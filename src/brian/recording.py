@@ -43,11 +43,13 @@ class Recorder(recording.Recorder):
             self._devices[variable] = brian.StateMonitor(group, varname,
                                                          record=self.recorded,
                                                          clock=clock,
-                                                         when='start')
+                                                         when='start',
+                                                         timestep=int(round(self.sampling_interval/simulator.state.dt)))
         simulator.state.network.add(self._devices[variable])
 
-    def _record(self, variable, new_ids):
+    def _record(self, variable, new_ids, sampling_interval=None):
         """Add the cells in `new_ids` to the set of recorded cells."""
+        self.sampling_interval = sampling_interval or self._simulator.state.dt
         if variable not in self._devices:
             self._create_device(self.population.brian_group, variable)
         #update StateMonitor.record and StateMonitor.recordindex

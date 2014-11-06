@@ -10,6 +10,7 @@ really running simulations.
 
 import logging
 from pyNN import common
+from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.connectors import *
 from pyNN.recording import *
 from . import simulator
@@ -25,7 +26,8 @@ def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+          max_delay=DEFAULT_MAX_DELAY, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state.clear()
     simulator.state.dt = timestep  # move to common.setup?

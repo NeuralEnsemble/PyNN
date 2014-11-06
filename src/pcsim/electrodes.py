@@ -29,19 +29,19 @@ class CurrentSource(object):
                 raise TypeError("Can't inject current into a spike source.")
             c = simulator.net.connect(self.input_node, cell, pypcsim.StaticAnalogSynapse(delay=0.001*delay))
             self.connections.append(c)
-    
-        
+
+
 class StepCurrentSource(CurrentSource):
     """A step-wise time-varying current source."""
-    
+
     def __init__(self, times, amplitudes):
         """Construct the current source.
-        
+
         Arguments:
             times      -- list/array of times at which the injected current changes.
             amplitudes -- list/array of current amplitudes to be injected at the
                           times specified in `times`.
-                          
+
         The injected current will be zero up until the first time in `times`. The
         current will continue at the final value in `amplitudes` until the end
         of the simulation.
@@ -58,7 +58,7 @@ class StepCurrentSource(CurrentSource):
         t = numpy.array(times)
         try:
             durations[1:-1] = t[1:] - t[0:-1]
-        except ValueError, e:
+        except ValueError as e:
             raise ValueError("%s. durations[1:].shape=%s, t[1:].shape=%s, t[0:-1].shape=%s" % (e, durations[1:].shape, t[1:].shape, t[0:-1].shape))
         levels[1:] = amplitudes[:]
         durations[-1] = 1e12
@@ -66,14 +66,14 @@ class StepCurrentSource(CurrentSource):
         durations *= 1e-3 # s --> ms
         self.input_node = simulator.net.create(pypcsim.AnalogLevelBasedInputNeuron(levels, durations))
         self.connections = []
-        print "created stepcurrentsource"
-        
+        print ("created stepcurrentsource")
+
 class DCSource(StepCurrentSource):
     """Source producing a single pulse of current of constant amplitude."""
-    
+
     def __init__(self, amplitude=1.0, start=0.0, stop=None):
         """Construct the current source.
-        
+
         Arguments:
             start     -- onset time of pulse in ms
             stop      -- end of pulse in ms
@@ -82,4 +82,4 @@ class DCSource(StepCurrentSource):
         times = [0.0, start, (stop or 1e99)]
         amplitudes = [0.0, amplitude, 0.0]
         StepCurrentSource.__init__(self, times, amplitudes)
-        
+

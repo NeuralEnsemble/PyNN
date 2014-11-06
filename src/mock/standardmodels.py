@@ -236,7 +236,10 @@ class StaticSynapse(synapses.StaticSynapse):
     )
 
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
@@ -254,7 +257,10 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     )
     
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
 
 
 class STDPMechanism(synapses.STDPMechanism):
@@ -266,7 +272,10 @@ class STDPMechanism(synapses.STDPMechanism):
     )
 
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
     
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):

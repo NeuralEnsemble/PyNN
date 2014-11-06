@@ -45,14 +45,14 @@ parameters = ParameterSet({
                                                'params': { 'w_min': 0, 'w_max': 0.1,
                                                            'A_plus': 0.01, 'A_minus': 0.01 }},
                         'ddf': 1.0,
-                    }     
+                    }
                   },
     'weights': 0.01,
     'delays': 1.0,
 })
-    
+
 networks = MultiSim(sim_list, SimpleNetwork, parameters)
-    
+
 networks.add_population("trigger", 1, 'SpikeSourceArray', {'spike_times': parameters.trigger_spike_times})
 networks.add_projection("trigger", "post", "AllToAllConnector", {'weights': 100.0, 'delays': 0.1})
 
@@ -81,7 +81,7 @@ key = "pre→post"
 def plot_figures():
     import pylab
     pylab.rcParams['interactive'] = True
-    
+
     # plot Vm
     pylab.figure(1)
     for sim_name, vm in vm_data.items():
@@ -89,7 +89,7 @@ def plot_figures():
     pylab.legend(loc='upper left')
     pylab.xlim(0, sim_time)
     pylab.title("Vm")
-    
+
     # plot spikes
     pylab.figure(2)
     for i, (sim_name, spikes) in enumerate(spike_data.items()):
@@ -100,7 +100,7 @@ def plot_figures():
     pylab.xlim(0, sim_time)
     pylab.ylim(-0.5,i+1.5)
     pylab.title("Spikes (red=presynaptic)")
-    
+
     # plot weights
     key = "pre→post"
     pylab.figure(3)
@@ -111,7 +111,7 @@ def plot_figures():
     pylab.xlim(0, sim_time)
     pylab.legend(loc='upper left')
     pylab.title("Weights at input spike times")
-    
+
     pylab.figure(4)
     for sim_name, w in w_data1.items():
         pylab.plot(w[key][:,0], w[key][:,1], label="%s (%s)" % (key, sim_name))
@@ -125,7 +125,7 @@ if PLOT_FIGURES:
     plot_figures()
 
 for sim_name, w in w_data.items():
-    print sim_name, w[key][:,1]
+    print (sim_name, w[key][:,1])
 
 def diff(data):
     arr = [x[key][:,1] for x in data.values()]
@@ -136,5 +136,5 @@ def diff(data):
         sum += (numpy.sum(abs(a - b)) / ((a.mean()+b.mean())/2))
     return sum/len(a)
 
-print "seed was", seed
-print "difference", diff(w_data)
+print ("seed was", seed)
+print ("difference", diff(w_data))

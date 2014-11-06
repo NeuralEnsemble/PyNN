@@ -27,7 +27,7 @@ def scenario2(sim):
     cell_params = {"tau_m": tau_m, "v_rest": 0.0, "v_reset": 0.0,
                    "tau_refrac": 100.0, "v_thresh": v_thresh, "cm": cm}
     I0 = (v_thresh*cm)/tau_m
-    sim.setup(timestep=0.01, spike_precision="off_grid")
+    sim.setup(timestep=0.01, min_delay=0.1, spike_precision="off_grid")
     neurons = sim.Population(n, sim.IF_curr_exp(**cell_params))
     neurons.initialize(v=0.0)
     I = numpy.arange(I0, I0+1.0, 1.0/n)

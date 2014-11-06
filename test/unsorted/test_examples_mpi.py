@@ -44,7 +44,7 @@ job1.wait()
 
 
 # === Compare output files =====================================================
-print "="*80
+print ("="*80)
 
 def find_files(path):
     data_files = []
@@ -63,8 +63,8 @@ def clean_up():
     Popen("mpiexec -n %d rm -rf %s" % (n, tmpdirs['distrib']), shell=True).wait()
 
 def fail(msg):
-    print "\nFAIL:", msg
-    print "\nCommand to remove temporary files: rm -rf %s %s" % tuple(tmpdirs.values())
+    print ("\nFAIL:", msg)
+    print ("\nCommand to remove temporary files: rm -rf %s %s" % tuple(tmpdirs.values()))
     sys.exit(1)
 
 
@@ -100,9 +100,9 @@ for name in filename_maps['serial']:
     for mode in 'serial', 'distrib':
         file_sizes[mode][name] = os.stat(filename_maps[mode][name]).st_size
 
-print "Output files" + " "*44 + "serial     distrib"
+print ("Output files" + " "*44 + "serial     distrib")
 for name in filename_maps['serial']:
-    print "  %-50s %9s   %9s" % (name, file_sizes['serial'][name], file_sizes['distrib'][name])
+    print ("  %-50s %9s   %9s" % (name, file_sizes['serial'][name], file_sizes['distrib'][name]))
 
 sizes_match = file_sizes['serial'] == file_sizes['distrib']
 if not sizes_match:
@@ -117,16 +117,16 @@ for mode in 'serial', 'distrib':
 for job in jobs:
     job.wait()
 
-# Check that the sorted file contents match    
+# Check that the sorted file contents match
 diffs = {}
 for name in filename_maps['serial']:
     diffs[name] = open("%s,sorted" % filename_maps['serial'][name]).read() == open("%s,sorted" % filename_maps['distrib'][name]).read()
-    
+
 if not all(diffs.values()):
     fail("the following files are different:\n  " + \
          "\n  ".join("%s -- %s" % (filename_maps['serial'][name], filename_maps['distrib'][name]) for name,same in diffs.items() if not same)
         )
 
 # If everything worked...
-print "PASS: the serial and distributed simulations give identical results"
+print ("PASS: the serial and distributed simulations give identical results")
 clean_up()

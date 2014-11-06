@@ -15,18 +15,13 @@ sim_name = "nest"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    exec("import pyNN.%s as sim" % sim_name)
     import nest
     have_sim = True
 except ImportError:
     have_sim = False
 
 def setUp():
-    if have_sim:
-        for TestClass in registry:
-            m = modules[TestClass.__module__]
-            alias_cell_types(m, **take_all_cell_classes(sim))
     pass
     
 def tearDown():
@@ -40,17 +35,17 @@ extra = {}
     
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
+        module_name = TestClass.__module__
         test_class = TestClass()
         for scenario in test_class.registry:
-            if is_included(sim_name=sim_name, scenario=scenario):
+            if is_included(sim_name=sim_name, scenario=scenario, module_name=module_name):
                 scenario.description = scenario.__name__
-                print(scenario.description)
                 if have_sim:
                     test_class.setUp(sim, **extra)
                     yield scenario, test_class, sim
                     test_class.tearDown(sim)
                 else:
-                    yield skip 
+                    yield skip
             else:
                 yield skip
                 
