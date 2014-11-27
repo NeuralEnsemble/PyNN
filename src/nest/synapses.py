@@ -20,7 +20,7 @@ def get_synapse_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['max_delay', 'min_delay', 'num_connections',
               'num_connectors', 'receptor_type', 'synapsemodel',
-              'property_object', 'node_type', 'type']
+              'property_object', 'element_type', 'type']
     default_params = {}
     for name, value in defaults.items():
         if name not in ignore:
