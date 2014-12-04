@@ -389,6 +389,7 @@ class Izhikevich(StandardCellType):
     }
     recordable = ['spikes', 'v', 'u']
     conductance_based = False
+    voltage_based_synapses = True
     default_initial_values = {
         'v': -70.0,   # mV
         'u': -14.0      # mV/ms

@@ -296,13 +296,14 @@ class Izhikevich(cells.Izhikevich):
         ('i_offset',   'i_offset',   nA)
     )
     eqs = brian.Equations('''
-        dv/dt = (0.04/ms/mV)*v**2 + (5/ms)*v + 140*mV/ms - u + i_offset/pF : mV
+        dv/dt = (0.04/ms/mV)*v**2 + (5/ms)*v + 140*mV/ms - u + (i_offset + i_inj)/pF : mV
         du/dt = a*(b*v-u)                                : mV/ms
         a                                                : 1/ms
         b                                                : 1/ms
         v_reset                                          : mV
         d                                                : mV/ms
         i_offset                                         : nA
+        i_inj                                            : nA
         ''')
     post_synaptic_variables  = {'excitatory': 'v', 'inhibitory': 'v'}
     state_variable_translations =  build_translations(

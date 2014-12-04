@@ -17,15 +17,19 @@ logger = logging.getLogger("PyNN")
 
 class StaticSynapse(synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
-    
-    translations = build_translations(
-                        ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
-                        ('delay', 'delay', ms)
-                   )
+
     eqs = """weight : %(weight_units)s"""
     pre = "%(syn_var)s += weight"
     post = None
     initial_conditions = {}
+
+    def __init__(self, **parameters):
+        super(StaticSynapse, self).__init__(**parameters)
+        # we have to define the translations on a per-instance basis because
+        # they depend on whether the synapses are current-, conductance- or voltage-based.
+        self.translations = build_translations(
+                                ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
+                                ('delay', 'delay', ms))
 
     def _get_minimum_delay(self):
         d = state.min_delay

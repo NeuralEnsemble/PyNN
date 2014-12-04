@@ -7,7 +7,7 @@ from collections import defaultdict
 import math
 import numpy
 import brian
-from brian import uS, nA
+from brian import uS, nA, mV
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import ezip
@@ -64,7 +64,10 @@ class Projection(common.Projection):
                 # complete the synapse type equations according to the
                 # post-synaptic response type
                 psv = post.celltype.post_synaptic_variables[self.receptor_type]
-                weight_units = post.celltype.conductance_based and uS or nA
+                if hasattr(post.celltype, "voltage_based_synapses") and post.celltype.voltage_based_synapses:
+                    weight_units = mV
+                else:
+                    weight_units = post.celltype.conductance_based and uS or nA
                 self.synapse_type._set_target_type(weight_units)
                 equation_context = {"syn_var": psv, "weight_units": weight_units}
                 pre_eqns = self.synapse_type.pre % equation_context
