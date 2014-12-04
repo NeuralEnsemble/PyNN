@@ -16,6 +16,7 @@ mV = brian.mV
 ms = brian.ms
 uS = brian.uS
 pq.uS = pq.UnitQuantity('microsiemens', 1e-6*pq.S, 'uS')
+pq.nS = pq.UnitQuantity('nanosiemens', 1e-9*pq.S, 'nS')
 
 logger = logging.getLogger("PyNN")
 

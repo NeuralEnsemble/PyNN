@@ -191,14 +191,18 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
     }
-    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
+    recordable = ['spikes', 'v', 'g_r', 'g_s', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0,  # 'v_rest',
+        'g_r': 0.0,
+        'g_s': 0.0,
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
     units = {
         'v': 'mV',
+        'g_r': 'nS',
+        'g_s': 'nS',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
     }

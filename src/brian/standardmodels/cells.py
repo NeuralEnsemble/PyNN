@@ -8,11 +8,11 @@ Standard cells for the Brian module.
 
 from copy import deepcopy
 import brian
-from brian import mV, ms, nF, nA, uS, Hz
+from brian import mV, ms, nF, nA, uS, Hz, nS
 from pyNN.standardmodels import cells, build_translations
 from ..simulator import state
 from ..cells import (ThresholdNeuronGroup, SpikeGeneratorGroup, PoissonGroup,
-                     BiophysicalNeuronGroup, AdaptiveNeuronGroup,
+                     BiophysicalNeuronGroup, AdaptiveNeuronGroup, AdaptiveNeuronGroup2,
                      IzhikevichNeuronGroup)
 import logging
 
@@ -41,6 +41,23 @@ adexp_iaf = brian.Equations('''
                 i_offset                : nA
                 i_inj                   : nA
             ''')
+
+# g_r, g_s should be in uS for PyNN unit system consistency
+adapt_iaf = brian.Equations('''
+                dv/dt = (v_rest-v)/tau_m + (-g_r*(v-E_r) - g_s*(v-E_s) + i_syn + i_offset + i_inj)/c_m  : mV
+                dg_s/dt = -g_s/tau_s    : nS
+                dg_r/dt = -g_r/tau_r    : nS
+                tau_m                   : ms
+                tau_s                   : ms
+                tau_r                   : ms
+                c_m                     : nF
+                v_rest                  : mV
+                i_offset                : nA
+                i_inj                   : nA
+                E_r                     : mV
+                E_s                     : mV
+            ''')\
+
 
 conductance_based_exponential_synapses = brian.Equations('''
                 dge/dt = -ge/tau_syn_e  : uS
@@ -104,6 +121,21 @@ adexp_iaf_translations = build_translations(
                 ('delta_T',    'delta_T',    mV),
                 ('tau_w',      'tau_w',      ms),
                 ('v_spike',    'v_spike',    mV))
+
+adapt_iaf_translations = build_translations(
+                ('v_rest',     'v_rest',     mV),
+                ('v_reset',    'v_reset',    mV),
+                ('cm',         'c_m',        nF),
+                ('tau_m',      'tau_m',      ms),
+                ('tau_refrac', 'tau_refrac', ms),
+                ('v_thresh',   'v_thresh',   mV),
+                ('i_offset',   'i_offset',   nA),
+                ('tau_sfa',    'tau_s',      ms),
+                ('e_rev_sfa',  'E_s',        mV),
+                ('q_sfa',      'q_s',        nS),   # should we uS for consistency of PyNN unit system?
+                ('tau_rr',     'tau_r',      mV),
+                ('e_rev_rr',   'E_r',        mV),
+                ('q_rr',       'q_r',        nS))
 
 conductance_based_synapse_translations = build_translations(
                 ('tau_syn_E',  'tau_syn_e',  ms),
@@ -194,6 +226,20 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     brian_model = AdaptiveNeuronGroup
 
 
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
+    eqs = adapt_iaf + conductance_based_alpha_synapses
+    translations = deepcopy(adapt_iaf_translations)
+    translations.update(conductance_based_synapse_translations)
+    state_variable_translations = build_translations(
+                ('v', 'v', mV),
+                ('g_s', 'g_s', nS),  # should be uS - needs changed for all back-ends
+                ('g_r', 'g_r', nS),
+                ('gsyn_exc', 'ge', uS),
+                ('gsyn_inh', 'gi', uS))
+    post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
+    brian_model = AdaptiveNeuronGroup2
+
+
 class HH_cond_exp(cells.HH_cond_exp):
     __doc__ = cells.HH_cond_exp.__doc__
 
@@ -250,12 +296,13 @@ class Izhikevich(cells.Izhikevich):
         ('i_offset',   'i_offset',   nA)
     )
     eqs = brian.Equations('''
-        dv/dt = (0.04/ms/mV)*v**2 + (5/ms)*v + 140*mV/ms - u : mV
+        dv/dt = (0.04/ms/mV)*v**2 + (5/ms)*v + 140*mV/ms - u + i_offset/pF : mV
         du/dt = a*(b*v-u)                                : mV/ms
         a                                                : 1/ms
         b                                                : 1/ms
         v_reset                                          : mV
         d                                                : mV/ms
+        i_offset                                         : nA
         ''')
     post_synaptic_variables  = {'excitatory': 'v', 'inhibitory': 'v'}
     state_variable_translations =  build_translations(

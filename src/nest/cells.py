@@ -59,6 +59,7 @@ def native_cell_type(model_name):
                 (NativeCellType,),
                 {'nest_model': model_name,
                  'default_parameters': default_parameters,
+                 'default_initial_values': default_initial_values,
                  'receptor_types': receptor_types,
                  'injectable': ("V_m" in default_initial_values),
                  'recordable': recordable,
