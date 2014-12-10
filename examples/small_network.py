@@ -12,7 +12,7 @@ from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.parameters import Sequence
 from pyNN.random import RandomDistribution as rnd
 
-sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file."),
+sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file.", {"action": "store_true"}),
                              ("--debug", "Print debugging information"))
 
 if options.debug:
@@ -78,6 +78,7 @@ print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel
+    figure_filename = filename.replace("pkl", "png")
     data = cells.get_data().segments[0]
     vm = data.filter(name="v")[0]
     gsyn = data.filter(name="gsyn_exc")[0]
@@ -85,7 +86,7 @@ if options.plot_figure:
         Panel(vm, ylabel="Membrane potential (mV)"),
         Panel(gsyn, ylabel="Synaptic conductance (uS)"),
         Panel(data.spiketrains, xlabel="Time (ms)", xticks=True),
-    ).save(options.plot_figure)
+    ).save(figure_filename)
 
 # === Clean up and quit ========================================================
 

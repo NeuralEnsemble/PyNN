@@ -5,8 +5,10 @@ Definition of NativeCellType class for NEST.
 :license: CeCILL, see LICENSE for details.
 """
 
+import warnings
 import nest
 from pyNN.models import BaseCellType
+from pyNN.parameters import Sequence
 from . import conversion
 
 UNITS_MAP = {
@@ -16,20 +18,24 @@ UNITS_MAP = {
 
 
 def get_defaults(model_name):
+    valid_types = (int, float, Sequence)
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
     ignore = ['archiver_length', 'available', 'capacity', 'elementsize',
               'frozen', 'instantiations', 'local', 'model', 'recordables',
               'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
-              'node_type', 'type', 'type_id']
+              'node_type', 'type', 'type_id', 'has_connections', 'n_synapses']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():
         if name in variables:
             default_initial_values[name] = value
         elif name not in ignore:
-            default_params[name] = conversion.make_pynn_compatible(value)
+            if isinstance(value, valid_types):
+                default_params[name] = conversion.make_pynn_compatible(value)
+            else:
+                warnings.warn("Ignoring parameter '%s' since PyNN does not support %s" % (name, type(value)))
     return default_params, default_initial_values
 
 
@@ -60,6 +66,7 @@ def native_cell_type(model_name):
                  'standard_receptor_type': (receptor_types == ['excitatory', 'inhibitory']),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),
+                 'always_local': False,  # is there a way to introspect this? Otherwise need to create a list
                  })
 
 

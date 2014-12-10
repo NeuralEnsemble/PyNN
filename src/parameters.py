@@ -15,7 +15,7 @@ import numpy
 import collections
 from pyNN.core import is_listlike
 from pyNN import errors
-from pyNN.random import RandomDistribution
+from pyNN.random import RandomDistribution, NativeRNG
 from lazyarray import larray, partial_shape
 
 
@@ -386,6 +386,21 @@ class ParameterSpace(object):
     def parallel_safe(self):
         return any(isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe
                    for value in self._parameters.values())
+
+    @property
+    def has_native_rngs(self):
+        """
+        Return True if the parameter set contains any NativeRNGs
+        """
+        return any(isinstance(rd.base_value.rng, NativeRNG)
+                   for rd in self._random_distributions())
+
+    def _random_distributions(self):
+        """
+        An iterator over those values contained in the PS that are
+        derived from random distributions.
+        """
+        return (value for value in self._parameters.values() if isinstance(value.base_value, RandomDistribution))
 
 
 def simplify(value):

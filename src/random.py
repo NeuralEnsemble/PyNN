@@ -137,13 +137,6 @@ class WrappedRNG(AbstractRNG):
             return rarr
     next.__doc__ = AbstractRNG.next.__doc__
 
-    def __getattr__(self, name):
-        """
-        This is to give the PyNN RNGs the same methods as the wrapped RNGs
-        (:class:`numpy.random.RandomState` or the GSL RNGs.)
-        """
-        return getattr(self.rng, name)
-
     def _clipped(self, gen, low=-numpy.inf, high=numpy.inf, size=None):
         """ """
         res = gen(size)
@@ -196,6 +189,13 @@ class NumpyRNG(WrappedRNG):
             self.rng.seed(self.seed)
         else:
             self.rng.seed()
+
+    def __getattr__(self, name):
+        """
+        This is to give the PyNN RNGs the same methods as the wrapped RNGs
+        (:class:`numpy.random.RandomState` or the GSL RNGs.)
+        """
+        return getattr(self.rng, name)
 
     def _next(self, distribution, n, parameters):
         # TODO: allow non-standardized distributions to pass through without translation
@@ -271,6 +271,7 @@ class GSLRNG(WrappedRNG):
             f_distr = getattr(self, distribution_gsl)
         else:
             f_distr = getattr(self.rng, distribution_gsl)
+        # Has this been tested? If so, move most of _next to Wrapped RNG since there is almost complete overlap with NumpyRNG._next
         values = f_distr(size=n, **parameters_gsl)
         if n == 1:
             values = [values]  # to be consistent with NumpyRNG
@@ -303,7 +304,7 @@ class NativeRNG(AbstractRNG):
     """
 
     def __str__(self):
-        return "AbstractRNG(seed=%s)" % self.seed
+        return "NativeRNG(seed=%s)" % self.seed
 
 
 class RandomDistribution(VectorizedIterable):

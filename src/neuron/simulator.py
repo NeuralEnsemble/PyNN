@@ -154,7 +154,7 @@ class _State(common.control.BaseState):
     def __init__(self):
         """Initialize the simulator."""
         super(_State, self).__init__()
-        h('min_delay = 0')
+        h('min_delay = -1')
         h('tstop = 0')
         h('steps_per_ms = 1/dt')
         self.parallel_context = h.ParallelContext()
@@ -174,8 +174,17 @@ class _State(common.control.BaseState):
         h.steps_per_ms = 1.0/dt
         h.dt = dt
     dt = property(fget=__get_dt, fset=__set_dt)
-    tstop = h_property('tstop')         # } these are stored in hoc so that we
-    min_delay = h_property('min_delay') # } can interact with the GUI
+    tstop = h_property('tstop')         # these are stored in hoc so that we
+
+    def __set_min_delay(self, val):     # can interact with the GUI
+        if val != 'auto':
+            h.min_delay = val
+    def __get_min_delay(self):
+        if h.min_delay < 0:
+            return 'auto'
+        else:
+            return h.min_delay
+    min_delay = property(fset=__set_min_delay, fget=__get_min_delay)
 
     def register_gid(self, gid, source, section=None):
         """Register a global ID with the global `ParallelContext` instance."""
@@ -224,8 +233,11 @@ class _State(common.control.BaseState):
             self.tstop = 0
             logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep ))
             logger.debug("local_minimum_delay on host #%d = %g" % (self.mpi_rank, local_minimum_delay))
-            if self.num_processes > 1:
-                assert local_minimum_delay >= self.min_delay, \
+            if self.min_delay == 'auto':
+                self.min_delay = local_minimum_delay
+            else:
+                if self.num_processes > 1:
+                    assert local_minimum_delay >= self.min_delay, \
                        "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
 
     def run(self, simtime):
@@ -405,6 +417,7 @@ class Connection(object):
         self.nc.delay = d
         if hasattr(self, 'pre2wa'):
             self.pre2wa.delay = float(d)*(1-self.ddf)
+        if hasattr(self, 'post2wa'):
             self.post2wa.delay = float(d)*self.ddf
 
     def _get_delay(self):

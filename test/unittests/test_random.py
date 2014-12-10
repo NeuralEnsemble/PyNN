@@ -9,6 +9,14 @@ try:
 except ImportError:
     import unittest
 
+try:
+    from neuron import h
+except ImportError:
+    have_nrn = False
+else:
+    have_nrn = True
+    from pyNN.neuron.random import NativeRNG
+
 
 def assert_arrays_almost_equal(a, b, threshold):
     if not (abs(a-b) < threshold).all():
@@ -27,6 +35,8 @@ class SimpleTests(unittest.TestCase):
             rng.mpi_rank=0; rng.num_processes=1
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
+        if have_nrn:
+            self.rnglist.append(NativeRNG(seed=321))
 
     def testNextNone(self):
         """Calling next() with no number argument should return a float."""
@@ -65,6 +75,8 @@ class ParallelTests(unittest.TestCase):
         self.rng_types = [random.NumpyRNG]
         if random.have_gsl:
             self.rng_types.append(random.GSLRNG)
+        if have_nrn:
+            self.rng_types.append(NativeRNG)
         self.orig_mpi_config = random.get_mpi_config
 
     def tearDown(self):
@@ -119,11 +131,13 @@ class ParallelTests(unittest.TestCase):
         perm1 = rng1.permutation(A)
         assert_arrays_almost_equal(perm0, perm1, 1e-99)
 
+
 class NativeRNGTests(unittest.TestCase):
 
     def test_create(self):
         rng = random.NativeRNG(seed=8274528)
         str(rng)
+
 
 class RandomDistributionTests(unittest.TestCase):
 
@@ -132,6 +146,8 @@ class RandomDistributionTests(unittest.TestCase):
         self.rnglist = [random.NumpyRNG(seed=987)]
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
+        if have_nrn:
+            self.rnglist.append(NativeRNG(seed=321))
 
     def test_uniform(self):
         rd = random.RandomDistribution(distribution='uniform', low=-1.0, high=3.0, rng=self.rnglist[0])
@@ -151,7 +167,7 @@ class RandomDistributionTests(unittest.TestCase):
             assert abs(vals.mean() - mean) < 0.2, abs(vals.mean() - mean)
 
     def test_gamma(self):
-        a = 0.5
+        a = 2.0
         b = 0.5
         for rng in self.rnglist:
             rd = random.RandomDistribution('gamma', k=a, theta=1/b, rng=rng)

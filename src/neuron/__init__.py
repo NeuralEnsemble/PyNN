@@ -7,13 +7,14 @@ nrnpython implementation of the PyNN API.
 
 """
 
-from pyNN.random import *
+from pyNN.random import NumpyRNG, GSLRNG
 from pyNN import common, core, space, __doc__
+from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.standardmodels import StandardCellType
 from pyNN.recording import get_io
 from pyNN.space import Space
-from pyNN.random import NumpyRNG, GSLRNG, AbstractRNG
 from pyNN.neuron import simulator
+from pyNN.neuron.random import NativeRNG
 from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
@@ -41,7 +42,8 @@ def list_standard_models():
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
+          max_delay=DEFAULT_MAX_DELAY, **extra_params):
     """
     Should be called at the very beginning of a script.
 

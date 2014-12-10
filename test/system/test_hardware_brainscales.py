@@ -26,6 +26,8 @@ except ImportError:
 class HardwareTest(unittest.TestCase):
 
     def setUp(self):
+        if not have_hardware_brainscales:
+            raise SkipTest
         extra = {
             'loglevel':0, 
             'ignoreHWParameterRanges': True, 
@@ -100,6 +102,8 @@ class HardwareTest(unittest.TestCase):
                         
             
 def test_restart_loop():
+    if not have_hardware_brainscales:
+        raise SkipTest
     extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)
     sim.end()
@@ -113,6 +117,8 @@ def test_restart_loop():
     sim.end()
     
 #def test_several_runs():
+    if not have_hardware_brainscales:
+        raise SkipTest
     #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     #sim.setup(**extra)
     #sim.run(10.0)
@@ -120,10 +126,14 @@ def test_restart_loop():
     #sim.end()
 
 def test_sim_without_clearing():
+    if not have_hardware_brainscales:
+        raise SkipTest
     extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)    
     
 def test_sim_without_setup():
+    if not have_hardware_brainscales:
+        raise SkipTest
     sim.end()   
     
  

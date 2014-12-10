@@ -77,7 +77,7 @@ def gather_dict(D, all=False):
     return D
 
 
-def gather_blocks(data):
+def gather_blocks(data, ordered=True):
     """Gather Neo Blocks"""
     mpi_comm, mpi_flags = get_mpi_comm()
     assert isinstance(data, neo.Block)
@@ -90,6 +90,10 @@ def gather_blocks(data):
         merged = blocks[0]
         for block in blocks[1:]:
             merged.merge(block)
+    if ordered:
+        for segment in merged.segments:
+            ordered_spiketrains = sorted(segment.spiketrains, key=lambda s: s.annotations['source_id'])
+            segment.spiketrains = ordered_spiketrains
     return merged
 
 
@@ -144,6 +148,18 @@ def filter_by_variables(segment, variables):
         new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
         # also need to handle Units, RecordingChannels
         return new_segment
+
+
+def remove_duplicate_spiketrains(data):
+    for segment in data.segments:
+        spiketrains = {}
+        for spiketrain in segment.spiketrains:
+            index = spiketrain.annotations["source_index"]
+            spiketrains[index] = spiketrain
+        min_index = min(spiketrains.keys())
+        max_index = max(spiketrains.keys())
+        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index+1)]
+    return data
 
 
 class DataCache(object):
@@ -277,6 +293,8 @@ class Recorder(object):
             data.annotate(**annotations)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
+            if hasattr(self.population.celltype, "always_local") and self.population.celltype.always_local:
+                data = remove_duplicate_spiketrains(data)
         if clear:
             self.clear()
         return data

@@ -14,6 +14,7 @@ try:
 except ImportError:
     izip = zip  # Python 3 zip returns an iterator already
 from itertools import repeat, chain
+from collections import defaultdict
 from pyNN import common, errors, core
 from pyNN.random import RandomDistribution, NativeRNG
 from pyNN.space import Space
@@ -37,7 +38,7 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self._connections = dict((index, {}) for index in self.post._mask_local.nonzero()[0])    
+        self._connections = dict((index, defaultdict(list)) for index in self.post._mask_local.nonzero()[0])
         connector.connect(self)
         self._presynaptic_components = dict((index, {}) for index in 
                                             self.pre._mask_local.nonzero()[0])
@@ -50,7 +51,8 @@ class Projection(common.Projection):
     def connections(self):
         for x in self._connections.values():
             for y in x.values():
-                yield y
+                for z in y:
+                    yield z
 
     def __getitem__(self, i):
         __doc__ = common.Projection.__getitem__.__doc__
@@ -92,8 +94,8 @@ class Projection(common.Projection):
         for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
             #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
-            self._connections[postsynaptic_index][pre_idx] = \
-                    self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters)
+            self._connections[postsynaptic_index][pre_idx].append(
+                self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters))
 
     def _configure_presynaptic_components(self):
         """
@@ -132,6 +134,5 @@ class Projection(common.Projection):
                                                            parameter_space.columns()):
             for name, value in connection_parameters.items():
                 for index in connection_group:
-                    setattr(connection_group[index], name, value[index])
-            
-                    
+                    for connection in connection_group[index]:
+                        setattr(connection, name, value[index])

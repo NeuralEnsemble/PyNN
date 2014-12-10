@@ -109,11 +109,15 @@ def plot_array_as_image(ax, arr, label='', **options):
     Plots a numpy array as an image.
     """
     handle_options(ax, options)
+    show_legend = options.pop("legend", True)
     plt.pcolormesh(arr, **options)
+    ax.set_aspect('equal')
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
                  bbox=dict(facecolor='white', alpha=1.0))
+    if show_legend:
+        plt.colorbar()
 
 
 def scatterplot(ax, data_table, label='', **options):

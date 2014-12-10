@@ -28,7 +28,10 @@ class StaticSynapse(synapses.StaticSynapse):
     initial_conditions = {}
 
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
     
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():
@@ -71,7 +74,10 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
                    "inhibitory": "tau_syn_I"}
     
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
 
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():
@@ -107,7 +113,10 @@ class STDPMechanism(synapses.STDPMechanism):
     initial_conditions = {"M": 0.0, "P": 0.0}
 
     def _get_minimum_delay(self):
-        return state.min_delay
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
 
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():

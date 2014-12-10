@@ -15,8 +15,7 @@ sim_name = "nest"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    exec("import pyNN.%s as sim" % sim_name)
     import nest
     have_sim = True
 except ImportError:

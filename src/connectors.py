@@ -580,17 +580,36 @@ class FixedNumberConnector(MapConnector):
             raise TypeError("n must be an integer or a RandomDistribution object")
         self.rng = _get_rng(rng)
 
+    def _rng_uniform_int_exclude(self, n, size, exclude):
+        res = self.rng.next(n, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
+        logger.debug("RNG0 res=%s" % res)
+        idx = numpy.where(res == exclude)[0]
+        logger.debug("RNG1 exclude=%d, res=%s idx=%s" % (exclude, res, idx))
+        while idx.size > 0:
+            redrawn = self.rng.next(idx.size, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
+            res[idx] = redrawn
+            idx = idx[numpy.where(res == exclude)[0]]
+            logger.debug("RNG2 exclude=%d redrawn=%s res=%s idx=%s" % (exclude, redrawn, res, idx))
+        return res
+
 
 class FixedNumberPostConnector(FixedNumberConnector):
     """
     Each pre-synaptic neuron is connected to exactly `n` post-synaptic neurons
     chosen at random.
 
-    If `n` is less than the size of the post-synaptic population, there are no
-    multiple connections, i.e., no instances of the same pair of neurons being
-    multiply connected. If `n` is greater than the size of the post-synaptic
-    population, all possible single connections are made before starting to add
-    duplicate connections.
+    The sampling behaviour is controlled by the `with_replacement` argument.
+
+    "With replacement" means that each post-synaptic neuron is chosen from the
+    entire population. There is always therefore a possibility of multiple
+    connections between a given pair of neurons.
+
+    "Without replacement" means that once a neuron has been selected, it cannot
+    be selected again until the entire population has been selected. This means
+    that if `n` is less than the size of the post-synaptic population, there
+    are no multiple connections. If `n` is greater than the size of the post-
+    synaptic population, all possible single connections are made before
+    starting to add duplicate connections.
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
@@ -600,6 +619,10 @@ class FixedNumberPostConnector(FixedNumberConnector):
             positive integers. If `n` is a `RandomDistribution`, then the
             number of post-synaptic neurons is drawn from this distribution
             for each pre-synaptic neuron.
+        `with_replacement`:
+            if True, the selection of neurons to connect is made from the
+            entire population. If False, once a neuron is selected it cannot
+            be selected again until the entire population has been connected.
         `allow_self_connections`:
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
@@ -609,24 +632,43 @@ class FixedNumberPostConnector(FixedNumberConnector):
             are created.
     """
 
+    def _get_num_post(self):
+        if isinstance(self.n, int):
+            n_post = self.n
+        else:
+            n_post = self.n.next()
+        return n_post
+
     def connect(self, projection):
-        raise NotImplementedError()   # the code below is not correct
-        assert self.rng.parallel_safe
-        # this is probably very inefficient, would be better to use
-        # divergent connect
-        shuffle = numpy.array([self.rng.permutation(numpy.arange(projection.post.size))
-                               for i in range(projection.pre.size)])
-        n = self.n
-        if hasattr(self, "rand_distr"):
-            n = self.rand_distr.next(projection.pre.size)
-        f_ij = lambda i,j: shuffle[:, j] < n
-        connection_map = LazyArray(f_ij, projection.shape)
-        if projection.pre == projection.post:
-            if not self.allow_self_connections:
-                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
-            elif self.allow_self_connections == 'NoMutual':
-                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
-        self._connect_with_map(projection, connection_map)
+        connections = [[] for i in range(projection.post.size)]
+        for source_index in range(projection.pre.size):
+            n = self._get_num_post()
+            if self.with_replacement:
+                if not self.allow_self_connections and projection.pre == projection.post:
+                    targets = self._rng_uniform_int_exclude(n, projection.post.size, source_index)
+                else:
+                    targets = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask_local=False)
+            else:
+                all_cells = numpy.arange(projection.post.size)
+                if not self.allow_self_connections and projection.pre == projection.post:
+                    all_cells = all_cells[all_cells != source_index]
+                full_sets = n // all_cells.size
+                remainder = n % all_cells.size
+                target_sets = []
+                if full_sets > 0:
+                    target_sets = [all_cells]*full_sets
+                if remainder > 0:
+                    target_sets.append(self.rng.permutation(all_cells)[:remainder])
+                targets = numpy.hstack(target_sets)
+            assert targets.size == n
+            for target_index in targets:
+                connections[target_index].append(source_index)
+        def build_source_masks(mask=None):
+            if mask is None:
+                return [numpy.array(x) for x in connections]
+            else:
+                return [numpy.array(x) for x in numpy.array(connections)[mask]]
+        self._standard_connect(projection, build_source_masks)
 
 
 class FixedNumberPreConnector(FixedNumberConnector):
@@ -634,11 +676,18 @@ class FixedNumberPreConnector(FixedNumberConnector):
     Each post-synaptic neuron is connected to exactly `n` pre-synaptic neurons
     chosen at random.
 
-    If `n` is less than the size of the pre-synaptic population, there are no
-    multiple connections, i.e., no instances of the same pair of neurons being
-    multiply connected. If `n` is greater than the size of the pre-synaptic
-    population, all possible single connections are made before starting to add
-    duplicate connections.
+    The sampling behaviour is controlled by the `with_replacement` argument.
+
+    "With replacement" means that each pre-synaptic neuron is chosen from the
+    entire population. There is always therefore a possibility of multiple
+    connections between a given pair of neurons.
+
+    "Without replacement" means that once a neuron has been selected, it cannot
+    be selected again until the entire population has been selected. This means
+    that if `n` is less than the size of the pre-synaptic population, there
+    are no multiple connections. If `n` is greater than the size of the pre-
+    synaptic population, all possible single connections are made before
+    starting to add duplicate connections.
 
     Takes any of the standard :class:`Connector` optional arguments and, in
     addition:
@@ -648,6 +697,10 @@ class FixedNumberPreConnector(FixedNumberConnector):
             positive integers. If `n` is a `RandomDistribution`, then the
             number of pre-synaptic neurons is drawn from this distribution
             for each post-synaptic neuron.
+        `with_replacement`:
+            if True, the selection of neurons to connect is made from the
+            entire population. If False, once a neuron is selected it cannot
+            be selected again until the entire population has been connected.
         `allow_self_connections`:
             if the connector is used to connect a Population to itself, this
             flag determines whether a neuron is allowed to connect to itself,
@@ -672,18 +725,6 @@ class FixedNumberPreConnector(FixedNumberConnector):
                 else:
                     n_pre = self.n.next(mask.sum())
         return n_pre
-
-    def _rng_uniform_int_exclude(self, n, size, exclude):
-        res = self.rng.next(n, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
-        logger.debug("RNG0 res=%s" % res)
-        idx = numpy.where(res == exclude)[0]
-        logger.debug("RNG1 exclude=%d, res=%s idx=%s" % (exclude, res, idx))
-        while idx.size > 0:
-            redrawn = self.rng.next(idx.size, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
-            res[idx] = redrawn
-            idx = idx[numpy.where(res == exclude)[0]]
-            logger.debug("RNG2 exclude=%d redrawn=%s res=%s idx=%s" % (exclude, redrawn, res, idx))
-        return res
 
     def connect(self, projection):
         if self.with_replacement:
