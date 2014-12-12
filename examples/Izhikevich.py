@@ -62,6 +62,7 @@ if options.plot_figure:
               data_labels=[options.simulator.upper()], yticks=True),
         #Panel(u, ylabel="u variable (units?)"),
     ).save(figure_filename)
+    print(figure_filename)
 
 
 # === Clean up and quit ========================================================

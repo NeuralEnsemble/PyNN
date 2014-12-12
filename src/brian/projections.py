@@ -101,6 +101,11 @@ class Projection(common.Projection):
             boundaries = numpy.cumsum([0] + [p.size for p in self.pre.populations])
             assert indices.max() < boundaries[-1]
             partitions = numpy.split(indices, numpy.searchsorted(indices, boundaries[1:-1])) - boundaries[:-1]
+            for i_group, local_indices in enumerate(partitions):
+                if isinstance(self.pre.populations[i_group], common.PopulationView):
+                    partitions[i_group] = self.pre.populations[i_group].index_in_grandparent(local_indices)
+        elif isinstance(self.pre, common.PopulationView):
+            partitions = [self.pre.index_in_grandparent(indices)]
         else:
             partitions = [indices]
         return partitions
@@ -111,39 +116,34 @@ class Projection(common.Projection):
             boundaries = numpy.cumsum([0] + [p.size for p in self.post.populations])
             j = numpy.searchsorted(boundaries, index, side='right') - 1
             local_index = index - boundaries[j]
-            return j, local_index
+            if isinstance(self.post.populations[j], common.PopulationView):
+                return j, self.post.populations[j].index_in_grandparent(local_index)
+            else:
+                return j, local_index
+        elif isinstance(self.post, common.PopulationView):
+            return 0, self.post.index_in_grandparent(index)
         else:
             return 0, index
 
-    def _invert(self, indices, mask):
-        """
-        Given a set of indices into a PopulationView, return the indices into
-        the (grand)-parent Population.
-        """
-        raise NotImplementedError("indices=%s, mask=%s") % (indices, mask)
-
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
-        connection_parameters.pop("dendritic_delay_fraction", None)  # should try to handle this
+        print self.pre, self.post, presynaptic_indices, postsynaptic_index
+        connection_parameters.pop("dendritic_delay_fraction", None)  # TODO: need to to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
-        j, local_index = self._localize_index(postsynaptic_index)
+        j_group, j = self._localize_index(postsynaptic_index)
         # specify which connections exist
-        for i, partition in enumerate(presynaptic_index_partitions):
-            if partition.size > 0:
-                if isinstance(self.post, common.Assembly) and isinstance(self.post.populations[i], common.PopulationView):
-                    partition = self._invert(partition, self.post.populations[i].mask)
-                self._brian_synapses[i][j][partition, local_index] = True
+        for i_group, i in enumerate(presynaptic_index_partitions):
+            if i.size > 0:
+                self._brian_synapses[i_group][j_group][i, j] = True
         #print("CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions)
         # set connection parameters
         for name, value in chain(connection_parameters.items(),
                                  self.synapse_type.initial_conditions.items()):
-            for i, partition in enumerate(presynaptic_index_partitions):
-                #print(i, partition, type(partition), bool(partition))
-                if partition.size > 0:
-                    brian_var = getattr(self._brian_synapses[i][j], name)
-                    brian_var[partition, local_index] = value  # units? don't we need to slice value to the appropriate size?
-                    #print("----", i, j, partition, local_index, name, value)
-                    self._n_connections += partition.size
+            for i_group, i in enumerate(presynaptic_index_partitions):
+                if i.size > 0:
+                    brian_var = getattr(self._brian_synapses[i_group][j_group], name)
+                    brian_var[i, j] = value  # units? don't we need to slice value to the appropriate size?
+                    self._n_connections += i.size
 
     def _set_attributes(self, connection_parameters):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
@@ -155,10 +155,23 @@ class Projection(common.Projection):
             setattr(self._brian_synapses[0][0], name, filtered_value)
     
     def _get_attributes_as_arrays(self, *attribute_names):
+        if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
+            raise NotImplementedError
         values = []
         for name in attribute_names:
-            values.append(getattr(self._brian_synapses[0][0], name).to_matrix())  # temporary hack, will give wrong results with Assemblies
+            values.append(getattr(self._brian_synapses[0][0], name).to_matrix())
         return values  # should put NaN where there is no connection?
+
+    def _get_attributes_as_list(self, *attribute_names):
+        values = []
+        for name in attribute_names:
+            if name == "presynaptic_index":
+                raise NotImplementedError
+            elif name == "postsynaptic_index":
+                raise NotImplementedError
+            values.append(getattr(self._brian_synapses[0][0], name).data.tolist())
+        a = numpy.array(values)
+        return [tuple(x) for x in a.T]
 
     def _set_tau_syn_for_tsodyks_markram(self):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):

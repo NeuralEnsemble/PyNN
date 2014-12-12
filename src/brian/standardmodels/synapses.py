@@ -107,14 +107,30 @@ class STDPMechanism(synapses.STDPMechanism):
              dM/dt = -M/tau_minus : 1 (event-driven)"""  # to be split among component parts
     pre = """
           P += A_plus
-          weight = max(weight + w_max * M, w_min)
+          weight = weight + w_max * M
+          mask = weight < w_min
+          weight[mask] = w_min[mask]
           %(syn_var)s += weight
-          """    
+          """
     post = """
            M -= A_minus
-           weight = min(weight + w_max * P, w_max)
+           weight = weight + w_max * P
+           mask = weight > w_max
+           weight[mask] = w_max[mask]
            """  # for consistency with NEST, the synaptic variable is only updated on a pre-synaptic spike
     initial_conditions = {"M": 0.0, "P": 0.0}
+
+    def __init__(self, timing_dependence=None, weight_dependence=None,
+                 voltage_dependence=None, dendritic_delay_fraction=1.0,
+                 weight=0.0, delay=None):
+        if (dendritic_delay_fraction != 0):
+            raise ValueError("The pyNN.brian backend does not currently support "
+                             "dendritic delays: for the purpose of STDP calculations "
+                             "all delays are assumed to be axonal.")
+        # could perhaps support axonal delays using parrot neurons?
+        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
+                                            voltage_dependence, dendritic_delay_fraction,
+                                            weight, delay)
 
     def _get_minimum_delay(self):
         d = state.min_delay

@@ -877,6 +877,17 @@ class PopulationView(BasePopulation):
         else:
             return self.parent
 
+    def index_in_grandparent(self, indices):
+        """
+        Given an array of indices, return the indices in the parent population
+        at the root of the tree.
+        """
+        indices_in_parent = numpy.arange(self.parent.size)[self.mask][indices]
+        if hasattr(self.parent, "parent"):
+            return self.parent.index_in_grandparent(indices_in_parent)
+        else:
+            return indices_in_parent
+
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.

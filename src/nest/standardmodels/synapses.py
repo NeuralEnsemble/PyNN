@@ -36,9 +36,11 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):
-        assert dendritic_delay_fraction == 1, """NEST does not currently support axonal delays:
-                                                 for the purpose of STDP calculations all delays
-                                                 are assumed to be dendritic."""
+        if dendritic_delay_fraction != 1:
+            raise ValueError("NEST does not currently support axonal delays: "
+                             "for the purpose of STDP calculations all delays "
+                             "are assumed to be dendritic.")
+        # could perhaps support axonal delays using parrot neurons?
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction,
                                             weight, delay)

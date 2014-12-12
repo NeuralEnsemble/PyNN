@@ -48,19 +48,20 @@ cell_parameters = {
 n = 60                   # number of synapses / number of presynaptic neurons
 delta_t = 1.0            # (ms) time difference between the firing times of neighbouring neurons
 t_stop = 10 * firing_period + n * delta_t
-delay = 1.0              # (ms) synaptic time delay
+delay = 3.0              # (ms) synaptic time delay
 
 
 # === Configure the simulator ===============================================
 
 sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file", {"action": "store_true"}),
                              ("--fit-curve", "Calculate the best-fit curve to the weight-delta_t measurements", {"action": "store_true"}),
+                             ("--dendritic-delay-fraction", "What fraction of the total transmission delay is due to dendritic propagation", {"default": 1}),
                              ("--debug", "Print debugging information"))
 
 if options.debug:
     init_logging(None, debug=True)
 
-sim.setup(timestep=0.01, min_delay=delay)
+sim.setup(timestep=0.01, min_delay=delay, max_delay=delay)
 
 
 # === Build the network =====================================================
@@ -94,7 +95,8 @@ stdp_model = sim.STDPMechanism(
                                                     A_plus=0.01, A_minus=0.012),
                 weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.0000001),
                 weight=0.00000005,
-                delay=delay)
+                delay=delay,
+                dendritic_delay_fraction=float(options.dendritic_delay_fraction))
 connections = sim.Projection(p1, p2, sim.AllToAllConnector(), stdp_model)
 
 # the connection weight from the driver neuron is very strong, to ensure the
@@ -129,12 +131,12 @@ class WeightRecorder(object):
                                      channel_index=numpy.arange(len(self._weights[0])),
                                      name="weight")
 
-
 weight_recorder = WeightRecorder(sampling_interval=1.0, projection=connections)
 
 # === Run the simulation =====================================================
 
 sim.run(t_stop, callbacks=[weight_recorder])
+
 
 
 # === Save the results, optionally plot a figure =============================
