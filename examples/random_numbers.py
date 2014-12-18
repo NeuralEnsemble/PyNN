@@ -58,3 +58,4 @@ if options.plot_figure:
         Panel(weights_python, cmap='gray_r', xlabel="Python RNG"),
         Panel(weights_native, cmap='gray_r', xlabel="Native RNG"),
     ).save(filename)
+    print(filename)
