@@ -124,7 +124,7 @@ class NESTConnectorMixin(object):
 class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs:
+        if projection.synapse_type.native_parameters.has_native_rngs or isinstance(self.rng, NativeRNG):
             print("Native connect")
             return self.native_connect(projection)
         else:
