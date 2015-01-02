@@ -138,4 +138,4 @@ require installation of a simulator backend.
 .. _Brian: http://http://briansimulator.org
 .. _NEST: http://www.nest-initiative.org/
 .. _TravisCI: https://travis-ci.org/NeuralEnsemble/PyNN
-.. _`issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues?state=closed
+.. _`issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+closed%3A2013-05-24..2013-11-15+milestone%3A0.8.0

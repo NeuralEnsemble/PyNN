@@ -233,7 +233,7 @@ random from a :class:`~/pyNN.random.RandomDistribution` object, e.g.:
 
 .. testcode::
 
-    distr_npost = RandomDistribution(distribution='binomial', parameters=[100,0.3])
+    distr_npost = RandomDistribution(distribution='binomial', n=100, p=0.3)
     connector = FixedNumberPostConnector(n=distr_npost)
 
 
@@ -247,7 +247,7 @@ The :class:`FixedNumberPreConnector` has the same arguments as
 .. testcode::
 
     connector = FixedNumberPreConnector(5)
-    distr_npre = RandomDistribution(distribution='poisson', parameters=[5])
+    distr_npre = RandomDistribution(distribution='poisson', lambda=5)
     connector = FixedNumberPreConnector(distr_npre)
 
 
@@ -548,9 +548,9 @@ Some examples:
 
 .. doctest::
 
-    >>> excitatory_connections.set(weights=0.02)
-    >>> excitatory_connections.set(weights=RandomDistribution('gamma', [1, 0.1]),
-    ...                            delays=0.3)
+    >>> excitatory_connections.set(weight=0.02)
+    >>> excitatory_connections.set(weight=RandomDistribution('gamma', [1, 0.1]),
+    ...                            delay=0.3)
     >>> inhibitory_connections.set(U=numpy.linspace(0.4, 0.6, len(inhibitory_connections)),
     ...                            tau_rec=500.0,
     ...                            tau_facil=0.1)

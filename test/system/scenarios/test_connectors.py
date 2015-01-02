@@ -8,6 +8,9 @@ from .registry import register
 #init_logging(None, debug=True)
 
 
+# TODO: add some tests with projections between Assemblies and PopulationViews
+
+
 @register()
 def all_to_all_static_no_self(sim):
     sim.setup()

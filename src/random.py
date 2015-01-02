@@ -331,7 +331,7 @@ class RandomDistribution(VectorizedIterable):
     Examples:
 
     >>> rd = RandomDistribution('uniform', (-70, -50))
-    >>> rd = RandomDistribution('normal' mu=0.5, sigma=0.1)
+    >>> rd = RandomDistribution('normal', mu=0.5, sigma=0.1)
     >>> rng = NumpyRNG(seed=8658764)
     >>> rd = RandomDistribution('gamma', k=2.0, theta=5.0, rng=rng)
 

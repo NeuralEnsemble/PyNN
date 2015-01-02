@@ -2,6 +2,11 @@
 Random numbers
 ==============
 
+.. testsetup:: *
+
+    from pyNN.random import NumpyRNG, RandomDistribution
+
+
 .. module:: pyNN.random
 
 .. autoclass:: RandomDistribution

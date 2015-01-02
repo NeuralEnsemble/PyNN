@@ -12,6 +12,7 @@ import numpy
 import os
 import logging
 import operator
+from itertools import chain
 import tempfile
 try:
     basestring
@@ -23,7 +24,6 @@ from pyNN import random, recording, errors, standardmodels, core, space, descrip
 from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.recording import files
-from itertools import chain
 
 deprecated = core.deprecated
 logger = logging.getLogger("PyNN")
@@ -299,7 +299,11 @@ class BasePopulation(object):
                 idx    = numpy.argsort(indices)
                 values = numpy.array(values)[idx]
             parameters[name] = values
-        values = [parameters[name] for name in parameter_names]
+        try:
+            values = [parameters[name] for name in parameter_names]
+        except KeyError as err:
+            raise errors.NonExistentParameterError("%s. Valid parameters for %s are: %s" % (
+                err, self.celltype, self.celltype.get_parameter_names()))
         if return_list:
             return values
         else:

@@ -1,7 +1,7 @@
 
 import numpy
 from nose.tools import assert_equal
-from pyNN.utility import assert_arrays_equal
+from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 from .registry import register
 
 
@@ -56,7 +56,7 @@ def test_set_synaptic_parameters(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_equal(actual[ind], expected)
+        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
 
     positional_weights = numpy.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=float)
     prj.set(weight=positional_weights)

@@ -49,6 +49,7 @@ By default, variables are recorded at every time step. It is possible to record 
 
 .. doctest::
 
+    >>> population.record(None)   # reset recording for this population
     >>> population.record('v', sampling_interval=1.0)
 
 You should ensure that the sampling interval is an integer multiple of the simulation time step. Other values may

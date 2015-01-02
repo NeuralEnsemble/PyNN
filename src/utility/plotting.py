@@ -205,6 +205,7 @@ class Panel(object):
 
     Valid options are any valid Matplotlib formatting options that should be
     applied to the Axes/Subplot, plus in addition:
+
         `data_labels`:
             a list of strings of the same length as the number of data items.
         `line_properties`:
