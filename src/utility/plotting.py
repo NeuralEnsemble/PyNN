@@ -6,7 +6,7 @@ formatting. If you need to produce more complex and/or publication-quality
 figures, it will probably be easier to use matplotlib or another plotting
 package directly rather than trying to extend this module.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """

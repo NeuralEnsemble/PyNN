@@ -2,7 +2,7 @@
 PyNN 0.8 beta 2 release notes
 =============================
 
-DATE
+January 6th 2014
 
 Welcome to the second beta release of PyNN 0.8!
 

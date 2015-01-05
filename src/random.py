@@ -10,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2014 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """

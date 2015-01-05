@@ -4,7 +4,7 @@ Common implementation of ID, Population, PopulationView and Assembly classes.
 
 These base classes should be sub-classed by the backend-specific classes.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
