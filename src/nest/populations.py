@@ -128,7 +128,7 @@ class Population(common.Population, PopulationMixin):
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
             self.all_cells = nest.Create("parrot_neuron", self.size)     # be used for connections and recording. all_cells_source
-            nest.Connect(self.all_cells_source, numpy.array(self.all_cells))  # should be used for setting parameters
+            nest.Connect(self.all_cells_source, numpy.array(self.all_cells), 'one_to_one')  # should be used for setting parameters
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:

@@ -141,7 +141,7 @@ class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs:
+        if projection.synapse_type.native_parameters.has_native_rngs:  # or projection.synapse_type.native_parameters.non_random:  TODO
             return self.native_connect(projection)
         else:
             return super(AllToAllConnector, self).connect(projection)
