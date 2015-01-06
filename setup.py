@@ -40,7 +40,7 @@ class build(_build):
 
 setup(
     name = "PyNN",
-    version = "0.8beta2",
+    version = "0.8dev",
     package_dir={'pyNN': 'src'},
     packages = ['pyNN','pyNN.nest', 'pyNN.neuron', 'pyNN.nineml',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock',
