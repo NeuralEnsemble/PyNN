@@ -106,7 +106,7 @@ class build_nineml_celltype(type):
         dct["injectable"] = False        # how to determine this? neuron component has a receive analog port with dimension current, that is not connected to a synapse port?
         dct["conductance_based"] = True  # how to determine this? synapse component has a receive analog port with dimension voltage?
         dct["model_name"] = name
-        dct["units"] = dict((statevar.name, _default_units[statevar.dimension]) for statevar in chain(flat_component.state_variables))
+        dct["units"] = dict((statevar.name, _default_units[statevar.dimension.name]) for statevar in chain(flat_component.state_variables))
 
         # Recording from bindings:
         dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime'] + [alias.lhs for alias in flat_component.aliases] + [statevar.name for statevar in flat_component.state_variables]
