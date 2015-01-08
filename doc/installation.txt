@@ -7,11 +7,11 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.6, 2.7 or 3.4)
+    * Python (version 2.6, 2.7, 3.2, 3.3 or 3.4)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
-    * at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
+    * at least one of the supported simulators: e.g. NEURON, NEST, or Brian.
 
 Optional dependencies are:
 
@@ -32,14 +32,13 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8beta1.tar.gz
-    $ cd PyNN-0.8beta1
+    $ tar xzf PyNN-0.8beta2.tar.gz
+    $ cd PyNN-0.8beta2
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
-require root privileges. If you wish to install it elsewhere use the
-:option:`--prefix` or :option:`--home` option, and set the :envvar:`PYTHONPATH`
-environment variable accordingly. We assume you have already installed the
+require root privileges. We strongly recommend, however, that you use a
+virtualenv_ or a Conda_ environment. We assume you have already installed the
 simulator(s) you wish to use it with. If this is not the case, see below for
 installation instructions.
 
@@ -118,8 +117,10 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST can be downloaded from `<http://www.nest-initiative.org/index.php/Software:Download>`_.
-Installation instructions are available in the file INSTALL, which you can find in the source package, or at `<http://www.nest-initiative.org/index.php/Installation>`_.
+NEST 2.6 can be downloaded from `<http://www.nest-simulator.org/index.php/Software:Download>`_. Earlier versions of
+NEST will not work with this version of PyNN.
+The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
+or at `<http://www.nest-simulator.org/index.php/Installation>`_.
 
 .. note:: NumPy must be installed *before* installing NEST.
 
@@ -143,21 +144,13 @@ Now try it out::
                   -- N E S T --
 
       Copyright (C) 2004 The NEST Initiative
-      Version 2.4.1 Jul 15 2014 14:55:04
+      Version 2.6.0 Jan  6 2015 10:31:20
     ...
     >>> nest.Models()
-    ['ac_generator', 'aeif_cond_alpha', 'aeif_cond_exp', 'cont_delay_synapse', 'correlation_detector',
+    (u'ac_generator', u'aeif_cond_alpha', u'aeif_cond_alpha_RK5', u'aeif_cond_alpha_multisynapse',
     ...
 
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
-
-
-Installing PCSIM
-================
-
-PCSIM_ is available to download from `<http://sourceforge.net/projects/pcsim/>`_:
-
-For compilation instructions, see the files in the ``HowTos`` directory.
 
 
 Installing Brian
@@ -182,3 +175,5 @@ Instructions for downloading and installing Brian_ are available from `<http://b
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
 .. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
 .. _Neo: http://neuralensemble.org/neo
+.. _virtualenv: https://virtualenv.readthedocs.org/
+.. _Conda: http://conda.pydata.org

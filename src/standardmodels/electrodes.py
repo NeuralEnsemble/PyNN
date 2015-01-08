@@ -2,7 +2,7 @@
 Definition of default parameters (and hence, standard parameter names) for
 standard current source models.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

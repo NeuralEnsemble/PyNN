@@ -8,7 +8,7 @@ This module contains:
     is intended to be reused)
   * function factories for generating backend-specific API functions.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -43,7 +43,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    invalid_extra_params = ('mindelay', 'maxdelay', 'dt')
+    invalid_extra_params = ('mindelay', 'maxdelay', 'dt', 'time_step')
     for param in invalid_extra_params:
         if param in extra_params:
             raise Exception("%s is not a valid argument for setup()" % param)

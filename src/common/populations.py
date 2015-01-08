@@ -4,7 +4,7 @@ Common implementation of ID, Population, PopulationView and Assembly classes.
 
 These base classes should be sub-classed by the backend-specific classes.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -12,6 +12,7 @@ import numpy
 import os
 import logging
 import operator
+from itertools import chain
 import tempfile
 try:
     basestring
@@ -23,7 +24,6 @@ from pyNN import random, recording, errors, standardmodels, core, space, descrip
 from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.recording import files
-from itertools import chain
 
 deprecated = core.deprecated
 logger = logging.getLogger("PyNN")
@@ -299,7 +299,11 @@ class BasePopulation(object):
                 idx    = numpy.argsort(indices)
                 values = numpy.array(values)[idx]
             parameters[name] = values
-        values = [parameters[name] for name in parameter_names]
+        try:
+            values = [parameters[name] for name in parameter_names]
+        except KeyError as err:
+            raise errors.NonExistentParameterError("%s. Valid parameters for %s are: %s" % (
+                err, self.celltype, self.celltype.get_parameter_names()))
         if return_list:
             return values
         else:
@@ -876,6 +880,17 @@ class PopulationView(BasePopulation):
             return self.parent.grandparent
         else:
             return self.parent
+
+    def index_in_grandparent(self, indices):
+        """
+        Given an array of indices, return the indices in the parent population
+        at the root of the tree.
+        """
+        indices_in_parent = numpy.arange(self.parent.size)[self.mask][indices]
+        if hasattr(self.parent, "parent"):
+            return self.parent.index_in_grandparent(indices_in_parent)
+        else:
+            return indices_in_parent
 
     def describe(self, template='populationview_default.txt', engine='default'):
         """

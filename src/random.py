@@ -10,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2014 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -331,7 +331,7 @@ class RandomDistribution(VectorizedIterable):
     Examples:
 
     >>> rd = RandomDistribution('uniform', (-70, -50))
-    >>> rd = RandomDistribution('normal' mu=0.5, sigma=0.1)
+    >>> rd = RandomDistribution('normal', mu=0.5, sigma=0.1)
     >>> rng = NumpyRNG(seed=8658764)
     >>> rd = RandomDistribution('gamma', k=2.0, theta=5.0, rng=rng)
 

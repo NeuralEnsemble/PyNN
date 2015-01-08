@@ -6,7 +6,7 @@ formatting. If you need to produce more complex and/or publication-quality
 figures, it will probably be easier to use matplotlib or another plotting
 package directly rather than trying to extend this module.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -205,6 +205,7 @@ class Panel(object):
 
     Valid options are any valid Matplotlib formatting options that should be
     applied to the Axes/Subplot, plus in addition:
+
         `data_labels`:
             a list of strings of the same length as the number of data items.
         `line_properties`:

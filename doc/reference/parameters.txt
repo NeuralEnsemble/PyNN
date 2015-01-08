@@ -2,8 +2,10 @@
 Parameter handling
 ==================
 
-.. testsetup:: *
-   from lazyarray import larray
+.. testsetup::
+
+    import numpy
+    from lazyarray import larray
 
 .. module:: pyNN.parameters
 
@@ -142,7 +144,7 @@ that allow operations on all the lazy arrays within it at once. For example:
     >>> from pyNN.parameters import ParameterSpace
     >>> ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3*i+2}, shape=(4,))
     >>> ps['c']
-    <pyNN.parameters.LazyArray object at 0x15d3890>
+    <larray: base_value=<function <lambda> at 0x10a09a2a8> shape=(4,) dtype=None, operations=[]>
     >>> ps.evaluate()
     >>> ps['c']
     array([ 2,  5,  8, 11])

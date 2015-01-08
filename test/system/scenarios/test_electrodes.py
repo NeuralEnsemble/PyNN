@@ -60,7 +60,7 @@ def ticket226(sim):
 @register()
 def issue165(sim):
     """Ensure that anonymous current sources are not lost."""
-    sim.setup(time_step=0.1)
+    sim.setup(timestep=0.1)
     p = sim.Population(1, sim.IF_cond_exp())
     p.inject(sim.DCSource(amplitude=1.0, start=10.0, stop=20.0))
     p.record('v')

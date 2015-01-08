@@ -7,7 +7,7 @@ from pyNN.random import RandomDistribution
 from .registry import register
 
 
-@register(exclude=["moose", "nemo"])
+@register(exclude=["moose", "nemo", "brian"])
 def scenario3(sim):
     """
     Simple feed-forward network network with additive STDP. The second half of

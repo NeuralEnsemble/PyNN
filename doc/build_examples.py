@@ -12,7 +12,7 @@ import subprocess
 examples = (
     # "HH_cond_exp2.py",
     "Izhikevich.py",
-    "current_injection.py",
+    #"current_injection.py",
     # "VAbenchmarks.py",
     # "brunel.py",
     "cell_type_demonstration.py",

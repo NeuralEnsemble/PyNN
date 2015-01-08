@@ -74,10 +74,10 @@ requested distribution:
 .. doctest::
 
     >>> rng = NumpyRNG(seed=824756)
-    >>> rng.next(5, 'normal', [1.0, 0.2])
+    >>> rng.next(5, 'normal', {'mu': 1.0, 'sigma': 0.2})
     array([ 0.65866423,  0.87500017,  0.90755753,  0.93793779,  0.94839735])
-    >>> rng = GSLRNG(seed=824756, type='ranlxd2')  # RANLUX algorithm of Lüscher
-    >>> rng.next(5, 'normal', [1.0, 0.2])
+    >>> rng = GSLRNG(seed=824756, type='ranlxd2')  # RANLUX algorithm of Luescher
+    >>> rng.next(5, 'normal', {'mu': 1.0, 'sigma': 0.2})
     array([ 0.61104097,  0.83086026,  0.87072741,  0.7513628 ,  1.12875371])
 
 In versions of PyNN prior to 0.8, distribution names and parameterisations were

@@ -16,7 +16,7 @@ All other functions and classes are private, and should not be used by other
 modules.
 
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -79,7 +79,7 @@ class _State(common.control.BaseState):
         # this rather complex implementation is needed to handle min_delay='auto'
         kernel_delay = nest.GetKernelStatus('min_delay')
         syn_delay = nest.GetDefaults('static_synapse')['min_delay']
-        if syn_delay == numpy.inf:
+        if syn_delay == numpy.inf or syn_delay > 1e300:
             return kernel_delay
         else:
             return max(kernel_delay, syn_delay)

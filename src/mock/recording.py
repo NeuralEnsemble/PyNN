@@ -25,3 +25,9 @@ class Recorder(recording.Recorder):
         else:
             raise Exception("Only implemented for spikes")
         return N
+
+    def _clear_simulator(self):
+        pass
+
+    def _reset(self):
+        pass

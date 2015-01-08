@@ -92,12 +92,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 test_record_vm_and_gsyn_from_assembly.__test__ = False
 
 
-@register()
+@register(exclude='brian')  # brian does not support off_grid. To fix?
 def issue259(sim):
     """
     A test that retrieving data with "clear=True" gives correct spike trains.
     """
-    sim.setup(time_step=0.05, spike_precision="off_grid")
+    sim.setup(timestep=0.05, spike_precision="off_grid")
     p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.025, 10.025, 12.34, 1000.025]))
     p.record('spikes')
     sim.run(10.0)

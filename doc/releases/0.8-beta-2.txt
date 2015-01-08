@@ -2,15 +2,75 @@
 PyNN 0.8 beta 2 release notes
 =============================
 
-DATE
+January 6th 2014
 
 Welcome to the second beta release of PyNN 0.8!
 
 For full information about what's new in PyNN 0.8, see the :doc:`0.8-alpha-1` and :doc:`0.8-beta-1`.
 
+NEST 2.4
+--------
 
-* new standardization of random distributions: names and parameters names are now independent of the random number
- generation library used (NumPy, Gnu Scientific Library or simulator-native).
-* Python 3 support
-* NEST 2.4
+The main new feature in this release is support for NEST_ 2.4. Previous versions of NEST are no longer supported.
 
+Python 3
+--------
+
+With the rewrite of PyNEST in NEST 2.4, PyNN now has two backend simulators (NEURON_ being the other) that support
+Python 3. There was really no longer any excuse not to add Python 3 support to PyNN, which turned out to be very
+straightforward.
+
+Standardization of random distributions
+---------------------------------------
+
+Since its earliest versions PyNN has supported swapping in and out different random number generators, but until
+now there has been no standardization of these RNGs; for example the GSL_ random number library uses "gaussian" where
+NumPy_ uses "normal". This limited the usefulness of this feature, especially for the :class:`NativeRNG` class, which
+signals that random number generation should be passed down to the simulator backend rather than being done at the
+Python level.
+
+This has now, finally, been fixed. The names of random number distributions and of their parameters have now been
+standardized, based for the most part on the nomenclature used by Wikipedia_. A quick example:
+
+.. code-block:: python
+
+   from pyNN.random import NumpyRNG, GSLRNG, RandomDistribution
+
+   rd1 = RandomDistribution('normal' mu=0.5, sigma=0.1, rng=NumpyRNG(seed=922843))
+   rd2 = RandomDistribution('normal' mu=0.5, sigma=0.1, rng=GSLRNG(seed=426482))
+
+API changes
+-----------
+
+  * :meth:`Population.record()` now has an optional `sampling_interval` argument, allowing recording at intervals larger
+    than the integration time step.
+  * :class:`FixedNumberPostConnector` now has an option `with_replacement`, which controls how the post-synaptic
+    population is sampled, and affects the incidence of multiple connections between pairs of neurons ("multapses").
+  * The default value of the `min_delay` argument to :func:`setup()` is now "auto", which means that the simulator
+    should calculate the minimal synaptic delay itself. This change can lead to large speedups for NEST and NEURON code.
+
+Other changes
+-------------
+
+  * Reimplemented Izhikevich model for NEURON to allow current injection.
+  * :class:`Connector`\s that can generate multiple connections between a given pair of neurons ("multapses") now work
+    properly with the pyNN.nest backend.
+  * Added a version of :class:`CSAConnector` for the NEST backend that passes down the CSA object to PyNEST's
+    :func:`CGConnect()` function. This greatly speeds up :class:`CSAConnector` with NEST.
+  * Added some new example scripts, deleted some of the more trivial, repetitive examples, and merged the several
+    variants of the "VAbenchmarks" example into a single script.
+  * When data blocks from different MPI nodes are merged, the spike trains are now by default sorted by neuron ID.
+    If this sorting proves to be too time-consuming we can in future expose sort/don't sort as an option.
+  * Added :class:`IF_cond_exp_gsfa_grr` standard model (integrate and fire neuron with spike frequency adaption and
+    relative refractory period) to Brian_ backend, and fixed broken :class:`HH_cond_exp` model.
+  * Improvements to callback handling.
+  * `Assorted bug fixes`_
+
+
+.. _Wikipedia: http://en.wikipedia.org/wiki/List_of_probability_distributions
+.. _GSL: https://www.gnu.org/software/gsl/manual/html_node/Random-Number-Generation.html
+.. _NumPy: http://docs.scipy.org/doc/numpy/reference/routines.random.html
+.. _Brian: http://http://briansimulator.org
+.. _NEST: http://www.nest-initiative.org/
+.. _NEURON: http://www.neuron.yale.edu/neuron/
+.. _`Assorted bug fixes`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+closed%3A%3E2013-11-15+milestone%3A0.8.0

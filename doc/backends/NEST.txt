@@ -119,7 +119,7 @@ synaptic receptor types:
 .. doctest::
 
     >>> ht_neuron.receptor_types
-    {'GABA_B': 4, 'AMPA': 1, 'GABA_A': 3, 'NMDA': 2}
+    [u'GABA_B', u'AMPA', u'GABA_A', u'NMDA']
     >>> from pyNN.nest import Projection, AllToAllConnector
     >>> connector = AllToAllConnector()
     >>> prj_ampa = Projection(p2, p1, connector, receptor_type='AMPA')
@@ -135,7 +135,7 @@ function:
 .. doctest::
 
     >>> from pyNN.nest import native_synapse_type
-    >>> stdp = native_synapse_type("stdp_synapse")(Wmax=50.0, lambda=0.015)
+    >>> stdp = native_synapse_type("stdp_synapse")(**{"Wmax": 50.0, "lambda": 0.015})
     >>> prj_plastic = Projection(p1, p1, connector, receptor_type='AMPA', synapse_type=stdp)
 
 Common synapse properties

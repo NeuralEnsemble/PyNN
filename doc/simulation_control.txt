@@ -5,6 +5,11 @@ Simulation control
 Initialising the simulator
 ==========================
 
+.. testsetup::
+
+    from pyNN.mock import *
+
+
 Before using any other functions or classes from PyNN, the user must call the
 :func:`setup()` function::
 

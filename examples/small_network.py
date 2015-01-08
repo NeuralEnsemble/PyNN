@@ -87,6 +87,7 @@ if options.plot_figure:
         Panel(gsyn, ylabel="Synaptic conductance (uS)"),
         Panel(data.spiketrains, xlabel="Time (ms)", xticks=True),
     ).save(figure_filename)
+    print(figure_filename)
 
 # === Clean up and quit ========================================================
 

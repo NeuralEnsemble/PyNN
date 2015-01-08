@@ -30,7 +30,7 @@ your simulator, and are not restricted to the standard models.
 - Bug reports: https://github.com/NeuralEnsemble/PyNN/issues
 
 
-:copyright: Copyright 2006-2014 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 .. image:: https://travis-ci.org/NeuralEnsemble/PyNN.png?branch=master

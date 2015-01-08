@@ -24,7 +24,7 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -191,14 +191,18 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'e_rev_rr'   : -75.0,   # relative refractory mechanism conductance reversal potential in mV
         'q_rr'       : 3000.0   # Quantal relative refractory conductance increase in nS
     }
-    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
+    recordable = ['spikes', 'v', 'g_r', 'g_s', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
         'v': -65.0,  # 'v_rest',
+        'g_r': 0.0,
+        'g_s': 0.0,
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
     }
     units = {
         'v': 'mV',
+        'g_r': 'nS',
+        'g_s': 'nS',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
     }
@@ -385,6 +389,7 @@ class Izhikevich(StandardCellType):
     }
     recordable = ['spikes', 'v', 'u']
     conductance_based = False
+    voltage_based_synapses = True
     default_initial_values = {
         'v': -70.0,   # mV
         'u': -14.0      # mV/ms

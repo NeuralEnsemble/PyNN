@@ -1,7 +1,7 @@
 """
 Connection method classes for nest
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -124,11 +124,9 @@ class NESTConnectorMixin(object):
 class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs:
-            print("Native connect")
+        if projection.synapse_type.native_parameters.has_native_rngs or isinstance(self.rng, NativeRNG):
             return self.native_connect(projection)
         else:
-            print("Common connect")
             return super(FixedProbabilityConnector, self).connect(projection)
 
     def native_connect(self, projection):
@@ -143,11 +141,9 @@ class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs:
-            print("Native connect")
+        if projection.synapse_type.native_parameters.has_native_rngs:  # or projection.synapse_type.native_parameters.non_random:  TODO
             return self.native_connect(projection)
         else:
-            print("Common connect")
             return super(AllToAllConnector, self).connect(projection)
 
     def native_connect(self, projection):

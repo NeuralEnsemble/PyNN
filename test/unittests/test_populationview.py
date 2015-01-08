@@ -2,7 +2,7 @@
 Tests of the common implementation of the PopulationView class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -585,6 +585,14 @@ class PopulationViewTest(unittest.TestCase):
         pv = sim.Population(11, sim.IF_cond_exp())[::4]
         self.assertIsInstance(pv.describe(), basestring)
         self.assertIsInstance(pv.describe(template=None), dict)
+
+    @register()
+    def test_index_in_grandparent(self, sim=sim):
+        pv1 = sim.Population(11, sim.IF_cond_exp())[0, 1, 3, 4, 6, 7, 9]
+        pv2 = pv1[2, 3, 5, 6]
+        assert_array_equal(pv1.index_in_grandparent([2, 4, 6]), numpy.array([3, 6, 9]))
+        assert_array_equal(pv2.index_in_grandparent([0, 1, 3]), numpy.array([3, 4, 9]))
+
 
 if __name__ == "__main__":
     unittest.main()
