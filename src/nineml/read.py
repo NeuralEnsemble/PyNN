@@ -41,10 +41,10 @@ def scale(quantity):
         'nA': 1,
         'Mohm': 1,  ## ??
         'unknown': 1,
-        #'dimensionless': 1,
+        'unitless': 1,
     }
-    if quantity.unit:
-        return quantity.value * factors[quantity.unit.name]
+    if quantity.units:
+        return quantity.value * factors[quantity.units.name]
     else:  # dimensionless
         return quantity.value
 
@@ -60,7 +60,7 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
             qname = "%s_%s" % (nineml_component.name, name)
         else:
             qname = name
-        if isinstance(p.value, nineml.RandomDistribution):
+        if isinstance(p.value, nineml.DistributionComponent):
             rd = p.value
             if rd.name in random_distributions:
                 P[qname] = random_distributions[rd.name]

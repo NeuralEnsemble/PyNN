@@ -75,8 +75,8 @@ class build_nineml_celltype(type):
     def __new__(cls, name, bases, dct):
 
         import nineml.abstraction_layer as al
-        from nineml.abstraction_layer.dynamics import flattening
-        from nineml.abstraction_layer import writers, component_modifiers
+        from nineml.abstraction_layer.dynamics.utils import (
+            flattener, xml, modifiers)
 
         #Extract Parameters Back out from Dict:
         combined_model = dct['combined_model']
@@ -87,7 +87,7 @@ class build_nineml_celltype(type):
         if combined_model.is_flat():
             flat_component = combined_model
         else:
-            flat_component = flattening.flatten(combined_model,name)
+            flat_component = flattener.flatten(combined_model,name)
 
         # Make the substitutions:
         flat_component.backsub_all()
@@ -95,7 +95,7 @@ class build_nineml_celltype(type):
         #flat_component.backsub_equations()
 
         # Close any open reduce ports:
-        component_modifiers.ComponentModifier.close_all_reduce_ports(component=flat_component)
+        modifiers.DynamicsModifier.close_all_reduce_ports(componentclass=flat_component)
 
         # New:
         dct["combined_model"] = flat_component
