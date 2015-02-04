@@ -60,7 +60,7 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
             qname = "%s_%s" % (nineml_component.name, name)
         else:
             qname = name
-        if isinstance(p.value, nineml.DistributionComponent):
+        if isinstance(p.value, nineml.Distribution):
             rd = p.value
             if rd.name in random_distributions:
                 P[qname] = random_distributions[rd.name]

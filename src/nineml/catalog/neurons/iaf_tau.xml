@@ -23,7 +23,7 @@
           <StateAssignment variable="v">
             <MathInline>v_reset</MathInline>
           </StateAssignment>
-          <EventOut port="spike_output"/>
+          <OutputEvent port="spike_output"/>
           <Trigger>
             <MathInline>v &gt; v_thresh</MathInline>
           </Trigger>
