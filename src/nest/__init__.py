@@ -352,10 +352,10 @@ class Projection(common.Projection):
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         
-        lines   = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))  
+        lines = nest.GetStatus(self.connection_manager.connections, ('source', 'target', 'weight', 'delay'))
         
-        if gather == True and num_processes() > 1:
-            all_lines = { rank(): lines }
+        if gather is True and num_processes() > 1:
+            all_lines = {rank(): lines}
             all_lines = recording.gather_dict(all_lines)
             if rank() == 0:
                 lines = reduce(operator.add, all_lines.values())
@@ -363,13 +363,15 @@ class Projection(common.Projection):
             file.rename('%s.%d' % (file.name, rank()))
         logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
                 
-        if gather == False or rank() == 0:
-            lines       = numpy.array(lines, dtype=float)
-            lines[:,2] *= 0.001
-            if compatible_output:
-                lines[:,0] = self.pre.id_to_index(lines[:,0])
-                lines[:,1] = self.post.id_to_index(lines[:,1])  
-            file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+        if gather is False or rank() == 0:
+            lines = numpy.array(lines, dtype=float)
+            if lines.size > 0:
+                assert lines.shape[1] == 4
+                lines[:, 2] *= 0.001
+                if compatible_output:
+                    lines[:, 0] = self.pre.id_to_index(lines[:, 0])
+                    lines[:, 1] = self.post.id_to_index(lines[:, 1])
+            file.write(lines, {'pre': self.pre.label, 'post': self.post.label})
             file.close()        
 
     def randomizeWeights(self, rand_distr):
