@@ -74,7 +74,19 @@ def savez(file, *args, **kwds):
         zip.write(filename, arcname=fname)
     zip.close()
     shutil.rmtree(direc)
-    
+
+
+def safe_makedirs(dir):
+    """
+    Version of makedirs not subject to race condition when using MPI.
+    """
+    if dir and not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError as e:
+            if e.errno != 17:
+                raise
+
 
 class BaseFile(object):
     """
@@ -88,8 +100,7 @@ class BaseFile(object):
         self.name = filename
         self.mode = mode
         dir = os.path.dirname(filename)
-        if dir and not os.path.exists(dir):
-            os.makedirs(dir)
+        safe_makedirs(dir)
         try: ## Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
         except Exception, err:
