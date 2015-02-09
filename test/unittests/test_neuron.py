@@ -10,7 +10,10 @@ except ImportError:
 from pyNN import common
 
 from nose.tools import assert_equal, assert_raises, assert_almost_equal
-from unittest.case import SkipTest
+try:
+    from unittest.case import SkipTest
+except ImportError:
+    from unittest2.case import SkipTest
 import numpy
 import os
 

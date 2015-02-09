@@ -1220,9 +1220,9 @@ class Assembly(object):
     
     @property
     def _homogeneous_synapses(self):
-        syn = is_conductance(self.populations[0].all_cells[0])
+        syn = self.populations[0].celltype.conductance_based
         for p in self.populations[1:]:
-            if syn != is_conductance(p.all_cells[0]):
+            if syn != p.celltype.conductance_based:
                 return False
         return True
     

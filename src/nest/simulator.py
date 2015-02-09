@@ -306,11 +306,11 @@ class ConnectionManager:
         if self.synapse_type not in targets[0].celltype.synapse_types:
             raise errors.ConnectionError("User gave synapse_type=%s, synapse_type must be one of: %s" % ( self.synapse_type, "'"+"', '".join(st for st in targets[0].celltype.synapse_types or ['*No connections supported*']))+"'" )
         # should only scale it it's a PyNN synapse model, not if it's native
-        weights = numpy.array(weights)*1000.0 # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
+        weights = numpy.array(weights)*1000.0  # weights should be in nA or uS, but iaf_neuron uses pA and iaf_cond_neuron uses nS.
                                  # Using convention in this way is not ideal. We should
                                  # be able to look up the units used by each model somewhere.
-        if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
-            weights = -1*weights # NEST wants negative values for inhibitory weights, even if these are conductances
+        if self.synapse_type == 'inhibitory' and self.parent.post.conductance_based:
+            weights = -1*weights  # NEST wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
         elif isinstance(weights, float):
@@ -409,7 +409,10 @@ class ConnectionManager:
         if format == 'list':
             values = nest.GetStatus(self.connections, parameter_name)
             if parameter_name == "weight":
-                values = [0.001*val for val in values]
+                if self.synapse_type == 'inhibitory' and self.parent.post.conductance_based:
+                    values = [-0.001*val for val in values]  # NEST uses negative values for inhibitory conductances, PyNN positive
+                else:
+                    values = [0.001*val for val in values]
         elif format == 'array':
             value_arr = numpy.nan * numpy.ones((self.parent.pre.size, self.parent.post.size))
             connection_parameters = nest.GetStatus(self.connections, ('source', 'target', parameter_name))
@@ -424,8 +427,8 @@ class ConnectionManager:
                     value_arr[addr] += value
             if parameter_name == 'weight':
                 value_arr *= 0.001
-                if self.synapse_type == 'inhibitory' and common.is_conductance(self[0].target):
-                    value_arr *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+                if self.synapse_type == 'inhibitory' and self.parent.post.conductance_based:
+                    value_arr *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
             values = value_arr
         else:
             raise Exception("format must be 'list' or 'array', actually '%s'" % format)

@@ -368,6 +368,8 @@ class Projection(common.Projection):
             if lines.size > 0:
                 assert lines.shape[1] == 4
                 lines[:, 2] *= 0.001
+                if self.synapse_type == 'inhibitory' and self.post.conductance_based:
+                    lines[:, 2] *= -1
                 if compatible_output:
                     lines[:, 0] = self.pre.id_to_index(lines[:, 0])
                     lines[:, 1] = self.post.id_to_index(lines[:, 1])
