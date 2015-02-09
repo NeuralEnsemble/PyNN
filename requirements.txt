@@ -3,3 +3,4 @@ docutils>=0.10
 mock>1.0
 numpy>=1.5
 Cheetah>=2.4
+unittest2
