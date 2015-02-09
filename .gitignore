@@ -11,6 +11,7 @@
 .pydevproject
 *.tmp*
 .settings
+.idea
 
 # Compiled source
 *.py[ocd]

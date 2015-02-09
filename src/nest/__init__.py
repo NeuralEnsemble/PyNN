@@ -149,6 +149,8 @@ def end(compatible_output=True):
     # and record_v() method
     for recorder in simulator.recorder_list:
         recorder.write(gather=True, compatible_output=compatible_output)
+    for device in simulator.recording_devices:
+        device._cleanup()
     for tempdir in tempdirs:
         shutil.rmtree(tempdir)
     tempdirs = []

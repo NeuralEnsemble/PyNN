@@ -57,7 +57,7 @@ class RecordingDevice(object):
         simulator.recording_devices.append(self)
         logger.debug("Created %s with parameters %s" % (device_type, device_parameters))
 
-    def __del__(self):
+    def _cleanup(self):
         for name in "_merged_file", "_gathered_file":
             if hasattr(self, name):
                 getattr(self, name).close()
@@ -273,6 +273,7 @@ class Recorder(recording.Recorder):
             simulator.recording_devices.remove(self._device)
         except ValueError:
             pass
+        self._device._cleanup()
         self._create_device()
 
     def _get(self, gather=False, compatible_output=True, filter=None):
