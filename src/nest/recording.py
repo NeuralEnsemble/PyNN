@@ -287,11 +287,20 @@ class Recorder(recording.Recorder):
             variables = VARIABLE_MAP.get(self.variable, [self.variable])
             data = self._device.read_subset(variables, gather, compatible_output, always_local)
         assert len(data.shape) == 2
-        if not self._device._gathered:
+        if self._device._gathered:
+            recorded_all_nodes = {simulator.state.mpi_rank: set([int(id) for id in self.recorded])}
+            recorded_all_nodes = recording.gather_dict(recorded_all_nodes)
+            print "all nodes:", recorded_all_nodes
+            recorded_ids = set.union(*recorded_all_nodes.values())
+            if filter is None:
+                filtered_ids = recorded_ids
+            else:
+                filtered_ids = set(filter).intersection(recorded_ids)
+        else:
             filtered_ids = self.filter_recorded(filter)
-            mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
-            if len(data) > 0:
-                data = data[mask]
+        mask = reduce(numpy.add, (data[:,0]==id for id in filtered_ids))
+        if len(data) > 0:
+            data = data[mask]
         return data
 
     def _local_count(self, filter):
