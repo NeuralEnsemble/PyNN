@@ -649,13 +649,12 @@ class BasePopulation(object):
         self.initial_values[variable] = core.LazyArray(initial_value, shape=(self.local_size,))
         if hasattr(self, "_set_initial_value_array"):
             self._set_initial_value_array(variable, initial_value)
+        elif core.is_listlike(initial_value):
+            for cell, val in zip(self, initial_value):
+                cell.set_initial_value(variable, val)
         else:
-            if isinstance(value, random.RandomDistribution):
-                for cell, val in zip(self, initial_value):
-                    cell.set_initial_value(variable, val)
-            else:
-                for cell in self:  # only on local node
-                    cell.set_initial_value(variable, initial_value)
+            for cell in self:  # only on local node
+                cell.set_initial_value(variable, initial_value)
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""

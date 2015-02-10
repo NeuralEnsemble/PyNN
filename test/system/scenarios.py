@@ -1,7 +1,7 @@
 # encoding: utf-8
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN import common, recording
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_not_equal
 import numpy
 from pyNN.utility import init_logging, assert_arrays_equal, assert_arrays_almost_equal, sort_by_column
 
@@ -535,3 +535,22 @@ def issue243(sim):
     projection = sim.Projection(pre, post, connector)
     assert_equal(projection.getWeights(format='list'), [1.0, 2.0, 3.0, 4.0])
     assert_arrays_equal(projection.getWeights(format='array'), numpy.array([[1, 2], [3, 4]], float))
+
+
+@register()
+def issue281(sim):
+    """
+    Check random initialization of membrane potential, including for
+    populations with size 1.
+    """
+    sim.setup()
+    n1 = sim.Population(1, sim.IF_curr_exp)
+    n10 = sim.Population(10, sim.IF_curr_exp)
+    initv = sim.RandomDistribution()
+    n1.initialize('v', initv)
+    n10.initialize('v', initv)
+    n1.record_v()
+    n10.record_v()
+    sim.run(1.0)
+    assert_not_equal(n1.get_v()[0, 2], -65.0)
+    assert_not_equal(n10.get_v()[0, 2], -65.0)
