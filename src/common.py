@@ -1695,7 +1695,7 @@ class Projection(object):
         if isinstance(rng, random.AbstractRNG):
             self.rng = rng
         elif rng is None:
-            self.rng = random.NumpyRNG(seed=151985012)
+            self.rng = random.NumpyRNG()
         else:
             raise Exception("rng must be either None, or a subclass of pyNN.random.AbstractRNG")
         self._method = method
