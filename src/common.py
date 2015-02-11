@@ -1518,7 +1518,7 @@ class Assembly(object):
                 filenames[p] = (filename, True)
             except errors.NothingToWriteError:
                 filenames[p] = (filename, False)
-                
+
         ## Then we need to merge the previsouly written files into a single one, to be consistent
         ## with a Population object. Note that the header should be better considered.          
         metadata = {'variable'    : variable,
@@ -1536,9 +1536,10 @@ class Assembly(object):
                 if gather==False and simulator.state.num_processes > 1:
                     name += '.%d' % simulator.state.mpi_rank            
                 p_file   = files.NumpyBinaryFile(name, mode='r') 
-                tmp_data = p_file.read()                    
+                tmp_data = p_file.read()
                 if compatible_output:
-                    tmp_data[:, -1] = self.id_to_index(tmp_data[:,-1] + pop.first_id)
+                    tmp_data[:, -1] += pop.first_id  # map population indices to IDs
+                    tmp_data[:, -1] = self.id_to_index(tmp_data[:, -1])  # map IDs to assembly indices
                 data = numpy.vstack((data, tmp_data))
             os.remove(name)
         metadata['n'] = data.shape[0]             

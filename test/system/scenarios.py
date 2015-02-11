@@ -554,3 +554,53 @@ def issue281(sim):
     sim.run(1.0)
     assert_not_equal(n1.get_v()[0, 2], -65.0)
     assert_not_equal(n10.get_v()[0, 2], -65.0)
+
+@register()
+def test_get_data_from_populations_views_assemblies(sim):
+    sim.setup()
+    p = sim.Population(5, sim.SpikeSourceArray)
+    for i, cell in enumerate(p):
+        cell.spike_times = numpy.arange(i + 0.2, i + 3.2)
+    view1 = p[:2]
+    view2 = p[2:]
+    all = view1 + view2
+    for obj in p, view1, view2, all:
+        obj.record()
+    sim.run(10.0)
+    sp = p.getSpikes()
+    assert_arrays_almost_equal(sp[sp[:, 1].argsort()],
+                               numpy.array([[0., 0.2],
+                                            [0., 1.2],
+                                            [1., 1.2],
+                                            [0., 2.2],
+                                            [1., 2.2],
+                                            [2., 2.2],
+                                            [1., 3.2],
+                                            [2., 3.2],
+                                            [3., 3.2],
+                                            [2., 4.2],
+                                            [3., 4.2],
+                                            [4., 4.2],
+                                            [3., 5.2],
+                                            [4., 5.2],
+                                            [4., 6.2]]), 1e-12)
+    sp = view1.getSpikes()
+    assert_arrays_almost_equal(sp[sp[:, 1].argsort()],
+                               numpy.array([[0., 0.2],
+                                            [0., 1.2],
+                                            [1., 1.2],
+                                            [0., 2.2],
+                                            [1., 2.2],
+                                            [1., 3.2]]), 1e-12)
+    sp = view2.getSpikes()
+    assert_arrays_almost_equal(sp[sp[:, 1].argsort()],
+                               numpy.array([[0., 2.2],
+                                            [0., 3.2],
+                                            [1., 3.2],
+                                            [0., 4.2],
+                                            [1., 4.2],
+                                            [2., 4.2],
+                                            [1., 5.2],
+                                            [2., 5.2],
+                                            [2., 6.2]]), 1e-12)
+    # Assembly seems to be missing a getSpikes() method so we can't test it!

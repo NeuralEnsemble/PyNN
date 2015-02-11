@@ -130,10 +130,13 @@ class Recorder(object):
         """Return the recorded data as a Numpy array."""
         data_array = self._get(gather, compatible_output, filter)
         if self.population is not None:
-            try:
-                data_array[:,0] = self.population.id_to_index(data_array[:, 0]) # id is always first column            
-            except Exception:
-                pass
+            if filter is None:  # Populations
+                data_array[:, 0] = self.population.id_to_index(data_array[:, 0])  # id is always first column
+            else:               # PopulationViews
+                indices = numpy.empty((data_array.shape[0],))
+                for i, id in enumerate(filter):
+                    indices[data_array[:, 0] == id] = i
+                data_array[:, 0] = indices
         self._data_size = data_array.shape[0]
         return data_array
     
