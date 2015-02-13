@@ -9,6 +9,7 @@
 *.orig
 .project
 .pydevproject
+.spyderproject
 .settings
 *.tmp*
 *.swp
