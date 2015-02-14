@@ -40,7 +40,7 @@ available_distributions = {
     'normal_clipped': ('mu', 'sigma', 'low', 'high'),
     'normal_clipped_to_boundary':
                       ('mu', 'sigma', 'low', 'high'),
-    'poisson':        ('lambda',),
+    'poisson':        ('lambda_',),
     'uniform':        ('low', 'high'),
     'uniform_int':    ('low', 'high'),
     'vonmises':       ('mu', 'kappa'),
@@ -176,7 +176,7 @@ class NumpyRNG(WrappedRNG):
         'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
         'normal_clipped_to_boundary':
                           ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
-        'poisson':        ('poisson',      {'lambda': 'lam'}),
+        'poisson':        ('poisson',      {'lambda_': 'lam'}),
         'uniform':        ('uniform',      {'low': 'low', 'high': 'high'}),
         'uniform_int':    ('randint',      {'low': 'low', 'high': 'high'}),
         'vonmises':       ('vonmises',     {'mu': 'mu', 'kappa': 'kappa'}),
@@ -240,7 +240,7 @@ class GSLRNG(WrappedRNG):
         'lognormal':      ('lognormal',      {'mu': 'zeta', 'sigma': 'sigma'}),
         'normal':         ('normal',         {'mu': 'mu', 'sigma': 'sigma'}),
         'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
-        'poisson':        ('poisson',        {'lambda': 'mu'}),
+        'poisson':        ('poisson',        {'lambda_': 'mu'}),
         'uniform':        ('flat',           {'low': 'a', 'high': 'b'}),
         'uniform_int':    ('uniform_int',    {'low': 'low', 'high': 'high'}),
     }
@@ -337,9 +337,9 @@ class RandomDistribution(VectorizedIterable):
 
     Available distributions:
 
-    ==========================  ====================  ===============================================
+    ==========================  ====================  ====================================================
     Name                        Parameters            Comments
-    --------------------------  --------------------  -----------------------------------------------
+    --------------------------  --------------------  ----------------------------------------------------
     binomial                    n, p
     gamma                       k, theta
     exponential                 beta
@@ -347,11 +347,11 @@ class RandomDistribution(VectorizedIterable):
     normal                      mu, sigma
     normal_clipped              mu, sigma, low, high  Values outside (low, high) are redrawn
     normal_clipped_to_boundary  mu, sigma, low, high  Values below/above low/high are set to low/high
-    poisson                     lambda
+    poisson                     lambda_               Trailing underscore since lambda is a Python keyword
     uniform                     low, high
     uniform_int                 low, high
     vonmises                    mu, kappa
-    ==========================  ====================  ===============================================
+    ==========================  ====================  ====================================================
     """
 
     def __init__(self, distribution, parameters_pos=None, rng=None, **parameters_named):

@@ -30,7 +30,7 @@ class NativeRNG(NativeRNG):
         'normal_clipped': {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
         'normal_clipped_to_boundary':
                           {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
-        'poisson':        {'lambda': 'lambda'},
+        'poisson':        {'lambda_': 'lambda'},
         'uniform':        {'low': 'low', 'high': 'high'},
         'uniform_int':    {'low': 'low', 'high': 'high'},
         'vonmises':       {'mu': 'mu', 'kappa': 'kappa'},

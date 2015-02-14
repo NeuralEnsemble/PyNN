@@ -247,7 +247,7 @@ The :class:`FixedNumberPreConnector` has the same arguments as
 .. testcode::
 
     connector = FixedNumberPreConnector(5)
-    distr_npre = RandomDistribution(distribution='poisson', lambda=5)
+    distr_npre = RandomDistribution(distribution='poisson', lambda_=5)
     connector = FixedNumberPreConnector(distr_npre)
 
 
