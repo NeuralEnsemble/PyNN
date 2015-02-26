@@ -269,7 +269,7 @@ class ParameterSpace(object):
                     self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
                 except (TypeError, errors.InvalidParameterValueError):
-                    raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, type(value), expected_dtype))
+                    raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
                 except ValueError as err:
                     raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray
         else:
