@@ -7,5 +7,6 @@ include examples/*.py
 include doc/*.txt
 include LICENSE
 include AUTHORS
+include README.rst
 include changelog
 
