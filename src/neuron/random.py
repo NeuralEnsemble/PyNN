@@ -27,7 +27,7 @@ class NativeRNG(NativeRNG, WrappedRNG):
         #'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
         #'normal_clipped_to_boundary':
         #                  ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
-        'poisson':        ('poisson',      ('lambda',)),
+        'poisson':        ('poisson',      ('lambda_',)),
         'uniform':        ('uniform',      ('low', 'high')),
         'uniform_int':    ('discunif',     ('low', 'high')),
         #'vonmises':       ('vonmises',     {'mu': 'mu', 'kappa': 'kappa'}),
