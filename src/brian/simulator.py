@@ -22,6 +22,7 @@ modules.
 
 import logging
 import brian
+import numpy
 from pyNN import common
 
 name = "Brian"
@@ -44,6 +45,7 @@ class State(common.control.BaseState):
         self.mpi_rank = 0
         self.num_processes = 1
         self.network = None
+        self._min_delay = 'auto'
         self.clear()
     
     def run(self, simtime):
@@ -90,5 +92,21 @@ class State(common.control.BaseState):
     @property
     def t(self):
         return float(self.network.clock.t/ms)
+
+    def _get_min_delay(self):
+        if self._min_delay == 'auto':
+            min_delay = numpy.inf
+            for item in self.network.groups:
+                if isinstance(item, brian.Synapses):
+                    min_delay = min(min_delay, item.delay.to_matrix().min())
+            if numpy.isinf(min_delay):
+                self._min_delay = self.dt
+            else:
+                self._min_delay = min_delay * self.dt  # Synapses.delay is an integer, the number of time steps
+        return self._min_delay
+    def _set_min_delay(self, delay):
+        self._min_delay = delay
+    min_delay = property(fget=_get_min_delay, fset=_set_min_delay)
+
 
 state = State()

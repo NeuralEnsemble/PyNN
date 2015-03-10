@@ -68,7 +68,9 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
              y *= exp(-(t - lastupdate)/tau_syn)
              x = 1 - y - z
              u *= exp(-(t - lastupdate)/tau_facil)
-             u = max(u + U*(1-u), U)
+             u += U*(1-u)
+             mask = u > U
+             u[mask] = U[mask]
              %(syn_var)s += weight*x*u
              y += x*u
              '''
