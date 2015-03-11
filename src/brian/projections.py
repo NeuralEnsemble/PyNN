@@ -10,7 +10,7 @@ import brian
 from brian import uS, nA, mV, ms
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
-from pyNN.core import ezip
+from pyNN.core import ezip, is_listlike
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
@@ -136,6 +136,7 @@ class Projection(common.Projection):
         for i_group, i in enumerate(presynaptic_index_partitions):
             if i.size > 0:
                 self._brian_synapses[i_group][j_group][i, j] = True
+                self._n_connections += i.size
         # set connection parameters
         for name, value in chain(connection_parameters.items(),
                                  self.synapse_type.initial_conditions.items()):
@@ -146,8 +147,13 @@ class Projection(common.Projection):
             for i_group, i in enumerate(presynaptic_index_partitions):
                 if i.size > 0:
                     brian_var = getattr(self._brian_synapses[i_group][j_group], name)
-                    brian_var[i, j] = value  # doesn't work with multiple connections between a given neuron pair. Need to understand the internals of Synapses and SynapticVariable better
-                    self._n_connections += i.size
+                    if is_listlike(value):
+                        for ii, v in zip(i, value):
+                            brian_var[ii, j] = v
+                    else:
+                        for ii in i:
+                            brian_var[ii, j] = value
+                    ##brian_var[i, j] = value  # doesn't work with multiple connections between a given neuron pair. Need to understand the internals of Synapses and SynapticVariable better
 
     def _set_attributes(self, connection_parameters):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
@@ -155,7 +161,6 @@ class Projection(common.Projection):
         syn_obj = self._brian_synapses[0][0]
         connection_parameters.evaluate()  # inefficient: would be better to evaluate using mask
         for name, value in connection_parameters.items():
-            print("@@@@", name, value)
             value = value.T
             filtered_value = value[syn_obj.postsynaptic, syn_obj.presynaptic]
             setattr(syn_obj, name, filtered_value)
