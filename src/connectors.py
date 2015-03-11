@@ -209,7 +209,7 @@ class MapConnector(Connector):
 
                 if local:
                     # Connect the neurons
-                    logger.debug("Connecting to %d from %s" % (col, source_mask))
+                    #logger.debug("Connecting to %d from %s" % (col, source_mask))
                     projection._convergent_connect(source_mask, col, **connection_parameters)
                     if self.callback:
                         self.callback(count/projection.post.local_size)
@@ -463,14 +463,22 @@ class FromListConnector(Connector):
         """
         Create a new connector.
         """
-        # needs extending for dynamic synapses.
         Connector.__init__(self, safe=safe, callback=callback)
         self.conn_list = numpy.array(conn_list)
-        self.column_names = column_names or ('weight', 'delay')
         if len(conn_list) > 0:
-            if len(conn_list[0]) != len(self.column_names) + 2:
+            n_columns = self.conn_list.shape[1]
+        if column_names is None:
+            if n_columns == 2:
+                self.column_names = ()
+            elif n_columns == 4:
+                self.column_names = ('weight', 'delay')
+            else:
+                raise TypeError("Argument 'column_names' is required.")
+        else:
+            self.column_names = column_names
+            if n_columns != len(self.column_names) + 2:
                 raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
-                                 len(conn_list[0]) - 2, len(self.column_names)))
+                                 n_columns - 2, len(self.column_names)))
 
     def connect(self, projection):
         """Connect-up a Projection."""
