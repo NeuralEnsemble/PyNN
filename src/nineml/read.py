@@ -236,7 +236,7 @@ class Network(object):
 
     def _build_population(self, nineml_population):
         ##assert isinstance(nineml_population.cell, nineml.SpikingNodeType)  # to implement in NineML library
-        n = nineml_population.number
+        n = nineml_population.size
         if nineml_population.positions is not None:
             pyNN_structure = _build_structure(nineml_population.positions.structure)
         else:
