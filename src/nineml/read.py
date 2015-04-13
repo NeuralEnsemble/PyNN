@@ -55,11 +55,11 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
     RandomDistribution objects into PyNN RandomDistribution objects.
     """
     P = {}
-    for name, p in getattr(nineml_component, resolve).items():
+    for p in getattr(nineml_component, resolve):
         if qualified_names:
-            qname = "%s_%s" % (nineml_component.name, name)
+            qname = "%s_%s" % (nineml_component.name, p.name)
         else:
-            qname = name
+            qname = p.name
         if isinstance(p.value, nineml.RandomDistribution):
             rd = p.value
             if rd.name in random_distributions:

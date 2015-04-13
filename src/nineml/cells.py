@@ -95,7 +95,7 @@ class build_nineml_celltype(type):
         #flat_component.backsub_equations()
 
         # Close any open reduce ports:
-        modifiers.DynamicsModifier.close_all_reduce_ports(componentclass=flat_component)
+        modifiers.DynamicPortModifier.close_all_reduce_ports(componentclass=flat_component)
 
         # New:
         dct["combined_model"] = flat_component
