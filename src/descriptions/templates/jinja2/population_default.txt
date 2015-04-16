@@ -1,7 +1,7 @@
-Population "{{label}}"
+Population "{{label}}"{%- if structure %}
     Structure   : {{structure.name}}
       {%- for name,value in structure.parameters.items() %}
-      {{name}}: {{value}}{% endfor %}
+      {{name}}: {{value}}{% endfor %}{% endif -%}
     Local cells : {{size_local}}
     Cell type   : {{celltype.name}}
     ID range    : {{first_id}}-{{last_id}}

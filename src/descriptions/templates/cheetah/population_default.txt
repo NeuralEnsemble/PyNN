@@ -1,8 +1,10 @@
 Population "$label"
+    #if $structure
     Structure   : $structure.name
       #for $name,$value in $structure.parameters.items()
       $name: $value
       #end for
+    #end if
     Local cells : $size_local
     Cell type   : $celltype.name
     ID range    : $first_id-$last_id
