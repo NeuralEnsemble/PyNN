@@ -14,7 +14,7 @@
           </StateAssignment>
         </OnEvent>
         <OnCondition target_regime="delay">
-          <EventOut port="spikeoutput"/>
+          <OutputEvent port="spikeoutput"/>
           <Trigger>
             <MathInline>t &gt;= t_delivery</MathInline>
           </Trigger>

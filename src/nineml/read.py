@@ -41,10 +41,10 @@ def scale(quantity):
         'nA': 1,
         'Mohm': 1,  ## ??
         'unknown': 1,
-        #'dimensionless': 1,
+        'unitless': 1,
     }
-    if quantity.unit:
-        return quantity.value * factors[quantity.unit.name]
+    if quantity.units:
+        return quantity.value * factors[quantity.units.name]
     else:  # dimensionless
         return quantity.value
 
@@ -55,11 +55,11 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
     RandomDistribution objects into PyNN RandomDistribution objects.
     """
     P = {}
-    for name, p in getattr(nineml_component, resolve).items():
+    for p in getattr(nineml_component, resolve):
         if qualified_names:
-            qname = "%s_%s" % (nineml_component.name, name)
+            qname = "%s_%s" % (nineml_component.name, p.name)
         else:
-            qname = name
+            qname = p.name
         if isinstance(p.value, nineml.RandomDistribution):
             rd = p.value
             if rd.name in random_distributions:
@@ -236,7 +236,7 @@ class Network(object):
 
     def _build_population(self, nineml_population):
         ##assert isinstance(nineml_population.cell, nineml.SpikingNodeType)  # to implement in NineML library
-        n = nineml_population.number
+        n = nineml_population.size
         if nineml_population.positions is not None:
             pyNN_structure = _build_structure(nineml_population.positions.structure)
         else:

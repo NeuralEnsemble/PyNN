@@ -21,7 +21,7 @@
           <StateAssignment variable="t_spike">
             <MathInline>t_spike + random.exponential(rate)</MathInline>
           </StateAssignment>
-          <EventOut port="spike_output"/>
+          <OutputEvent port="spike_output"/>
           <Trigger>
             <MathInline>t &gt;= t_spike</MathInline>
           </Trigger>
