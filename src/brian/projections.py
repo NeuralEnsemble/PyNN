@@ -7,13 +7,14 @@ from collections import defaultdict
 import math
 import numpy
 import brian
-from brian import uS, nA, mV
+from brian import uS, nA, mV, ms
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
-from pyNN.core import ezip
+from pyNN.core import ezip, is_listlike
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
+from .standardmodels.synapses import StaticSynapse
 
 
 class Connection(object):
@@ -37,9 +38,10 @@ class Connection(object):
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
+    _static_synapse_class = StaticSynapse
 
     def __init__(self, presynaptic_population, postsynaptic_population,
-                 connector, synapse_type, source=None, receptor_type=None,
+                 connector, synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
@@ -127,7 +129,6 @@ class Projection(common.Projection):
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
-        print self.pre, self.post, presynaptic_indices, postsynaptic_index
         connection_parameters.pop("dendritic_delay_fraction", None)  # TODO: need to to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
         j_group, j = self._localize_index(postsynaptic_index)
@@ -135,41 +136,72 @@ class Projection(common.Projection):
         for i_group, i in enumerate(presynaptic_index_partitions):
             if i.size > 0:
                 self._brian_synapses[i_group][j_group][i, j] = True
-        #print("CONNECTING", presynaptic_indices, postsynaptic_index, connection_parameters, presynaptic_index_partitions)
+                self._n_connections += i.size
         # set connection parameters
         for name, value in chain(connection_parameters.items(),
                                  self.synapse_type.initial_conditions.items()):
+            if name == 'delay':
+                scale = self._simulator.state.dt * ms
+                value /= scale                         # ensure delays are rounded to the
+                value = numpy.round(value) * scale     # nearest time step, rather than truncated
             for i_group, i in enumerate(presynaptic_index_partitions):
                 if i.size > 0:
                     brian_var = getattr(self._brian_synapses[i_group][j_group], name)
-                    brian_var[i, j] = value  # units? don't we need to slice value to the appropriate size?
-                    self._n_connections += i.size
+                    if is_listlike(value):
+                        for ii, v in zip(i, value):
+                            brian_var[ii, j] = v
+                    else:
+                        for ii in i:
+                            brian_var[ii, j] = value
+                    ##brian_var[i, j] = value  # doesn't work with multiple connections between a given neuron pair. Need to understand the internals of Synapses and SynapticVariable better
 
     def _set_attributes(self, connection_parameters):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
-        connection_parameters.evaluate()
+        syn_obj = self._brian_synapses[0][0]
+        connection_parameters.evaluate()  # inefficient: would be better to evaluate using mask
         for name, value in connection_parameters.items():
-            print("@@@@", name, value)
-            filtered_value = numpy.extract(1 - numpy.isnan(value), value)
-            setattr(self._brian_synapses[0][0], name, filtered_value)
+            value = value.T
+            filtered_value = value[syn_obj.postsynaptic, syn_obj.presynaptic]
+            setattr(syn_obj, name, filtered_value)
     
     def _get_attributes_as_arrays(self, *attribute_names):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         values = []
         for name in attribute_names:
-            values.append(getattr(self._brian_synapses[0][0], name).to_matrix())
+            value = getattr(self._brian_synapses[0][0], name).to_matrix(multiple_synapses='sum')
+            if name == 'delay':
+                value *= self._simulator.state.dt * ms
+            ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=(value.shape)))  # should really use the translated name
+            ps.evaluate()
+            value = ps[name]
+            values.append(value)
+        # todo: implement parameter translation
         return values  # should put NaN where there is no connection?
 
     def _get_attributes_as_list(self, *attribute_names):
+        if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
+            raise NotImplementedError
         values = []
         for name in attribute_names:
             if name == "presynaptic_index":
-                raise NotImplementedError
+                value = self._brian_synapses[0][0].presynaptic
             elif name == "postsynaptic_index":
-                raise NotImplementedError
-            values.append(getattr(self._brian_synapses[0][0], name).data.tolist())
+                value = self._brian_synapses[0][0].postsynaptic
+            else:
+                data_obj = getattr(self._brian_synapses[0][0], name).data
+                if hasattr(data_obj, "tolist"):
+                    value = data_obj
+                else:
+                    assert name == 'delay'
+                    value = data_obj.data * self._simulator.state.dt * ms
+                ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=(value.shape)))  # should really use the translated name
+                # this whole "get attributes" thing needs refactoring in all backends to properly use translation
+                ps.evaluate()
+                value = ps[name]
+            #value = value.tolist()
+            values.append(value)
         a = numpy.array(values)
         return [tuple(x) for x in a.T]
 

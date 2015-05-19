@@ -113,14 +113,25 @@ def normalize_variables_arg(variables):
         return variables
 
 
+def safe_makedirs(dir):
+    """
+    Version of makedirs not subject to race condition when using MPI.
+    """
+    if dir and not os.path.exists(dir):
+        try:
+            os.makedirs(dir)
+        except OSError as e:
+            if e.errno != 17:
+                raise
+
+
 def get_io(filename):
     """
     Return a Neo IO instance, guessing the type based on the filename suffix.
     """
     logger.debug("Creating Neo IO for filename %s" % filename)
     dir = os.path.dirname(filename)
-    if dir and not os.path.exists(dir):
-        os.makedirs(dir)
+    safe_makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
         raise IOError("ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")

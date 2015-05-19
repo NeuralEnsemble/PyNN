@@ -139,16 +139,24 @@ class Projection(object):
         Each attribute value may be:
             (1) a single number
             (2) a RandomDistribution object
-            (3) a list/1D array of the same length as the number of local connections
-            (4) a 2D array with the same dimensions as the connectivity matrix
+            (3) a 2D array with the same dimensions as the connectivity matrix
                 (as returned by `get(format='array')`
-            (5) a mapping function, which accepts a single float argument (the
+            (4) a mapping function, which accepts a single float argument (the
                 distance between pre- and post-synaptic cells) and returns a single value.
 
         Weights should be in nA for current-based and µS for conductance-based
         synapses. Delays should be in milliseconds.
+
+        Note that where a projection contains multiple connections between a given pair
+        of neurons, all these connections will be set to the same value.
         """
         # should perhaps add a "distribute" argument, for symmetry with "gather" in get()
+
+        # Note: we have removed the option:
+        #      "a list/1D array of the same length as the number of local connections"
+        # because it was proving tricky to implement and was holding up the release.
+        # The plan is to add this option back at a later date.
+
         attributes = self._value_list_to_array(attributes)
         parameter_space = ParameterSpace(attributes,
                                          self.synapse_type.get_schema(),

@@ -112,6 +112,7 @@ For each cell model, you must also define a cell type:
         default_initial_values = {'v': -65.0}
         recordable = ['soma(0.5).v', 'soma(0.5).ina']
         units = {'soma(0.5).v' : 'mV', 'soma(0.5).ina': 'nA'}
+        receptor_types = ['soma.ampa']
         model = SimpleNeuron
 
 The requirement to explicitly list all variables you might wish to record in the
@@ -126,7 +127,8 @@ It is now straightforward to use this cell type in PyNN:
     setup()
     p1 = Population(10, SimpleNeuronType(g_leak=0.0003))
     p1.record('soma(0.5).ina')
-    prj = Projection(p1, p1, AllToAllConnector(), receptor_type='soma.ampa')
+    syn = StaticSynapse(weight=0.01, delay=0.5)
+    prj = Projection(p1, p1, AllToAllConnector(), syn, receptor_type='soma.ampa')
     run(100.0)
     output = p1.get_data()
 

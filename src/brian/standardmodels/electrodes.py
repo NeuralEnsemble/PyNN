@@ -134,8 +134,12 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
         self._generate()
 
     def _generate(self):
-        self.times      = [0.0, self.start, self.stop]
-        self.amplitudes = [0.0, self.amplitude, 0.0]
+        if self.start == 0:
+            self.times      = [self.start, self.stop]
+            self.amplitudes = [self.amplitude, 0.0]
+        else:
+            self.times      = [0.0, self.start, self.stop]
+            self.amplitudes = [0.0, self.amplitude, 0.0]
 
 
 class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
