@@ -17,7 +17,7 @@ Functions:
 
 """
 
-from __future__ import print_function
+from __future__ import print_function, division
 # If there is a settings.py file on the path, defaults will be
 # taken from there.
 try:
@@ -357,6 +357,18 @@ class ProgressBar(object):
 
     def __call__(self, level):
         self.set_level(level)
+
+
+class SimulationProgressBar(ProgressBar):
+
+    def __init__(self, interval, t_stop, char="#", mode="fixed"):
+        super(SimulationProgressBar, self).__init__(width=int(t_stop/interval), char=char, mode=mode)
+        self.interval = interval
+        self.t_stop = t_stop
+
+    def __call__(self, t):
+        self.set_level(t/self.t_stop)
+        return t + self.interval
 
 
 def assert_arrays_equal(a, b):
