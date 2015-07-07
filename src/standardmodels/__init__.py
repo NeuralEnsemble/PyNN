@@ -79,14 +79,17 @@ class StandardModelType(models.BaseModelType):
         for name in parameters.keys():
             D = self.translations[name]
             pname = D['translated_name']
-            try:
-                pval = eval(D['forward_transform'], globals(), _parameters)
-            except NameError as errmsg:
-                raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
-                                % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
-            except ZeroDivisionError:
-                raise
-                #pval = 1e30 # this is about the highest value hoc can deal with
+            if callable(D['forward_transform']):
+                pval = D['forward_transform'](**_parameters)
+            else:
+                try:
+                    pval = eval(D['forward_transform'], globals(), _parameters)
+                except NameError as errmsg:
+                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                                    % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
+                except ZeroDivisionError:
+                    raise
+                    #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
@@ -97,11 +100,14 @@ class StandardModelType(models.BaseModelType):
         for name,D  in self.translations.items():
             tname = D['translated_name']
             if tname in native_parameters.keys():
-                try:
-                    standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-                except NameError as errmsg:
-                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
-                                    % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
+                if callable(D['reverse_transform']):
+                    standard_parameters[name] = D['reverse_transform'](**native_parameters)
+                else:
+                    try:
+                        standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
+                    except NameError as errmsg:
+                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                                        % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
 
     def simple_parameters(self):
@@ -112,7 +118,9 @@ class StandardModelType(models.BaseModelType):
     def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
-        return [name for name in self.translations if "float" in self.translations[name]['forward_transform']]
+        def scaling(trans):
+            return (not callable(trans)) and ("float" in trans)
+        return [name for name in self.translations if scaling(self.translations[name]['forward_transform'])]
 
     def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
