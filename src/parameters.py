@@ -131,6 +131,34 @@ class Sequence(object):
         """Return the maximum value from the sequence."""
         return self.value.max()
 
+    def __add__(self, val):
+        """
+        Return a new :class:`Sequence` in which all values in the original
+        :class:`Sequence` have `val` added to them.
+
+        If `val` is itself an array, return an array of :class:`Sequence`
+        objects, where sequence `i` is the original sequence added to
+        element `i` of val.
+        """
+        if hasattr(val, '__len__'):
+            return numpy.array([Sequence(self.value + x) for x in val], dtype=Sequence) # reshape if necessary?
+        else:
+            return Sequence(self.value + val)
+
+    def __sub__(self, val):
+        """
+        Return a new :class:`Sequence` in which all values in the original
+        :class:`Sequence` have `val` subtracted from them.
+
+        If `val` is itself an array, return an array of :class:`Sequence`
+        objects, where sequence `i` is the original sequence with
+        element `i` of val subtracted from it.
+        """
+        if hasattr(val, '__len__'):
+            return numpy.array([Sequence(self.value - x) for x in val], dtype=Sequence) # reshape if necessary?
+        else:
+            return Sequence(self.value - val)
+
     def __mul__(self, val):
         """
         Return a new :class:`Sequence` in which all values in the original
