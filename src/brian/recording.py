@@ -56,7 +56,7 @@ class Recorder(recording.Recorder):
         #update StateMonitor.record and StateMonitor.recordindex
         if not variable is 'spikes':
             device = self._devices[variable]
-            device.record = numpy.fromiter(self.recorded[variable], dtype=int) - self.population.first_id
+            device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             device.recordindex = dict((i,j) for i,j in zip(device.record,
                                                            range(len(device.record))))
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
