@@ -42,7 +42,7 @@ STATE {
 }
 
 BREAKPOINT {
-    SOLVE states METHOD cnexp  : derivimplicit
+    SOLVE states METHOD derivimplicit
     i = -Cm * (0.04*v*v + 5*v + 140 - u)
     :printf("t=%f, v=%f u=%f, i=%f, dv=%f, du=%f\n", t, v, u, i, 0.04*v*v + 5*v + 140 - u, a*(b*v-u))
 }
