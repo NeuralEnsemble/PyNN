@@ -7,10 +7,12 @@ Standard cells for nest
 """
 
 from pyNN.standardmodels import cells, build_translations
- 
+from .. import simulator
+
+
 class IF_curr_alpha(cells.IF_curr_alpha):
 
-    __doc__ = cells.IF_curr_alpha.__doc__    
+    __doc__ = cells.IF_curr_alpha.__doc__
 
     translations = build_translations(
         ('v_rest',     'E_L'),
@@ -232,15 +234,37 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     }
 
 
+def adjust_spike_times_forward(spike_times):
+    """
+    Since this cell type requires parrot neurons, we have to adjust the
+    spike times to account for the transmission delay from device to
+    parrot neuron.
+    """
+    # todo: emit warning if any times become negative
+    return spike_times - simulator.state.min_delay
+
+
+def adjust_spike_times_backward(spike_times):
+    """
+    Since this cell type requires parrot neurons, we have to adjust the
+    spike times to account for the transmission delay from device to
+    parrot neuron.
+    """
+    return spike_times + simulator.state.min_delay
+
+
 class SpikeSourceArray(cells.SpikeSourceArray):
-    
+
     __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
-        ('spike_times', 'spike_times'),
+        ('spike_times', 'spike_times',
+         adjust_spike_times_forward,
+         adjust_spike_times_backward),
     )
     nest_name = {"on_grid": 'spike_generator',
                  "off_grid": 'spike_generator'}
+    uses_parrot = True
     always_local = True
 
 

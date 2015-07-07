@@ -98,7 +98,7 @@ def issue259(sim):
     A test that retrieving data with "clear=True" gives correct spike trains.
     """
     sim.setup(timestep=0.05, spike_precision="off_grid")
-    p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.025, 10.025, 12.34, 1000.025]))
+    p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.075, 10.025, 12.34, 1000.025]))
     p.record('spikes')
     sim.run(10.0)
     spiketrains0 = p.get_data('spikes', clear=True).segments[0].spiketrains
@@ -111,8 +111,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.025])*pq.ms, 1e-17)
-    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-17)
+    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.075])*pq.ms, 1e-17)
+    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-14)
     assert_equal(spiketrains2[0].size, 0)
 
 

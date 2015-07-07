@@ -43,11 +43,13 @@ class PopulationMixin(object):
         ids = self.local_cells.tolist()
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
-        parameter_array = numpy.array(nest.GetStatus(ids, names))
-        parameter_dict = dict((name, simplify(parameter_array[:, col]))
-                              for col, name in enumerate(names))
-        if "spike_times" in parameter_dict: # hack
-            parameter_dict["spike_times"] = [Sequence(value) for value in parameter_dict["spike_times"]]
+
+        if "spike_times" in names:
+            parameter_dict = {"spike_times": [Sequence(value) for value in nest.GetStatus(ids, names)]}
+        else:
+            parameter_array = numpy.array(nest.GetStatus(ids, names))
+            parameter_dict = dict((name, simplify(parameter_array[:, col]))
+                                  for col, name in enumerate(names))
         return ParameterSpace(parameter_dict, shape=(self.local_size,))
 
 
@@ -126,9 +128,12 @@ class Population(common.Population, PopulationMixin):
             raise #errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-            self.all_cells_source = numpy.array(self.all_cells)  # we put the parrots into all_cells, since this will
-            self.all_cells = nest.Create("parrot_neuron", self.size)     # be used for connections and recording. all_cells_source
-            nest.Connect(self.all_cells_source, numpy.array(self.all_cells), 'one_to_one')  # should be used for setting parameters
+            self.all_cells_source = numpy.array(self.all_cells)          # we put the parrots into all_cells, since this will
+            self.all_cells = nest.Create("parrot_neuron_ps", self.size)  # be used for connections and recording. all_cells_source
+                                                                         # should be used for setting parameters
+            nest.Connect(self.all_cells_source, numpy.array(self.all_cells), 'one_to_one',
+                         syn_spec={'delay': simulator.state.dt})  # for efficiency, we should defer this until after network construction,
+                                                         # and use min_delay (at this point, min_delay could be 'auto')
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
