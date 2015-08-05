@@ -773,7 +773,7 @@ class BasePopulation(object):
 
     def get_v(self, gather=True, compatible_output=True):
         """
-        Return a 2-column numpy array containing cell ids and Vm for
+        Return a 3-column numpy array containing cell ids, times and Vm for
         recorded cells.
         """
         return self.recorders['v'].get(gather, compatible_output, self.record_filter)
@@ -784,7 +784,7 @@ class BasePopulation(object):
 
         file should be either a filename or a PyNN File object.
 
-        If compatible_output is True, the format is "t g cell_id",
+        If compatible_output is True, the format is "g_exc g_inh cell_id",
         where cell_id is the index of the cell counting along rows and down
         columns (and the extension of that for 3-D).
         The timestep, first id, last id, and number of data points per cell are
@@ -798,8 +798,8 @@ class BasePopulation(object):
 
     def get_gsyn(self, gather=True, compatible_output=True):
         """
-        Return a 3-column numpy array containing cell ids and synaptic
-        conductances for recorded cells.
+        Return a 4-column numpy array containing cell ids, times and
+        excitatory and inhibitory synaptic conductances for recorded cells.
         """
         return self.recorders['gsyn'].get(gather, compatible_output, self.record_filter)
 
@@ -1458,15 +1458,15 @@ class Assembly(object):
 
     def get_v(self, gather=True, compatible_output=True):
         """
-        Return a 2-column numpy array containing cell ids and Vm for
+        Return a 3-column numpy array containing cell ids, times and Vm for
         recorded cells.
         """
         return self._get_recorded_variable('v', gather, compatible_output, size=1)
 
     def get_gsyn(self, gather=True, compatible_output=True):
         """
-        Return a 3-column numpy array containing cell ids and synaptic
-        conductances for recorded cells.
+        Return a 4-column numpy array containing cell ids, times and
+        inhibitory and excitatory synaptic conductances for recorded cells.
         """
         return self._get_recorded_variable('gsyn', gather, compatible_output, size=2)
 
