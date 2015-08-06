@@ -283,7 +283,7 @@ class Recorder(object):
                             source_ids=source_ids)
                     )
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, channel_indices)
-                    assert segment.analogsignalarrays[0].t_stop - current_time < 2*sampling_period
+                    assert segment.analogsignalarrays[0].t_stop - current_time - 2*sampling_period < 1e-10
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
