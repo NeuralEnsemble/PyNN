@@ -11,6 +11,8 @@ Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
 Setting up a development environment
 ====================================
 
+We strongly suggest you work in a virtual environment, e.g. using virtualenv_ or Anaconda.
+
 Requirements
 ------------
 
@@ -57,13 +59,13 @@ and then you can pull in any upstream changes::
 
 To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
 
-    * using virtualenv_
+    * pip editable mode (`pip install -e /path/to/PyNN`)
     * creating a symbolic link named :file:`pyNN` from somewhere that is already
       on your :envvar:`PYTHONPATH`, such as the :file:`site-packages` directory,
-      to the :file:`pyNN_trunk/src` directory.
+      to the :file:`pyNN_trunk/pyNN` directory.
 
 If you are developing with NEURON, don't forget to compile the NMODL files in
-:file:`src/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
+:file:`pyNN/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
 you modify any of them.
 
 
@@ -182,7 +184,7 @@ last time:
       you should do this on at least two Linux systems and one Mac OS X system.
     * does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-    * have you updated the version numbers in :file:`setup.py`, :file:`src/__init__.py`,
+    * have you updated the version numbers in :file:`setup.py`, :file:`pyNN/__init__.py`,
       :file:`doc/conf.py` and :file:`doc/installation.txt`?
     * have you updated the changelog?
 
