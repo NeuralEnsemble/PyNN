@@ -1,5 +1,5 @@
-include src/neuron/nmodl/*.mod
-include src/descriptions/templates/*/*.txt
+include pyNN/neuron/nmodl/*.mod
+include pyNN/descriptions/templates/*/*.txt
 include test/parameters/*
 include test/system/*.py
 include test/unittests/*.py
