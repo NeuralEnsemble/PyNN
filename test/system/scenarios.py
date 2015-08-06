@@ -604,3 +604,26 @@ def test_get_data_from_populations_views_assemblies(sim):
                                             [2., 5.2],
                                             [2., 6.2]]), 1e-12)
     # Assembly seems to be missing a getSpikes() method so we can't test it!
+
+@register()
+def issue367(sim):
+    # AdEx dynamics for delta_T=0
+    sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
+    v_thresh = -50
+    ifcell = sim.create(sim.EIF_cond_exp_isfa_ista,
+                        dict(delta_T=0.0, i_offset=1.0, v_thresh=v_thresh, v_spike=-45))
+    ifcell.record()
+    ifcell.record_v()
+    ifcell.initialize("v", -70.6)
+    sim.run(100.0)
+
+    # we take the average membrane potential 0.1 ms before the spike and
+    # compare it to the spike threshold
+    spike_times = ifcell.getSpikes()[:, 1]
+    vm = ifcell.get_v()[:, 2]
+    spike_bins = ((spike_times - 0.1)/0.001).astype(int)
+    vm_before_spike = vm[spike_bins]
+    print(sim.__name__, vm_before_spike)
+    assert abs((vm_before_spike.mean() - v_thresh)/v_thresh) < 0.01
+    sim.end()
+issue367.__test__ = False

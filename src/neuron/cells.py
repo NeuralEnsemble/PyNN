@@ -287,7 +287,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     
         # insert Brette-Gerstner spike mechanism
         self.adexp = h.AdExpIF(0.5, sec=self)
-        self.source = self.seg._ref_v
+        self.source = self.adexp
         
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
                                 'i_offset', 'v_reset', 'tau_e', 'tau_i',
