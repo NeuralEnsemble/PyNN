@@ -24,6 +24,7 @@ except NameError:
     basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
+from pyNN.parameters import Sequence
 
 from .backends.registry import register_class, register
 
@@ -486,6 +487,76 @@ class AssemblyTest(unittest.TestCase):
         a.get_data = Mock()
         a.get_gsyn()
         a.get_data.assert_called_with(['gsyn_exc', 'gsyn_inh'], True)
+
+    @register()
+    def test_get_multiple_homogeneous_params_with_gather(self, sim=sim):
+        p1 = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3, 'tau_syn_E': 0.987, 'tau_syn_I': 0.7}))
+        p2 = sim.Population(4, sim.IF_curr_exp(**{'tau_m': 12.3, 'tau_syn_E': 0.987, 'tau_syn_I': 0.7}))
+        a = p1 + p2
+        tau_syn_E, tau_m = a.get(('tau_syn_E', 'tau_m'), gather=True)
+        self.assertIsInstance(tau_syn_E, float)
+        self.assertEqual(tau_syn_E, 0.987)
+        self.assertAlmostEqual(tau_m, 12.3)
+
+    @register()
+    def test_get_single_param_with_gather(self, sim=sim):
+        p1 = sim.Population(4, sim.IF_cond_exp(tau_m=12.3, tau_syn_E=0.987, tau_syn_I=0.7))
+        p2 = sim.Population(3, sim.IF_cond_exp(tau_m=23.4, tau_syn_E=0.987, tau_syn_I=0.7))
+        a = p1 + p2
+        tau_syn_E = a.get('tau_syn_E', gather=True)
+        self.assertAlmostEqual(tau_syn_E, 0.987, places=6)
+        tau_m = a.get('tau_m', gather=True)
+        assert_array_equal(tau_m, numpy.array([12.3, 12.3, 12.3, 12.3, 23.4, 23.4, 23.4]))
+
+    @register()
+    def test_get_multiple_inhomogeneous_params_with_gather(self, sim=sim):
+        p1 = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
+                                               tau_syn_E=[0.987, 0.988, 0.989, 0.990],
+                                               tau_syn_I=lambda i: 0.5+0.1*i))
+        p2 = sim.Population(3, sim.EIF_cond_exp_isfa_ista(tau_m=12.3,
+                                                          tau_syn_E=[0.991, 0.992, 0.993],
+                                                          tau_syn_I=lambda i: 0.5+0.1*(i + 4)))
+        a = p1 + p2
+        tau_syn_E, tau_m, tau_syn_I = a.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
+        self.assertIsInstance(tau_m, float)
+        self.assertIsInstance(tau_syn_E, numpy.ndarray)
+        assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.989, 0.990, 0.991, 0.992, 0.993]))
+        self.assertAlmostEqual(tau_m, 12.3)
+        assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1]), decimal=12)
+
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
+    def test_get_multiple_params_no_gather(self, sim=sim):
+        sim.simulator.state.num_processes = 2
+        sim.simulator.state.mpi_rank = 1
+        p1 = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
+                                               tau_syn_E=[0.987, 0.988, 0.989, 0.990],
+                                               i_offset=lambda i: -0.2*i))
+        p2 = sim.Population(3, sim.IF_curr_exp(tau_m=12.3,
+                                               tau_syn_E=[0.991, 0.992, 0.993],
+                                               i_offset=lambda i: -0.2*(i + 4)))
+        a = p1 + p2
+        tau_syn_E, tau_m, i_offset = a.get(('tau_syn_E', 'tau_m', 'i_offset'), gather=False)
+        self.assertIsInstance(tau_m, float)
+        self.assertIsInstance(tau_syn_E, numpy.ndarray)
+        assert_array_equal(tau_syn_E, numpy.array([0.988, 0.990, 0.992]))
+        self.assertEqual(tau_m, 12.3)
+        assert_array_almost_equal(i_offset, numpy.array([-0.2, -0.6, -1.0, ]), decimal=12)
+        sim.simulator.state.num_processes = 1
+        sim.simulator.state.mpi_rank = 0
+
+    @register()
+    def test_get_sequence_param(self, sim=sim):
+        p1 = sim.Population(3, sim.SpikeSourceArray(spike_times=[Sequence([1, 2, 3, 4]),
+                                                                 Sequence([2, 3, 4, 5]),
+                                                                 Sequence([3, 4, 5, 6])]))
+        p2 = sim.Population(2, sim.SpikeSourceArray(spike_times=[Sequence([4, 5, 6, 7]),
+                                                                 Sequence([5, 6, 7, 8])]))
+        a = p1 + p2
+        spike_times = a.get('spike_times')
+        self.assertEqual(spike_times.size, 5)
+        assert_array_equal(spike_times[3], Sequence([4, 5, 6, 7]))
+
+
 
 
 if __name__ == '__main__':

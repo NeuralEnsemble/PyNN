@@ -20,9 +20,10 @@ try:
 except NameError:
     basestring = str
     from functools import reduce
+from collections import defaultdict
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.models import BaseCellType
-from pyNN.parameters import ParameterSpace, LazyArray
+from pyNN.parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
 from pyNN.recording import files
 
 deprecated = core.deprecated
@@ -258,7 +259,7 @@ class BasePopulation(object):
         logger.debug("%s.sample(%s)", self.label, n)
         return self._get_view(indices)
 
-    def get(self, parameter_names, gather=False):
+    def get(self, parameter_names, gather=False, simplify=True):
         """
         Get the values of the given parameters for every local cell in the
         population, or, if gather=True, for all cells in the population.
@@ -282,7 +283,7 @@ class BasePopulation(object):
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
             parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
-        parameter_space.evaluate(simplify=True) # what if parameter space is homogeneous on some nodes but not on others?
+        parameter_space.evaluate(simplify=simplify) # what if parameter space is homogeneous on some nodes but not on others?
 
         parameters = dict(parameter_space.items())
         if gather == True and self._simulator.state.num_processes > 1:
@@ -1164,18 +1165,33 @@ class Assembly(object):
         for p in self.populations:
             p.initialize(**initial_values)
 
-    def get(self, parameter_names, gather=False):
+    def get(self, parameter_names, gather=False, simplify=True):
         """
         Get the values of the given parameters for every local cell in the
         Assembly, or, if gather=True, for all cells in the Assembly.
         """
         if isinstance(parameter_names, basestring):
             parameter_names = (parameter_names,)
-        # this is broken. Need to (1) separate out parameters (2) handle a potential mix of homogeneous and inhomogeneous values
-        values = []
+            return_list = False
+        else:
+            return_list = True
+
+        parameters = defaultdict(list)
         for p in self.populations:
-            values.extend(p.get(parameter_names, gather))
-        return values
+            population_values = p.get(parameter_names, gather, simplify=False)
+            for name, arr in zip(parameter_names, population_values):
+                parameters[name].append(arr)
+        for name, value_list in parameters.items():
+            parameters[name] = numpy.hstack(value_list)
+            if simplify:
+                parameters[name] = simplify_parameter_array(parameters[name])
+        values = [parameters[name] for name in parameter_names]
+        if return_list:
+            return values
+        else:
+            assert len(parameter_names) == 1
+            return values[0]
+
 
     def set(self, **parameters):
         """
