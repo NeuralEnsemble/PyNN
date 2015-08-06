@@ -11,6 +11,10 @@ import numpy
 import nest
 import logging
 from itertools import repeat
+try:
+    xrange
+except NameError:  # Python 3
+    xrange = range
 from pyNN import common, errors
 from pyNN.space import Space
 from . import simulator

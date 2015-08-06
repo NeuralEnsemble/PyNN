@@ -3,7 +3,7 @@ from __future__ import division
 import numpy
 import quantities as pq
 
-from registry import register
+from .registry import register
 
 @register(exclude=['pcsim', 'moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
@@ -80,7 +80,7 @@ def issue367(sim, plot_figure=False):
         plt.clf()
         plt.plot(vm.times, vm)
         plt.savefig("issue367_%s.png" % sim.__name__)
-    print sim.__name__, vm_before_spike
+    print(sim.__name__, vm_before_spike)
     assert abs((vm_before_spike.mean() - v_thresh)/v_thresh) < 0.01
     sim.end()
     return data

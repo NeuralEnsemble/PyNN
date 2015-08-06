@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.6, 2.7, 3.2, 3.3 or 3.4)
+    * Python (version 2.6, 2.7, 3.3 or 3.4)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
