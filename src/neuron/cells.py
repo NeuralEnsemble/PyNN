@@ -230,9 +230,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         # insert Brette-Gerstner spike mechanism
         self.adexp = h.AdExpIF(0.5, sec=self)
         self.source = self.adexp
-        self.rec = h.NetCon(self.seg._ref_v, None,
-                            self.get_threshold(), 0.0, 0.0,
-                            sec=self)
+        self.rec = h.NetCon(self.source, None)
 
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 'v_thresh', 't_refrac',
                                 'i_offset', 'v_reset', 'tau_e', 'tau_i',
@@ -280,7 +278,10 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             self.rec.record(self.spike_times)
 
     def get_threshold(self):
-        return self.adexp.vspike
+        if self.delta == 0:
+            return self.adexp.vthresh
+        else:
+            return self.adexp.vspike
 
     def memb_init(self):
         assert self.v_init is not None, "cell is a %s" % self.__class__.__name__

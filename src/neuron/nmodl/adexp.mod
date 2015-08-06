@@ -54,6 +54,7 @@ ASSIGNED {
     iexp (nA)
     grefrac (uS)
     refractory
+    spike_threshold (mV)
 }
 
 STATE {
@@ -64,19 +65,33 @@ INITIAL {
     grefrac = 0
     net_send(0,4)
     w = winit
+    if (delta == 0) {
+        spike_threshold = vthresh
+    } else {
+        spike_threshold = vspike
+    }
 }
 
 BREAKPOINT {
-    SOLVE states METHOD cnexp   :derivimplicit
+    SOLVE states METHOD derivimplicit  : cnexp
     irefrac = grefrac*(v-vreset)
-    iexp = - GL*delta*exp((v-vthresh)/delta)
+    iexp = exp_current(v)
     i = iexp + w + irefrac
     :printf("BP: t = %f  dt = %f  v = %f  w = %f  irefrac = %f  iexp = %f  i = %f\n", t, dt, v, w, irefrac, iexp, i)
 }
 
-
 DERIVATIVE states {		: solve eq for adaptation variable
     w' = (a*(v-EL) - w)/tauw
+}
+
+FUNCTION exp_current(v) {  : handle the case where delta is 0 or very small
+    if (delta == 0) {
+        exp_current = 0
+    } else if ((v - vthresh)/delta > 100) {
+        exp_current = -exp(99)
+    } else {
+        exp_current = -GL*delta*exp((v-vthresh)/delta)
+    }
 }
 
 NET_RECEIVE (weight) {
@@ -100,6 +115,6 @@ NET_RECEIVE (weight) {
         grefrac = 0
         :printf("end_refrac: t = %f  v = %f   w = %f   i = %f\n", t, v, w, i)
     } else if (flag == 4) { : watch membrane potential
-        WATCH (v > vspike) 1
+        WATCH (v > spike_threshold) 1
     }
 }

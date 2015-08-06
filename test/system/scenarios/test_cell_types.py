@@ -1,4 +1,5 @@
 
+from __future__ import division
 import numpy
 import quantities as pq
 
@@ -56,11 +57,41 @@ def test_HH_cond_exp(sim, plot_figure=False):
 test_HH_cond_exp.__test__ = False
 
 
+@register()
+def issue367(sim, plot_figure=False):
+    # AdEx dynamics for delta_T=0
+    sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
+    v_thresh = -50
+    ifcell = sim.create(sim.EIF_cond_exp_isfa_ista(
+                        delta_T=0.0, i_offset=1.0, v_thresh=v_thresh, v_spike=-45))
+    ifcell.record(('spikes', 'v'))
+    ifcell.initialize(v=-70.6)
+    sim.run(100.0)
+    data = ifcell.get_data().segments[0]
+
+    # we take the average membrane potential 0.1 ms before the spike and
+    # compare it to the spike threshold
+    spike_times = data.spiketrains[0]
+    vm = data.analogsignalarrays[0]
+    spike_bins = ((spike_times - 0.1*pq.ms)/vm.sampling_period).magnitude.astype(int)
+    vm_before_spike = vm.magnitude[spike_bins]
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        plt.plot(vm.times, vm)
+        plt.savefig("issue367_%s.png" % sim.__name__)
+    print sim.__name__, vm_before_spike
+    assert abs((vm_before_spike.mean() - v_thresh)/v_thresh) < 0.01
+    sim.end()
+    return data
+issue367.__test__ = False
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
-    test_IF_cond_exp(sim, plot_figure=args.plot_figure)
     test_EIF_cond_alpha_isfa_ista(sim, plot_figure=args.plot_figure)
     test_HH_cond_exp(sim, plot_figure=args.plot_figure)
+    issue367(sim, plot_figure=args.plot_figure)
