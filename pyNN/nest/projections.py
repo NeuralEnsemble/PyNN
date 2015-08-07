@@ -76,24 +76,31 @@ class Projection(common.Projection):
         return nest.GetDefaults(self.nest_synapse_model)['num_connections']
 
     @property
-    def connections(self):
+    def nest_connections(self):
         if self._connections is None:
             self._sources = numpy.unique(self._sources)
             self._connections = nest.GetConnections(self._sources.tolist(), synapse_model=self.nest_synapse_model)
         return self._connections
+
+    @property
+    def connections(self):
+        """
+        Returns an iterator over local connections in this projection, as `Connection` objects.
+        """
+        return (simulator.Connection(self, i) for i in range(len(self)))
 
     def _set_tsodyks_params(self):
         if 'tsodyks' in self.nest_synapse_model:  # there should be a better way to do this. In particular, if the synaptic time constant is changed
                                             # after creating the Projection, tau_psc ought to be changed as well.
             assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
-            targets = nest.GetStatus(self.connections, 'target')
+            targets = nest.GetStatus(self.nest_connections, 'target')
             if self.synapse_type == 'inhibitory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.synapse_type == 'excitatory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
             tau_syn = nest.GetStatus(targets, (param_name))
-            nest.SetStatus(self.connections, 'tau_psc', tau_syn)
+            nest.SetStatus(self.nest_connections, 'tau_psc', tau_syn)
 
     def _connect(self, rule_params, syn_params):
         """
@@ -253,7 +260,7 @@ class Projection(common.Projection):
     #    if isinstance(file, basestring):
     #        file = recording.files.StandardTextFile(file, mode='w')
     #
-    #    lines   = nest.GetStatus(self.connections, ('source', 'target', 'weight', 'delay'))
+    #    lines   = nest.GetStatus(self.nest_connections, ('source', 'target', 'weight', 'delay'))
     #    if gather == True and simulator.state.num_processes > 1:
     #        all_lines = { simulator.state.mpi_rank: lines }
     #        all_lines = recording.gather_dict(all_lines)
@@ -281,7 +288,7 @@ class Projection(common.Projection):
                 nest_names.append('target')
             else:
                 nest_names.append(name)
-        values = nest.GetStatus(self.connections, nest_names)
+        values = nest.GetStatus(self.nest_connections, nest_names)
         if 'weight' in names:  # other attributes could also have scale factors - need to use translation mechanisms
             values = numpy.array(values)  # ought to preserve int type for source, target
             scale_factors = numpy.ones(len(names))
@@ -308,7 +315,7 @@ class Projection(common.Projection):
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
                 attribute_name = attribute_name[:-1]
             value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-            connection_attributes = nest.GetStatus(self.connections, ('source', 'target', attribute_name))
+            connection_attributes = nest.GetStatus(self.nest_connections, ('source', 'target', attribute_name))
             for conn in connection_attributes:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn

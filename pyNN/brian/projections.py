@@ -1,3 +1,4 @@
+# encoding: utf-8
 """
 
 """
@@ -17,18 +18,36 @@ from . import simulator
 from .standardmodels.synapses import StaticSynapse
 
 
-class Connection(object):
+class Connection(common.Connection):
     """
     Store an individual plastic connection and information about it. Provide an
     interface that allows access to the connection's weight, delay and other
     attributes.
     """
 
-    def __init__(self, pre, post, **attributes):
-        self.presynaptic_index = pre
-        self.postsynaptic_index = post
-        for name, value in attributes.items():
-            setattr(self, name, value)
+    def __init__(self, projection, i_group, j_group, index):
+        self.projection = projection
+        self.i_group = i_group
+        self.j_group = j_group
+        self.index = index
+
+    # todo: implement translation properly
+    def _set_weight(self, w):
+        self.projection._brian_synapses[self.i_group][self.j_group].weight[self.index] = w * 1e-6
+
+    def _get_weight(self):
+        """Synaptic weight in nA or µS."""
+        return self.projection._brian_synapses[self.i_group][self.j_group].weight[self.index] * 1e6
+
+    def _set_delay(self, d):
+        self.projection._brian_synapses[self.i_group][self.j_group].delay[self.index] = d * 1e-3
+
+    def _get_delay(self):
+        """Synaptic delay in ms."""
+        return self.projection._brian_synapses[self.i_group][self.j_group].delay[self.index] * 1e3
+
+    weight = property(_get_weight, _set_weight)
+    delay  = property(_get_delay, _set_delay)
 
     def as_tuple(self, *attribute_names):
         # should return indices, not IDs for source and target
@@ -46,7 +65,6 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self.connections = None
         self._n_connections = 0
         # create one Synapses object per pre-post population pair
         # there will be multiple such pairs if either `presynaptic_population`
@@ -94,6 +112,17 @@ class Projection(common.Projection):
 
     def __len__(self):
         return self._n_connections
+
+    @property
+    def connections(self):
+        """
+        Returns an iterator over local connections in this projection, as `Connection` objects.
+        """
+        return (Connection(self, i_group, j_group, i)
+                for i_group in range(len(self._brian_synapses))
+                for j_group in range(len(self._brian_synapses[i_group]))
+                for i in range(len(self._brian_synapses[i_group][j_group]))
+                )
 
     def _partition(self, indices):
         """

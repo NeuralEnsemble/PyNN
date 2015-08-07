@@ -10,7 +10,7 @@ from pyNN.space import Space
 from . import simulator
 
 
-class Connection(object):
+class Connection(common.Connection):
     """
     Store an individual plastic connection and information about it. Provide an
     interface that allows access to the connection's weight, delay and other

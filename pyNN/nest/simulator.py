@@ -176,7 +176,7 @@ class ID(int, common.IDMixin):
 
 # --- For implementation of connect() and Connector classes --------------------
 
-class Connection(object):
+class Connection(common.Connection):
     """
     Provide an interface that allows access to the connection's weight, delay
     and other attributes.
@@ -195,7 +195,7 @@ class Connection(object):
     def id(self):
         """Return a tuple of arguments for `nest.GetConnection()`.
         """
-        return self.parent.connections[self.index]
+        return self.parent.nest_connections[self.index]
 
     @property
     def source(self):

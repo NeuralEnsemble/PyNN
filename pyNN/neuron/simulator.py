@@ -323,7 +323,7 @@ class ID(int, common.IDMixin):
         setattr(self._cell, "%s_init" % variable, value)
 
 
-class Connection(object):
+class Connection(common.Connection):
     """
     Store an individual plastic connection and information about it. Provide an
     interface that allows access to the connection's weight, delay and other

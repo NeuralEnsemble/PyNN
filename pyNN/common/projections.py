@@ -411,3 +411,12 @@ class Projection(object):
         if self.synapse_type:
             context.update(plasticity=self.synapse_type.describe(template=None))
         return descriptions.render(engine, template, context)
+
+
+class Connection(object):
+    """
+    Store an individual plastic connection and information about it. Provide an
+    interface that allows access to the connection's weight, delay and other
+    attributes.
+    """
+    pass
