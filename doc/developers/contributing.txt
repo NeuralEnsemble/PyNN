@@ -246,7 +246,7 @@ If this is a final release, there are a few more steps:
 .. _matplotlib: http://matplotlib.sourceforge.net/
 .. _virtualenv: http://www.virtualenv.org/
 .. _`bugs marked "minor" in the bug tracker`: https://github.com/NeuralEnsemble/PyNN/issues?labels=minor&state=open
-.. _`issue tracker`: https://neuralensemble.org/trac/PyNN
+.. _`issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues/
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
 .. _contents: http://software.incf.org/software/pynn/pynn/folder_contents

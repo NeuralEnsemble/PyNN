@@ -326,6 +326,6 @@ for Python versions 2.5 and earlier in PyNN 0.8.
 
 
 .. _virtualenv: http://www.virtualenv.org/
-.. _`bug tracker`: https://neuralensemble.org/trac/PyNN/
+.. _`bug tracker`: https://github.com/NeuralEnsemble/PyNN/issues/
 .. _`mailing list`: http://groups.google.com/group/neuralensemble
 .. _Neo: http://neuralensemble.org/neo
