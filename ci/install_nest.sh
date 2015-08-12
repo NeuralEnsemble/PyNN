@@ -2,13 +2,22 @@
 
 set -e  # stop execution in case of errors
 
+export NEST_VERSION="nest-2.6.0"
 pip install cython
-wget http://www.nest-simulator.org/downloads/gplreleases/nest-2.6.0.tar.gz
-tar xzf nest-2.6.0.tar.gz
-mkdir -p build/nest
-cd build/nest
-export VENV=`python -c "import sys; print sys.prefix"`
-../../nest-2.6.0/configure --with-mpi --prefix=$VENV
-make
+if [ ! -d "$HOME/$NEST_VERSION" ]; then
+    wget http://www.nest-simulator.org/downloads/gplreleases/$NEST_VERSION.tar.gz -O $HOME/$NEST_VERSION.tar.gz;
+    pushd $HOME;
+    tar xzf $NEST_VERSION.tar.gz;
+    popd;
+fi
+mkdir -p $HOME/build/$NEST_VERSION
+pushd $HOME/build/$NEST_VERSION
+if [ ! -d "$HOME/build/$NEST_VERSION/config.log" ]; then
+    export VENV=`python -c "import sys; print sys.prefix"`;
+    $HOME/$NEST_VERSION/configure --with-mpi --prefix=$VENV;
+    make;
+else
+    echo 'Using cached NEST build directory.';
+fi
 make install
-cd ../..
+popd
