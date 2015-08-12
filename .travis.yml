@@ -18,12 +18,11 @@ addons:
       - python-numpy
       - openmpi-bin
       - libopenmpi-dev
-# command to install dependencies
 install:
   - source ci/install_nest.sh
   - pip install -r requirements.txt
+  - pip install coverage
   - pip install .
-# command to run tests, e.g. python setup.py test
 script:  bash ci/test_script.sh
 cache:
   directories:

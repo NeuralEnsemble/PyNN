@@ -9,10 +9,12 @@ if [ ! -d "$HOME/$NEST_VERSION" ]; then
     pushd $HOME;
     tar xzf $NEST_VERSION.tar.gz;
     popd;
+else
+    echo 'Using cached version of NEST sources.';
 fi
 mkdir -p $HOME/build/$NEST_VERSION
 pushd $HOME/build/$NEST_VERSION
-if [ ! -d "$HOME/build/$NEST_VERSION/config.log" ]; then
+if [ ! -f "$HOME/build/$NEST_VERSION/config.log" ]; then
     export VENV=`python -c "import sys; print sys.prefix"`;
     $HOME/$NEST_VERSION/configure --with-mpi --prefix=$VENV;
     make;
