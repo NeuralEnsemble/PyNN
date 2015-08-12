@@ -1,13 +1,29 @@
 language: python
 python:
   - "2.7"
-  - "2.6"
-  - "3.3"
-  - "3.4"
 sudo: false
+virtualenv:
+  system_site_packages: true
+addons:
+  apt:
+    packages:
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libltdl7-dev
+      - libreadline6-dev
+      - libncurses5-dev
+      - libgsl0-dev
+      - python-all-dev
+      - python-numpy
+      - openmpi-bin
+      - libopenmpi-dev
 # command to install dependencies
 install:
-  - pip install -r requirements.txt --use-mirrors
-  - pip install . --use-mirrors
+  - source ci/install_nest.sh
+  - pip install -r requirements.txt
+  - pip install .
 # command to run tests, e.g. python setup.py test
-script:  nosetests -w test/unittests -c test/unittests/setup.cfg
+script:  bash ci/test_script.sh
+cache: apt
