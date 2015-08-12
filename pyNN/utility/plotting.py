@@ -51,6 +51,10 @@ def plot_signal(ax, signal, index=None, label='', **options):
     """
     Plot an AnalogSignal or one signal from an AnalogSignalArray.
     """
+    if "ylabel" in options:
+        if options["ylabel"] == "auto":
+            options["ylabel"] = "%s (%s)" % (signal.name,
+                                             signal.units._dimensionality.string)
     handle_options(ax, options)
     if index is None:
         label = "%s (Neuron %d)" % (label, signal.channel_index)
@@ -58,7 +62,6 @@ def plot_signal(ax, signal, index=None, label='', **options):
         label = "%s (Neuron %d)" % (label, signal.channel_index[index])
         signal = signal[:, index]
     ax.plot(signal.times.rescale(ms), signal, label=label, **options)
-    ax.set_ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
     ax.legend()
 
 
@@ -66,12 +69,12 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     """
     Plot all signals in an AnalogSignalArray in a single panel.
     """
+    if "ylabel" in options:
+        if options["ylabel"] == "auto":
+            options["ylabel"] = "%s (%s)" % (signal_array.name,
+                                             signal_array.units._dimensionality.string)
     handle_options(ax, options)
     show_legend = options.pop("legend", True)
-    ax.set_ylabel(
-        options.pop("ylabel",
-                    "%s (%s)" % (signal_array.name,
-                                 signal_array.units._dimensionality.string)))
     for i in signal_array.channel_index.argsort():
         channel = signal_array.channel_index[i]
         signal = signal_array[:, i]
@@ -266,6 +269,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
             for i in array.channel_index.argsort():
                 channel = array.channel_index[i]
                 signal = array[:, i]
+                signal.channel_index = channel  # Neo should do this in the previous line
                 by_var_and_channel[array.name][channel].append(signal)
     # each panel plots the signals for a given variable.
     panels = []
