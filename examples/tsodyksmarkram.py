@@ -47,7 +47,7 @@ synapse_types = {
 populations = {}
 projections = {}
 for label in 'static', 'depressing', 'facilitating':
-    populations[label] = sim.Population(1, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=5.0), label=label)
+    populations[label] = sim.Population(3, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=[1.2, 6.7, 4.3]), label=label)
     populations[label].record(['v', 'gsyn_inh'])
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         receptor_type='inhibitory',
@@ -71,7 +71,8 @@ for label,p in populations.items():
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel
-    figure_filename = filename.replace("pkl", "png")
+    figure_filename = normalized_filename("Results", "tsodyksmarkram",
+                                          "png", options.simulator)
     panels = []
     for variable in ('gsyn_inh', 'v'):
         for population in populations.values():

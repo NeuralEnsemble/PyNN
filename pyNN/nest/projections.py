@@ -57,6 +57,7 @@ class Projection(common.Projection):
 
         # Create connections
         connector.connect(self)
+        self._set_tsodyks_params()
 
     def __getitem__(self, i):
         """Return the `i`th connection on the local MPI node."""
@@ -91,13 +92,13 @@ class Projection(common.Projection):
 
     def _set_tsodyks_params(self):
         if 'tsodyks' in self.nest_synapse_model:  # there should be a better way to do this. In particular, if the synaptic time constant is changed
-                                            # after creating the Projection, tau_psc ought to be changed as well.
-            assert self.synapse_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
+                                              # after creating the Projection, tau_psc ought to be changed as well.
+            assert self.receptor_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
             targets = nest.GetStatus(self.nest_connections, 'target')
-            if self.synapse_type == 'inhibitory':
+            if self.receptor_type == 'inhibitory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
-            if self.synapse_type == 'excitatory':
+            if self.receptor_type == 'excitatory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
             tau_syn = nest.GetStatus(targets, (param_name))
             nest.SetStatus(self.nest_connections, 'tau_psc', tau_syn)
