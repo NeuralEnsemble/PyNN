@@ -3,8 +3,8 @@
 set -e  # stop execution in case of errors
 
 export NEST_VERSION="nest-2.6.0"
-pip install cython
-if [ ! -d "$HOME/$NEST_VERSION" ]; then
+pip install -b $HOME/build/cython cython
+if [ ! -f "$HOME/$NEST_VERSION/configure" ]; then
     wget http://www.nest-simulator.org/downloads/gplreleases/$NEST_VERSION.tar.gz -O $HOME/$NEST_VERSION.tar.gz;
     pushd $HOME;
     tar xzf $NEST_VERSION.tar.gz;
@@ -20,6 +20,10 @@ if [ ! -f "$HOME/build/$NEST_VERSION/config.log" ]; then
     make;
 else
     echo 'Using cached NEST build directory.';
+    echo "$HOME/$NEST_VERSION";
+    ls $HOME/$NEST_VERSION;
+    echo "$HOME/build/$NEST_VERSION";
+    ls $HOME/build/$NEST_VERSION;
 fi
 make install
 popd

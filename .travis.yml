@@ -19,12 +19,17 @@ addons:
       - openmpi-bin
       - libopenmpi-dev
 install:
-  - source ci/install_nest.sh
   - pip install -r requirements.txt
   - pip install coverage
+  - source ci/install_nest.sh
+  - source ci/install_neuron.sh
   - pip install .
 script:  bash ci/test_script.sh
 cache:
   directories:
+    - $HOME/nest-2.6.0
+    - $HOME/nrn-7.4
     - $HOME/build/nest-2.6.0
+    - $HOME/build/nrn-7.4
+    - $HOME/build/cython
     - $HOME/.cache/pip
