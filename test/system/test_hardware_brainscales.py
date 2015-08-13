@@ -7,7 +7,6 @@ import logging
 from pyNN.parameters import Sequence
 from numpy.testing import assert_array_equal
 from numpy import nan_to_num
-from pyNN.utility.plotting import Figure, Panel
 
 try:
     import unittest2 as unittest
@@ -43,6 +42,7 @@ class HardwareTest(unittest.TestCase):
         ifcell  = sim.IF_cond_exp()
 
     def test_SpikeSourceArray(self):
+        from pyNN.utility.plotting import Figure, Panel
         spike_times = [50.]
         p = sim.Population(3, sim.SpikeSourceArray(spike_times=spike_times))
         p2 = sim.Population(3, sim.Hardware_IF_cond_exp())

@@ -60,6 +60,8 @@ def test_ticket235():
 
 
 def test_tsodyks_markram_synapse():
+    if not have_brian:
+        raise SkipTest
     sim = pyNN.brian
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))

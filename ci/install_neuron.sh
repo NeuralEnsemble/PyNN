@@ -24,6 +24,9 @@ make install
 cd src/nrnpython
 python setup.py install
 
+pip install nrnutils  # must be installed after NEURON
+
+# compile PyNN NMODL mechanisms
 cd $VENV/bin;
 ls -l;
 ln -sf ../x86_64/bin/nrnivmodl;
