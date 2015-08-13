@@ -28,8 +28,8 @@ script:  bash ci/test_script.sh
 cache:
   directories:
     - $HOME/nest-2.6.0
-    - $HOME/nrn-7.4
+    - $HOME/nrn-7.3
     - $HOME/build/nest-2.6.0
-    - $HOME/build/nrn-7.4
+    - $HOME/build/nrn-7.3
     - $HOME/build/cython
     - $HOME/.cache/pip
