@@ -4,11 +4,11 @@ import numpy
 from numpy.testing import assert_array_equal
 from scenarios.registry import registry
 
-#try:
-import pyNN.brian
-have_brian = True
-#except ImportError:
-#    have_brian = False
+try:
+    import pyNN.brian
+    have_brian = True
+except ImportError:
+    have_brian = False
 
 def test_scenarios():
     for scenario in registry:

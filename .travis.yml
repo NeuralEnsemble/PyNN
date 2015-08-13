@@ -16,6 +16,7 @@ addons:
       - libgsl0-dev
       - python-all-dev
       - python-numpy
+      - python-scipy
       - python-sympy
       - openmpi-bin
       - libopenmpi-dev
