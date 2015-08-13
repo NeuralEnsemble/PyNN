@@ -3,7 +3,7 @@
 set -e  # stop execution in case of errors
 
 export NEST_VERSION="nest-2.6.0"
-pip install -b $HOME/build/cython cython
+pip install cython
 if [ ! -f "$HOME/$NEST_VERSION/configure" ]; then
     wget http://www.nest-simulator.org/downloads/gplreleases/$NEST_VERSION.tar.gz -O $HOME/$NEST_VERSION.tar.gz;
     pushd $HOME;

@@ -13,8 +13,8 @@ else
 fi
 mkdir -p $HOME/build/$NRN_VERSION
 pushd $HOME/build/$NRN_VERSION
+export VENV=`python -c "import sys; print sys.prefix"`;
 if [ ! -f "$HOME/build/$NRN_VERSION/config.log" ]; then
-    export VENV=`python -c "import sys; print sys.prefix"`;
     $HOME/$NRN_VERSION/configure --with-paranrn --with-nrnpython --prefix=$VENV --without-iv;
     make;
 else
@@ -24,7 +24,12 @@ make install
 cd src/nrnpython
 python setup.py install
 
-cd $VENV/bin
-ln -s ../x86_64/bin/nrnivmodl
+cd $VENV/bin;
+ls -l;
+ln -sf ../x86_64/bin/nrnivmodl;
+
+echo $TRAVIS_BUILD_DIR
+cd $TRAVIS_BUILD_DIR/pyNN/neuron/nmodl
+nrnivmodl
 
 popd

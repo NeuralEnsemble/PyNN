@@ -16,20 +16,23 @@ addons:
       - libgsl0-dev
       - python-all-dev
       - python-numpy
+      - python-sympy
       - openmpi-bin
       - libopenmpi-dev
 install:
   - pip install -r requirements.txt
-  - pip install coverage
+  - pip install brian
+  - pip install coverage coveralls
   - source ci/install_nest.sh
   - source ci/install_neuron.sh
   - pip install .
 script:  bash ci/test_script.sh
+after_success:
+  - coveralls
 cache:
   directories:
     - $HOME/nest-2.6.0
     - $HOME/nrn-7.3
     - $HOME/build/nest-2.6.0
     - $HOME/build/nrn-7.3
-    - $HOME/build/cython
     - $HOME/.cache/pip
