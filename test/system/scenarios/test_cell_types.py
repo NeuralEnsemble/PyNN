@@ -57,7 +57,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
 test_HH_cond_exp.__test__ = False
 
 
-@register()
+@register(exclude=['pcsim', 'nemo', 'brian'])
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)

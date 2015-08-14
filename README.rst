@@ -36,3 +36,7 @@ your simulator, and are not restricted to the standard models.
 .. image:: https://travis-ci.org/NeuralEnsemble/PyNN.png?branch=master
    :target: https://travis-ci.org/NeuralEnsemble/PyNN
    :alt: Unit Test Status
+
+.. image:: https://coveralls.io/repos/NeuralEnsemble/PyNN/badge.svg?branch=master&service=github
+   :target: https://coveralls.io/github/NeuralEnsemble/PyNN?branch=master
+   :alt: Test coverage

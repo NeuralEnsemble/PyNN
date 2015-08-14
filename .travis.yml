@@ -1,13 +1,40 @@
 language: python
 python:
-  - "2.7"
-  - "2.6"
-  - "3.3"
-  - "3.4"
+  - 2.6
+  - "2.7_with_system_site_packages"
+  - 3.3
+  - 3.4
 sudo: false
-# command to install dependencies
+addons:
+  apt:
+    packages:
+      - build-essential
+      - autoconf
+      - automake
+      - libtool
+      - libreadline6-dev
+      - libncurses5-dev
+      - libgsl0-dev
+      - python-all-dev
+      - python-numpy
+      - python-scipy
+      - python-sympy
+      - openmpi-bin
+      - libopenmpi-dev
 install:
-  - pip install -r requirements.txt --use-mirrors
-  - pip install . --use-mirrors
-# command to run tests, e.g. python setup.py test
-script:  nosetests -w test/unittests -c test/unittests/setup.cfg
+  - pip install -r requirements.txt
+  - pip install coverage coveralls
+  - source ci/install_brian.sh
+  - source ci/install_nest.sh
+  - source ci/install_neuron.sh
+  - pip install .
+script:  bash ci/test_script.sh
+after_success:
+  - coveralls
+cache:
+  directories:
+    - $HOME/nest-2.6.0
+    - $HOME/nrn-7.3
+    - $HOME/build/nest-2.6.0
+    - $HOME/build/nrn-7.3
+    - $HOME/.cache/pip
