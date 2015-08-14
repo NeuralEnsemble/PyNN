@@ -2,7 +2,7 @@
 
 set -e  # stop execution in case of errors
 
-if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+if [[ "$TRAVIS_PYTHON_VERSION" == "2.7_with_system_site_packages" ]]; then
 
     export NRN_VERSION="nrn-7.3"
     if [ ! -f "$HOME/$NRN_VERSION/configure" ]; then
