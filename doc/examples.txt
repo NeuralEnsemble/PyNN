@@ -6,8 +6,13 @@ Examples
    :maxdepth: 2
 
    examples/Izhikevich
+   examples/current_injection
    examples/cell_type_demonstration
    examples/random_numbers
+   examples/random_distributions
    examples/simple_STDP
    examples/small_network
    examples/synaptic_input
+   examples/tsodyksmarkram
+   examples/varying_poisson
+   examples/VAbenchmarks

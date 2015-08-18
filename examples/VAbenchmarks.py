@@ -32,7 +32,6 @@ August 2006
 
 """
 
-import os
 import socket
 from math import *
 from pyNN.utility import get_simulator, Timer, ProgressBar, init_logging, normalized_filename
@@ -70,7 +69,7 @@ stim_dur = 50.   # (ms) duration of random stimulation
 rate     = 100.  # (Hz) frequency of the random stimulation
 
 dt       = 0.1   # (ms) simulation timestep
-tstop    = 200 #1000  # (ms) simulaton duration
+tstop    = 1000  # (ms) simulaton duration
 delay    = 0.2
 
 # Cell parameters
@@ -181,7 +180,7 @@ else:
 print("%s Connecting populations..." % node_id)
 progress_bar = ProgressBar(width=20)
 if options.use_csa:
-    connector = CSAConnector(csa.cset(csa.random(pconn)))
+    connector = sim.CSAConnector(csa.cset(csa.random(pconn)))
 else:
     connector = sim.FixedProbabilityConnector(pconn, rng=rng, callback=progress_bar)
 exc_syn = sim.StaticSynapse(weight=w_exc, delay=delay)

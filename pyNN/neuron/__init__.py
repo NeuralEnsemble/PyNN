@@ -7,6 +7,7 @@ nrnpython implementation of the PyNN API.
 
 """
 
+from mpi4py import MPI
 from pyNN.random import NumpyRNG, GSLRNG
 from pyNN import common, core, space, __doc__
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY

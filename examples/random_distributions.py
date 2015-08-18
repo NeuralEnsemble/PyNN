@@ -32,8 +32,7 @@ cases = (
     ("gamma", {"k": 2.0, "theta": 0.5}, (0, 5), scipy.stats.gamma(2.0, loc=0.0, scale=0.5)),
     ("normal", {"mu": -1.0, "sigma": 0.5}, (-3, 1), scipy.stats.norm(loc=-1, scale=0.5)),
     ("exponential", {'beta': 10.0}, (0, 50), scipy.stats.expon(loc=0, scale=10)),
-    #("lognormal", {"mu": 1.0, "sigma": 0.5}, (0, 2), scipy.stats.lognorm(0.5, loc=1)),
-    #"normal_clipped"
+    ("normal_clipped", {"mu": 0.5, "sigma": 0.5, "low": 0, "high": 10}, (-0.5, 3.0), None),
 )
 
 fig = plt.figure(1)
@@ -64,14 +63,14 @@ for i, case in enumerate(cases):
         values = rd.next(n)
         assert values.size == n
         plt.subplot(gs[i, j])
-        counts, bins, _ = plt.hist(values, bins)
+        counts, bins, _ = plt.hist(values, bins, range=xlim)
         plt.title("%s.%s%s" % (rng, distribution, parameters.values()))
-        pdf = rv.pdf(bins)
-        scaled_pdf = n*pdf/pdf.sum()
-        #print i, j, case, rng, values.min(), values.max(), pdf.sum()
-        plt.plot(bins, scaled_pdf, 'r-')
+        if rv is not None:
+            pdf = rv.pdf(bins)
+            scaled_pdf = n*pdf/pdf.sum()
+            plt.plot(bins, scaled_pdf, 'r-')
+            plt.ylim(0, 1.2*scaled_pdf.max())
         plt.xlim(xlim)
-        plt.ylim(0, 1.2*scaled_pdf.max())
 
-plt.savefig("random_distributions.png")
+plt.savefig("Results/random_distributions.png")
 

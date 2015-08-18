@@ -6,13 +6,15 @@
 import os
 import tempfile
 import shutil
-
 import subprocess
+from itertools import cycle
+
+simulators = cycle(["nest", "neuron"])
 
 examples = (
     # "HH_cond_exp2.py",
     "Izhikevich.py",
-    #"current_injection.py",
+    "current_injection.py",
     # "VAbenchmarks.py",
     # "brunel.py",
     "cell_type_demonstration.py",
@@ -21,8 +23,8 @@ examples = (
     # "inhomogeneous_network.py",
     # "nineml_neuron.py",
     # "parameter_changes.py",
-    # "random_distributions.py",
     "random_numbers.py",
+    "random_distributions.py",
     # "simpleRandomNetwork.py",
     # "simpleRandomNetwork_csa.py",
     "simple_STDP.py",
@@ -30,8 +32,8 @@ examples = (
     # "specific_network.py",
     # "stdp_network.py",
     "synaptic_input.py",
-    # "tsodyksmarkram.py",
-    # "varying_poisson.py",
+    "tsodyksmarkram.py",
+    "varying_poisson.py",
 )
 
 # todo: add line numbering to code examples
@@ -62,9 +64,14 @@ results_dir = os.path.join(tmp_dir, "Results")
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
-def run(python_script):
-    p = subprocess.Popen("python %s/%s --plot-figure nest" % (examples_dir, python_script), shell=True, cwd=tmp_dir)
+def run(python_script, simulator, *extra_args):
+    files_initial = list_files(".png")
+    args = " ".join(extra_args)
+    p = subprocess.Popen("python %s/%s --plot-figure %s %s" % (examples_dir, python_script, simulator, args),
+                         shell=True, cwd=tmp_dir)
     p.wait()
+    new_files = list_files(".png").difference(files_initial)
+    return new_files
 
 
 def get_title(python_script):
@@ -76,13 +83,14 @@ def get_title(python_script):
                 break
     return title
 
+def list_files(filter):
+    return set([os.path.join(x[0], filename)
+                for x in os.walk(results_dir)
+                for filename in x[2]
+                if filter in filename])
 
-files_initial = set([os.path.join(x[0], filename) for x in os.walk(results_dir) for filename in x[2] if ".png" in filename])
 for example in examples:
-    run(example)
-    files = set([os.path.join(x[0], filename) for x in os.walk(results_dir) for filename in x[2] if ".png" in filename])
-    new_files = files.difference(files_initial)
-    files_initial = files
+    new_files = run(example, simulators.next())
     if len(new_files) > 1:
         raise Exception("Multiple image files")
     img_path, = new_files
@@ -93,6 +101,27 @@ for example in examples:
     with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
         fp.write(template.format(**locals()))
     example_index += "   examples/{}\n".format(example.replace(".py", ""))
+
+# handle VAbenchmarks separately
+example = "VAbenchmarks.py"
+cell_type = "CUBA"
+files_initial = list_files("VAbenchmarks")
+run(example, "nest", cell_type)
+run(example, "neuron", cell_type)
+new_files = list_files("VAbenchmarks").difference(files_initial)
+files_initial = list_files(".png")
+p = subprocess.Popen("python %s/tools/VAbenchmark_graphs.py -o Results/VAbenchmarks_%s.png %s" % (
+                         examples_dir, cell_type, " ".join(new_files)),
+                     shell=True, cwd=tmp_dir)
+p.wait()
+img_path, = list_files(".png").difference(files_initial)
+shutil.copy(img_path, image_dir)
+img_file = os.path.basename(img_path)
+title = get_title(example)
+underline = "="*len(title)
+with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
+    fp.write(template.format(**locals()))
+example_index += "   examples/{}\n".format(example.replace(".py", ""))
 
 with open("examples.txt", "w") as fp:
     fp.write(example_index)

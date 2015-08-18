@@ -1,9 +1,19 @@
 """
 Plot graphs showing the results of running the VAbenchmarks.py script.
 
-Usage:
+Usage: VAbenchmark_graphs.py [-h] [-s SORT] [-o OUTPUT_FILE] [-a ANNOTATION]
+                             datafile [datafile ...]
 
-    python VAbenchmark_graphs2.py [-h] [-o OUTPUT_FILE] [-a ANNOTATION] datafile [datafile ...]
+positional arguments:
+  datafile              a list of data files in a Neo-supported format
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -s SORT, --sort SORT  field to sort by (default='simulator')
+  -o OUTPUT_FILE, --output-file OUTPUT_FILE
+                        output filename
+  -a ANNOTATION, --annotation ANNOTATION
+                        additional annotation (optional)
 
 """
 
@@ -88,7 +98,8 @@ def plot_cvisi_hist(panel, segment, label, hide_axis_labels=False):
     def cv_isi(spiketrain):
         isi = np.diff(np.array(spiketrain))
         return np.std(isi)/np.mean(isi)
-    cvs = np.fromiter((cv_isi(st) for st in segment.spiketrains), dtype=float)
+    cvs = np.fromiter((cv_isi(st) for st in segment.spiketrains if st.size > 2),
+                      dtype=float)
     bin_width = 0.1
     bins = np.arange(0, 2, bin_width)
     cvhist, bins = np.histogram(cvs[~np.isnan(cvs)], bins)
@@ -112,8 +123,8 @@ def sort_by_annotation(name, objects):
 def plot(datafiles, output_file, sort_by='simulator', annotation=None):
     blocks = [get_io(datafile).read_block() for datafile in datafiles]
     # note: Neo needs a pretty printer that is not tied to IPython
-    for block in blocks:
-        print(block.describe())
+    #for block in blocks:
+    #    print(block.describe())
     script_name = blocks[0].annotations['script_name']
     for block in blocks[1:]:
         assert block.annotations['script_name'] == script_name
@@ -124,6 +135,7 @@ def plot(datafiles, output_file, sort_by='simulator', annotation=None):
         'axes.labelsize': 'small',
         'legend.fontsize': 'small',
         'font.size': 8,
+        'savefig.dpi': 200,
     }
     plt.rcParams.update(fig_settings)
     CM=1/2.54
@@ -161,7 +173,7 @@ def main():
     parser.add_argument("datafiles", metavar="datafile", nargs="+",
                         help="a list of data files in a Neo-supported format")
     parser.add_argument("-s", "--sort", default="simulator",
-                        help="field to sort by (default='%(default)s')")
+                        help="field to sort by (default='%(default)s' - also try 'mpi_processes')")
     parser.add_argument("-o", "--output-file", default="output.png",
                         help="output filename")
     parser.add_argument("-a", "--annotation", help="additional annotation (optional)")

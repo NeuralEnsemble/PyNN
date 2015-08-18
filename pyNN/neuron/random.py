@@ -24,7 +24,7 @@ class NativeRNG(NativeRNG, WrappedRNG):
         'exponential':    ('negexp',       ('beta',)),
         'lognormal':      ('lognormal',    ('mu', 'sigma')),
         'normal':         ('normal',       ('mu', 'sigma')),
-        #'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'normal_clipped': ('normal_clipped', ('mu', 'sigma', 'low', 'high')),
         #'normal_clipped_to_boundary':
         #                  ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
         'poisson':        ('poisson',      ('lambda_',)),
@@ -79,3 +79,9 @@ class NativeRNG(NativeRNG, WrappedRNG):
 
     def normal(self, n, mu, sigma):
         return self._next_n("normal", n, (mu, sigma*sigma))
+
+    def normal_clipped(self, n, mu, sigma, low, high):
+        """ """
+        gen = lambda n: self.normal(n, mu, sigma)
+        return self._clipped(gen, low=low, high=high, size=n)
+
