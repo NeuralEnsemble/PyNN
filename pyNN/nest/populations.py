@@ -100,6 +100,7 @@ class Population(common.Population, PopulationMixin):
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
+        self._deferred_parrot_connections = False
         super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
         self._simulator.state.populations.append(self)
 
@@ -128,12 +129,12 @@ class Population(common.Population, PopulationMixin):
             raise #errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-            self.all_cells_source = numpy.array(self.all_cells)          # we put the parrots into all_cells, since this will
-            self.all_cells = nest.Create("parrot_neuron_ps", self.size)  # be used for connections and recording. all_cells_source
-                                                                         # should be used for setting parameters
-            nest.Connect(self.all_cells_source, numpy.array(self.all_cells), 'one_to_one',
-                         syn_spec={'delay': simulator.state.dt})  # for efficiency, we should defer this until after network construction,
-                                                         # and use min_delay (at this point, min_delay could be 'auto')
+            self.all_cells_source = numpy.array(self.all_cells)              # we put the parrots into all_cells, since this will
+            self.all_cells = nest.Create("parrot_neuron_ps", self.size)      # be used for connections and recording. all_cells_source
+                                                                             # should be used for setting parameters
+            self._deferred_parrot_connections = True
+            # connecting up the parrot neurons is deferred until we know the value of min_delay
+            # which could be 'auto' at this point.
         self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
         self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
@@ -141,6 +142,11 @@ class Population(common.Population, PopulationMixin):
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             for gid, source in zip(self.all_cells, self.all_cells_source):
                 gid.source = source
+
+    def _connect_parrot_neurons(self):
+        nest.Connect(self.all_cells_source, numpy.array(self.all_cells, int), 'one_to_one',
+                     syn_spec={'delay': simulator.state.min_delay})
+        self._deferred_parrot_connections = False
 
     def _set_initial_value_array(self, variable, value):
         variable = VARIABLE_MAP.get(variable, variable)

@@ -125,6 +125,9 @@ class _State(common.control.BaseState):
 
     def run(self, simtime):
         """Advance the simulation for a certain time."""
+        for population in self.populations:
+            if population._deferred_parrot_connections:
+                population._connect_parrot_neurons()
         for device in self.recording_devices:
             if not device._connected:
                 device.connect_to_cells()
