@@ -129,9 +129,10 @@ class Population(common.Population, PopulationMixin):
             raise #errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-            self.all_cells_source = numpy.array(self.all_cells)              # we put the parrots into all_cells, since this will
-            self.all_cells = nest.Create("parrot_neuron_ps", self.size)      # be used for connections and recording. all_cells_source
-                                                                             # should be used for setting parameters
+            self.all_cells_source = numpy.array(self.all_cells)        # we put the parrots into all_cells, since this will
+            parrot_model = simulator.state.spike_precision == "off_grid" and "parrot_neuron_ps" or "parrot_neuron"
+            self.all_cells = nest.Create(parrot_model, self.size)      # be used for connections and recording. all_cells_source
+                                                                       # should be used for setting parameters
             self._deferred_parrot_connections = True
             # connecting up the parrot neurons is deferred until we know the value of min_delay
             # which could be 'auto' at this point.

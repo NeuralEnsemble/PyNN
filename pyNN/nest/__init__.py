@@ -92,7 +92,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     NEST-specific extra_params:
 
     `spike_precision`:
-        should be "on_grid" (default) or "off_grid"
+        should be "off_grid" (default) or "on_grid"
     `verbosity`:
         INSERT DESCRIPTION OF POSSIBLE VALUES
     `recording_precision`:
