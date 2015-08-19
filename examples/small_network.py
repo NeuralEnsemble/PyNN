@@ -6,7 +6,7 @@ Small network created with the Population and Projection classes
 Usage: random_numbers.py [-h] [--plot-figure] [--debug DEBUG] simulator
 
 positional arguments:
-  simulator      neuron, nest, brian, pcsim or another backend simulator
+  simulator      neuron, nest, brian or another backend simulator
 
 optional arguments:
   -h, --help     show this help message and exit

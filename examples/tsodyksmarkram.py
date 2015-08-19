@@ -5,7 +5,7 @@ Example of depressing and facilitating synapses
 Usage: tsodyksmarkram.py [-h] [--plot-figure] [--debug DEBUG] simulator
 
 positional arguments:
-  simulator      neuron, nest, brian, pcsim or another backend simulator
+  simulator      neuron, nest, brian or another backend simulator
 
 optional arguments:
   -h, --help     show this help message and exit

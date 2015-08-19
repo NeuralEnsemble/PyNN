@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8beta2.tar.gz
-    $ cd PyNN-0.8beta2
+    $ tar xzf PyNN-0.8.0rc1.tar.gz
+    $ cd PyNN-0.8.0rc1
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -64,25 +64,29 @@ The PyNN installation will then compile PyNN-specific membrane mechanisms, which
      netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
      stdwa_symm.mod tmgsyn.mod tmisyn.mod tsodyksmarkram.mod vecstim.mod
 
-If you installed PyNN before installing NEURON, or if you update your PyNN installation, you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
+If you installed PyNN before installing NEURON, or if you update your PyNN installation,
+you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
 
 Installing NEURON
 =================
 
-Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_. Also download Interviews from the same location.
+Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
+Also download Interviews from the same location.
 
-Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_, except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-paranrn`, i.e.::
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_,
+except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-paranrn`, i.e.::
 
     $ ./configure --prefix=`pwd` --with-nrnpython --with-paranrn
     $ make
     $ make install
 
-Make sure that you add the Interviews and NEURON :file:`bin` directories to your path. Test that the Python support has been enabled by running::
+Make sure that you add the Interviews and NEURON :file:`bin` directories to your path.
+Test that the Python support has been enabled by running::
 
     $ nrniv -python
-    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
-    See http://www.neuron.yale.edu/credits.html
+    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    See http://www.neuron.yale.edu/neuron/credits
 
     >>> import hoc
     >>> import nrn
@@ -90,26 +94,15 @@ Make sure that you add the Interviews and NEURON :file:`bin` directories to your
 Now you can compile and install NEURON as a Python package::
 
     $ cd src/nrnpython
-    # python setup.py install
-
-Note that the latter step requires running as root and will install to your global Python :file:`site-packages` directory.
-If you would prefer to install it locally, replace the last step with::
-
-    $ python setup.py install --prefix=~
-
-which will install into :file:`~/lib/python2.7/site-packages/` (or the equivalent for other Python versions; for more fine-grained control over where the package is installed, see the `distutils`_ documentation), then add this directory to your :envvar:`PYTHONPATH`::
-
-    $ export PYTHONPATH=$PYTHONPATH:~/lib/python2.7/site-packages
+    $ python setup.py install
 
 Now test everything worked::
 
     $ python
     >>> import neuron
-    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
-    See http://www.neuron.yale.edu/credits.html
-
-    >>>
+    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    See http://www.neuron.yale.edu/neuron/credits
 
 If you run into problems, check out the `NEURON Forum`_.
 
@@ -131,9 +124,9 @@ On Linux, most Unix variants and Mac OS X, installation is usually as simple as:
 
     $ ./configure --with-mpi
     $ make
-    # make install
+    $ make install
 
-This will install PyNEST to your Python :file:`site-packages` directory, and may require root privileges.
+This will install PyNEST to your Python :file:`site-packages` directory.
 If you wish to install it elsewhere, see the full installation instructions.
 
 Now try it out::
@@ -157,7 +150,7 @@ Installing Brian
 ================
 
 Instructions for downloading and installing Brian_ are available from `<http://briansimulator.org/download/>`_.
-
+Note that this version of PyNN works with Brian 1.4, but not with Brian 2.
 
 
 .. _PyNN: http://neuralensemble.org/PyNN

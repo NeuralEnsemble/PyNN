@@ -7,7 +7,7 @@ Every 200 ms, the Poisson firing rate is increased by 20 spikes/s
 Usage: varying_poisson.py [-h] [--plot-figure] simulator
 
 positional arguments:
-  simulator      neuron, nest, brian, pcsim or another backend simulator
+  simulator      neuron, nest, brian or another backend simulator
 
 optional arguments:
   -h, --help     show this help message and exit

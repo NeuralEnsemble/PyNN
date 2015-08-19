@@ -15,7 +15,7 @@ Usage: python VAbenchmarks.py [-h] [--plot-figure] [--use-views] [--use-assembly
                               simulator benchmark
 
 positional arguments:
-  simulator       neuron, nest, brian, pcsim or another backend simulator
+  simulator       neuron, nest, brian or another backend simulator
   benchmark       either CUBA or COBA
 
 optional arguments:

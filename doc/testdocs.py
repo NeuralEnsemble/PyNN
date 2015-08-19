@@ -76,7 +76,7 @@ if __name__ == "__main__":
     # Process command line
     parser = OptionParser(usage="usage: %prog [options] FILE")
     parser.add_option("-s", "--simulator", dest="simulator",
-                      type="choice", choices=('nest', 'neuron', 'pcsim', 'brian'),
+                      type="choice", choices=('nest', 'neuron', 'brian'),
                       help="run doctests with SIMULATOR", metavar="SIMULATOR",
                       default='nest')
     parser.add_option("--strict", action="store_true", dest="strict", default=False,
