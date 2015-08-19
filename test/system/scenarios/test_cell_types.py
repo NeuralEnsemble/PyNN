@@ -28,7 +28,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
 test_EIF_cond_alpha_isfa_ista.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo', 'brian'])
+@register(exclude=['pcsim', 'nemo'])
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
