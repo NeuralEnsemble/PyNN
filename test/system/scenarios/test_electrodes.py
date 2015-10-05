@@ -6,7 +6,7 @@ import quantities as pq
 from .registry import register
 
 
-@register(exclude=["pcsim", "nemo"])
+@register(exclude=["nemo"])
 def test_changing_electrode(sim):
     """
     Check that changing the values of the electrodes on the fly is taken into account

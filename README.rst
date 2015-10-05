@@ -6,7 +6,7 @@ neuronal network models.
 
 In other words, you can write the code for a model once, using the PyNN API and
 the Python programming language, and then run it without modification on any
-simulator that PyNN supports (currently NEURON, NEST, PCSIM and Brian) and
+simulator that PyNN supports (currently NEURON, NEST and Brian) and
 on a number of neuromorphic hardware systems.
 
 The PyNN API aims to support modelling at a high-level of abstraction
