@@ -625,7 +625,7 @@ class PopulationTest(unittest.TestCase):
         sim.run(100.0)
         p.mean_spike_count = Mock()
         p.meanSpikeCount()
-        p.mean_spike_count.assert_called()
+        self.assertTrue(p.mean_spike_count.called)
 
     @register()
     def test_inject(self, sim=sim):
