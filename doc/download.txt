@@ -5,15 +5,17 @@ Downloads
 Source distributions
 --------------------
 
-The latest beta version of PyNN (0.8beta2) may be downloaded from the `INCF Software Centre`_.
-This is largely stable, and is recommended for anyone using PyNN for the first time.
+The `latest stable version of PyNN`_ (0.8.0) may be downloaded from the
+`Python Package Index`_ or from the `INCF Software Centre`_. This is recommended for
+anyone using PyNN for the first time.
 
-The `latest stable version of PyNN`_ (0.7.5) may be downloaded from the
-`Python Package Index`_ or from the `INCF Software Centre`_.
-This is recommended for anyone who needs a simulator/hardware backend that does not yet support the 0.8 API.
+If you need support for a previous version of the API, the packages can be downloaded from
+the links below. This is recommended for anyone who needs a simulator/hardware backend that
+does not yet support the 0.8 API.
 
 Older versions:
 
+    * `0.7.5 <https://pypi.python.org/pypi/PyNN/0.7.5>`_
     * `0.7.4 <https://pypi.python.org/pypi/PyNN/0.7.4>`_
     * `0.7.3 <https://pypi.python.org/pypi/PyNN/0.7.3>`_
     * `0.7.2 <https://pypi.python.org/pypi/PyNN/0.7.2>`_
@@ -30,14 +32,14 @@ Linux packages
 --------------
 
     * `Debian 7.0 (Wheezy)`_ (0.7.4)
-    * `Debian testing (Jessie)`_ (0.7.4)
+    * `Debian 8.0 (Jessie)`_ (0.7.4)
     * `Debian unstable (Sid)`_ (0.7.4)
-    * `Ubuntu 11.10 (Oneiric)`_ (0.7.0)
     * `Ubuntu 12.04 (Precise)`_ (0.7.0)
-    * `Ubuntu 12.10 (Quantal)`_ (0.7.4)
-    * `Ubuntu 13.04 (Raring)`_ (0.7.4)
+    * `Ubuntu 14.04 (Trusty)`_ (0.7.4)
+    * `Ubuntu 15.04 (Vivid)`_ (0.7.4)
 
-(many thanks to the  NeuroDebian_ guys)
+(many thanks to the NeuroDebian_ guys for packaging PyNN for Debian.
+More up-to-date packages are often available from the NeuroDebian repository.)
 
 
 Latest source code from GitHub
@@ -50,10 +52,9 @@ See :doc:`developers/contributing`.
 .. _`Python Package Index`: https://pypi.python.org/pypi/PyNN/
 .. _`INCF Software Centre`: http://software.incf.org/software/pynn/download
 .. _`Debian unstable (Sid)`: http://packages.debian.org/sid/python-pynn
-.. _`Ubuntu 11.10 (Oneiric)`: http://packages.ubuntu.com/source/oneiric/python/pynn
 .. _`Ubuntu 12.04 (Precise)`: http://packages.ubuntu.com/source/precise/python/pynn
-.. _`Ubuntu 12.10 (Quantal)`: http://packages.ubuntu.com/source/quantal/python/pynn
-.. _`Ubuntu 13.04 (Raring)`: http://packages.ubuntu.com/raring/python-pynn
+.. _`Ubuntu 14.04 (Trusty)`: http://packages.ubuntu.com/source/trusty/python/pynn
+.. _`Ubuntu 15.04 (Vivid)`: http://packages.ubuntu.com/vivid/python-pynn
 .. _`Debian 7.0 (Wheezy)`: http://packages.debian.org/wheezy/python-pynn
-.. _`Debian testing (Jessie)`: http://packages.debian.org/jessie/python-pynn
+.. _`Debian 8.0 (Jessie)`: http://packages.debian.org/jessie/python-pynn
 .. _NeuroDebian: http://neuro.debian.net/
