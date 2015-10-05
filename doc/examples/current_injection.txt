@@ -1,0 +1,7 @@
+Injecting time-varying current into a cell
+==========================================
+
+.. image:: ../images/examples/current_injection_neuron_20151005-081148.png
+
+.. literalinclude:: ../../examples/current_injection.py
+
