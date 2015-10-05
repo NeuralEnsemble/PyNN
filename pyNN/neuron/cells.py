@@ -288,7 +288,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         assert self.w_init is not None
         for seg in self:
             seg.v = self.v_init
-            seg.w = self.w_init
+        self.adexp.w = self.w_init
 
 
 class Izhikevich_(BaseSingleCompartmentNeuron):
@@ -333,7 +333,7 @@ class Izhikevich_(BaseSingleCompartmentNeuron):
         assert self.u_init is not None
         for seg in self:
             seg.v = self.v_init
-            seg.u = self.u_init
+        self.izh.u = self.u_init
 
 
 class GsfaGrrIF(StandardIF):

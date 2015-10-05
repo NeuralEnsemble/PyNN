@@ -10,8 +10,8 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
                             i_offset=1.0, tau_refrac=2.0, v_spike=-40))
-    ifcell.record(['spikes', 'v'])
-    ifcell.initialize(v=-65)
+    ifcell.record(['spikes', 'v', 'w'])
+    ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
