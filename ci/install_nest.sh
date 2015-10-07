@@ -4,10 +4,10 @@ set -e  # stop execution in case of errors
 
 if [[ "$TRAVIS_PYTHON_VERSION" == "2.7_with_system_site_packages" ]]; then
 
-    export NEST_VERSION="nest-2.8.0"
+    export NEST_VERSION="nest-2.6.0"
     pip install cython
     if [ ! -f "$HOME/$NEST_VERSION/configure" ]; then
-        wget https://github.com/nest/nest-simulator/releases/download/v2.8.0/$NEST_VERSION.tar.gz -O $HOME/$NEST_VERSION.tar.gz;
+        wget http://www.nest-simulator.org/downloads/gplreleases/$NEST_VERSION.tar.gz -O $HOME/$NEST_VERSION.tar.gz;
         pushd $HOME;
         tar xzf $NEST_VERSION.tar.gz;
         popd;
