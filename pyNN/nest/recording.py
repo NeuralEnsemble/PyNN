@@ -4,12 +4,10 @@
 :license: CeCILL, see LICENSE for details.
 """
 
-import tempfile
-import os
 import numpy
 import logging
 import nest
-from pyNN import recording, errors
+from pyNN import recording
 from pyNN.nest import simulator
 
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',

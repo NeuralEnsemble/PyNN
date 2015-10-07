@@ -7,7 +7,6 @@
 import logging
 import numpy
 import quantities as pq
-import neo
 import brian
 from pyNN import recording
 from . import simulator
@@ -54,7 +53,7 @@ class Recorder(recording.Recorder):
         if variable not in self._devices:
             self._create_device(self.population.brian_group, variable)
         #update StateMonitor.record and StateMonitor.recordindex
-        if not variable is 'spikes':
+        if variable is not 'spikes':
             device = self._devices[variable]
             device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             device.recordindex = dict((i,j) for i,j in zip(device.record,

@@ -9,11 +9,9 @@ These base classes should be sub-classed by the backend-specific classes.
 """
 
 import numpy
-import os
 import logging
 import operator
 from itertools import chain
-import tempfile
 try:
     basestring
     reduce

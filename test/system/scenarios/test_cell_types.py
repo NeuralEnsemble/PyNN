@@ -88,6 +88,9 @@ def issue367(sim, plot_figure=False):
 issue367.__test__ = False
 
 
+# todo: add test of Izhikevich model
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator(("--plot-figure",
