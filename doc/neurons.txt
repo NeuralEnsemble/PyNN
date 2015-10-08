@@ -349,8 +349,6 @@ Note that the sampling interval must be an integer multiple of the simulation
 time step (except for simulators which allow use of variable time-step
 integration methods).
 
-.. note:: the option of specifying a sampling interval is not available in version 0.8.0-alpha1. It will be implemented before the final 0.8.0 release.
-
 .. todo:: discuss specifying filename in record()
 
 At the end of a simulation, the recorded data can be retrieved using the

@@ -1,0 +1,7 @@
+Illustration of the different standard random distributions and different random number generators
+==================================================================================================
+
+.. image:: ../images/examples/random_distributions.png
+
+.. literalinclude:: ../../examples/random_distributions.py
+

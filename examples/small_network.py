@@ -2,8 +2,16 @@
 """
 Small network created with the Population and Projection classes
 
-Andrew Davison, UNIC, CNRS
-May 2006
+
+Usage: random_numbers.py [-h] [--plot-figure] [--debug DEBUG] simulator
+
+positional arguments:
+  simulator      neuron, nest, brian or another backend simulator
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --plot-figure  plot the simulation results to a file
+  --debug DEBUG  print debugging information
 
 """
 
@@ -86,6 +94,7 @@ if options.plot_figure:
         Panel(vm, ylabel="Membrane potential (mV)"),
         Panel(gsyn, ylabel="Synaptic conductance (uS)"),
         Panel(data.spiketrains, xlabel="Time (ms)", xticks=True),
+        annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
     print(figure_filename)
 

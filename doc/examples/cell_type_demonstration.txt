@@ -1,0 +1,7 @@
+A demonstration of the responses of different standard neuron models to current injection
+=========================================================================================
+
+.. image:: ../images/examples/cell_type_demonstration_nest_20151005-081150.png
+
+.. literalinclude:: ../../examples/cell_type_demonstration.py
+

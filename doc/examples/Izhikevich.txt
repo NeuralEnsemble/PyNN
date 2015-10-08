@@ -1,0 +1,7 @@
+A selection of Izhikevich neurons
+=================================
+
+.. image:: ../images/examples/Izhikevich_nest_np1_20151005-081145.png
+
+.. literalinclude:: ../../examples/Izhikevich.py
+

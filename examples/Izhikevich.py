@@ -58,9 +58,10 @@ if options.plot_figure:
     v = data.filter(name="v")[0]
     #u = data.filter(name="u")[0]
     Figure(
-        Panel(v, ylabel="Membrane potential (mV)", xticks=True, xlabel="Time (ms)",
-              data_labels=[options.simulator.upper()], yticks=True),
+        Panel(v, ylabel="Membrane potential (mV)", xticks=True,
+              xlabel="Time (ms)", yticks=True),
         #Panel(u, ylabel="u variable (units?)"),
+        annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
     print(figure_filename)
 

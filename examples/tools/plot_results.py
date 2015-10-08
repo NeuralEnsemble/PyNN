@@ -39,7 +39,7 @@ for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
 
 print("-"*79)
 print(example)
-from pprint(import pprint
+from pprint import pprint
 pprint(blocks)
 
 if len(blocks) > 0:

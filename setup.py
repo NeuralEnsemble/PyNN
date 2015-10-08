@@ -40,9 +40,8 @@ class build(_build):
 
 setup(
     name = "PyNN",
-    version = "0.8dev",
-    package_dir={'pyNN': 'src'},
-    packages = ['pyNN','pyNN.nest', 'pyNN.neuron', 'pyNN.nineml',
+    version = "0.8.0",
+    packages = ['pyNN','pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels',
@@ -66,8 +65,9 @@ setup(
                    'Programming Language :: Python :: 2.6',
                    'Programming Language :: Python :: 2.7',
                    'Programming Language :: Python :: 3',
-                   'Programming Language :: Python :: 3.2',
+                   'Programming Language :: Python :: 3.3',
                    'Programming Language :: Python :: 3.4',
+                   'Programming Language :: Python :: 3.5',
                    'Topic :: Scientific/Engineering'],
     cmdclass = {'build': build},
 )

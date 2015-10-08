@@ -1,0 +1,7 @@
+Example of depressing and facilitating synapses
+===============================================
+
+.. image:: ../images/examples/tsodyksmarkram_nest_20151005-081211.png
+
+.. literalinclude:: ../../examples/tsodyksmarkram.py
+

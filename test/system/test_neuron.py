@@ -2,6 +2,7 @@ import os
 from nose.plugins.skip import SkipTest
 from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
+from numpy.testing import assert_array_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
 import quantities as pq
@@ -182,3 +183,21 @@ def test_record_native_model():
     assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
     assert_equal(data[0].shape, (2501, 10))
     return data
+
+
+def test_tsodyks_markram_synapse():
+    sim = pyNN.neuron
+    sim.setup()
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
+    synapse_type = sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
+                                             tau_facil=1000.0, weight=0.01,
+                                             delay=0.5)
+    connector = sim.AllToAllConnector()
+    prj = sim.Projection(spike_source, neurons, connector,
+                         receptor_type='inhibitory',
+                         synapse_type=synapse_type)
+    neurons.record('gsyn_inh')
+    sim.run(100.0)
+    tau_psc = numpy.array([c.weight_adjuster.tau_syn for c in prj.connections])
+    assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))

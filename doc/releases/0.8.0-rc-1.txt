@@ -1,0 +1,25 @@
+============================================
+PyNN 0.8.0 release candidate 1 release notes
+============================================
+
+August 19th 2015
+
+Welcome to the first release candidate of PyNN 0.8.0!
+
+For full information about what's new in PyNN 0.8, see the :doc:`0.8-alpha-1`, :doc:`0.8-beta-1` and :doc:`0.8-beta-2`
+
+NEST 2.6
+--------
+
+The main new feature in this release is support for NEST_ 2.6. Previous versions of NEST are no longer supported.
+
+Other changes
+-------------
+
+  * Travis CI now runs system tests as well as unit tests.
+  * `Assorted bug fixes`_
+
+
+
+.. _NEST: http://www.nest-initiative.org/
+.. _`Assorted bug fixes`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+closed%3A2015-01-07..2015-08-19+milestone%3A0.8.0

@@ -13,4 +13,5 @@ from . import (scenario1,
                test_procedural_api,
                issue274,
                test_connectors,
-               issue231)
+               issue231,
+               test_connection_handling)

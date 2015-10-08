@@ -11,6 +11,8 @@ Discussions about PyNN take place in the `NeuralEnsemble Google Group`_.
 Setting up a development environment
 ====================================
 
+We strongly suggest you work in a virtual environment, e.g. using virtualenv_ or Anaconda.
+
 Requirements
 ------------
 
@@ -43,7 +45,7 @@ To work on the development version::
 
 To work on the latest stable release (for bug-fixes)::
 
-    $ git checkout --track origin/0.7
+    $ git checkout --track origin/0.8
 
 To keep your PyNN repository up-to-date with respect to the official
 repository, add it as a remote::
@@ -57,13 +59,13 @@ and then you can pull in any upstream changes::
 
 To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
 
-    * using virtualenv_
+    * pip editable mode (`pip install -e /path/to/PyNN`)
     * creating a symbolic link named :file:`pyNN` from somewhere that is already
       on your :envvar:`PYTHONPATH`, such as the :file:`site-packages` directory,
-      to the :file:`pyNN_trunk/src` directory.
+      to the :file:`pyNN_trunk/pyNN` directory.
 
 If you are developing with NEURON, don't forget to compile the NMODL files in
-:file:`src/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
+:file:`pyNN/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
 you modify any of them.
 
 
@@ -175,14 +177,14 @@ last time:
       :file:`test/unittests` and :file:`test/system` and running :command:`make doctest` in
       :file:`doc`. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
-      Mac OS X. You should also do this with Python 2.6, 2.7 and 3.4.
+      Mac OS X. You should also do this with Python 2.6, 2.7 and 3.4 or 3.5.
     * do all the example scripts generate the correct output? Run the
       :file:`run_all_examples.py` script in :file:`examples/tools` and then visually
       check the :file:`.png` files generated in :file:`examples/tools/Results`. Again,
       you should do this on at least two Linux systems and one Mac OS X system.
     * does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-    * have you updated the version numbers in :file:`setup.py`, :file:`src/__init__.py`,
+    * have you updated the version numbers in :file:`setup.py`, :file:`pyNN/__init__.py`,
       :file:`doc/conf.py` and :file:`doc/installation.txt`?
     * have you updated the changelog?
 
@@ -244,7 +246,7 @@ If this is a final release, there are a few more steps:
 .. _matplotlib: http://matplotlib.sourceforge.net/
 .. _virtualenv: http://www.virtualenv.org/
 .. _`bugs marked "minor" in the bug tracker`: https://github.com/NeuralEnsemble/PyNN/issues?labels=minor&state=open
-.. _`issue tracker`: https://neuralensemble.org/trac/PyNN
+.. _`issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues/
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
 .. _contents: http://software.incf.org/software/pynn/pynn/folder_contents

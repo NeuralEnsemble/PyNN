@@ -515,9 +515,9 @@ Access to the weights and delays of individual connections is by the
 
 .. doctest::
 
-    >>> inhibitory_connections.connections[0].weight
+    >>> list(inhibitory_connections.connections)[0].weight
     0.0094460775218037779
-    >>> inhibitory_connections.connections[10].weight
+    >>> list(inhibitory_connections.connections)[10].weight
     0.0086313719119562281
 
 
@@ -560,11 +560,11 @@ It is also possible to access the attributes of individual connections using the
 
 .. doctest::
 
-    >>> for c in inhibitory_connections.connections[:5]:
+    >>> for c in list(inhibitory_connections.connections)[:5]:
     ...   c.weight *= 2
 
 although this is almost always less efficient than using list- or array-based access.
 
-.. _`make a feature request`: http://neuralensemble.org/trac/PyNN/newticket
+.. _`make a feature request`: https://github.com/NeuralEnsemble/PyNN/issues/new
 .. _`Strategy Pattern`: http://en.wikipedia.org/wiki/Strategy_pattern
 .. _`Djurfeldt, 2012`: http://software.incf.org/software/csa/
