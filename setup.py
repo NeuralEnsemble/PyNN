@@ -40,13 +40,13 @@ class build(_build):
 
 setup(
     name = "PyNN",
-    version = "0.8.0",
+    version = "0.8.1dev",
     packages = ['pyNN','pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
-                'pyNN.utility'],
+                'pyNN.utility', 'pyNN.nineml'],
     package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The PyNN team",
     author_email = "andrew.davison@unic.cnrs-gif.fr",
