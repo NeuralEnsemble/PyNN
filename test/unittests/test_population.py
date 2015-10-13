@@ -82,6 +82,11 @@ class PopulationTest(unittest.TestCase):
         self.assertIsInstance(p.structure, space.Grid3D)
         self.assertRaises(Exception, sim.Population, (2,3,4,5), sim.IF_cond_exp())
 
+    @register()
+    def test_create_with_empty_spike_source_array(self, sim=sim):
+        # regression test for https://github.com/NeuralEnsemble/PyNN/issues/378
+        p = sim.Population(11, sim.SpikeSourceArray(spike_times=[]))
+
     #def test_create_with_initial_values():
 
     @register()
