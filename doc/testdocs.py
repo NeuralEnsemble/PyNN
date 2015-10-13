@@ -31,7 +31,7 @@ class MyOutputChecker(doctest.OutputChecker):
                 return True
             else:  
                 try:
-                    long(want) and long(got) # where the output is an id (PCSIM uses longs, the others use ints, but long will work for them).
+                    long(want) and long(got) # where the output is an id
                     return True
                 except ValueError:
                     try:

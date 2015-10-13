@@ -3,15 +3,14 @@
 
 """
 
-from itertools import repeat, izip, chain
+from itertools import chain
 from collections import defaultdict
-import math
 import numpy
 import brian
 from brian import uS, nA, mV, ms
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
-from pyNN.core import ezip, is_listlike
+from pyNN.core import is_listlike
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator

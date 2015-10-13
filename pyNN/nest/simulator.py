@@ -25,7 +25,7 @@ import nest
 import logging
 import tempfile
 import numpy
-from pyNN import common, random
+from pyNN import common
 from pyNN.core import reraise
 
 logger = logging.getLogger("PyNN")

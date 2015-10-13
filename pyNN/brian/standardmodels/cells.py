@@ -10,7 +10,6 @@ from copy import deepcopy
 import brian
 from brian import mV, ms, nF, nA, uS, Hz, nS
 from pyNN.standardmodels import cells, build_translations
-from ..simulator import state
 from ..cells import (ThresholdNeuronGroup, SpikeGeneratorGroup, PoissonGroup,
                      BiophysicalNeuronGroup, AdaptiveNeuronGroup, AdaptiveNeuronGroup2,
                      IzhikevichNeuronGroup)

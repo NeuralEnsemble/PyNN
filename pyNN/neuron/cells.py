@@ -53,6 +53,8 @@ class NativeCellType(BaseCellType):
         # crude check, could be improved
         return bool(recordable_pattern.match(variable))
 
+    # todo: use `guess_units` to construct "units" attribute
+
 
 class BaseSingleCompartmentNeuron(nrn.Section):
     """docstring"""
@@ -270,13 +272,6 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     tau_m  = property(fget=__get_tau_m, fset=__set_tau_m)
     v_rest = property(fget=__get_v_rest, fset=__set_v_rest)
 
-    def record(self, active):
-        if active:
-            self.rec = h.NetCon(self.seg._ref_v, None,
-                                self.get_threshold(), 0.0, 0.0,
-                                sec=self)
-            self.rec.record(self.spike_times)
-
     def get_threshold(self):
         if self.delta == 0:
             return self.adexp.vthresh
@@ -317,13 +312,6 @@ class Izhikevich_(BaseSingleCompartmentNeuron):
     c = _new_property('izh', 'c')
     d = _new_property('izh', 'd')
     ## using 'a_' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
-
-    def record(self, active):
-        if active:
-            self.rec = h.NetCon(self.seg._ref_v, None,
-                                self.get_threshold(), 0.0, 0.0,
-                                sec=self)
-            self.rec.record(self.spike_times)
 
     def get_threshold(self):
         return self.izh.vthresh
