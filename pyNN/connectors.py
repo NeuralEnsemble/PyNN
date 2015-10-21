@@ -10,7 +10,6 @@ for improved performance.
 
 from __future__ import division
 from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG, get_mpi_config
-from pyNN.common.populations import is_conductance
 from pyNN.core import IndexBasedExpression
 from pyNN import errors, descriptions
 from pyNN.recording import files

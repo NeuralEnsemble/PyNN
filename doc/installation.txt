@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.6, 2.7, 3.3 or 3.4)
+    * Python (version 2.6, 2.7, 3.3, 3.4 or 3.5)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.0rc1.tar.gz
-    $ cd PyNN-0.8.0rc1
+    $ tar xzf PyNN-0.8.0.tar.gz
+    $ cd PyNN-0.8.0
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -54,9 +54,9 @@ With NEURON as the simulator, make sure you install NEURON *before* you install 
 The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::
 
     >>> import pyNN.neuron as sim
-    NEURON -- Release 7.1 (359:7f113b76a94b) 2009-10-26
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2008
-    See http://www.neuron.yale.edu/credits.html
+    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    See http://www.neuron.yale.edu/neuron/credits
 
     loading membrane mechanisms from /home/andrew/dev/pyNN/neuron/nmodl/i686/.libs/libnrnmech.so
     Additional mechanisms from files
@@ -110,8 +110,8 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.6 can be downloaded from `<http://www.nest-simulator.org/index.php/Software:Download>`_. Earlier versions of
-NEST will not work with this version of PyNN.
+NEST 2.8 can be downloaded from `<http://www.nest-simulator.org/index.php/Software:Download>`_.
+NEST 2.6 is also compatible. Earlier versions of NEST will not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
 or at `<http://www.nest-simulator.org/index.php/Installation>`_.
 
@@ -161,7 +161,6 @@ Note that this version of PyNN works with Brian 1.4, but not with Brian 2.
 .. _Cheetah: http://www.cheetahtemplate.org/
 .. _mpi4py: http://mpi4py.scipy.org/
 .. _pip: http://www.pip-installer.org/
-.. _PCSIM: http://www.lsm.tugraz.at/pcsim/
 .. _Brian: http://briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/2/install/index.html

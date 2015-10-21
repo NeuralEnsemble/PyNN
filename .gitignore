@@ -26,8 +26,6 @@ build
 dist
 MANIFEST
 doc/_build
-doc/images/examples
-doc/examples/*.txt
 # Egg metadata
 *.egg-info
 *.egg

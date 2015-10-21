@@ -1,5 +1,7 @@
 # coding: utf-8
 """
+Balanced network of excitatory and inhibitory neurons.
+
 An implementation of benchmarks 1 and 2 from
 
     Brette et al. (2007) Journal of Computational Neuroscience 23: 349-398

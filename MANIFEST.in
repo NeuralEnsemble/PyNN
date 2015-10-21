@@ -2,6 +2,7 @@ include pyNN/neuron/nmodl/*.mod
 include pyNN/descriptions/templates/*/*.txt
 include test/parameters/*
 include test/system/*.py
+include test/system/scenarios/*.py
 include test/unittests/*.py
 include examples/*.py
 include doc/*.txt
@@ -9,4 +10,3 @@ include LICENSE
 include AUTHORS
 include README.rst
 include changelog
-

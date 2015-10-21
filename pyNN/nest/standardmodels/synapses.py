@@ -8,7 +8,7 @@ Synapse Dynamics classes for nest
 
 import nest
 from pyNN.standardmodels import synapses, build_translations
-from pyNN.nest.synapses import get_synapse_defaults, NESTSynapseMixin
+from pyNN.nest.synapses import NESTSynapseMixin
 import logging
 
 from ..conversion import make_sli_compatible

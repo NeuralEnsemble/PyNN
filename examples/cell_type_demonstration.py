@@ -38,6 +38,8 @@ izh = sim.Population(1, sim.Izhikevich(i_offset=0.01), label="Izhikevich")
 all_neurons = cuba_exp + hh + adexp + adapt + izh
 
 all_neurons.record('v')
+adexp.record('w')
+izh.record('u')
 
 
 # === Run the simulation =====================================================
@@ -58,14 +60,24 @@ if options.plot_figure:
               ylabel="Membrane potential (mV)",
               data_labels=[cuba_exp.label], yticks=True, ylim=(-66, -48)),
         Panel(hh.get_data().segments[0].filter(name='v')[0],
+              ylabel="Membrane potential (mV)",
               data_labels=[hh.label], yticks=True, ylim=(-100, 60)),
         Panel(adexp.get_data().segments[0].filter(name='v')[0],
+              ylabel="Membrane potential (mV)",
               data_labels=[adexp.label], yticks=True, ylim=(-75, -40)),
+        Panel(adexp.get_data().segments[0].filter(name='w')[0],
+              ylabel="w (nA)",
+              data_labels=[adexp.label], yticks=True, ylim=(0, 0.4)),
         Panel(adapt.get_data().segments[0].filter(name='v')[0],
+              ylabel="Membrane potential (mV)",
               data_labels=[adapt.label], yticks=True, ylim=(-75, -45)),
         Panel(izh.get_data().segments[0].filter(name='v')[0],
-              xticks=True, xlabel="Time (ms)",
+              ylabel="Membrane potential (mV)",
               data_labels=[izh.label], yticks=True, ylim=(-80, 40)),
+        Panel(izh.get_data().segments[0].filter(name='u')[0],
+              xticks=True, xlabel="Time (ms)",
+              ylabel="u (mV/ms)",
+              data_labels=[izh.label], yticks=True, ylim=(-14, 0)),
         title="Responses of standard neuron models to current injection",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)

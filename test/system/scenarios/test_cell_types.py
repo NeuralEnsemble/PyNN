@@ -5,13 +5,13 @@ import quantities as pq
 
 from .registry import register
 
-@register(exclude=['pcsim', 'moose', 'nemo'])
+@register(exclude=['moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
                             i_offset=1.0, tau_refrac=2.0, v_spike=-40))
-    ifcell.record(['spikes', 'v'])
-    ifcell.initialize(v=-65)
+    ifcell.record(['spikes', 'v', 'w'])
+    ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
@@ -28,7 +28,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
 test_EIF_cond_alpha_isfa_ista.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo'])
+@register(exclude=['nemo'])
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -57,7 +57,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
 test_HH_cond_exp.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo', 'brian'])
+@register(exclude=['nemo', 'brian'])
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -81,10 +81,14 @@ def issue367(sim, plot_figure=False):
         plt.plot(vm.times, vm)
         plt.savefig("issue367_%s.png" % sim.__name__)
     print(sim.__name__, vm_before_spike)
-    assert abs((vm_before_spike.mean() - v_thresh)/v_thresh) < 0.01
+    errmsg = "v_thresh = {0}, vm_before_spike.mean() = {1}".format(v_thresh, vm_before_spike.mean())
+    assert abs((vm_before_spike.mean() - v_thresh)/v_thresh) < 0.01, errmsg
     sim.end()
     return data
 issue367.__test__ = False
+
+
+# todo: add test of Izhikevich model
 
 
 if __name__ == '__main__':

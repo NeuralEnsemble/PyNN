@@ -1,21 +1,19 @@
 """
 
-:copyright: Copyright 2006-2011 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-import tempfile
-import os
 import numpy
 import logging
 import nest
-from pyNN import recording, errors
+from pyNN import recording
 from pyNN.nest import simulator
 
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
                 'w': 'w'}
 REVERSE_VARIABLE_MAP = dict((v,k) for k,v in VARIABLE_MAP.items())
-SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001}
 
 logger = logging.getLogger("PyNN")
 
@@ -361,6 +359,7 @@ class Recorder(recording.Recorder):
     _simulator = simulator
     scale_factors = {'spikes': 1,
                      'v': 1,
+                     'w': 0.001,
                      'gsyn': 0.001} # units conversion
 
     def __init__(self, population, file=None):

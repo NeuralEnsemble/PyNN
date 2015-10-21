@@ -3,7 +3,6 @@
 """
 
 import numpy
-from brian import mV
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify

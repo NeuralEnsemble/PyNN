@@ -6,7 +6,7 @@ PyNN_ (pronounced 'pine') is a simulator-independent language for building neuro
 
 In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and Brian_) as well as on certain neuromorphic hardware systems.
 
-.. note:: in PyNN 0.8.0-beta2, only NEST, NEURON and Brian are supported. Support for other simulators (e.g. Brian 2, PCSIM_, MOOSE) and for neuromorphic hardware will be (re)introduced later in the 0.8 development cycle.
+.. note:: in PyNN 0.8.0, only NEST, NEURON and Brian are supported. Support for other simulators (e.g. Brian 2, MOOSE) and for neuromorphic hardware will be (re)introduced later in the 0.8 development cycle.
 
 The PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (`Djurfeldt, 2012`_) or by writing your own Python code.
 
@@ -14,7 +14,7 @@ Even if you don't wish to run simulations on multiple simulators, you may benefi
 
 It is straightforward to port an existing model from a Python-supporting simulator to PyNN, since this can be done incrementally, replacing one piece of simulator-specific code at a time with the PyNN equivalent, and testing that the model behaviour is unchanged at each step.
 
-:doc:`Download<download>` the current stable release of the API (0.7), the latest beta version (0.8.0-beta2) or get the development version from the `Git repository`_ .
+:doc:`Download<download>` the current stable release of the library (0.8.0) or get the development version from the `Git repository`_ .
 
 Licence
 -------
@@ -42,7 +42,6 @@ If you have questions or comments about PyNN, please post a message on the `Neur
 .. _CeCILL: http://www.cecill.info/
 .. _NEURON: http://www.neuron.yale.edu/neuron/
 .. _NEST:   http://www.nest-initiative.org/?page=Software
-.. _PCSIM:  http://sourceforge.net/projects/pcsim/
 .. _Brian:  http://briansimulator.org/
 .. _`Git repository`: https://github.com/NeuralEnsemble/PyNN
 .. _`PyNN issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues

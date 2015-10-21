@@ -614,7 +614,7 @@ class PopulationTest(unittest.TestCase):
         p = sim.Population(14, sim.EIF_cond_exp_isfa_ista())
         p.record('spikes')
         sim.run(100.0)
-        self.assertEqual(p.mean_spike_count(), 2.0)
+        self.assertEqual(p.mean_spike_count(), 2.0)  # mock backend always produces two spikes per population
 
     ##def test_mean_spike_count_on_slave_node():
 
@@ -625,7 +625,7 @@ class PopulationTest(unittest.TestCase):
         sim.run(100.0)
         p.mean_spike_count = Mock()
         p.meanSpikeCount()
-        p.mean_spike_count.assert_called()
+        self.assertTrue(p.mean_spike_count.called)
 
     @register()
     def test_inject(self, sim=sim):

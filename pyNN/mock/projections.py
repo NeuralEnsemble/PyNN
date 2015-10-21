@@ -5,7 +5,6 @@ except ImportError:
     izip = zip  # Python 3 zip returns an iterator already
 from pyNN import common
 from pyNN.core import ezip
-from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
 

@@ -27,10 +27,8 @@ from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.populations import Population, PopulationView, Assembly
 from pyNN.neuron.projections import Projection
 from pyNN.neuron.cells import NativeCellType
-import numpy
 
 import logging
-from neuron import h
 logger = logging.getLogger("PyNN")
 
 # ==============================================================================

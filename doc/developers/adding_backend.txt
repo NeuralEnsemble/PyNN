@@ -54,8 +54,6 @@ The NEST interface
 The NEURON interface
 --------------------
 
-The PCSIM interface
--------------------
 
 The Brian interface
 -------------------

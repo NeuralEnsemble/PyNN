@@ -69,7 +69,7 @@ Other modules:
 :license: CeCILL, see LICENSE for details.
 """
 
-__version__ = '0.8.0rc1'
+__version__ = '0.8.1dev'
 __all__ = ["common", "random", "nest", "neuron", "brian",
            "recording", "errors", "space", "descriptions",
            "standardmodels", "parameters", "core"]

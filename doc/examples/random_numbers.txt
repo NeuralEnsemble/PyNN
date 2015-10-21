@@ -1,0 +1,7 @@
+An example to illustrate random number handling in PyNN
+=======================================================
+
+.. image:: ../images/examples/random_numbers_neuron_20151005-081153.png
+
+.. literalinclude:: ../../examples/random_numbers.py
+

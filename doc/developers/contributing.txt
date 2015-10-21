@@ -45,7 +45,7 @@ To work on the development version::
 
 To work on the latest stable release (for bug-fixes)::
 
-    $ git checkout --track origin/0.7
+    $ git checkout --track origin/0.8
 
 To keep your PyNN repository up-to-date with respect to the official
 repository, add it as a remote::
@@ -177,7 +177,7 @@ last time:
       :file:`test/unittests` and :file:`test/system` and running :command:`make doctest` in
       :file:`doc`. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
-      Mac OS X. You should also do this with Python 2.6, 2.7 and 3.4.
+      Mac OS X. You should also do this with Python 2.6, 2.7 and 3.4 or 3.5.
     * do all the example scripts generate the correct output? Run the
       :file:`run_all_examples.py` script in :file:`examples/tools` and then visually
       check the :file:`.png` files generated in :file:`examples/tools/Results`. Again,

@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import subprocess
 from itertools import cycle
+from datetime import datetime
 
 simulators = cycle(["nest", "neuron"])
 
@@ -41,9 +42,9 @@ examples = (
 template = """{title}
 {underline}
 
-.. literalinclude:: ../../examples/{example}
-
 .. image:: ../images/examples/{img_file}
+
+.. literalinclude:: ../../examples/{example}
 
 """
 
@@ -110,8 +111,9 @@ run(example, "nest", cell_type)
 run(example, "neuron", cell_type)
 new_files = list_files("VAbenchmarks").difference(files_initial)
 files_initial = list_files(".png")
-p = subprocess.Popen("python %s/tools/VAbenchmark_graphs.py -o Results/VAbenchmarks_%s.png %s" % (
-                         examples_dir, cell_type, " ".join(new_files)),
+timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+p = subprocess.Popen("python %s/tools/VAbenchmark_graphs.py -o Results/VAbenchmarks_%s_%s.png %s" % (
+                         examples_dir, cell_type, timestamp, " ".join(new_files)),
                      shell=True, cwd=tmp_dir)
 p.wait()
 img_path, = list_files(".png").difference(files_initial)

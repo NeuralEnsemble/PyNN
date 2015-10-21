@@ -6,6 +6,7 @@ Release notes
 .. toctree::
    :maxdepth: 1
 
+   releases/0.8.0.txt
    releases/0.8.0-rc-1.txt
    releases/0.8-beta-2.txt
    releases/0.8-beta-1.txt
