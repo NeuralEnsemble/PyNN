@@ -9,8 +9,8 @@ Classes:
 """
 
 from itertools import chain
-import nineml.user_layer as nineml
-import nineml.abstraction_layer as al
+import nineml.user as nineml
+import nineml.abstraction as al
 import pyNN.nineml
 import pyNN.random
 import pyNN.space
@@ -60,14 +60,14 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
             qname = "%s_%s" % (nineml_component.name, p.name)
         else:
             qname = p.name
-        if isinstance(p.value, nineml.RandomDistribution):
-            rd = p.value
+        if p.is_random():
+            rd = p.random_distribution
             if rd.name in random_distributions:
                 P[qname] = random_distributions[rd.name]
             else:
-                rd_name = reverse_map(pyNN.nineml.utility.random_distribution_url_map)[rd.definition.url]
+                rd_name = reverse_map(pyNN.nineml.utility.random_distribution_url_map)[rd.standard_library]
                 rd_param_names = pyNN.nineml.utility.random_distribution_parameter_map[rd_name]
-                rd_params = [rd.parameters[rdp_name].value for rdp_name in rd_param_names]
+                rd_params = [rd.property(rdp_name).value for rdp_name in rd_param_names]
                 rand_distr = pyNN.random.RandomDistribution(rd_name, rd_params)
                 P[qname] = rand_distr
                 random_distributions[rd.name] = rand_distr
@@ -221,7 +221,7 @@ class Network(object):
                     raise Exception("Unexpected")
         subnodes = {neuron_namespace: neuron_model}
         subnodes.update(synapse_models)
-        combined_model = al.DynamicsClass(name=_generate_variable_name(nineml_population.name),
+        combined_model = al.Dynamics(name=_generate_variable_name(nineml_population.name),
                                            subnodes=subnodes)
         # now connect ports
         for connection in connections:
@@ -305,7 +305,10 @@ class Network(object):
 
         connector = self._build_connector(nineml_projection)
         receptor_type = nineml_projection.response.name
-        assert receptor_type in populations[nineml_projection.destination.name].receptor_types
+        try:
+            assert receptor_type in populations[nineml_projection.destination.name].receptor_types
+        except:
+            raise
         synapse_dynamics = self._build_synapse_dynamics(nineml_projection)
 
         prj_obj = self.sim.Projection(populations[nineml_projection.source.name],

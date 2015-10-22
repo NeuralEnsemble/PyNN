@@ -6,7 +6,7 @@ Export of PyNN scripts as NineML.
 """
 
 import numpy
-import nineml.user_layer as nineml
+import nineml.user as nineml
 
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
@@ -17,7 +17,7 @@ from .utility import build_parameter_set, catalog_url
 
 
 class BasePopulation(object):
-    
+
     def get_synaptic_response_components(self, synaptic_mechanism_name):
         return [self.celltype.synaptic_receptor_component_to_nineml(synaptic_mechanism_name, self.label, (self.size,))]
 
@@ -27,11 +27,11 @@ class BasePopulation(object):
 
 class Assembly(common.Assembly):
     _simulator = simulator
-    
+
     def __init__(self, label=None, *populations):
         common.Assembly.__init__(self, label, *populations)
         self._simulator.state.net.assemblies.append(self)
-        
+
     def get_synaptic_response_components(self, synaptic_mechanism_name):
         components = set([])
         for p in self.populations:
@@ -87,14 +87,14 @@ class Population(BasePopulation, common.Population):
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
-        
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         self._parameters = parameter_space
-        
+
         for id in self.all_cells:
             id.parent = self
         self._simulator.state.id_counter += self.size
@@ -105,7 +105,7 @@ class Population(BasePopulation, common.Population):
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         self._parameters.update(parameter_space)
-    
+
     def to_nineml(self):
         if self.structure:
             structure = nineml.Structure(

@@ -4,11 +4,9 @@ Example of using a cell type defined in 9ML
 
 import sys
 from copy import deepcopy
-from nineml.abstraction_layer.dynamics import (ComponentClass,
-                                               Regime, On, OutputEvent,
-                                               StateVariable, RecvPort,
-                                               ReducePort,
-                                               SendPort, SendEventPort)
+from nineml.abstraction import (
+    Dynamics, Regime, On, OutputEvent, StateVariable, AnalogReceivePort,
+    AnalogReducePort, AnalogSendPort, EventSendPort)
 from pyNN.utility import init_logging, get_simulator, normalized_filename
 
 sim, options = get_simulator(("--plot-figure", "plot a figure with the given filename"))
@@ -18,7 +16,7 @@ init_logging(None, debug=True)
 sim.setup(timestep=0.1, min_delay=0.1, max_delay=2.0)
 
 
-iaf = ComponentClass(
+iaf = Dynamics(
     name="iaf",
     regimes=[
         Regime(
@@ -41,14 +39,14 @@ iaf = ComponentClass(
         StateVariable('V'),
         StateVariable('tspike'),
     ],
-    analog_ports=[SendPort("V"),
-                  ReducePort("ISyn", reduce_op="+"), ],
+    analog_ports=[AnalogSendPort("V"),
+                  AnalogReducePort("ISyn", operator="+"), ],
 
-    event_ports=[SendEventPort('spikeoutput'), ],
+    event_ports=[EventSendPort('spikeoutput'), ],
     parameters=['cm', 'taurefrac', 'gl', 'vreset', 'vrest', 'vthresh']
 )
 
-coba = ComponentClass(
+coba = Dynamics(
     name="CobaSyn",
     aliases=["I:=g*(vrev-V)", ],
     regimes=[
@@ -59,11 +57,11 @@ coba = ComponentClass(
         )
     ],
     state_variables=[StateVariable('g')],
-    analog_ports=[RecvPort("V"), SendPort("I"), ],
+    analog_ports=[AnalogReceivePort("V"), AnalogSendPort("I"), ],
     parameters=['tau', 'q', 'vrev']
 )
 
-iaf_2coba = ComponentClass(
+iaf_2coba = Dynamics(
     name="iaf_2coba",
     subnodes={"iaf": iaf,
               "excitatory": coba,

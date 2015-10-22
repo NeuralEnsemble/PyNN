@@ -7,7 +7,7 @@ Export of PyNN scripts as NineML.
 """
 
 from itertools import repeat, izip
-import nineml.user_layer as nineml
+import nineml.user as nineml
 
 from pyNN import common
 from pyNN.parameters import ParameterSpace

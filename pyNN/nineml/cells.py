@@ -7,7 +7,7 @@ Cell models generated from 9ML
 
 import logging
 from itertools import chain
-import nineml.abstraction_layer as nineml
+import nineml.abstraction as nineml
 from pyNN.models import BaseCellType
 
 logger = logging.getLogger("PyNN")
@@ -74,8 +74,8 @@ class build_nineml_celltype(type):
     """
     def __new__(cls, name, bases, dct):
 
-        import nineml.abstraction_layer as al
-        from nineml.abstraction_layer.dynamics.utils import (
+        import nineml.abstraction as al
+        from nineml.abstraction.dynamics.utils import (
             flattener, xml, modifiers)
 
         #Extract Parameters Back out from Dict:

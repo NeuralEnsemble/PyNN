@@ -5,19 +5,19 @@ Export of PyNN scripts as NineML.
 :license: CeCILL, see LICENSE for details.
 """
 
-import nineml.user_layer as nineml
+import nineml.user as nineml
 
 from pyNN import connectors
 from utility import build_parameter_set, catalog_url
 
-    
+
 class ConnectorMixin(object):
-    
+
     def to_nineml(self, label):
         connector_parameters = {}
         for name in self.__class__.parameter_names:
             connector_parameters[name] = getattr(self, name)
-        connection_rule = nineml.ConnectionRule(
+        connection_rule = nineml.ConnectionRuleComponent(
                                     name="connection rule for projection %s" % label,
                                     definition=nineml.Definition(self.definition_url,
                                                                  "connection_generator"),
@@ -28,8 +28,8 @@ class ConnectorMixin(object):
 class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConnector):
     definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url 
     parameter_names = ('p_connect', 'allow_self_connections')
-   
-   
+
+
 class DistanceDependentProbabilityConnector(ConnectorMixin, connectors.DistanceDependentProbabilityConnector):
     definition_url = "%s/connectionrules/distance_dependent_probability.xml" % catalog_url
     parameter_names = ('d_expression', 'allow_self_connections') # space
