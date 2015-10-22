@@ -4,13 +4,12 @@ Export of PyNN scripts as NineML.
 :copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
-from __future__ import absolute_import
 import logging
 import nineml.user as ul
 from neo.io import get_io
 
 from .. import common, random, standardmodels as std
-from .simulator import state
+from . import simulator
 from .standardmodels import *
 from .populations import Population, PopulationView, Assembly
 from .projections import Projection
@@ -27,25 +26,25 @@ def list_standard_models():
 
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     common.setup(timestep, min_delay, max_delay, **extra_params)
-    state.clear()
-    state.dt = timestep  # move to common.setup?
-    state.min_delay = min_delay
-    state.max_delay = max_delay
-    state.mpi_rank = extra_params.get('rank', 0)
-    state.num_processes = extra_params.get('num_processes', 1)
-    state.output_filename = extra_params.get("filename", "PyNN29ML.xml")
-    state.net = Network(label=extra_params.get("label", "PyNN29ML"))
+    simulator.state.clear()
+    simulator.state.dt = timestep  # move to common.setup?
+    simulator.state.min_delay = min_delay
+    simulator.state.max_delay = max_delay
+    simulator.state.mpi_rank = extra_params.get('rank', 0)
+    simulator.state.num_processes = extra_params.get('num_processes', 1)
+    simulator.state.output_filename = extra_params.get("filename", "PyNN29ML.xml")
+    simulator.state.net = Network(label=extra_params.get("label", "PyNN29ML"))
     return rank()
 
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
-    for (population, variables, filename) in state.write_on_end:
+    for (population, variables, filename) in simulator.state.write_on_end:
         io = get_io(filename)
         population.write_data(io, variables)
-    state.write_on_end = []
+    simulator.state.write_on_end = []
     # should have common implementation of end()
-    state.net.to_nineml().write(state.output_filename)
+    simulator.state.net.to_nineml().write(simulator.state.output_filename)
 
 
 run = common.build_run(simulator)
@@ -88,7 +87,7 @@ class Network(object):  # move to .simulator ?
             model.add_component(cs.to_nineml())
             # needToDefineWhichCellsTheCurrentIsInjectedInto
             # doWeJustReuseThePopulationProjectionIdiom="?"
-        main_group = ul.Group(name="Network")
+        main_group = ul.Network(name="Network")
         _populations = self.populations[:]
         _projections = self.projections[:]
         for a in self.assemblies:

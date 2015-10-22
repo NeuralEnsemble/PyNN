@@ -25,9 +25,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('case',
                     help=("The simulation case to run, can be one of '{}'"
                           .format("', '".join(cases))))
-parser.add_argument('--local_xml', action='store_true',
-                    help=("Use the local XML definitions instead of the "
-                          "version in the NineML catalog"))
 parser.add_argument('--plot', action='store_true',
                     help=("Plot the resulting figures"))
 parser.add_argument('--limits', nargs=2, default=(900, 1200),
