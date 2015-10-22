@@ -6,7 +6,8 @@ import sys
 from copy import deepcopy
 from nineml.abstraction import (
     Dynamics, Regime, On, OutputEvent, StateVariable, AnalogReceivePort,
-    AnalogReducePort, AnalogSendPort, EventSendPort)
+    AnalogReducePort, AnalogSendPort, EventSendPort, Parameter)
+from nineml import units as un
 from pyNN.utility import init_logging, get_simulator, normalized_filename
 
 sim, options = get_simulator(("--plot-figure", "plot a figure with the given filename"))
@@ -30,21 +31,24 @@ iaf = Dynamics(
         ),
         Regime(
             name="refractoryregime",
-            time_derivatives=["dV/dt = 0"],
             transitions=[On("t >= tspike + taurefrac",
                             to="subthresholdregime")],
         )
     ],
     state_variables=[
-        StateVariable('V'),
-        StateVariable('tspike'),
+        StateVariable('V', un.voltage),
+        StateVariable('tspike', un.time),
     ],
-    analog_ports=[AnalogSendPort("V"),
-                  AnalogReducePort("ISyn", operator="+"), ],
+    analog_ports=[AnalogSendPort("V", un.voltage),
+                  AnalogReducePort("ISyn", un.current, operator="+"), ],
 
     event_ports=[EventSendPort('spikeoutput'), ],
-    parameters=['cm', 'taurefrac', 'gl', 'vreset', 'vrest', 'vthresh']
-)
+    parameters=[Parameter('cm', un.capacitance),
+                Parameter('taurefrac', un.time),
+                Parameter('gl', un.conductance),
+                Parameter('vreset', un.voltage),
+                Parameter('vrest', un.voltage),
+                Parameter('vthresh', un.voltage)])
 
 coba = Dynamics(
     name="CobaSyn",
@@ -56,10 +60,12 @@ coba = Dynamics(
             transitions=On('spikeinput', do=["g=g+q"]),
         )
     ],
-    state_variables=[StateVariable('g')],
-    analog_ports=[AnalogReceivePort("V"), AnalogSendPort("I"), ],
-    parameters=['tau', 'q', 'vrev']
-)
+    state_variables=[StateVariable('g', un.conductance)],
+    analog_ports=[AnalogReceivePort("V", un.voltage),
+                  AnalogSendPort("I", un.current)],
+    parameters=[Parameter('tau', un.time),
+                Parameter('q', un.conductance),
+                Parameter('vrev', un.voltage)])
 
 iaf_2coba = Dynamics(
     name="iaf_2coba",
@@ -72,12 +78,11 @@ iaf_2coba.connect_ports("excitatory.I", "iaf.ISyn")
 iaf_2coba.connect_ports("inhibitory.I", "iaf.ISyn")
 
 celltype_cls = sim.nineml.nineml_celltype_from_model(
-                    name="iaf_2coba",
-                    nineml_model=iaf_2coba,
-                    synapse_components = [
-                        sim.nineml.CoBaSyn(namespace='excitatory',  weight_connector='q'),
-                        sim.nineml.CoBaSyn(namespace='inhibitory',  weight_connector='q')]
-                    )
+    name="iaf_2coba",
+    nineml_model=iaf_2coba,
+    synapse_components=[
+        sim.nineml.CoBaSyn(namespace='excitatory', weight_connector='q'),
+        sim.nineml.CoBaSyn(namespace='inhibitory', weight_connector='q')])
 
 parameters = {
     'iaf_cm': 1.0,
