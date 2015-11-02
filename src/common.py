@@ -267,7 +267,15 @@ def end(compatible_output=True):
     raise NotImplementedError
 
 def run(simtime):
-    """Run the simulation for simtime ms."""
+    """Run the simulation for simtime ms.
+
+    ``run()`` may be called multiple times during a simulation.
+    In between calls to ``run()`` it is possible to retrieve data
+    and modify neuron/synapse parameters. Some backends allow modification of
+    the network structure. ``run(x + y)`` is equivalent to ``run(x)``
+    followed by ``run(y)``. If you wish to reset the simulation state to
+    the initial conditions (time ``t = 0``), use the ``reset()`` function.
+    """
     raise NotImplementedError
 
 def reset():

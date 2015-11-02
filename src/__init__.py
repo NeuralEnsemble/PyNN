@@ -70,4 +70,5 @@ Other modules:
 """
 
 __version__ = '0.7.6dev'
-__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "recording", "errors", "space", "descriptions", "standardmodels"]
+__all__ = ["common", "random", "nest", "neuron", "pcsim", "brian", "recording",
+           "errors", "space", "descriptions", "standardmodels", "mock"]

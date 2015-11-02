@@ -157,7 +157,15 @@ def end(compatible_output=True):
     simulator.recorder_list = []
 
 def run(simtime):
-    """Run the simulation for simtime ms."""
+    """Run the simulation for simtime ms.
+
+    ``run()`` may be called multiple times during a simulation.
+    In between calls to ``run()`` it is possible to retrieve data,
+    modify neuron/synapse parameters and modify the network structure.
+    ``run(x + y)`` is equivalent to ``run(x)`` followed by ``run(y)``.
+    If you wish to reset the simulation state to the initial conditions
+    (time ``t = 0``), use the ``reset()`` function.
+    """
     simulator.run(simtime)
     return get_current_time()
 
