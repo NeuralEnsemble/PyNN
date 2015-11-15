@@ -140,11 +140,14 @@ class Projection(common.Projection):
         # Setting other connection parameters is done afterwards
         if postsynaptic_cell.celltype.standard_receptor_type:
             try:
-                nest.ConvergentConnect(presynaptic_cells.astype(int).tolist(),
+                nest.Connect(presynaptic_cells.astype(int).tolist(),
                                        [int(postsynaptic_cell)],
-                                       listify(weights),
-                                       listify(delays),
-                                       self.nest_synapse_model)
+                                       conn_spec='all_to_all',
+                                       syn_spec= {
+                                       'weight': listify(weights),
+                                       'delay' : listify(delays),
+                                       'model' : self.nest_synapse_model }
+                                       )
             except nest.NESTError as e:
                 raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
                                              e, presynaptic_cells, postsynaptic_cell, weights, delays, self.nest_synapse_model))
