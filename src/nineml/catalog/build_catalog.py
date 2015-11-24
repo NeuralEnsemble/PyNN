@@ -5,7 +5,7 @@ the NineML description of that model as XML.
 """
 
 from os import path, makedirs
-from nineml.abstraction_layer.writers.xml_writer import XMLWriter
+from nineml.abstraction.writers.xml_writer import XMLWriter
 import pyNN.nineml
 from pyNN.nineml import list_standard_models
 from pyNN.nineml.utility import catalog_url

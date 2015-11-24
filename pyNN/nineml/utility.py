@@ -9,7 +9,7 @@ from os.path import join, dirname
 from lazyarray import larray
 from pyNN import random
 from pyNN.parameters import Sequence
-import nineml.user_layer as nineml
+import nineml.user as nineml
 
 #catalog_url = "http://svn.incf.org/svn/nineml/catalog"
 #catalog_url = join(dirname(__file__), "catalog")
@@ -41,15 +41,15 @@ def infer_units(parameter_name):
     return unit
 
 random_distribution_url_map = {
-    'uniform': "%s/randomdistributions/uniform_distribution.xml" % catalog_url,
-    'normal': "%s/randomdistributions/normal_distribution.xml" % catalog_url,
-    'exponential': "%s/randomdistributions/exponential_distribution.xml" % catalog_url,
+    'uniform': 'http://www.uncertml.org/distributions/uniform.xml',
+    'normal': 'http://www.uncertml.org/distributions/normal.xml',
+    'exponential': 'http://www.uncertml.org/distributions/exponential.xml',
 }
 
 random_distribution_parameter_map = {
-    'normal': ('mean', 'standardDeviation'),
-    'uniform': ('lowerBound', 'upperBound'),
-    'exponential': ('beta',),
+    'normal': ('mean', 'variance'),
+    'uniform': ('minimum', 'maximum'),
+    'exponential': ('rate',),
 }
 
 
@@ -66,7 +66,7 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
                     value = int(value)
             elif isinstance(value, random.RandomDistribution):
                 rand_distr = value
-                value = nineml.RandomDistribution(
+                value = nineml.RandomDistributionComponent(
                     name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
                     definition=nineml.Definition(random_distribution_url_map[rand_distr.name],
                                                  "random"),
@@ -83,8 +83,8 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
             unit = None
         else:
             unit = infer_units(name)
-        parameter_list.append(nineml.Parameter(name, value, unit))
-    return nineml.ParameterSet(*parameter_list)
+        parameter_list.append(nineml.Property(name, value, unit))
+    return nineml.PropertySet(*parameter_list)
 
 
 def map_random_distribution_parameters(name, parameters):

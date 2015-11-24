@@ -4,12 +4,11 @@ Export of PyNN scripts as NineML.
 :copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
-
 import logging
-import nineml.user_layer as nineml
+import nineml.user as ul
 from neo.io import get_io
 
-from pyNN import common, random, standardmodels as std
+from .. import common, random, standardmodels as std
 from . import simulator
 from .standardmodels import *
 from .populations import Population, PopulationView, Assembly
@@ -18,6 +17,7 @@ from .connectors import *
 
 logger = logging.getLogger("PyNN")
 random.get_mpi_config = lambda: (0, 1)
+
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -82,12 +82,12 @@ class Network(object):  # move to .simulator ?
         return self.to_nineml().to_xml()
 
     def to_nineml(self):
-        model = nineml.Model(name=self.label)
+        model = ul.Model(name=self.label)
         for cs in self.current_sources:
             model.add_component(cs.to_nineml())
             # needToDefineWhichCellsTheCurrentIsInjectedInto
             # doWeJustReuseThePopulationProjectionIdiom="?"
-        main_group = nineml.Group(name="Network")
+        main_group = ul.Network(name="Network")
         _populations = self.populations[:]
         _projections = self.projections[:]
         for a in self.assemblies:

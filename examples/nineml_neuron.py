@@ -4,11 +4,10 @@ Example of using a cell type defined in 9ML
 
 import sys
 from copy import deepcopy
-from nineml.abstraction_layer.dynamics import (ComponentClass,
-                                               Regime, On, OutputEvent,
-                                               StateVariable, RecvPort,
-                                               ReducePort,
-                                               SendPort, SendEventPort)
+from nineml.abstraction import (
+    Dynamics, Regime, On, OutputEvent, StateVariable, AnalogReceivePort,
+    AnalogReducePort, AnalogSendPort, EventSendPort, Parameter)
+from nineml import units as un
 from pyNN.utility import init_logging, get_simulator, normalized_filename
 
 sim, options = get_simulator(("--plot-figure", "plot a figure with the given filename"))
@@ -18,7 +17,7 @@ init_logging(None, debug=True)
 sim.setup(timestep=0.1, min_delay=0.1, max_delay=2.0)
 
 
-iaf = ComponentClass(
+iaf = Dynamics(
     name="iaf",
     regimes=[
         Regime(
@@ -32,23 +31,26 @@ iaf = ComponentClass(
         ),
         Regime(
             name="refractoryregime",
-            time_derivatives=["dV/dt = 0"],
             transitions=[On("t >= tspike + taurefrac",
                             to="subthresholdregime")],
         )
     ],
     state_variables=[
-        StateVariable('V'),
-        StateVariable('tspike'),
+        StateVariable('V', un.voltage),
+        StateVariable('tspike', un.time),
     ],
-    analog_ports=[SendPort("V"),
-                  ReducePort("ISyn", reduce_op="+"), ],
+    analog_ports=[AnalogSendPort("V", un.voltage),
+                  AnalogReducePort("ISyn", un.current, operator="+"), ],
 
-    event_ports=[SendEventPort('spikeoutput'), ],
-    parameters=['cm', 'taurefrac', 'gl', 'vreset', 'vrest', 'vthresh']
-)
+    event_ports=[EventSendPort('spikeoutput'), ],
+    parameters=[Parameter('cm', un.capacitance),
+                Parameter('taurefrac', un.time),
+                Parameter('gl', un.conductance),
+                Parameter('vreset', un.voltage),
+                Parameter('vrest', un.voltage),
+                Parameter('vthresh', un.voltage)])
 
-coba = ComponentClass(
+coba = Dynamics(
     name="CobaSyn",
     aliases=["I:=g*(vrev-V)", ],
     regimes=[
@@ -58,12 +60,14 @@ coba = ComponentClass(
             transitions=On('spikeinput', do=["g=g+q"]),
         )
     ],
-    state_variables=[StateVariable('g')],
-    analog_ports=[RecvPort("V"), SendPort("I"), ],
-    parameters=['tau', 'q', 'vrev']
-)
+    state_variables=[StateVariable('g', un.conductance)],
+    analog_ports=[AnalogReceivePort("V", un.voltage),
+                  AnalogSendPort("I", un.current)],
+    parameters=[Parameter('tau', un.time),
+                Parameter('q', un.conductance),
+                Parameter('vrev', un.voltage)])
 
-iaf_2coba = ComponentClass(
+iaf_2coba = Dynamics(
     name="iaf_2coba",
     subnodes={"iaf": iaf,
               "excitatory": coba,
@@ -74,12 +78,11 @@ iaf_2coba.connect_ports("excitatory.I", "iaf.ISyn")
 iaf_2coba.connect_ports("inhibitory.I", "iaf.ISyn")
 
 celltype_cls = sim.nineml.nineml_celltype_from_model(
-                    name="iaf_2coba",
-                    nineml_model=iaf_2coba,
-                    synapse_components = [
-                        sim.nineml.CoBaSyn(namespace='excitatory',  weight_connector='q'),
-                        sim.nineml.CoBaSyn(namespace='inhibitory',  weight_connector='q')]
-                    )
+    name="iaf_2coba",
+    nineml_model=iaf_2coba,
+    synapse_components=[
+        sim.nineml.CoBaSyn(namespace='excitatory', weight_connector='q'),
+        sim.nineml.CoBaSyn(namespace='inhibitory', weight_connector='q')])
 
 parameters = {
     'iaf_cm': 1.0,
