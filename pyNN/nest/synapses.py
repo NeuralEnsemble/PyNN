@@ -37,11 +37,9 @@ class NESTSynapseMixin(object):
                 synapse_defaults[name] = value.evaluate(simplify=True)
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
-
         synapse_defaults.pop("tau_minus", None)
-        label = "%s_%s" % (self.nest_name, suffix)
-        nest.CopyModel(self.nest_name, label, synapse_defaults)
-        return label
+        nest.SetDefaults(self.nest_name+'_lbl', synapse_defaults)
+        return self.nest_name+'_lbl'
 
     def _get_minimum_delay(self):
         return state.min_delay
@@ -70,7 +68,6 @@ def native_synapse_type(model_name):
     """
     Return a new NativeSynapseType subclass.
     """
-    
     default_parameters = get_synapse_defaults(model_name)
 
     default_parameters = make_pynn_compatible(default_parameters)
