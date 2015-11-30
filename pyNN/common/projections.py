@@ -18,7 +18,6 @@ except NameError:
 import numpy
 import logging
 import operator
-from copy import copy
 from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space

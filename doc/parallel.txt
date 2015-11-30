@@ -4,7 +4,7 @@ Running parallel simulations
 
 Where the underlying simulator supports distributed simulations, in which the
 computations are spread over multiple processors using MPI (this is the case for
-NEURON, NEST and PCSIM), PyNN also supports this. To run a distributed
+NEURON and NEST), PyNN also supports this. To run a distributed
 simulation on eight nodes, the command will be something like::
 
     $ mpirun -np 8 -machinefile ~/mpi_hosts python myscript.py

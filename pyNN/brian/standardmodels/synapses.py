@@ -7,7 +7,7 @@ Standard cells for the Brian module.
 """
 
 import logging
-from brian import ms, uS, nA
+from brian import ms
 from pyNN.standardmodels import synapses, build_translations
 from ..simulator import state
 

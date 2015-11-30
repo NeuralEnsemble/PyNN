@@ -22,7 +22,7 @@ views...
 The "low-level API" (rechristened "procedural API") has been reimplemented in in
 terms of :class:`Population` and :class:`Projection`. For example,
 :func:`create()` now returns a :class:`Population` object rather than a list of
-IDs, and :func:`connect()` returns a :class:`Projection`object. This change
+IDs, and :func:`connect()` returns a :class:`Projection` object. This change
 should be almost invisible to the user, since :class:`Population` now behaves
 very much like a list of IDs (can be sliced, joined, etc.).
 

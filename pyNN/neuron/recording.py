@@ -5,13 +5,11 @@
 """
 
 import numpy
-from datetime import datetime
 from pyNN import recording
 from pyNN.neuron import simulator
 import re
 from neuron import h
-import neo
-from copy import copy
+
 
 recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 

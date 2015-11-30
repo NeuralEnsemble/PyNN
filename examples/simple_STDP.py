@@ -160,7 +160,7 @@ if options.fit_curve:
         return w0 + numpy.where(t >= t0, wp*numpy.exp(-(t - t0)/tau), wn*numpy.exp((t - t0)/tau))
     p0 = (-1.0, 5e-8, 1e-8, -1.2e-8, 20.0)
     popt, pcov = plasticity_data.fit_curve(double_exponential, p0, ftol=1e-10)
-    print("Best fit parameters: t0={}, w0={}, wp={}, wn={}, tau={}".format(*popt))
+    print("Best fit parameters: t0={0}, w0={1}, wp={2}, wn={3}, tau={4}".format(*popt))
 
 
 if options.plot_figure:

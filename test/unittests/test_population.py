@@ -82,6 +82,11 @@ class PopulationTest(unittest.TestCase):
         self.assertIsInstance(p.structure, space.Grid3D)
         self.assertRaises(Exception, sim.Population, (2,3,4,5), sim.IF_cond_exp())
 
+    @register()
+    def test_create_with_empty_spike_source_array(self, sim=sim):
+        # regression test for https://github.com/NeuralEnsemble/PyNN/issues/378
+        p = sim.Population(11, sim.SpikeSourceArray(spike_times=[]))
+
     #def test_create_with_initial_values():
 
     @register()
@@ -614,7 +619,7 @@ class PopulationTest(unittest.TestCase):
         p = sim.Population(14, sim.EIF_cond_exp_isfa_ista())
         p.record('spikes')
         sim.run(100.0)
-        self.assertEqual(p.mean_spike_count(), 2.0)
+        self.assertEqual(p.mean_spike_count(), 2.0)  # mock backend always produces two spikes per population
 
     ##def test_mean_spike_count_on_slave_node():
 
@@ -625,7 +630,7 @@ class PopulationTest(unittest.TestCase):
         sim.run(100.0)
         p.mean_spike_count = Mock()
         p.meanSpikeCount()
-        p.mean_spike_count.assert_called()
+        self.assertTrue(p.mean_spike_count.called)
 
     @register()
     def test_inject(self, sim=sim):

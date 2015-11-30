@@ -8,7 +8,7 @@ from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_l
 from .registry import register
 
 
-@register(exclude=['pcsim', 'nemo'])
+@register(exclude=['nemo'])
 def test_reset_recording(sim):
     """
     Check that record(None) resets the list of things to record.
@@ -42,7 +42,7 @@ def test_reset_recording(sim):
 test_reset_recording.__test__ = False
 
 
-@register(exclude=['pcsim', 'moose', 'nemo'])
+@register(exclude=['moose', 'nemo'])
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)

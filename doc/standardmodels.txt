@@ -24,7 +24,7 @@ IF_curr_alpha
 
 Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic current.
 
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ========================================
 Name            Default value  Units  Description
@@ -47,7 +47,7 @@ IF_curr_exp
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic current.
 (Separate synaptic currents for excitatory and inhibitory synapses.
     
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
     
 ==============  =============  =====  =========================================
 Name            Default value  Units  Description
@@ -69,7 +69,7 @@ _____________
 
 Leaky integrate and fire model with fixed threshold and alpha-function-shaped post-synaptic conductance.
 
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -93,7 +93,7 @@ IF_cond_exp
 
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic conductance.
     
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
     
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
@@ -177,7 +177,7 @@ SpikeSourcePoisson
 
 Spike source, generating spikes according to a Poisson process.
 
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
 
 ============  =============  ======  ==========================
 Name          Default value  Units   Description
@@ -192,7 +192,7 @@ SpikeSourceArray
 ----------------
 Spike source generating spikes at the times given in the ``spike_times`` array.
 
-Availability: NEST, NEURON, PCSIM, Brian
+Availability: NEST, NEURON, Brian
 
 ===============  =============  ======  ==========================
 Name             Default value  Units   Description

@@ -6,10 +6,8 @@ Definition of NativeSynapseType class for NEST
 """
 
 import nest
-import numpy
 
-from pyNN.models import BaseModelType, BaseSynapseType
-from pyNN.parameters import Sequence
+from pyNN.models import BaseSynapseType
 from .simulator import state
 from .conversion import make_pynn_compatible, make_sli_compatible
 

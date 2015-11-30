@@ -62,11 +62,14 @@ def end(compatible_output=True):
 def build_run(simulator):
     def run_until(time_point, callbacks=None):
         """
-        Run the simulation until `time_point` (in ms).
+        Advance the simulation until `time_point` (in ms).
         
         `callbacks` is an optional list of callables, each of which should
         accept the current time as an argument, and return the next time it
         wishes to be called.
+
+        ``run_until()`` and ``run()`` may be combined freely. See the
+        documentation of the ``run()`` function for further information.
         """
         now = simulator.state.t
         if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
@@ -90,13 +93,21 @@ def build_run(simulator):
         else:
             simulator.state.run_until(time_point)
         return simulator.state.t
+
     def run(simtime, callbacks=None):
         """
-        Run the simulation for `simtime` ms.
+        Advance the simulation by `simtime` ms.
         
         `callbacks` is an optional list of callables, each of which should
         accept the current time as an argument, and return the next time it
         wishes to be called.
+
+        ``run()`` may be called multiple times during a simulation.
+        In between calls to ``run()`` it is possible to retrieve data
+        and modify neuron/synapse parameters. Some backends allow modification of
+        the network structure. ``run(x + y)`` is equivalent to ``run(x)``
+        followed by ``run(y)``. If you wish to reset the simulation state to
+        the initial conditions (time ``t = 0``), use the ``reset()`` function.
         """
         return run_until(simulator.state.t + simtime, callbacks)
     return run, run_until

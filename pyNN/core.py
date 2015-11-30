@@ -7,7 +7,6 @@ Assorted utility classes and functions.
 
 import warnings
 import numpy
-from pyNN import errors
 
 
 def is_listlike(obj):

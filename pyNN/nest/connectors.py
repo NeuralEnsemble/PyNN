@@ -13,7 +13,7 @@ try:
     haveCSA = True
 except ImportError:
     haveCSA = False
-from pyNN import random, core, errors
+from pyNN import random
 from pyNN.connectors import (Connector,
                              AllToAllConnector,
                              FixedProbabilityConnector,

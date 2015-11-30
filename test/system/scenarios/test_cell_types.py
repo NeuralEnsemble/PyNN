@@ -5,7 +5,7 @@ import quantities as pq
 
 from .registry import register
 
-@register(exclude=['pcsim', 'moose', 'nemo'])
+@register(exclude=['moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
@@ -28,7 +28,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
 test_EIF_cond_alpha_isfa_ista.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo'])
+@register(exclude=['nemo'])
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -57,7 +57,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
 test_HH_cond_exp.__test__ = False
 
 
-@register(exclude=['pcsim', 'nemo', 'brian'])
+@register(exclude=['nemo', 'brian'])
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -86,6 +86,9 @@ def issue367(sim, plot_figure=False):
     sim.end()
     return data
 issue367.__test__ = False
+
+
+# todo: add test of Izhikevich model
 
 
 if __name__ == '__main__':

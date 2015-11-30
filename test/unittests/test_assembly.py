@@ -556,7 +556,30 @@ class AssemblyTest(unittest.TestCase):
         self.assertEqual(spike_times.size, 5)
         assert_array_equal(spike_times[3], Sequence([4, 5, 6, 7]))
 
+    @register()
+    def test_inject(self, sim=sim):
+        p1 = sim.Population(3, sim.IF_curr_alpha())
+        p2 = sim.Population(5, sim.IF_cond_exp())
+        a = p1 + p2
+        cs = Mock()
+        a.inject(cs)
+        meth, args, kwargs = cs.method_calls[0]
+        self.assertEqual(meth, "inject_into")
+        self.assertEqual(args, (p1,))
+        meth, args, kwargs = cs.method_calls[1]
+        self.assertEqual(meth, "inject_into")
+        self.assertEqual(args, (p2,))
 
+    @register(exclude=['nest', 'neuron', 'brian', 'hardware.brainscales', 'spiNNaker'])
+    def test_mean_spike_count(self, sim=sim):
+        p1 = sim.Population(14, sim.EIF_cond_exp_isfa_ista())
+        p2 = sim.Population(37, sim.IF_cond_alpha())
+        a = p1 + p2
+        p1.record('spikes')
+        p2.record('spikes')
+        #a.record('spikes')
+        sim.run(100.0)
+        self.assertEqual(a.mean_spike_count(), 2.0)  # mock backend always produces two spikes per population
 
 
 if __name__ == '__main__':

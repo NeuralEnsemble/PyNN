@@ -9,11 +9,9 @@ These base classes should be sub-classed by the backend-specific classes.
 """
 
 import numpy
-import os
 import logging
 import operator
 from itertools import chain
-import tempfile
 try:
     basestring
     reduce
@@ -1328,7 +1326,7 @@ class Assembly(object):
         """
         spike_counts = self.get_spike_counts()
         total_spikes = sum(spike_counts.values())
-        if self._simulator.state.mpi_rank() == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
+        if self._simulator.state.mpi_rank == 0 or not gather:  # should maybe use allgather, and get the numbers on all nodes
             return float(total_spikes)/len(spike_counts)
         else:
             return numpy.nan
@@ -1338,12 +1336,12 @@ class Assembly(object):
         Returns the number of spikes for each neuron.
         """
         try:
-            spike_counts = self.populations[0].recorders['spikes'].count(gather, self.populations[0]._record_filter)
+            spike_counts = self.populations[0].recorder.count('spikes', gather, self.populations[0]._record_filter)
         except errors.NothingToWriteError:
             spike_counts = {}
         for p in self.populations[1:]:
             try:
-                spike_counts.update(p.recorders['spikes'].count(gather, p._record_filter))
+                spike_counts.update(p.recorder.count('spikes', gather, p._record_filter))
             except errors.NothingToWriteError:
                 pass
         return spike_counts

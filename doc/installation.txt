@@ -161,7 +161,6 @@ Note that this version of PyNN works with Brian 1.4, but not with Brian 2.
 .. _Cheetah: http://www.cheetahtemplate.org/
 .. _mpi4py: http://mpi4py.scipy.org/
 .. _pip: http://www.pip-installer.org/
-.. _PCSIM: http://www.lsm.tugraz.at/pcsim/
 .. _Brian: http://briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/2/install/index.html

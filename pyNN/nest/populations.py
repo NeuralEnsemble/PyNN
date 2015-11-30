@@ -16,7 +16,6 @@ from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
 from . import simulator
 from .recording import Recorder, VARIABLE_MAP
-from .conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
 
