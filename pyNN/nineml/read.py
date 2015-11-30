@@ -178,9 +178,11 @@ class Network(object):
                 target_populations = [projection.destination]
             for target_population in target_populations:
                 if target_population.name in self.psr_map:
-                    self.psr_map[target_population.name].update(projection.port_connections)
+                    self.psr_map[target_population.name]['port_connections'].update(projection.port_connections)
+                    self.psr_map[target_population.name]['response_component'] = projection.response   ## hack? what about clashes?
                 else:
-                    self.psr_map[target_population.name] = set(projection.port_connections)
+                    self.psr_map[target_population.name] = {'port_connections': set(projection.port_connections),
+                                                            'response_component': projection.response}
 
         # create populations
         for population in self.nineml_model.populations.values():
@@ -199,10 +201,11 @@ class Network(object):
         neuron_model = nineml_population.cell.component_class
         neuron_namespace = _generate_variable_name(nineml_population.cell.name)
         synapse_models = {}
+        response_components = {}
         connections = []
         weight_vars = {}
         if nineml_population.name in self.psr_map:
-            for pc in self.psr_map[nineml_population.name]:
+            for pc in self.psr_map[nineml_population.name]['port_connections']:
                 if pc._receive_role == 'destination' and pc._send_role == 'response':
                     synapse_name = _generate_variable_name(pc.sender.name)
                     synapse_models[synapse_name] = pc.send_class
@@ -219,10 +222,11 @@ class Network(object):
                     weight_vars[synapse_name] = "%s_%s" % (synapse_name, pc.receive_port)
                 else:
                     raise Exception("Unexpected")
+            response_components[synapse_name] = self.psr_map[nineml_population.name]['response_component']
         subnodes = {neuron_namespace: neuron_model}
         subnodes.update(synapse_models)
         combined_model = al.Dynamics(name=_generate_variable_name(nineml_population.name),
-                                           subnodes=subnodes)
+                                     subnodes=subnodes)
         # now connect ports
         for connection in connections:
             combined_model.connect_ports(*connection)
@@ -230,8 +234,9 @@ class Network(object):
         celltype_cls = self._nineml_module.nineml_cell_type(
             combined_model.name, combined_model, weight_vars)
         cell_params = resolve_parameters(nineml_population.cell, self.random_distributions)
+        for response_component in response_components.values():
+            cell_params.update(resolve_parameters(response_component, self.random_distributions))
 
-        #import pdb; pdb.set_trace()
         return celltype_cls, cell_params
 
     def _build_population(self, nineml_population):
