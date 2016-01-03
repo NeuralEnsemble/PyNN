@@ -8,25 +8,12 @@ Classes:
 :license: CeCILL, see LICENSE for details.
 """
 
-from itertools import chain
 import nineml.user as nineml
 import nineml.abstraction as al
 import pyNN.nineml
 import pyNN.random
 import pyNN.space
-import re
-
-
-def reverse_map(D):
-    """
-    Return a dict having D.values() as its keys and D.keys() as its values.
-    """
-    E = {}
-    for k,v in D.items():
-        if v in E:
-            raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
-        E[v] = k
-    return E
+from .utility import build_random_distribution
 
 
 def scale(quantity):
@@ -65,10 +52,7 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
             if rd.name in random_distributions:
                 P[qname] = random_distributions[rd.name]
             else:
-                rd_name = reverse_map(pyNN.nineml.utility.random_distribution_url_map)[rd.standard_library]
-                rd_param_names = pyNN.nineml.utility.random_distribution_parameter_map[rd_name]
-                rd_params = [rd.property(rdp_name).value for rdp_name in rd_param_names]
-                rand_distr = pyNN.random.RandomDistribution(rd_name, rd_params)
+                rand_distr = build_random_distribution(rd)
                 P[qname] = rand_distr
                 random_distributions[rd.name] = rand_distr
         elif p.value in ('True', 'False'):
