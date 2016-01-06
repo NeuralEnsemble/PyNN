@@ -21,9 +21,9 @@ def get_defaults(model_name):
     valid_types = (int, float, Sequence)
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
-    ignore = ['archiver_length', 'available', 'capacity', 'elementsize',
-              'frozen', 'instantiations', 'local', 'model', 'recordables',
-              'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
+    ignore = ['archiver_length', 'available', 'Ca', 'capacity', 'elementsize',
+              'frozen', 'instantiations', 'local', 'model', 'needs_prelim_update',
+              'recordables', 'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
               'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
               'thread_local_id']
