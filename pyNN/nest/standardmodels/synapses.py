@@ -45,7 +45,7 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
                                             voltage_dependence, dendritic_delay_fraction,
                                             weight, delay)
 
-    def _get_nest_synapse_model(self, suffix):
+    def _get_nest_synapse_model(self):
         base_model = self.possible_models
         if isinstance(base_model, set):
             logger.warning("Several STDP models are available for these connections:")
@@ -57,7 +57,7 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
                              "Possible models in your NEST build are: %s" % (base_model, available_models))
 
-        # CopyModel defaults must be simple floats, so we use the NEST defaults
+        # Defaults must be simple floats, so we use the NEST defaults
         # for any inhomogeneous parameters, and set the inhomogeneous values
         # later
         synapse_defaults = {}
@@ -71,10 +71,8 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("tau_minus")
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
-
-        label = "%s_%s" % (base_model, suffix)
-        nest.CopyModel(base_model, label, synapse_defaults)
-        return label
+        nest.SetDefaults(base_model + '_lbl', synapse_defaults)
+        return base_model + '_lbl'
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse, NESTSynapseMixin):

@@ -45,7 +45,8 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self.nest_synapse_model = self.synapse_type._get_nest_synapse_model("projection_%d" % Projection._nProj)
+        self.nest_synapse_model = self.synapse_type._get_nest_synapse_model()
+        self.nest_synapse_label = Projection._nProj
         self.synapse_type._set_tau_minus(self.post.local_cells)
         self._sources = []
         self._connections = None
@@ -75,14 +76,18 @@ class Projection(common.Projection):
     def __len__(self):
         """Return the number of connections on the local MPI node."""
         local_nodes = nest.GetNodes([0], local_only=True)[0]
-        local_connections = nest.GetConnections(target=local_nodes, synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)
+        local_connections = nest.GetConnections(target=local_nodes,
+                                                synapse_model=self.nest_synapse_model,
+                                                synapse_label=self.nest_synapse_label)
         return len(local_connections)
 
     @property
     def nest_connections(self):
         if self._connections is None:
             self._sources = numpy.unique(self._sources)
-            self._connections = nest.GetConnections(self._sources.tolist(), synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)
+            self._connections = nest.GetConnections(self._sources.tolist(),
+                                                    synapse_model=self.nest_synapse_model,
+                                                    synapse_label=self.nest_synapse_label)
         return self._connections
 
     @property
@@ -94,7 +99,7 @@ class Projection(common.Projection):
 
     def _set_tsodyks_params(self):
         if 'tsodyks' in self.nest_synapse_model:  # there should be a better way to do this. In particular, if the synaptic time constant is changed
-                                              # after creating the Projection, tau_psc ought to be changed as well.
+                                                  # after creating the Projection, tau_psc ought to be changed as well.
             assert self.receptor_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
             targets = nest.GetStatus(self.nest_connections, 'target')
@@ -110,11 +115,12 @@ class Projection(common.Projection):
         Create connections by calling nest.Connect on the presynaptic and postsynaptic population
         with the parameters provided by params.
         """
-        syn_params.update({'synapse_label': Projection._nProj})
+        syn_params.update({'synapse_label': self.nest_synapse_label})
         nest.Connect(self.pre.all_cells.astype(int).tolist(),
                      self.post.all_cells.astype(int).tolist(),
                      rule_params, syn_params)
-        self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)]
+        self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model,
+                                                               synapse_label=self.nest_synapse_label)]
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
@@ -149,7 +155,7 @@ class Projection(common.Projection):
                     delays = numpy.array([delays])
                 syn_dict = {'model': self.nest_synapse_model,
                             'weight': weights, 'delay': delays,
-                            'synapse_label': Projection._nProj}
+                            'synapse_label': self.nest_synapse_label}
                 nest.Connect(presynaptic_cells.astype(int).tolist(),
                              [int(postsynaptic_cell)],
                              'all_to_all',
@@ -167,7 +173,8 @@ class Projection(common.Projection):
                 nest.Connect([pre], [postsynaptic_cell],
                              'one_to_one',
                              {'weight': w, 'delay': d, 'receptor_type': receptor_type,
-                              'model': self.nest_synapse_model, 'synapse_label': Projection._nProj})
+                              'model': self.nest_synapse_model,
+                              'synapse_label': self.nest_synapse_label})
 
         # Book-keeping
         self._connections = None  # reset the caching of the connection list, since this will have to be recalculated
@@ -189,7 +196,8 @@ class Projection(common.Projection):
             sort_indices = numpy.argsort(presynaptic_cells)
             connections = nest.GetConnections(source=numpy.unique(presynaptic_cells.astype(int)).tolist(),
                                               target=[int(postsynaptic_cell)],
-                                              synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)
+                                              synapse_model=self.nest_synapse_model,
+                                              synapse_label=self.nest_synapse_label)
             for name, value in connection_parameters.items():
                 value = make_sli_compatible(value)
                 if name not in self._common_synapse_property_names:
@@ -208,11 +216,13 @@ class Projection(common.Projection):
             between local and common synapse properties.
         """
         sample_connection = nest.GetConnections(source=[int(self._sources[0])],
-                                                synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)[:1]
+                                                synapse_model=self.nest_synapse_model,
+                                                synapse_label=self.nest_synapse_label)[:1]
 
         local_parameters = nest.GetStatus(sample_connection)[0].keys()
         all_parameters = nest.GetDefaults(self.nest_synapse_model).keys()
-        self._common_synapse_property_names = [name for name in all_parameters if name not in local_parameters]
+        self._common_synapse_property_names = [name for name in all_parameters
+                                               if name not in local_parameters]
 
     def _set_attributes(self, parameter_space):
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
@@ -223,7 +233,8 @@ class Projection(common.Projection):
                                                             parameter_space.columns()):
             connections = nest.GetConnections(source=sources,
                                               target=[postsynaptic_cell],
-                                              synapse_model=self.nest_synapse_model, synapse_label=Projection._nProj)
+                                              synapse_model=self.nest_synapse_model,
+                                              synapse_label=self.nest_synapse_label)
             if connections:
                 source_mask = self.pre.id_to_index([x[0] for x in connections])
                 for name, value in connection_parameters.items():
@@ -326,7 +337,8 @@ class Projection(common.Projection):
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
                 attribute_name = attribute_name[:-1]
             value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
-            connection_attributes = nest.GetStatus(self.nest_connections, ('source', 'target', attribute_name))
+            connection_attributes = nest.GetStatus(self.nest_connections,
+                                                   ('source', 'target', attribute_name))
             for conn in connection_attributes:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn

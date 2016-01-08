@@ -29,17 +29,16 @@ def get_synapse_defaults(model_name):
 
 class NESTSynapseMixin(object):
 
-    def _get_nest_synapse_model(self, suffix):
+    def _get_nest_synapse_model(self):
         synapse_defaults = {}
         for name, value in self.native_parameters.items():
             if value.is_homogeneous:
                 value.shape = (1,)
                 synapse_defaults[name] = value.evaluate(simplify=True)
-
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
-        nest.SetDefaults(self.nest_name+'_lbl', synapse_defaults)
-        return self.nest_name+'_lbl'
+        nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        return self.nest_name + '_lbl'
 
     def _get_minimum_delay(self):
         return state.min_delay
