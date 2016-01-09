@@ -4,7 +4,7 @@ set -e  # stop execution in case of errors
 
 if [[ "$TRAVIS_PYTHON_VERSION" == "2.7_with_system_site_packages" ]]; then
 
-    export NEST_VERSION="2.6.0"
+    export NEST_VERSION="2.10.0"
     export NEST="nest-$NEST_VERSION"
     pip install cython
     if [ ! -f "$HOME/$NEST_VERSION/configure" ]; then

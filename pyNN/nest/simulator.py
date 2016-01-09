@@ -89,7 +89,7 @@ class _State(common.control.BaseState):
             min_delay = float(min_delay)
             max_delay = float(max_delay)
             for synapse_model in nest.Models(mtype='synapses'):
-                if synapse_model != 'gap_junction':
+                if synapse_model not in ['gap_junction', 'gap_junction_lbl']:
                     nest.SetDefaults(synapse_model, {'delay': min_delay,
                                                      'min_delay': min_delay,
                                                      'max_delay': max_delay})
