@@ -24,7 +24,7 @@ In previous versions of PyNN, the :class:`Population` constructor was called
 with the population size, a :class:`BaseCellType` sub-class such as
 :class:`IF_cond_exp` and a dictionary of parameter values. For example::
 
-    p = Population(1000, IF_cond_exp, {'tau_m'=12.0, 'cm': 0.8})  # PyNN 0.7
+    p = Population(1000, IF_cond_exp, {'tau_m': 12.0, 'cm': 0.8})  # PyNN 0.7
 
 This dictionary was passed to the cell-type class constructor within the
 :class:`Population` constructor to create a cell-type instance.
@@ -49,7 +49,7 @@ The example above should be rewritten as::
 
 or::
 
-    p = Population(1000, IF_cond_exp(**{'tau_m'=12.0, 'cm': 0.8}))  # PyNN 0.8
+    p = Population(1000, IF_cond_exp(**{'tau_m': 12.0, 'cm': 0.8}))  # PyNN 0.8
 
 or::
 
