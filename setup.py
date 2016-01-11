@@ -46,7 +46,7 @@ setup(
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
-                'pyNN.utility'],
+                'pyNN.utility', 'pyNN.nineml'],
     package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
     author = "The PyNN team",
     author_email = "andrew.davison@unic.cnrs-gif.fr",

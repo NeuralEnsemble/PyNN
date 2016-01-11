@@ -47,6 +47,7 @@ cover
 # files from running examples
 examples/Results
 examples/tools/Results
+examples/nineml_mechanisms
 
 # Other
 *.btr

@@ -8,126 +8,67 @@ Classes:
 :license: CeCILL, see LICENSE for details.
 """
 
-import nineml.user_layer as nineml
-import nineml.abstraction_layer as al
+import nineml.user as nineml
+import nineml.abstraction as al
 import pyNN.nineml
 import pyNN.random
 import pyNN.space
-import re
+from .utility import build_random_distribution
 
-#def generate_spiking_node_description_map():
-#    """
-#    Return a mapping between URIs and StandardCellType classes.
-#    """
-#    map = {}
-#    for m in pyNN.nineml.list_standard_models():
-#        definition_url = m.spiking_mechanism_definition_url
-#        if definition_url in map:
-#            map[definition_url].add(m)
-#        else:
-#            map[definition_url] = set([m])
-#    return map
 
-#def generate_post_synaptic_response_description_map():
-#    """
-#    Return a mapping between URIs and StandardCellType classes.
-#    """
-#    map = {}
-#    for m in pyNN.nineml.list_standard_models():
-#        if m.synapse_types: # exclude spike sources
-#            definition_url = m.synaptic_mechanism_definition_urls['excitatory']
-#            assert definition_url == m.synaptic_mechanism_definition_urls['inhibitory']
-#            if definition_url in map:
-#                map[definition_url].add(m)
-#            else:
-#                map[definition_url] = set([m])
-#    return map
-
-#def generate_connector_map():
-#    """
-#    Return a mapping between URIs and Connector classes.
-#    """
-#    map = {}
-#    for c in pyNN.nineml.connectors.list_connectors():
-#        map[c.definition_url] = c
-#    return map
-
-def reverse_map(D):
-    """
-    Return a dict having D.values() as its keys and D.keys() as its values.
-    """
-    E = {}
-    for k,v in D.items():
-        if v in E:
-            raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
-        E[v] = k
-    return E
-
-def scale(parameter_name, unit):
+def scale(quantity):
     """Primitive unit handling. Should probably use Piquant, quantities, or similar."""
-    ms = 1
-    mV = 1
-    s = 1000
-    V = 1000
-    Hz = 1
-    nF = 1
-    nA = 1
-    standard_units = { # there is a very similar dict in pyNN.nineml.utility
-        'tau_m': ms,
-        'v_thresh': mV,
-        'tau_refrac': ms,
-        'v_reset': mV,
-        'rate': Hz,
-        'duration': ms,
-        'start': ms,
-        'cm': nF,
-        'e_rev_E': mV,
-        'e_rev_I': mV,
-        'tau_syn_E': ms,
-        'tau_syn_I': ms,
-        'i_offset': nA,
-        'v_init': mV,
-        'v_rest': mV,
-        'delay': ms,
+    factors = {
+        'ms': 1,
+        'mV': 1,
+        's': 1000,
+        'V': 1000,
+        'Hz': 1,
+        'nF': 1,
+        'nA': 1,
+        'Mohm': 1,  ## ??
+        'unknown': 1,
+        'unitless': 1,
     }
-    if unit == 'unknown':
-        return 1.0
-    else:
-        original_unit = eval(unit)
-        return standard_units[parameter_name]*original_unit
+    if quantity.units:
+        return quantity.value * factors[quantity.units.name]
+    else:  # dimensionless
+        return quantity.value
 
-def resolve_parameters(P, random_distributions):
+
+def resolve_parameters(nineml_component, random_distributions, resolve="properties", qualified_names=True):
     """
-    Turn a 9ML ParameterSet into a Python dict, including turning 9ML
+    Turn a 9ML ParameterSet or InitialValueSet into a Python dict, including turning 9ML
     RandomDistribution objects into PyNN RandomDistribution objects.
     """
-    random_parameters = {}
-    for name,p in P.items():
-        if isinstance(p.value, nineml.RandomDistribution):
-            rd = p.value
-            if rd.name in random_distributions:
-                random_parameters[name] = random_distributions[rd.name]
-            else:
-                rd_name = reverse_map(pyNN.nineml.utility.random_distribution_url_map)[rd.definition.url]
-                rd_param_names = pyNN.nineml.utility.random_distribution_parameter_map[rd_name]
-                rd_params = [rd.parameters[rdp_name].value for rdp_name in rd_param_names]
-                rand_distr = pyNN.random.RandomDistribution(rd_name, rd_params)
-                random_parameters[name] = rand_distr
-                random_distributions[rd.name] = rand_distr
-            P[name] = -999
-        elif p.value in ('True', 'False'):
-            P[name] = eval(p.value)
-        elif isinstance(p.value, basestring):
-            P[name] = p.value
+    P = {}
+    for p in getattr(nineml_component, resolve):
+        if qualified_names:
+            qname = "%s_%s" % (nineml_component.name, p.name)
         else:
-            P[name] = p.value*scale(name, p.unit)
-    return P, random_parameters
-    
+            qname = p.name
+        if p.is_random():
+            rd = p.random_distribution
+            if rd.name in random_distributions:
+                P[qname] = random_distributions[rd.name]
+            else:
+                rand_distr = build_random_distribution(rd)
+                P[qname] = rand_distr
+                random_distributions[rd.name] = rand_distr
+        elif p.value in ('True', 'False'):
+            P[qname] = eval(p.value)
+        elif isinstance(p.value, basestring):
+            P[qname] = p.value
+        else:
+            P[qname] = scale(p)
+    return P
+
+
 def _build_structure(nineml_structure):
     """
     Return a PyNN Structure object that corresponds to the provided 9ML
     Structure object.
-    
+
     For now, we do this by mapping names rather than parsing the 9ML abstraction
     layer file.
     """
@@ -169,12 +110,12 @@ def _build_structure(nineml_structure):
 
 def _generate_variable_name(name):
     return name.replace(" ", "_").replace("-", "")
-        
+
 
 class Network(object):
     """
     Container for a neuronal network model, created from a 9ML user-layer file.
-    
+
     There is not a one-to-one mapping between 9ML and PyNN concepts. The two
     main differences are:
         (1) a 9ML Group contains both neurons (populations) and connections
@@ -182,12 +123,12 @@ class Network(object):
             connections are contained in global Projections.
         (2) in 9ML, the post-synaptic response is defined in the projection,
             whereas in PyNN it is a property of the target population.
-        
+
     Attributes:
         assemblies  -- a dict containing PyNN Assembly objects
         projections -- a dict containing PyNN Projection objects
     """
-    
+
     def __init__(self, sim, nineml_model):
         """
         Instantiate a network from a 9ML file, in the specified simulator.
@@ -195,194 +136,177 @@ class Network(object):
         global random_distributions
         self.sim = sim
         if isinstance(nineml_model, basestring):
-            self.nineml_model = nineml.parse(nineml_model)
-        elif isinstance(nineml_model, nineml.Model):
+            self.nineml_model = nineml.Network.read(nineml_model)
+        elif isinstance(nineml_model, nineml.Network):
             self.nineml_model = nineml_model
         else:
-            raise TypeError("nineml_model must be a nineml.Model instance or the path to a NineML XML file.")
+            raise TypeError("nineml_model must be a nineml.Network instance or the path to a NineML XML file.")
         self.random_distributions = {}
+        self.populations = {}
         self.assemblies = {}
         self.projections = {}
         _tmp = __import__(sim.__name__, globals(), locals(), ["nineml"])
         self._nineml_module = _tmp.nineml
         self._build()
-        
+
     def _build(self):
-        for group in self.nineml_model.groups.values():
-            self._handle_group(group)
-            
-    def _handle_group(self, group):
-        # create an Assembly
-        self.assemblies[group.name] = self.sim.Assembly(label=group.name)
-        
+
         # extract post-synaptic response definitions from projections
         self.psr_map = {}
-        for projection in group.projections.values():
-            if projection.target.name in self.psr_map:
-                self.psr_map[projection.target.name].add(projection.synaptic_response)
+        for projection in self.nineml_model.projections.values():
+            if isinstance(projection.destination, nineml.Selection):
+                target_populations = projection.destination.evaluate()
+                #target_populations = [x[0] for x in projection.destination.evaluate()]  # just take the population, not the slice
             else:
-                self.psr_map[projection.target.name] = set([projection.synaptic_response])
-        
-        # create populations
-        for population in group.populations.values():
-            self._build_population(population, self.assemblies[group.name])
-        for selection in group.selections.values():
-            self._evaluate_selection(selection, self.assemblies[group.name])
-        
-        # create projections
-        for projection in group.projections.values():
-            self._build_projection(projection, self.assemblies[group.name])
-    
-    #def _determine_cell_type(self, nineml_population):
-    #    """Determine cell class from standardcell--catalog mapping"""
-    #   cellclass_map = generate_spiking_node_description_map()
-    #    possible_cell_classes_from_spiking_node = cellclass_map[nineml_population.prototype.definition.url]
-    #    if nineml_population.name in self.psr_map:
-    #        synapse_definition_urls = set(psr.definition.url for psr in self.psr_map[nineml_population.name])
-    #        assert len(synapse_definition_urls) == 1 # exc and inh always same model at present
-    #        synapse_definition_url = list(synapse_definition_urls)[0]
-    #        synapsetype_map = generate_post_synaptic_response_description_map()
-    #        possible_cell_classes_from_psr = synapsetype_map[synapse_definition_url]
-    #        possible_cell_classes = possible_cell_classes_from_spiking_node.intersection(possible_cell_classes_from_psr)
-    #        assert len(possible_cell_classes) == 1
-    #        cell_class = list(possible_cell_classes)[0]
-    #    else:
-    #        print("Population '%s' is not the target of any Projections, so we do not have a synapse model." % nineml_population.name)
-    #    return cell_class
-    
+                assert isinstance(projection.destination, nineml.Population)
+                target_populations = [projection.destination]
+            for target_population in target_populations:
+                if target_population.name in self.psr_map:
+                    self.psr_map[target_population.name]['port_connections'].update(projection.port_connections)
+                    self.psr_map[target_population.name]['response_component'] = projection.response   ## hack? what about clashes?
+                else:
+                    self.psr_map[target_population.name] = {'port_connections': set(projection.port_connections),
+                                                            'response_component': projection.response}
 
-    
+        # create populations
+        for population in self.nineml_model.populations.values():
+            self._build_population(population)
+        for selection in self.nineml_model.selections.values():
+            self._evaluate_selection(selection)
+
+        # create projections
+        for projection in self.nineml_model.projections.values():
+            self._build_projection(projection)
+
     def _generate_cell_type_and_parameters(self, nineml_population):
         """
-        Determine cell class from standardcell--catalog mapping and cellparams
-        from nineml_population.prototype.parameters and standardcell.translations
+
         """
-        neuron_model = nineml_population.prototype.definition.component
-        neuron_namespace = _generate_variable_name(nineml_population.prototype.name)
+        neuron_model = nineml_population.cell.component_class
+        neuron_namespace = _generate_variable_name(nineml_population.cell.name)
         synapse_models = {}
-        cell_params = {} # to be implemented
+        response_components = {}
+        connections = []
+        weight_vars = {}
         if nineml_population.name in self.psr_map:
-            for psr_component in self.psr_map[nineml_population.name]:
-                synapse_models[_generate_variable_name(psr_component.name)] = psr_component.definition.component
+            for pc in self.psr_map[nineml_population.name]['port_connections']:
+                if pc._receive_role == 'destination' and pc._send_role == 'response':
+                    synapse_name = _generate_variable_name(pc.sender.name)
+                    synapse_models[synapse_name] = pc.send_class
+                    assert pc.send_class.query.analog_ports_map[pc.send_port].mode == 'send'
+                    assert neuron_model.query.analog_ports_map[pc.receive_port].mode in ('recv', 'reduce')
+                    connections.append(("%s.%s" % (synapse_name, pc.send_port), "%s.%s" % (neuron_namespace, pc.receive_port)))
+                    #    else:
+                    #        assert neuron_model.query.analog_ports_map[nrn_port].mode == 'send'
+                    #        connections.append(("%s.%s" % (neuron_namespace, nrn_port), "%s.%s" % (synapse_name, psr_port)))
+                elif pc._receive_role == 'response' and pc._send_role == 'destination':
+                    raise NotImplementedError
+                elif pc._receive_role == 'response' and pc._send_role == 'plasticity':
+                    synapse_name = _generate_variable_name(pc.receiver.name)
+                    weight_vars[synapse_name] = "%s_%s" % (synapse_name, pc.receive_port)
+                else:
+                    raise Exception("Unexpected")
+            response_components[synapse_name] = self.psr_map[nineml_population.name]['response_component']
         subnodes = {neuron_namespace: neuron_model}
         subnodes.update(synapse_models)
-        combined_model = al.ComponentClass(name=_generate_variable_name(nineml_population.name),
-                                           subnodes=subnodes)
+        combined_model = al.Dynamics(name=_generate_variable_name(nineml_population.name),
+                                     subnodes=subnodes)
         # now connect ports
-        connections = []
-        for source in [port for port in neuron_model.analog_ports if port.mode == 'send']:
-            for synapse_name, syn_model in synapse_models.items():
-                for target in [port for port in syn_model.analog_ports if port.mode == 'recv']:
-                    connections.append(("%s.%s" % (neuron_namespace, source.name), "%s.%s" % (synapse_name, target.name)))
-        for synapse_name, syn_model in synapse_models.items():
-            for source in [port for port in syn_model.analog_ports if port.mode == 'send']:
-                for target in [port for port in neuron_model.analog_ports if port.mode in ('recv, reduce')]:
-                    connections.append(("%s.%s" % (synapse_name, source.name), "%s.%s" % (neuron_namespace, target.name)))
-        #import pdb; pdb.set_trace()
         for connection in connections:
             combined_model.connect_ports(*connection)
-        synapse_components = [self._nineml_module.CoBaSyn(namespace=name,  weight_connector='q') for name in synapse_models.keys()]
-        celltype_cls = self._nineml_module.nineml_cell_type(
-            combined_model.name, combined_model, synapse_components)
-        cell_params, random_params = resolve_parameters(cell_params, self.random_distributions)
-        return celltype_cls, cell_params, random_params
-    
-    
-    #    iaf_2coba_model = al.ComponentClass( 
-    #        name="iaf_2coba", 
-    #        subnodes = {"iaf" : iaf.get_component(), 
-    #                    "cobaExcit" : coba_synapse.get_component(), 
-    #                    "cobaInhib" : coba_synapse.get_component()} )
-    #
-    ## Connections have to be setup as strings, because we are deep-copying objects.
-    #iaf_2coba_model.connect_ports( "iaf.V", "cobaExcit.V" )
-    #iaf_2coba_model.connect_ports( "iaf.V", "cobaInhib.V" )
-    #iaf_2coba_model.connect_ports( "cobaExcit.I", "iaf.ISyn" )
-    #iaf_2coba_model.connect_ports( "cobaInhib.I", "iaf.ISyn" )
-    
-    def _build_population(self, nineml_population, assembly):
-            if isinstance(nineml_population.prototype, nineml.SpikingNodeType):
-                n = nineml_population.number
-                pyNN_structure = _build_structure(nineml_population.positions.structure)
-                cell_class, cell_params, random_parameters = self._generate_cell_type_and_parameters(nineml_population)
-                
-                p_obj = self.sim.Population(n, getattr(self.sim, cell_class.__name__),
-                                            cell_params,
-                                            structure=pyNN_structure,
-                                            label=nineml_population.name)
-                for name, rd in random_parameters.items():
-                    p_obj.rset(name, rd)
-                
-            elif isinstance(nineml_population.prototype, nineml.Group):
-                raise NotImplementedError
-            else:
-                raise Exception()
-            
-            assembly.populations.append(p_obj)
 
-    def _evaluate_selection(self, nineml_selection, assembly):
-        selection = str(nineml_selection.condition)
-        # look away now, this isn't pretty
-        pattern = re.compile(r'\(\("population\[@name\]"\) == \("(?P<name>[\w ]+)"\)\) and \("population\[@id\]" in "(?P<slice>\d*:\d*:\d*)"\)')
-        match = pattern.match(selection)
-        if match:
-            name = match.groupdict()["name"]
-            slice = match.groupdict()["slice"]
-            parent = assembly.get_population(name)
-            view = eval("parent[%s]" % slice)
-            view.label = nineml_selection.name
-            assembly.populations.append(view)
+        celltype_cls = self._nineml_module.nineml_cell_type(
+            combined_model.name, combined_model, weight_vars)
+        cell_params = resolve_parameters(nineml_population.cell, self.random_distributions)
+        for response_component in response_components.values():
+            cell_params.update(resolve_parameters(response_component, self.random_distributions))
+
+        return celltype_cls, cell_params
+
+    def _build_population(self, nineml_population):
+        ##assert isinstance(nineml_population.cell, nineml.SpikingNodeType)  # to implement in NineML library
+        n = nineml_population.size
+        if nineml_population.positions is not None:
+            pyNN_structure = _build_structure(nineml_population.positions.structure)
         else:
-            raise Exception("Can't evaluate selection")
+            pyNN_structure = None
+        # TODO: handle explicit list of positions
+        cell_class, cell_params = self._generate_cell_type_and_parameters(nineml_population)
+
+        p_obj = self.sim.Population(n, cell_class,
+                                    cell_params,
+                                    structure=pyNN_structure,
+                                    initial_values=resolve_parameters(nineml_population.cell,
+                                                                      self.random_distributions,
+                                                                      resolve="initial_values"),
+                                    label=nineml_population.name)
+        self.populations[p_obj.label] = p_obj
+
+    def _evaluate_selection(self, nineml_selection):
+        new_assembly = self.sim.Assembly(label=nineml_selection.name)
+        for population in nineml_selection.evaluate():
+            new_assembly += self.populations[population.name]
+        #for population, selector in nineml_selection.populations:
+        #    parent = self.populations['population.name']
+        #    if selector is not None:
+        #        view = eval("parent[%s]" % selector)
+        #        view.label = nineml_selection.name
+        #        new_assembly += view
+        #    else:
+        #        new_assembly += parent
+        self.assemblies[nineml_selection.name] = new_assembly
 
     def _build_connector(self, nineml_projection):
-        connector_cls = generate_connector_map()[nineml_projection.rule.definition.url]
-        connector_params, random_connector_params = resolve_parameters(nineml_projection.rule.parameters,
-                                                                       self.random_distributions)
-        synapse_parameters = nineml_projection.connection_type.parameters
-        connector_params['weights'] = synapse_parameters['weight'].value
-        connector_params['delays'] = synapse_parameters['delay'].value*scale('delay', synapse_parameters['delay'].unit)
-        return connector_cls(**connector_params)
-
-    def _determine_postsynaptic_target_name(self, nineml_projection, populations):
-        target = None
-        post_celltype = getattr(pyNN.nineml.cells,
-                                populations[nineml_projection.target.name].celltype.__class__.__name__)
-        try:
-            target_map = reverse_map(post_celltype.synaptic_mechanism_definition_urls)
-            target = target_map[nineml_projection.synaptic_response.definition.url]
-        except KeyError: # post_celltype.synaptic_mechanism_definition_urls is not a one-to-one mapping
-            for name in post_celltype.synaptic_mechanism_definition_urls.keys():
-                if nineml_projection.synaptic_response.name.find(name) == 0: # very fragile
-                    target = name
-                    break
-            if target is None:    
-                raise Exception("Unable to determine post-synaptic target corresponding to %s.\nPost-synaptic cell supports %s" % (nineml_projection.synaptic_response, post_celltype.synaptic_mechanism_definition_urls))
-                # we could at this point use weights and is_conductance to infer it
-        return target
+        connector_params = resolve_parameters(nineml_projection.connectivity, self.random_distributions, qualified_names=False)
+        translations = {'number': ('n', int)}  # todo: complete for all standard connectors
+        translated_params = {}
+        for name, value in connector_params.items():
+            tname, f = translations[name]
+            translated_params[tname] = f(value)
+        builtin_connectors = {
+            'RandomFanIn': self.sim.FixedNumberPreConnector,
+            'RandomFanOut': self.sim.FixedNumberPostConnector,
+            'AllToAll': self.sim.AllToAllConnector,
+            'OneToOne': self.sim.OneToOneConnector
+        }
+        connector_type = builtin_connectors[nineml_projection.connectivity.component_class.name]
+        connector = connector_type(**translated_params)
+        return connector
+        #inline_csa = nineml_projection.rule.definition.component._connection_rule[0]
+        #cset = inline_csa(*connector_params.values()).cset  # TODO: csa should handle named parameters; handle random params
+        #return self.sim.CSAConnector(cset)
 
     def _build_synapse_dynamics(self, nineml_projection):
-        if nineml_projection.connection_type.definition.url != pyNN.nineml.utility.catalog_url + "/connectiontypes/static_synapse.xml":
-            raise Exception("Dynamic synapses not yet supported by the 9ML-->PyNN converter.")
-        return None
+        # for now, just use static synapse
+        ### HACK  - only works if there is a single parameter called "weight"
+        ### to be sorted out when we try some real plastic synapses ###
+        parameters = resolve_parameters(nineml_projection.plasticity, self.random_distributions, "properties", qualified_names=False)
+        parameters.update(resolve_parameters(nineml_projection.plasticity, self.random_distributions, "initial_values", qualified_names=False))
+        parameters["delay"] = nineml_projection.delay.value
+        return self.sim.StaticSynapse(**parameters)
 
-    def _build_projection(self, nineml_projection, assembly):
+    def _build_projection(self, nineml_projection):
         populations = {}
-        for p in assembly.populations:
+        for p in self.populations.values():
             populations[p.label] = p
-            
+        for a in self.assemblies.values():
+            populations[a.label] = a
+
         connector = self._build_connector(nineml_projection)
-        target = self._determine_postsynaptic_target_name(nineml_projection, populations)
+        receptor_type = nineml_projection.response.name
+        try:
+            assert receptor_type in populations[nineml_projection.destination.name].receptor_types
+        except:
+            raise
         synapse_dynamics = self._build_synapse_dynamics(nineml_projection)
-        
-        prj_obj = self.sim.Projection(
-                    populations[nineml_projection.source.name],
-                    populations[nineml_projection.target.name],
-                    connector,
-                    target=target,
-                    synapse_dynamics=synapse_dynamics,
-                    label=nineml_projection.name)
-        self.projections[prj_obj.label] = prj_obj # need to add assembly label to make the name unique
+
+        prj_obj = self.sim.Projection(populations[nineml_projection.source.name],
+                                      populations[nineml_projection.destination.name],
+                                      connector,
+                                      receptor_type=receptor_type,
+                                      synapse_type=synapse_dynamics,
+                                      label=nineml_projection.name)
+        self.projections[prj_obj.label] = prj_obj  # need to add assembly label to make the name unique
 
     def describe(self):
         description = "Network model generated from a 9ML description, consisting of:\n  "
@@ -396,10 +320,10 @@ if __name__ == "__main__":
     # if using the nineml or neuroml backend, re-export the network as XML (this doesn't work, but it should).
     import sys, os
     from pyNN.utility import get_script_args
-    nineml_file, simulator_name = get_script_args(2, "Please specify the 9ML file and the simulator backend.")  
+    nineml_file, simulator_name = get_script_args(2, "Please specify the 9ML file and the simulator backend.")
     exec("import pyNN.%s as sim" % simulator_name)
-    
+
     sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
     network = Network(sim, nineml_file)
-    print(network.describe())
+    print network.describe()
     sim.end()

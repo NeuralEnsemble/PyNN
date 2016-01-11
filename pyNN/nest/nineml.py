@@ -65,8 +65,8 @@ class _nest_build_nineml_celltype(type):
     """
     def __new__(cls, name, bases, dct):
         
-        import nineml.abstraction_layer as al
-        from nineml.abstraction_layer import flattening, writers, component_modifiers
+        import nineml.abstraction as al
+        from nineml.abstraction import flattening, writers, component_modifiers
         import nest
 
         #Extract Parameters Back out from Dict:
