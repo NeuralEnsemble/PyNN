@@ -20,7 +20,7 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
 from neo import AnalogSignalArray, AnalogSignal, SpikeTrain
-
+from sys import maxint
 
 DEFAULT_FIG_SETTINGS = {
     'lines.linewidth': 0.5,
@@ -97,13 +97,15 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     ax.set_xlim(0, spiketrains[0].t_stop/ms)
     handle_options(ax, options)
     max_index = 0
+    min_index = maxint
     for spiketrain in spiketrains:
         ax.plot(spiketrain,
                  np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
                  'k.', **options)
         max_index = max(max_index, spiketrain.annotations['source_index'])
+        min_index = min(min_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
-    ax.set_ylim(-0.5, max_index + 0.5)
+    ax.set_ylim(-0.5 + min_index, max_index + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
