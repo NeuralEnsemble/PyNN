@@ -89,7 +89,7 @@ The call signature of the :meth:`Population.set` method has also been changed;
 now parameters should be specified as keyword arguments. For example, instead
 of::
 
-    p.set("tau_m": 20.0)  # PyNN 0.7
+    p.set({"tau_m": 20.0})  # PyNN 0.7
 
 use::
 
@@ -111,7 +111,7 @@ be removed in the next version of PyNN. Their use can be replaced as follows::
     p.tset("i_offset", arr)  # PyNN 0.7
     p.set(i_offset=arr)      # PyNN 0.8
 
-    p.rset("tau_m": rand_distr)  # PyNN 0.7
+    p.rset("tau_m", rand_distr)  # PyNN 0.7
     p.set(tau_m=rand_distr)      # PyNN 0.8
 
 
@@ -249,7 +249,7 @@ and instead of::
 the following::
 
     params = {'U': 0.04, 'tau_rec': 100.0, 'tau_facil': 1000.0, 'weight': 0.01}
-    facilitating = TsodyksMarkramSynapse(**params))                          # PyNN 0.8
+    facilitating = TsodyksMarkramSynapse(**params)                          # PyNN 0.8
     prj = Projection(p1, p2, FixedProbabilityConnector(p_connect=0.1),
                      synapse_type=facilitating)
 
