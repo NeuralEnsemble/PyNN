@@ -110,10 +110,10 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.8 can be downloaded from `<http://www.nest-simulator.org/index.php/Software:Download>`_.
+NEST 2.8 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 NEST 2.6 is also compatible. Earlier versions of NEST will not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
-or at `<http://www.nest-simulator.org/index.php/Installation>`_.
+or at `<http://www.nest-simulator.org/installation/>`_.
 
 .. note:: NumPy must be installed *before* installing NEST.
 
