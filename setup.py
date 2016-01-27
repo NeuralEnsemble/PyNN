@@ -42,7 +42,7 @@ setup(
     name = "PyNN",
     version = "0.8.1dev",
     packages = ['pyNN','pyNN.nest', 'pyNN.neuron',
-                'pyNN.brian', 'pyNN.common', 'pyNN.mock',
+                'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
