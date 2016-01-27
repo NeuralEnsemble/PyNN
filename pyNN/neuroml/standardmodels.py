@@ -10,8 +10,15 @@ from pyNN.standardmodels import cells, synapses, electrodes, build_translations,
 from .simulator import state
 import logging
 
+import neuroml
+
 logger = logging.getLogger("PyNN")
 
+def add_params(pynn_cell, nml_cell):
+    for param in pynn_cell.simple_parameters():
+        value = float(pynn_cell.parameter_space[param].base_value)
+        nml_cell.__setattr__(param, value)
+    
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     __doc__ = cells.IF_curr_alpha.__doc__
@@ -27,6 +34,12 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('tau_syn_E',  'TAU_SYN_E'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.IF_curr_alpha(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.IF_curr_alpha.append(cell)
+        add_params(self, cell)
+        
 
 class IF_curr_exp(cells.IF_curr_exp):
     __doc__ = cells.IF_curr_exp.__doc__
@@ -43,6 +56,10 @@ class IF_curr_exp(cells.IF_curr_exp):
         ('tau_syn_I',  'TAU_SYN_I'),
     )
 
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.IF_curr_exp(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.IF_curr_exp.append(cell)
+        add_params(self, cell)
 
 class IF_cond_alpha(cells.IF_cond_alpha):
     __doc__ = cells.IF_cond_alpha.__doc__
@@ -61,6 +78,12 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         ('e_rev_I',    'E_REV_I')
     )
 
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.IF_cond_alpha(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.IF_cond_alpha.append(cell)
+        add_params(self, cell)
+    
+    
 class IF_cond_exp(cells.IF_cond_exp):
     __doc__ = cells.IF_cond_exp.__doc__
 
@@ -78,6 +101,10 @@ class IF_cond_exp(cells.IF_cond_exp):
         ('e_rev_I',    'E_REV_I')
     )
 
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.IF_cond_exp(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.IF_cond_exp.append(cell)
+        add_params(self, cell)
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
     __doc__ = cells.IF_facets_hardware1.__doc__
@@ -101,6 +128,11 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'TAU_SYN_I'),
         ('i_offset',   'I_OFFSET'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.HH_cond_exp(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.HH_cond_exp.append(cell)
+        add_params(self, cell)
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
@@ -114,6 +146,11 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('rate',     'INTERVAL',  "1000.0/rate",  "1000.0/INTERVAL"),
         ('duration', 'DURATION'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.SpikeSourcePoisson(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.SpikeSourcePoisson.append(cell)
+        add_params(self, cell)
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__
@@ -121,6 +158,12 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     translations = build_translations(
         ('spike_times', 'SPIKE_TIMES'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.SpikeSourceArray(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.SpikeSourceArray.append(cell)
+        add_params(self, cell)
+        
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
@@ -143,6 +186,11 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I',    'E_REV_I'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.IF_curr_exp(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.IF_curr_exp.append(cell)
+        add_params(self, cell)
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
@@ -165,6 +213,11 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         ('e_rev_I',    'E_REV_I'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.EIF_cond_exp_isfa_ista(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.EIF_cond_exp_isfa_ista.append(cell)
+        add_params(self, cell)
 
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
@@ -178,6 +231,12 @@ class Izhikevich(cells.Izhikevich):
     )
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        cell = neuroml.Izhikevich(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.Izhikevich.append(cell)
+        add_params(self, cell)
+        
     
 class NeuroMLCurrentSource(object):
     def inject_into(self, cells):
@@ -193,6 +252,9 @@ class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
         ('start',      'start'),
         ('stop',       'stop')
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
@@ -202,6 +264,9 @@ class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
         ('amplitudes',  'amplitudes'),
         ('times',       'times')
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class ACSource(NeuroMLCurrentSource, electrodes.ACSource):
@@ -215,6 +280,9 @@ class ACSource(NeuroMLCurrentSource, electrodes.ACSource):
         ('offset',     'offset'),
         ('phase',      'phase')
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class NoisyCurrentSource(NeuroMLCurrentSource, electrodes.NoisyCurrentSource):
@@ -226,6 +294,9 @@ class NoisyCurrentSource(NeuroMLCurrentSource, electrodes.NoisyCurrentSource):
         ('stdev', 'stdev'),
         ('dt',    'dt')
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class StaticSynapse(synapses.StaticSynapse):
@@ -240,6 +311,9 @@ class StaticSynapse(synapses.StaticSynapse):
         if d == 'auto':
             d = state.dt
         return d
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
@@ -261,6 +335,9 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         if d == 'auto':
             d = state.dt
         return d
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class STDPMechanism(synapses.STDPMechanism):
@@ -277,6 +354,9 @@ class STDPMechanism(synapses.STDPMechanism):
             d = state.dt
         return d
     
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
+    
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
@@ -287,6 +367,9 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
@@ -298,6 +381,9 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
@@ -309,6 +395,9 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
@@ -322,6 +411,9 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'muLTP'),
         ('mu_minus',  'muLTD'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
 
 
 class SpikePairRule(synapses.SpikePairRule):
@@ -333,3 +425,7 @@ class SpikePairRule(synapses.SpikePairRule):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
+    
+    def add_to_nml_doc(self, nml_doc, population):
+        raise NotImplementedError()
+        

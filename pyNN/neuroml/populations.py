@@ -4,9 +4,12 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
+import logging
 
 import neuroml
 
+
+logger = logging.getLogger("PyNN_NeuroML")
 
 class Assembly(common.Assembly):
     _simulator = simulator
@@ -52,11 +55,21 @@ class Population(common.Population):
     _assembly_class = Assembly
 
     def _create_cells(self):
-        print ">>> Creating Population: %s" % self.label
-        net = simulator.get_nml_doc().networks[0]
+        
+        nml_doc = simulator.get_nml_doc()
+        net = nml_doc.networks[0]
+        
+        cell_comp = self.celltype.__class__.__name__
+        logger.debug("Creating Cell instance: %s" % (cell_comp))
+        
+        self.celltype.add_to_nml_doc(nml_doc, self)
+        
+        logger.debug("Creating Population: %s of size %i" % (self.label, self.size))
+        
         pop = neuroml.Population(id=self.label, size = self.size,
-                          component=self.celltype.__class__.__name__)
+                          component=cell_comp)
         net.populations.append(pop)
+        
         
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)

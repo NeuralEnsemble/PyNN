@@ -21,7 +21,7 @@ from neo.io import get_io
 
 import neuroml
 
-logger = logging.getLogger("PyNN")
+logger = logging.getLogger("PyNN_NeuroML")
 
 
 def list_standard_models():
@@ -38,6 +38,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
 
+
+    logger.debug("Creating network in NeuroML document to store structure")
     nml_doc = simulator.get_nml_doc()
     # Create network
     net = neuroml.Network(id="network")
@@ -58,7 +60,7 @@ def end(compatible_output=True):
     
     import neuroml.writers as writers
     writers.NeuroMLWriter.write(nml_doc, nml_file)
-    print("Written file out to: "+nml_file)
+    logger.debug("Written NeuroML 2 file out to: "+nml_file)
     
     # should have common implementation of end()
 
