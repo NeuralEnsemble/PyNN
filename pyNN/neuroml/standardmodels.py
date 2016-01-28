@@ -17,7 +17,11 @@ logger = logging.getLogger("PyNN")
 def add_params(pynn_cell, nml_cell):
     for param in pynn_cell.simple_parameters():
         value = float(pynn_cell.parameter_space[param].base_value)
-        nml_cell.__setattr__(param, value)
+        nml_param = param  # .lower() if (not 'tau_syn' in param and not 'e_rev' in param) else param
+        print("Adding param: %s = %s as %s for cell %s"%(param, value, nml_param, nml_cell.id))
+        nml_cell.__setattr__(nml_param, value)
+        
+        nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
     
 
 class IF_curr_alpha(cells.IF_curr_alpha):

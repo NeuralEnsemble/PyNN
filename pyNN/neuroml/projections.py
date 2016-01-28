@@ -59,8 +59,32 @@ class Projection(common.Projection):
         logger.debug("Creating Synapse: %s; %s; %s" % (receptor_type, synapse_type.parameter_space, connector))
         celltype = postsynaptic_population.celltype.__class__.__name__
         logger.debug("Post cell: %s" % (celltype))
+        syn = None
+        
+        if receptor_type == 'inhibitory':
+            tau_key = 'tau_syn_I' 
+            erev_key = 'e_rev_I'
+        else:
+            tau_key = 'tau_syn_E'
+            erev_key = 'e_rev_E'
+        
         if 'cond_exp' in celltype:
-            nml_doc.exp_cond_synapses.append(neuroml.ExpCondSynapse(id=syn_id))
+            syn = neuroml.ExpCondSynapse(id=syn_id)
+            syn.__setattr__('e_rev', postsynaptic_population.celltype.parameter_space[erev_key].base_value)
+            nml_doc.exp_cond_synapses.append(syn)
+        if 'cond_alpha' in celltype:
+            syn = neuroml.AlphaCondSynapse(id=syn_id)
+            syn.__setattr__('e_rev', postsynaptic_population.celltype.parameter_space[erev_key].base_value)
+            nml_doc.alpha_cond_synapses.append(syn)
+        if 'curr_exp' in celltype:
+            syn = neuroml.ExpCurrSynapse(id=syn_id)
+            nml_doc.exp_curr_synapses.append(syn)
+        if 'curr_alpha' in celltype:
+            syn = neuroml.AlphaCurrSynapse(id=syn_id)
+            nml_doc.alpha_curr_synapses.append(syn)
+            
+        syn.tau_syn = postsynaptic_population.celltype.parameter_space[tau_key].base_value
+            
         
         logger.debug("Creating Projection: %s" % (nml_proj_id))
         self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=presynaptic_population.label, 
