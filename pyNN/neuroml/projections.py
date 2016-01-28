@@ -7,6 +7,12 @@ from pyNN import common
 from pyNN.core import ezip
 from pyNN.space import Space
 from . import simulator
+import logging
+
+import neuroml
+
+
+logger = logging.getLogger("PyNN_NeuroML")
 
 
 class Connection(common.Connection):
@@ -16,9 +22,15 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, pre, post, **attributes):
+    def __init__(self, pre, post, projection, **attributes):
+        logger.debug("Creating Connection: %s -> %s" % (pre, post))
+        
         self.presynaptic_index = pre
         self.postsynaptic_index = post
+        
+        projection.connections.append(neuroml.Connection(id='-1',pre_cell_id="../%s[%i]"%(projection.presynaptic_population,pre),
+                   post_cell_id="../%s[%i]"%(projection.postsynaptic_population,post)))
+        
         for name, value in attributes.items():
             setattr(self, name, value)
 
@@ -37,6 +49,14 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
+                                   
+        nml_doc = simulator.get_nml_doc()
+        net = nml_doc.networks[0]
+        nml_proj_id = self.label.replace(u'\u2192','->')
+        logger.debug("Creating Projection: %s" % (nml_proj_id))
+        self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=presynaptic_population.label, 
+                        postsynaptic_population=postsynaptic_population.label)
+        net.projections.append(self.projection)
 
         ## Create connections
         self.connections = []
@@ -57,5 +77,5 @@ class Projection(common.Projection):
         for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
             other_attributes = dict(zip(connection_parameters.keys(), other))
             self.connections.append(
-                Connection(pre_idx, postsynaptic_index, **other_attributes)
+                Connection(pre_idx, postsynaptic_index, self.projection, **other_attributes)
             )

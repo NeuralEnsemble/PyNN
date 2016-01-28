@@ -160,9 +160,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
     
     def add_to_nml_doc(self, nml_doc, population):
-        cell = neuroml.SpikeSourceArray(id="%s_%s"%(self.__class__.__name__, population.label))
-        nml_doc.SpikeSourceArray.append(cell)
-        add_params(self, cell)
+        pass
         
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
