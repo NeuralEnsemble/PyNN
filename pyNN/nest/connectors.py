@@ -27,7 +27,8 @@ from pyNN.connectors import (Connector,
                              FromListConnector,
                              FromFileConnector,
                              CloneConnector,
-                             ArrayConnector)
+                             ArrayConnector,
+                             FixedTotalNumberConnector)
 
 from .random import NativeRNG, NEST_RDEV_TYPES
 

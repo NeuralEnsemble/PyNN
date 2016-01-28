@@ -951,7 +951,6 @@ class ArrayConnector(MapConnector):
 
 
 class FixedTotalNumberConnector(FixedNumberConnector):
-    # base class - should not be instantiated
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True, with_replacement=True,
@@ -973,7 +972,6 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             raise TypeError("n must be an integer or a RandomDistribution object")
         self.rng = _get_rng(rng)
 
-
     def connect(self, projection):
         # Determine number of processes and current rank
         rank, num_processes = get_mpi_config()
@@ -993,7 +991,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             num_conns_on_vp[k] = bino.next()
             sum_dist += targets_per_process
             sum_partitions += num_conns_on_vp[k]
-	
+
         # Draw random sources and targets 
         while num_conns_on_vp[rank] > 0 :
             s_index = self.rng.rng.randint(low=0, high=len(projection.pre.all_cells))
@@ -1011,5 +1009,3 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             
             projection._convergent_connect(numpy.array([s_index]),t_index, **connection_parameters)
             num_conns_on_vp[rank] -=1
-
-            
