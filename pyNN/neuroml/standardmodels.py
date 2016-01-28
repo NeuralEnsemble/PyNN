@@ -39,6 +39,7 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         cell = neuroml.IF_curr_alpha(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.IF_curr_alpha.append(cell)
         add_params(self, cell)
+        return cell.id
         
 
 class IF_curr_exp(cells.IF_curr_exp):
@@ -60,6 +61,7 @@ class IF_curr_exp(cells.IF_curr_exp):
         cell = neuroml.IF_curr_exp(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.IF_curr_exp.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class IF_cond_alpha(cells.IF_cond_alpha):
     __doc__ = cells.IF_cond_alpha.__doc__
@@ -82,6 +84,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         cell = neuroml.IF_cond_alpha(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.IF_cond_alpha.append(cell)
         add_params(self, cell)
+        return cell.id
     
     
 class IF_cond_exp(cells.IF_cond_exp):
@@ -105,6 +108,7 @@ class IF_cond_exp(cells.IF_cond_exp):
         cell = neuroml.IF_cond_exp(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.IF_cond_exp.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
     __doc__ = cells.IF_facets_hardware1.__doc__
@@ -133,6 +137,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         cell = neuroml.HH_cond_exp(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.HH_cond_exp.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
@@ -151,6 +156,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         cell = neuroml.SpikeSourcePoisson(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.SpikeSourcePoisson.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__
@@ -189,6 +195,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         cell = neuroml.IF_curr_exp(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.IF_curr_exp.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
@@ -216,6 +223,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         cell = neuroml.EIF_cond_exp_isfa_ista(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.EIF_cond_exp_isfa_ista.append(cell)
         add_params(self, cell)
+        return cell.id
 
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
@@ -234,6 +242,7 @@ class Izhikevich(cells.Izhikevich):
         cell = neuroml.Izhikevich(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.Izhikevich.append(cell)
         add_params(self, cell)
+        return cell.id
         
     
 class NeuroMLCurrentSource(object):

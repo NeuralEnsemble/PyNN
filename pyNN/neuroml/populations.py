@@ -59,15 +59,15 @@ class Population(common.Population):
         nml_doc = simulator.get_nml_doc()
         net = nml_doc.networks[0]
         
-        cell_comp = self.celltype.__class__.__name__
-        logger.debug("Creating Cell instance: %s" % (cell_comp))
+        cell_pynn = self.celltype.__class__.__name__
+        logger.debug("Creating Cell instance: %s" % (cell_pynn))
         
-        self.celltype.add_to_nml_doc(nml_doc, self)
+        cell_id = self.celltype.add_to_nml_doc(nml_doc, self)
         
         logger.debug("Creating Population: %s of size %i" % (self.label, self.size))
         
         pop = neuroml.Population(id=self.label, size = self.size,
-                          component=cell_comp)
+                          component=cell_id)
         net.populations.append(pop)
         
         
