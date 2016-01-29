@@ -27,10 +27,10 @@ class Connection(common.Connection):
         
         self.presynaptic_index = pre
         self.postsynaptic_index = post
-        
-        projection.connections.append(neuroml.Connection(id=conn_id,pre_cell_id="../%s[%i]"%(projection.presynaptic_population,pre),
-                   post_cell_id="../%s[%i]"%(projection.postsynaptic_population,post)))
-        
+        print attributes
+        projection.connection_wds.append(neuroml.ConnectionWD(id=conn_id,pre_cell_id="../%s[%i]"%(projection.presynaptic_population,pre),
+                   post_cell_id="../%s[%i]"%(projection.postsynaptic_population,post), weight=attributes['WEIGHT'], delay='%sms'%attributes['DELAY']))
+                   
         for name, value in attributes.items():
             setattr(self, name, value)
 
@@ -85,12 +85,14 @@ class Projection(common.Projection):
             
         syn.tau_syn = postsynaptic_population.celltype.parameter_space[tau_key].base_value
             
+        pre_pop_id = presynaptic_population.label
+        post_pop_id = postsynaptic_population.label
         
         logger.debug("Creating Projection: %s" % (nml_proj_id))
         self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=presynaptic_population.label, 
                         postsynaptic_population=postsynaptic_population.label, synapse=syn_id)
         net.projections.append(self.projection)
-        
+
 
         ## Create connections
         self.connections = []
