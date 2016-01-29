@@ -44,6 +44,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     # Create network
     net = neuroml.Network(id="network")
     nml_doc.networks.append(net)
+    
+    lems_sim = simulator.get_lems_sim()
+    lems_sim.dt = '%s'%timestep
 
     return rank()
 
@@ -61,6 +64,12 @@ def end(compatible_output=True):
     import neuroml.writers as writers
     writers.NeuroMLWriter.write(nml_doc, nml_file)
     logger.debug("Written NeuroML 2 file out to: "+nml_file)
+    
+    
+    lems_sim = simulator.get_lems_sim()
+    lems_sim.include_neuroml2_file("PyNN.xml", include_included=False)
+    lems_sim.include_neuroml2_file(nml_file)
+    lems_sim.save_to_file()
     
     # should have common implementation of end()
 

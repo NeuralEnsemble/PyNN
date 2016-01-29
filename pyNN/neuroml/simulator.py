@@ -1,14 +1,25 @@
 from pyNN import common
 
+import logging
+
 name = "NeuroML2Converter"
 
 import neuroml
+from pyneuroml.lems.LEMSSimulation import LEMSSimulation
 
 ref = "PyNN_NeuroML2_Export"
 nml_doc = neuroml.NeuroMLDocument(id=ref)
 
+# Note: values will be over written
+lems_sim = LEMSSimulation("Sim_%s"%ref, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN")
+
+logger = logging.getLogger("PyNN_NeuroML")
+
 def get_nml_doc():
     return nml_doc
+
+def get_lems_sim():
+    return lems_sim
 
 class ID(int, common.IDMixin):
     def __init__(self, n):
@@ -18,6 +29,7 @@ class ID(int, common.IDMixin):
 
 class State(common.control.BaseState):
     def __init__(self):
+        logger.debug("State initialised!")
         common.control.BaseState.__init__(self)
         self.mpi_rank = 0
         self.num_processes = 1
@@ -27,6 +39,10 @@ class State(common.control.BaseState):
         self.t += simtime
         self.running = True
     def run_until(self, tstop):
+        logger.debug("run_until() called with %s"%tstop)
+        lems_sim = get_lems_sim()
+        lems_sim.duration = float(tstop)
+        
         self.t = tstop
         self.running = True
     def clear(self):
