@@ -254,11 +254,13 @@ class Izhikevich(cells.Izhikevich):
     
 class NeuroMLCurrentSource(StandardCurrentSource):
 
+    
     def __init__(self, **parameters):
         super(StandardCurrentSource, self).__init__(**parameters)
         global current_sources
         self.cell_list = []
         self.indices   = []
+        self.ind = len(current_sources) # Todo use self.indices instead...
         current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
@@ -269,6 +271,7 @@ class NeuroMLCurrentSource(StandardCurrentSource):
         
         self.nml_doc = get_nml_doc()
         self.network = get_main_network()
+        
 
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
@@ -310,6 +313,8 @@ class NeuroMLCurrentSource(StandardCurrentSource):
                               destination="synapses")  
             input_list.input.append(input)
             
+    def get_id_for_nml(self, cells):
+        return "%s_%s_%s"%(self.__class__.__name__, cells.label if hasattr(cells, 'label') else self.__class__.__name__, self.ind)
     
 
 
@@ -322,8 +327,14 @@ class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
         ('stop',       'stop')
     )
     
-    def add_to_nml_doc(self, nml_doc, population):
-        raise NotImplementedError()
+    def add_to_nml_doc(self, nml_doc, cells):
+        pg = neuroml.PulseGeneratorDL(id=self.get_id_for_nml(cells),
+                                      delay='%sms'%self.start,
+                                      duration='%sms'%(self.stop-self.start),
+                                      amplitude='%s'%self.amplitude)
+     
+        nml_doc.pulse_generator_dls.append(pg)
+        return pg.id
 
 
 class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
@@ -333,11 +344,9 @@ class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
         ('amplitudes',  'amplitudes'),
         ('times',       'times')
     )
-
-        
         
     def add_to_nml_doc(self, nml_doc, cells):
-        ci = neuroml.CompoundInputDL(id="%s_%s"%(self.__class__.__name__, cells.label))
+        ci = neuroml.CompoundInputDL(id=self.get_id_for_nml(cells))
      
         num_steps = len(self.amplitudes)
         for i in range(num_steps):
@@ -359,8 +368,26 @@ class ACSource(NeuroMLCurrentSource, electrodes.ACSource):
         ('phase',      'phase')
     )
     
-    def add_to_nml_doc(self, nml_doc, population):
-        raise NotImplementedError()
+    def add_to_nml_doc(self, nml_doc, cells):
+        
+        ci = neuroml.CompoundInputDL(id=self.get_id_for_nml(cells))
+    
+        sg = neuroml.SineGeneratorDL(id='SG_'+self.get_id_for_nml(cells),
+                             delay='%sms'%self.start,
+                             duration='%sms'%(self.stop-self.start),
+                             amplitude='%s'%self.amplitude,
+                             period='%s s'%(1/float(self.frequency)),
+                             phase=(3.14159265 * self.phase/180))
+                             
+        pg = neuroml.PulseGeneratorDL(id='PG_'+self.get_id_for_nml(cells),
+                                      delay='%sms'%self.start,
+                                      duration='%sms'%(self.stop-self.start),
+                                      amplitude='%s'%self.offset)
+     
+        ci.sine_generator_dls.append(sg)
+        ci.pulse_generator_dls.append(pg)
+        nml_doc.compound_input_dls.append(ci)
+        return ci.id
 
 
 class NoisyCurrentSource(NeuroMLCurrentSource, electrodes.NoisyCurrentSource):

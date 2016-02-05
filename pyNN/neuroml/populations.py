@@ -62,7 +62,7 @@ class Population(common.Population):
              
         for cell in self.all_cells:
             index = self.id_to_index(cell)
-            inst = neuroml.Instance(id=0)
+            inst = neuroml.Instance(id=index)
             self.pop.instances.append(inst)
             x = self.positions[0][index]
             y = self.positions[1][index]
