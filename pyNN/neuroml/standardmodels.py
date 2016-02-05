@@ -10,6 +10,7 @@ from pyNN.standardmodels import cells, synapses, electrodes, build_translations,
 from .simulator import state, get_nml_doc, get_main_network
 import logging
 from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.random import RandomDistribution
 
 import neuroml
 
@@ -19,11 +20,17 @@ current_sources = []
 
 def add_params(pynn_cell, nml_cell):
     for param in pynn_cell.simple_parameters():
-        value = float(pynn_cell.parameter_space[param].base_value)
+        value_generator = pynn_cell.parameter_space[param].base_value
+        #print(value_generator)
+        # TODO: handle this....
+        if isinstance(value_generator, RandomDistribution):
+            print('*'*200+'\n\nRandom element in population! Not supported!!\n\n'+'*'*200)
+            value = value_generator.next()
+        else:
+            value = float(value_generator)
         nml_param = param  # .lower() if (not 'tau_syn' in param and not 'e_rev' in param) else param
         logger.debug("Adding param: %s = %s as %s for cell %s"%(param, value, nml_param, nml_cell.id))
         nml_cell.__setattr__(nml_param, value)
-        
         nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
     
 
@@ -173,8 +180,15 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
     
     def add_to_nml_doc(self, nml_doc, population):
-        pass
-        
+        cell = neuroml.SpikeArray(id="%s_%s"%(self.__class__.__name__, population.label))
+        index=0
+        spikes = self.parameter_space['spike_times']
+     
+        for spike_time in spikes.base_value.value:
+            cell.spikes.append(neuroml.Spike(id=index, time='%sms'%spike_time))
+            index+=1
+        nml_doc.spike_arrays.append(cell)
+        return cell.id
 
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
