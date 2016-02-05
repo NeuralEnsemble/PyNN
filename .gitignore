@@ -49,7 +49,10 @@ cover
 examples/Results
 examples/tools/Results
 examples/nineml_mechanisms
+examples/*.dat
+examples/*.svg
 
 # Other
 *.btr
 *.log
+/examples/LEMS_Sim_PyNN_NeuroML2_Export.xml

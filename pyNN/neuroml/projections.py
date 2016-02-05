@@ -22,14 +22,13 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, pre, post, projection, conn_id, **attributes):
+    def __init__(self, pre, post, projection, conn_id, pre_pop_comp, post_pop_comp, **attributes):
         logger.debug("Creating Connection: %s -> %s" % (pre, post))
         
         self.presynaptic_index = pre
         self.postsynaptic_index = post
-        print attributes
-        projection.connection_wds.append(neuroml.ConnectionWD(id=conn_id,pre_cell_id="../%s[%i]"%(projection.presynaptic_population,pre),
-                   post_cell_id="../%s[%i]"%(projection.postsynaptic_population,post), weight=attributes['WEIGHT'], delay='%sms'%attributes['DELAY']))
+        projection.connection_wds.append(neuroml.ConnectionWD(id=conn_id,pre_cell_id="../%s/%i/%s"%(projection.presynaptic_population,pre,pre_pop_comp),
+                   post_cell_id="../%s/%i/%s"%(projection.postsynaptic_population,post,post_pop_comp), weight=attributes['WEIGHT'], delay='%sms'%attributes['DELAY']))
                    
         for name, value in attributes.items():
             setattr(self, name, value)
@@ -85,8 +84,8 @@ class Projection(common.Projection):
             
         syn.tau_syn = postsynaptic_population.celltype.parameter_space[tau_key].base_value
             
-        pre_pop_id = presynaptic_population.label
-        post_pop_id = postsynaptic_population.label
+        self.pre_pop_comp = '%s_%s'%(presynaptic_population.celltype.__class__.__name__, presynaptic_population.label)
+        self.post_pop_comp = '%s_%s'%(postsynaptic_population.celltype.__class__.__name__, postsynaptic_population.label)
         
         logger.debug("Creating Projection: %s" % (nml_proj_id))
         self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=presynaptic_population.label, 
@@ -113,5 +112,5 @@ class Projection(common.Projection):
         for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
             other_attributes = dict(zip(connection_parameters.keys(), other))
             self.connections.append(
-                Connection(pre_idx, postsynaptic_index, self.projection, len(self.connections), **other_attributes)
+                Connection(pre_idx, postsynaptic_index, self.projection, len(self.connections), self.pre_pop_comp, self.post_pop_comp, **other_attributes)
             )

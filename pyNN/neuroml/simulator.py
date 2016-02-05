@@ -18,6 +18,9 @@ logger = logging.getLogger("PyNN_NeuroML")
 def get_nml_doc():
     return nml_doc
 
+def get_main_network():
+    return get_nml_doc().networks[0]
+
 def get_lems_sim():
     return lems_sim
 

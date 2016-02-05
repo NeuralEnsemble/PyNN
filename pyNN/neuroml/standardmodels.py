@@ -7,18 +7,21 @@ Standard cells for the NeuroML module.
 """
 
 from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
-from .simulator import state
+from .simulator import state, get_nml_doc, get_main_network
 import logging
+from pyNN.parameters import ParameterSpace, Sequence
 
 import neuroml
 
-logger = logging.getLogger("PyNN")
+logger = logging.getLogger("PyNN_NeuroML")
+
+current_sources = []
 
 def add_params(pynn_cell, nml_cell):
     for param in pynn_cell.simple_parameters():
         value = float(pynn_cell.parameter_space[param].base_value)
         nml_param = param  # .lower() if (not 'tau_syn' in param and not 'e_rev' in param) else param
-        print("Adding param: %s = %s as %s for cell %s"%(param, value, nml_param, nml_cell.id))
+        logger.debug("Adding param: %s = %s as %s for cell %s"%(param, value, nml_param, nml_cell.id))
         nml_cell.__setattr__(nml_param, value)
         
         nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
@@ -249,10 +252,65 @@ class Izhikevich(cells.Izhikevich):
         return cell.id
         
     
-class NeuroMLCurrentSource(object):
+class NeuroMLCurrentSource(StandardCurrentSource):
+
+    def __init__(self, **parameters):
+        super(StandardCurrentSource, self).__init__(**parameters)
+        global current_sources
+        self.cell_list = []
+        self.indices   = []
+        current_sources.append(self)
+        parameter_space = ParameterSpace(self.default_parameters,
+                                         self.get_schema(),
+                                         shape=(1,))
+        parameter_space.update(**parameters)
+        parameter_space = self.translate(parameter_space)
+        self.set_native_parameters(parameter_space)
+        
+        self.nml_doc = get_nml_doc()
+        self.network = get_main_network()
+
+    def set_native_parameters(self, parameters):
+        parameters.evaluate(simplify=True)
+        for name, value in parameters.items():
+            if isinstance(value, Sequence):
+                value = value.value
+            object.__setattr__(self, name, value)
+
+    def _get_input_list(self, stim_id, pop):
+        
+        input_list = neuroml.InputList(id="Input_%s"%(stim_id),
+                             component=stim_id,
+                             populations=pop)
+                             
+        self.network.input_lists.append(input_list)
+        
+        return input_list
+
+    
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__
-        pass
+        
+        logger.debug("%s injecting into: %s"%(self.__class__.__name__, cells))
+        
+        id = self.add_to_nml_doc(self.nml_doc, cells)
+        
+        
+        
+        for cell in cells:
+            pop_id = cell.parent.label
+            index = cell.parent.id_to_index(cell)
+            celltype = cell.parent.celltype.__class__.__name__
+            logger.debug("Injecting: %s to %s (%s[%s])"%(id, cell, pop_id, index))
+            
+            input_list = self._get_input_list(id, pop_id)
+            
+            input = neuroml.Input(id=len(input_list.input), 
+                              target="../%s/%i/%s_%s"%(pop_id, index, celltype, pop_id), 
+                              destination="synapses")  
+            input_list.input.append(input)
+            
+    
 
 
 class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
@@ -275,9 +333,18 @@ class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
         ('amplitudes',  'amplitudes'),
         ('times',       'times')
     )
-    
-    def add_to_nml_doc(self, nml_doc, population):
-        raise NotImplementedError()
+
+        
+        
+    def add_to_nml_doc(self, nml_doc, cells):
+        ci = neuroml.CompoundInputDL(id="%s_%s"%(self.__class__.__name__, cells.label))
+     
+        num_steps = len(self.amplitudes)
+        for i in range(num_steps):
+            next_time = 1e9 if i==num_steps-1 else self.times[i+1]
+            ci.pulse_generator_dls.append(neuroml.PulseGeneratorDL(id='step_%s'%i,delay='%sms'%self.times[i],duration='%sms'%(next_time-self.times[i]),amplitude='%s'%self.amplitudes[i]))
+        nml_doc.compound_input_dls.append(ci)
+        return ci.id
 
 
 class ACSource(NeuroMLCurrentSource, electrodes.ACSource):

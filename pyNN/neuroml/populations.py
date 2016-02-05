@@ -53,11 +53,28 @@ class Population(common.Population):
     _simulator = simulator
     _recorder_class = Recorder
     _assembly_class = Assembly
+    
+    def __init__(self, size, cellclass, cellparams=None, structure=None,
+                 initial_values={}, label=None):
+        super(Population, self).__init__(size, cellclass, cellparams, structure,initial_values, label)
+        
+        logger.debug("Created NeuroML Population: %s of size %i" % (self.label, self.size))
+             
+        for cell in self.all_cells:
+            index = self.id_to_index(cell)
+            inst = neuroml.Instance(id=0)
+            self.pop.instances.append(inst)
+            x = self.positions[0][index]
+            y = self.positions[1][index]
+            z = self.positions[2][index]
+            logger.debug("Creating cell at (%s, %s, %s)"%(x,y,z))
+            inst.location = neuroml.Location(x=x,y=y,z=z)
+        
 
     def _create_cells(self):
         
         nml_doc = simulator.get_nml_doc()
-        net = nml_doc.networks[0]
+        net = simulator.get_main_network()
         
         cell_pynn = self.celltype.__class__.__name__
         logger.debug("Creating Cell instance: %s" % (cell_pynn))
@@ -66,15 +83,16 @@ class Population(common.Population):
         
         logger.debug("Creating Population: %s of size %i" % (self.label, self.size))
         
-        pop = neuroml.Population(id=self.label, size = self.size,
+        self.pop = neuroml.Population(id=self.label, size = self.size, type="populationList",
                           component=cell_id)
-        net.populations.append(pop)
+        net.populations.append(self.pop)
         
         
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
+            
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
