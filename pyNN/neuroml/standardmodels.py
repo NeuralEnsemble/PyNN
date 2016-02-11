@@ -18,7 +18,7 @@ logger = logging.getLogger("PyNN_NeuroML")
 
 current_sources = []
 
-def add_params(pynn_cell, nml_cell):
+def add_params(pynn_cell, nml_cell, set_v_init=True):
     for param in pynn_cell.simple_parameters():
         value_generator = pynn_cell.parameter_space[param].base_value
         #print(value_generator)
@@ -31,6 +31,7 @@ def add_params(pynn_cell, nml_cell):
         nml_param = param  # .lower() if (not 'tau_syn' in param and not 'e_rev' in param) else param
         logger.debug("Adding param: %s = %s as %s for cell %s"%(param, value, nml_param, nml_cell.id))
         nml_cell.__setattr__(nml_param, value)
+    if set_v_init:
         nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
     
 
@@ -169,7 +170,9 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.SpikeSourcePoisson(id="%s_%s"%(self.__class__.__name__, population.label))
         nml_doc.SpikeSourcePoisson.append(cell)
-        add_params(self, cell)
+        cell.start = '%sms'%self.parameter_space['start'].base_value
+        cell.duration = '%sms'%self.parameter_space['duration'].base_value
+        cell.rate = '%sHz'%self.parameter_space['rate'].base_value
         return cell.id
 
 class SpikeSourceArray(cells.SpikeSourceArray):
