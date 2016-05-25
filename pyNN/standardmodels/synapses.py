@@ -42,7 +42,7 @@ class ElectricalSynapse(StandardSynapseType):
     """
        
     default_parameters = {
-        'weight': 0.0 # the (bidirectional) conductance of the gap junction (uS) 
+        'weight': 0.0  # the (bidirectional) conductance of the gap junction (uS)
     }
 
 
@@ -68,11 +68,11 @@ class TsodyksMarkramSynapse(StandardSynapseType):
     .. _`Tsodyks, Uziel and Markram (2000)`: http://www.jneurosci.org/content/20/1/RC50.long
     """
     default_parameters = {
-        'weight': 0.0,
-        'delay': None,
-        'U': 0.5,   # use parameter
-        'tau_rec': 100.0, # depression time constant (ms)
-        'tau_facil': 0.0,   # facilitation time constant (ms)
+        'weight':     0.0,
+        'delay':     None,
+        'U':          0.5,  # use parameter
+        'tau_rec':  100.0,  # depression time constant (ms)
+        'tau_facil':  0.0,  # facilitation time constant (ms)
     }
 
 
@@ -139,7 +139,7 @@ class STDPMechanism(StandardSynapseType):
         td = self.timing_dependence
         wd = self.weight_dependence
         pm = td.possible_models.intersection(wd.possible_models)
-        if len(pm) == 0 :
+        if len(pm) == 0:
             raise errors.NoModelAvailableError("No available plasticity models")
         else:
             # we pass the set of models back to the simulator-specific module for it to deal with
@@ -210,8 +210,8 @@ class AdditiveWeightDependence(STDPWeightDependence):
             maximum synaptic weight.
     """
     default_parameters = {
-        'w_min':   0.0,
-        'w_max':   1.0,
+        'w_min': 0.0,
+        'w_max': 1.0,
     }
 
     def __init__(self, w_min=0.0, w_max=1.0):
@@ -234,8 +234,8 @@ class MultiplicativeWeightDependence(STDPWeightDependence):
             maximum synaptic weight.
     """
     default_parameters = {
-        'w_min'  : 0.0,
-        'w_max'  : 1.0,
+        'w_min': 0.0,
+        'w_max': 1.0,
     }
 
     def __init__(self, w_min=0.0, w_max=1.0):
@@ -258,8 +258,8 @@ class AdditivePotentiationMultiplicativeDepression(STDPWeightDependence):
     """
 
     default_parameters = {
-        'w_min'  : 0.0,
-        'w_max'  : 1.0,
+        'w_min': 0.0,
+        'w_max': 1.0,
     }
 
     def __init__(self, w_min=0.0,  w_max=1.0):
@@ -286,13 +286,13 @@ class GutigWeightDependence(STDPWeightDependence):
     """
 
     default_parameters = {
-        'w_min'   : 0.0,
-        'w_max'   : 1.0,
-        'mu_plus' : 0.5,
+        'w_min':    0.0,
+        'w_max':    1.0,
+        'mu_plus':  0.5,
         'mu_minus': 0.5
     }
 
-    def __init__(self, w_min=0.0,  w_max=1.0, mu_plus=0.5, mu_minus=0.5):
+    def __init__(self, w_min=0.0, w_max=1.0, mu_plus=0.5, mu_minus=0.5):
         """
         Create a new specification for the weight-dependence of an STDP rule.
         """
@@ -326,8 +326,8 @@ class SpikePairRule(STDPTimingDependence):
     default_parameters = {
         'tau_plus':  20.0,
         'tau_minus': 20.0,
-        'A_plus' : 0.01,
-        'A_minus': 0.01,
+        'A_plus':    0.01,
+        'A_minus':   0.01,
     }
 
     def __init__(self, tau_plus=20.0, tau_minus=20.0, A_plus=0.01, A_minus=0.01):

@@ -9,6 +9,9 @@ Definition of cell classes for the brian module.
 
 import numpy
 import brian
+from pyNN.parameters import Sequence, simplify
+from . import simulator
+
 mV = brian.mV
 ms = brian.ms
 nA = brian.nA
@@ -16,8 +19,6 @@ uS = brian.uS
 Hz = brian.Hz
 ampere = brian.amp
 second = brian.second
-from pyNN.parameters import Sequence, simplify
-from . import simulator
 
 
 def _new_property(obj_hierarchy, attr_name, units):
@@ -72,7 +73,6 @@ class BaseNeuronGroup(brian.NeuronGroup):
         self.initial_values = {}
 
     def initialize(self):
-        #print("INITIALIZE: %s" % self.initial_values)
         for variable, values in self.initial_values.items():
             setattr(self, variable, values)
 

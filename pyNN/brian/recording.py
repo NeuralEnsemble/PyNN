@@ -52,12 +52,12 @@ class Recorder(recording.Recorder):
         self.sampling_interval = sampling_interval or self._simulator.state.dt
         if variable not in self._devices:
             self._create_device(self.population.brian_group, variable)
-        #update StateMonitor.record and StateMonitor.recordindex
+        # update StateMonitor.record and StateMonitor.recordindex
         if variable is not 'spikes':
             device = self._devices[variable]
             device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
-            device.recordindex = dict((i,j) for i,j in zip(device.record,
-                                                           range(len(device.record))))
+            device.recordindex = dict((i, j) for i, j in zip(device.record,
+                                                             range(len(device.record))))
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):
@@ -80,8 +80,6 @@ class Recorder(recording.Recorder):
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
         values = numpy.array(device._values)
-        #print(ids)
-        #print(device.record)
         current_values = device.P.state_(device.varname)[device.record]
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
         logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)

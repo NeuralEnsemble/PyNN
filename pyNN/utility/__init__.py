@@ -51,7 +51,8 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
     if not (smtphost and address):
         print("SMTP host and/or e-mail address not specified.\nUnable to send notification message.")
     else:
-        import smtplib, datetime
+        import smtplib
+        import datetime
         msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address, address, subject) + msg
         msg += "\nTimestamp: %s" % datetime.datetime.now().strftime("%H:%M:%S, %F")
         server = smtplib.SMTP(smtphost)
@@ -327,7 +328,7 @@ class ProgressBar(object):
     def __init__(self, width=77, char="#", mode="fixed"):
         self.char = char
         self.mode = mode
-        if not self.mode in ['fixed', 'dynamic']:
+        if self.mode not in ['fixed', 'dynamic']:
             self.mode = 'fixed'
         self.width = width
 

@@ -1010,8 +1010,8 @@ class FixedTotalNumberConnector(FixedNumberConnector):
         num_conns_on_vp = numpy.zeros(num_processes, dtype=int)
         sum_dist = 0
         sum_partitions = 0
-        for k in range(num_processes) :
-            p_local = targets_per_process / ( len(projection.post) - sum_dist)
+        for k in range(num_processes):
+            p_local = targets_per_process / (len(projection.post) - sum_dist)
             bino.parameters['p'] = p_local
             bino.parameters['n'] = self.n - sum_partitions
             num_conns_on_vp[k] = bino.next()

@@ -109,7 +109,7 @@ class MultiplicativeWeightDependence(BaseSynapse, synapses.MultiplicativeWeightD
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
     )
-    possible_models = set(['StdwaSoft',])
+    possible_models = set(['StdwaSoft'])
 
 
 class AdditivePotentiationMultiplicativeDepression(BaseSynapse, synapses.AdditivePotentiationMultiplicativeDepression):

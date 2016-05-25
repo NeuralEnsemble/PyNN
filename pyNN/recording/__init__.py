@@ -327,12 +327,12 @@ class Recorder(object):
         if isinstance(file, basestring):
             file = get_io(file)
         io = file or self.file
-        if gather == False and self._simulator.state.num_processes > 1:
+        if gather is False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
         data = self.get(variables, gather, filter_ids, clear, annotations=annotations)
-        if self._simulator.state.mpi_rank == 0 or gather == False:
+        if self._simulator.state.mpi_rank == 0 or gather is False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
             io.write_block(data)

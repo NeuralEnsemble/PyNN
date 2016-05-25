@@ -23,9 +23,9 @@ class DCSource(StandardCurrentSource):
     """
 
     default_parameters = {
-        'amplitude'     : 1.0,       #
-        'start'         : 0.0,      #
-        'stop'          : 1e12,  #
+        'amplitude': 1.0,
+        'start':     0.0,
+        'stop':      1e12,
     }
 
 
@@ -48,12 +48,12 @@ class ACSource(StandardCurrentSource):
     """
 
     default_parameters = {
-        'amplitude'     : 1.0,      #
-        'start'         : 0.0,     #
-        'stop'          : 1e12, #
-        'frequency'     : 10.,
-        'offset'        : 0.,
-        'phase'         : 0.
+        'amplitude': 1.0,
+        'start':     0.0,
+        'stop':      1e12,
+        'frequency': 10.0,
+        'offset':    0.0,
+        'phase':     0.0
     }
 
 
@@ -74,7 +74,7 @@ class StepCurrentSource(StandardCurrentSource):
 
     default_parameters = {
         'amplitudes': Sequence([]),
-        'times'     : Sequence([])
+        'times': Sequence([])
     }
 
 
@@ -107,9 +107,9 @@ class NoisyCurrentSource(StandardCurrentSource):
      """
 
     default_parameters = {
-        'mean'           : 0.,
-        'stdev'          : 1.,
-        'start'          : 0.,
-        'stop'           : 1e12,
-        'dt'             : 0.1
+        'mean':  0.0,
+        'stdev': 1.0,
+        'start': 0.0,
+        'stop':  1e12,
+        'dt':    0.1
     }

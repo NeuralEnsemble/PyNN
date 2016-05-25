@@ -108,8 +108,8 @@ class SingleCompartmentNeuron(BaseSingleCompartmentNeuron):
     """Single compartment with excitatory and inhibitory synapses"""
 
     synapse_models = {
-        'current': { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
-        'conductance': { 'exp': h.ExpSyn, 'alpha': h.AlphaSyn },
+        'current': {'exp': h.ExpISyn, 'alpha': h.AlphaISyn},
+        'conductance': {'exp': h.ExpSyn, 'alpha': h.AlphaSyn},
     }
 
     def __init__(self, syn_type, syn_shape, c_m, i_offset,

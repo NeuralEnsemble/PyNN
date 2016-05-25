@@ -84,8 +84,8 @@ class Space(object):
 
     """
 
-    AXES = {'x' : [0],    'y': [1],    'z': [2],
-            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': range(3), None: range(3)}
+    AXES = {'x':  [0],     'y': [1],     'z': [2],
+            'xy': [0, 1], 'yz': [1, 2], 'xz': [0, 2], 'xyz': range(3), None: range(3)}
 
     def __init__(self, axes=None, scale_factor=1.0, offset=0.0,
                  periodic_boundaries=None):

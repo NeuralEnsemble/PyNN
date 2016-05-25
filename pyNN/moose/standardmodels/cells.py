@@ -30,8 +30,8 @@ class IF_cond_exp(cells.IF_cond_exp):
     model = StandardIF
 
     def __init__(self, parameters):
-        cells.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
+        cells.IF_cond_exp.__init__(self, parameters)  # checks supplied parameters and adds default
+                                                      # values for not-specified parameters.
         self.parameters['syn_shape'] = 'exp'
 
 

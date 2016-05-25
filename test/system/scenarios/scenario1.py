@@ -15,7 +15,7 @@ def scenario1(sim):
         'v_reset': -60.0, 'v_thresh': -50.0, 'cm': 1.0, 'tau_refrac': 5.0,
         'e_rev_E': 0.0, 'e_rev_I': -80.0
     }
-    stimulation_params = {'rate' : 100.0, 'duration' : 50.0}
+    stimulation_params = {'rate': 100.0, 'duration': 50.0}
     n_exc = 80
     n_inh = 20
     n_input = 20

@@ -124,7 +124,7 @@ class IF_base(object):
     def define_channel_types(self):
         
         passive_node = build_node('cml:channel_type', name="pas_" + self.label, density="yes")
-        passive_node.appendChild( build_node('meta:notes', "Simple example of a leak/passive conductance") )
+        passive_node.appendChild(build_node('meta:notes', "Simple example of a leak/passive conductance"))
         gmax = str(1e-3 * self.parameters['cm'] / self.parameters['tau_m'])
         
         cvr_node = build_node('cml:current_voltage_relation', 
@@ -136,7 +136,7 @@ class IF_base(object):
         passive_node.appendChild(cvr_node)
         
         ifnode = build_node('cml:channel_type', name="IandF_" + self.label)
-        ifnode.appendChild( build_node('meta:notes', "Spike and reset mechanism") )
+        ifnode.appendChild(build_node('meta:notes', "Spike and reset mechanism"))
         cvr_node = build_node('cml:current_voltage_relation')
         ifmech_node = build_node('cml:integrate_and_fire',
                                  threshold=self.parameters['v_thresh'],
@@ -157,18 +157,18 @@ class IF_base(object):
             rise_time_exc = self.parameters['tau_syn_E']
             rise_time_inh = self.parameters['tau_syn_I']
             
-        esyn_node.appendChild( build_node('cml:doub_exp_syn',
-                                          max_conductance="1.0e-5",
-                                          rise_time=rise_time_exc,
-                                          decay_time=self.parameters['tau_syn_E'],
-                                          reversal_potential=self.parameters['e_rev_E'] ) )
+        esyn_node.appendChild(build_node('cml:doub_exp_syn',
+                                         max_conductance="1.0e-5",
+                                         rise_time=rise_time_exc,
+                                         decay_time=self.parameters['tau_syn_E'],
+                                         reversal_potential=self.parameters['e_rev_E']))
                                           
         isyn_node = build_node('cml:synapse_type', name="InhSynSyn_" + self.label)
-        isyn_node.appendChild( build_node('cml:doub_exp_syn',
-                                          max_conductance="1.0e-5",
-                                          rise_time=rise_time_inh,
-                                          decay_time=self.parameters['tau_syn_I'],
-                                          reversal_potential=self.parameters['e_rev_I'] ) )
+        isyn_node.appendChild(build_node('cml:doub_exp_syn',
+                                         max_conductance="1.0e-5",
+                                         rise_time=rise_time_inh,
+                                         decay_time=self.parameters['tau_syn_I'],
+                                         reversal_potential=self.parameters['e_rev_I']))
         return [esyn_node, isyn_node]
 
     def build_nodes(self):
@@ -443,7 +443,7 @@ class Population(common.Population):
         for i in range(self.size):
             x, y, z = self.positions[:, i]
             instance_node = build_node('net:instance', id=i)
-            instance_node.appendChild( build_node('net:location', x=x, y=y, z=z) )
+            instance_node.appendChild(build_node('net:location', x=x, y=y, z=z))
             instances_node.appendChild(instance_node)
             
         for node in celltype_node, instances_node:
@@ -455,7 +455,7 @@ class Population(common.Population):
         cells_node.appendChild(cell_node)
         # Add all channels first, then all synapses
         for channel_node in channel_list:
-            channels_node.insertBefore(channel_node , channels_node.firstChild)
+            channels_node.insertBefore(channel_node, channels_node.firstChild)
         for synapse_node in synapse_list:
             channels_node.appendChild(synapse_node)
 
@@ -485,8 +485,8 @@ class AllToAllConnector(connectors.AllToAllConnector):
     
     def connect(self, projection):
         connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:all_to_all',
-                                                  allow_self_connections=int(self.allow_self_connections)) )
+        connectivity_node.appendChild(build_node('net:all_to_all',
+                                                  allow_self_connections=int(self.allow_self_connections)))
         return connectivity_node
 
 
@@ -494,7 +494,7 @@ class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:one_to_one') )
+        connectivity_node.appendChild(build_node('net:one_to_one'))
         return connectivity_node
 
 
@@ -502,9 +502,9 @@ class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
     def connect(self, projection):
         connectivity_node = build_node('net:connectivity_pattern')
-        connectivity_node.appendChild( build_node('net:fixed_probability',
+        connectivity_node.appendChild(build_node('net:fixed_probability',
                                                   probability=self.p_connect,
-                                                  allow_self_conections=int(self.allow_self_connections)) )
+                                                  allow_self_conections=int(self.allow_self_connections)))
         return connectivity_node
 
 
@@ -513,10 +513,10 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
     def connect(self, projection):
         if hasattr(self, "n"):
             connectivity_node = build_node('net:connectivity_pattern')
-            connectivity_node.appendChild( build_node('net:per_cell_connection',
+            connectivity_node.appendChild(build_node('net:per_cell_connection',
                                                       num_per_source=self.n,
                                                       direction="PreToPost",
-                                                      allow_self_connections=int(self.allow_self_connections)) )
+                                                      allow_self_connections=int(self.allow_self_connections)))
             return connectivity_node
         else:
             raise Exception('Connection with variable connection number not implemented.')
@@ -527,10 +527,10 @@ class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     def connect(self, projection):
         if hasattr(self, "n"):
             connectivity_node = build_node('net:connectivity_pattern')
-            connectivity_node.appendChild( build_node('net:per_cell_connection',
+            connectivity_node.appendChild(build_node('net:per_cell_connection',
                                                       num_per_source=self.n,
                                                       direction="PostToPre",
-                                                      allow_self_connections=int(self.allow_self_connections)) )
+                                                      allow_self_connections=int(self.allow_self_connections)))
             return connectivity_node
         else:
             raise Exception('Connection with variable connection number not implemented.')
@@ -545,9 +545,9 @@ class FromListConnector(connectors.FromListConnector):
             src = self.pre[tuple(src)]
             tgt = self.post[tuple(tgt)]
             connection_node = build_node('net:connection', id=i)
-            connection_node.appendChild( build_node('net:pre', cell_id=src) )
-            connection_node.appendChild( build_node('net:post', cell_id=tgt) )
-            connection_node.appendChild( build_node('net:properties', internal_delay=delay, weight=weight) )
+            connection_node.appendChild(build_node('net:pre', cell_id=src))
+            connection_node.appendChild(build_node('net:post', cell_id=tgt))
+            connection_node.appendChild(build_node('net:properties', internal_delay=delay, weight=weight))
             connections_node.appendChild(connection_node)
         return connections_node
 
@@ -613,15 +613,15 @@ class Projection(common.Projection):
             self.synapse_type = "ExcitatorySynapse"
         
         projection_node = build_node('net:projection', name=self.label)
-        projection_node.appendChild( build_node('net:source', self.pre.label) )
-        projection_node.appendChild( build_node('net:target', self.post.label) )
+        projection_node.appendChild(build_node('net:source', self.pre.label))
+        projection_node.appendChild(build_node('net:target', self.post.label))
         
         synapse_node = build_node('net:synapse_props')
-        synapse_node.appendChild( build_node('net:synapse_type', self.synapse_type) )
-        synapse_node.appendChild( build_node('net:default_values', internal_delay=5, weight=1, threshold=-20) )
+        synapse_node.appendChild(build_node('net:synapse_type', self.synapse_type))
+        synapse_node.appendChild(build_node('net:default_values', internal_delay=5, weight=1, threshold=-20))
         projection_node.appendChild(synapse_node)
         
-        projection_node.appendChild( connection_method.connect(self) )
+        projection_node.appendChild(connection_method.connect(self))
         
         projections_node.appendChild(projection_node)
         Projection.n += 1

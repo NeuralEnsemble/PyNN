@@ -14,8 +14,9 @@ Classes:
 
 """
 
-
-import numpy, os, shutil
+import numpy
+import os
+import shutil
 try:
     import cPickle as pickle
 except ImportError:

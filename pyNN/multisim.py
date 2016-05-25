@@ -24,7 +24,6 @@ def run_simulation(network_model, sim, parameters, input_queue, output_queue):
         result = getattr(obj, attr)(*args, **kwargs)
         output_queue.put(result)
     print("Simulation with %s complete" % sim.__name__)
-    #sim.end()
 
 
 class MultiSim(object):

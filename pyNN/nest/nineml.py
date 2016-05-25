@@ -18,19 +18,8 @@ Constants:
 """
 
 from __future__ import absolute_import  # Not compatible with Python 2.4
-import subprocess
-#import neuron
-from pyNN.models import BaseCellType
-#from pyNN.nineml.cells import _build_nineml_celltype
-from pyNN.nineml.cells import CoBaSyn 
 import logging
-import os
-from itertools import chain
-#from pyNN.neuron import simulator
-#from pyNN import common, recording
 from pyNN.nest.cells import NativeCellType
-#common.simulator = simulator
-#recording.simulator = simulator
 
 
 logger = logging.getLogger("PyNN")
@@ -68,7 +57,7 @@ class _nest_build_nineml_celltype(type):
         from nineml.abstraction import flattening, writers, component_modifiers
         import nest
 
-        #Extract Parameters Back out from Dict:
+        # Extract Parameters Back out from Dict:
         nineml_model = dct['nineml_model']
         synapse_components = dct['synapse_components']
 
@@ -77,7 +66,7 @@ class _nest_build_nineml_celltype(type):
         if nineml_model.is_flat():
             flat_component = nineml_model
         else:
-            flat_component = flattening.flatten( nineml_model, name )
+            flat_component = flattening.flatten(nineml_model, name)
         
         # Make the substitutions:
         flat_component.backsub_all()
@@ -110,7 +99,7 @@ class _nest_build_nineml_celltype(type):
         dct["combined_model"] = flat_component
         # TODO: Override this with user layer
         #default_values = ModelToSingleComponentReducer.flatten_namespace_dict( parameters )
-        dct["default_parameters"] = dict( (p.name, 1.0) for p in flat_component.parameters )
+        dct["default_parameters"] = dict((p.name, 1.0) for p in flat_component.parameters)
         dct["default_initial_values"] = dict((s.name, 0.0) for s in flat_component.state_variables)
         dct["synapse_types"] = [syn.namespace for syn in synapse_components] 
         dct["standard_receptor_type"] = (dct["synapse_types"] == ('excitatory', 'inhibitory'))
@@ -124,8 +113,8 @@ class _nest_build_nineml_celltype(type):
         # TODO bindings -> alias and support recording of them in nest template
         #+ [binding.name for binding in flat_component.bindings]
         
-        dct["weight_variables"] = dict([ (syn.namespace, syn.namespace + '_' + syn.weight_connector )
-                                         for syn in synapse_components ])
+        dct["weight_variables"] = dict([(syn.namespace, syn.namespace + '_' + syn.weight_connector)
+                                        for syn in synapse_components])
         
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
 
@@ -133,15 +122,14 @@ class _nest_build_nineml_celltype(type):
         initial_regime = flat_component.regimes_map.keys()[0]
 
         from nestbuilder import NestFileBuilder
-        nfb = NestFileBuilder(  nest_classname=name, 
-                                component=flat_component, 
-                                synapse_ports=synapse_ports,
-                                initial_regime=initial_regime,
-                                initial_values=dct["default_initial_values"],
-                                default_values=dct["default_parameters"],
-                                )
+        nfb = NestFileBuilder(nest_classname=name,
+                              component=flat_component,
+                              synapse_ports=synapse_ports,
+                              initial_regime=initial_regime,
+                              initial_values=dct["default_initial_values"],
+                              default_values=dct["default_parameters"],
+                              )
         nfb.compile_files()
         nest.Install('mymodule')
         
         return type.__new__(cls, name, bases, dct)
-        

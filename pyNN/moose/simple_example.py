@@ -36,17 +36,17 @@ na.Gbar = GNa
 na.Xpower = 3
 na.Ypower = 1
 # (A + Bv)/(C + exp(D/E))
-na.setupAlpha("X", 3.2e5 * -42 * mV, -3.2e5, -1, 42 * mV, -4 * mV, # alpha
-                  -2.8e5 * -15 * mV, 2.8e5,  -1, 15 * mV, 5 * mV)  # beta
-na.setupAlpha("Y", 128,            0,       0, 38 * mV, 18 * mV, # alpha
-                   4.0e3,          0,       1, 15 * mV, -5 * mV) # beta
+na.setupAlpha("X", 3.2e5 * -42 * mV, -3.2e5, -1, 42 * mV, -4 * mV,  # alpha
+                  -2.8e5 * -15 * mV,  2.8e5, -1, 15 * mV,  5 * mV)   # beta
+na.setupAlpha("Y", 128,               0,      0, 38 * mV, 18 * mV,    # alpha
+                   4.0e3,             0,      1, 15 * mV, -5 * mV)    # beta
 
 k = moose.HHChannel("k", comp)
 k.Ek = VK
 k.Gbar = GK
 k.Xpower = 4
 k.setupAlpha("X", 16e3 * -25 * mV, -16e3, -1, 25 * mV, -5 * mV,
-                  250          , 0,      0, 40 * mV,  4 * mV)
+                  250,                 0,  0, 40 * mV,  4 * mV)
 
 comp.connect("channel", na, "channel")
 comp.connect("channel", k, "channel")

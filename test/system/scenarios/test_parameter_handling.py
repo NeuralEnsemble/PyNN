@@ -11,11 +11,11 @@ from .registry import register
 def issue241(sim):
     # "Nest SpikeSourcePoisson populations require all parameters to be passed to constructor"
     sim.setup()
-    spike_train1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate' : [5], 'start' : [1000], 'duration': [1234]})
-    spike_train2 = sim.Population(2, sim.SpikeSourcePoisson, {'rate' : [5, 6], 'start' : [1000, 1001], 'duration': [1234, 2345]})
-    spike_train3 = sim.Population(1, sim.SpikeSourcePoisson, {'rate' : [5], 'start' : [1000], 'duration': 1234})
-    spike_train4 = sim.Population(1, sim.SpikeSourcePoisson, {'rate' : [5], 'start' : [1000]})
-    spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate' : [5, 6], 'start' : [1000, 1001]})
+    spike_train1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000], 'duration': [1234]})
+    spike_train2 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001], 'duration': [1234, 2345]})
+    spike_train3 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000], 'duration': 1234})
+    spike_train4 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000]})
+    spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001]})
     assert_arrays_equal(spike_train2.get('duration'), numpy.array([1234, 2345]))
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
     sim.end()
@@ -106,7 +106,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     p1 = sim.Population(4, sim.IF_cond_exp())
     p2 = sim.Population(2, sim.IF_cond_exp())
     syn = sim.TsodyksMarkramSynapse(U=0.5, weight=0.123, delay=0.1)
-    prj = sim.Projection(p1, p2, sim.FromListConnector([(0, 0) , (3, 0), (1, 1), (1, 0), (2, 1)]), syn)
+    prj = sim.Projection(p1, p2, sim.FromListConnector([(0, 0), (3, 0), (1, 1), (1, 0), (2, 1)]), syn)
 
     expected = numpy.array([
         (0.0, 0.0, 0.123, 0.1, 0.5),

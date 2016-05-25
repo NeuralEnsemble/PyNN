@@ -58,9 +58,9 @@ class _State(common.control.BaseState):
         self.spike_precision = "off_grid"
         self.verbosity = "warning"
         self._cache_num_processes = nest.GetKernelStatus()['num_processes']  # avoids blocking if only some nodes call num_processes
-                                                                            # do the same for rank?
+                                                                             # do the same for rank?
         # allow NEST to erase previously written files (defaut with all the other simulators)
-        nest.SetKernelStatus({'overwrite_files' : True})
+        nest.SetKernelStatus({'overwrite_files': True})
         self.tempdirs = []
         self.recording_devices = []
         self.populations = []  # needed for reset

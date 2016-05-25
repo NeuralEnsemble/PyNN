@@ -29,10 +29,11 @@ modules.
 
 """
 
-import nemo, numpy, logging, sys
-from itertools import izip
-from pyNN import common, errors, core, utility
-from pyNN.nemo.standardmodels.cells import SpikeSourceArray, SpikeSourcePoisson
+import logging
+import nemo
+import numpy
+from pyNN import common
+from pyNN.nemo.standardmodels.cells import SpikeSourceArray
 
 # Global variables
 recorder_list = []
@@ -139,7 +140,7 @@ class ID(int, common.IDMixin):
     
     def get_native_parameters(self):
         if isinstance(self.celltype, SpikeSourceArray):
-            return {'spike_times' : self.player.spike_times}
+            return {'spike_times': self.player.spike_times}
         else:
             params = {}
             for key, value in self.celltype.indices.items():

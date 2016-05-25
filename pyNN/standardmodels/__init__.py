@@ -76,7 +76,6 @@ class StandardModelType(models.BaseModelType):
         if parameters.schema != self.get_schema():
             raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
         native_parameters = {}
-        #for name in parameters.schema:
         for name in parameters.keys():
             D = self.translations[name]
             pname = D['translated_name']
@@ -86,7 +85,7 @@ class StandardModelType(models.BaseModelType):
                 try:
                     pval = eval(D['forward_transform'], globals(), _parameters)
                 except NameError as errmsg:
-                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
                                     % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
                 except ZeroDivisionError:
                     raise
@@ -107,7 +106,7 @@ class StandardModelType(models.BaseModelType):
                     try:
                         standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
                     except NameError as errmsg:
-                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
                                         % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
 
@@ -236,7 +235,7 @@ def check_weights(weights, projection):
     if is_conductance or synapse_sign == 'excitatory':
         if not all_positive:
             raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance == False and synapse_sign == 'inhibitory':
+    elif is_conductance is False and synapse_sign == 'inhibitory':
         if not all_negative:
             raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
     else:  # This should never happen.

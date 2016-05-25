@@ -66,10 +66,10 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
         self.na.Gbar = GbarNa
         self.na.Xpower = 3
         self.na.Ypower = 1
-        self.na.setupAlpha("X", 3.2e5 * (13 * mV + Voff), -3.2e5, -1, -(13 * mV + Voff), -4 * mV, # alpha
-                               -2.8e5 * (40 * mV + Voff),  2.8e5, -1, -(40 * mV + Voff), 5 * mV)  # beta
-        self.na.setupAlpha("Y", 128,                   0,      0, -(17 * mV + Voff), 18 * mV, # alpha
-                                4.0e3,                 0,      1, -(40 * mV + Voff), -5 * mV) # beta
+        self.na.setupAlpha("X", 3.2e5 * (13 * mV + Voff), -3.2e5, -1, -(13 * mV + Voff), -4 * mV,  # alpha
+                               -2.8e5 * (40 * mV + Voff),  2.8e5, -1, -(40 * mV + Voff), 5 * mV)   # beta
+        self.na.setupAlpha("Y", 128,                   0,      0, -(17 * mV + Voff), 18 * mV,      # alpha
+                                4.0e3,                 0,      1, -(40 * mV + Voff), -5 * mV)      # beta
 
         self.k = moose.HHChannel("k", self.comp)
         self.k.Ek = EK
@@ -91,7 +91,7 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
             syn.n_incoming_connections = 0
 
         self.comp.connect("channel", self.na, "channel")
-        self.comp.connect("channel", self.k , "channel")
+        self.comp.connect("channel", self.k,  "channel")
         
         self.comp.useClock(0)
         self.comp.useClock(1, "init")

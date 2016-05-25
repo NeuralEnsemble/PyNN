@@ -87,7 +87,8 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():
             for direction in ("forward_transform", "reverse_transform"):
-                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
+                self.translations[key][direction] = value[direction].replace("weight_units",
+                                                                             str(float(weight_units)))
 
 
 class STDPMechanism(synapses.STDPMechanism):

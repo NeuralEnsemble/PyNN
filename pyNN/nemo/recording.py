@@ -33,7 +33,6 @@ class Recorder(recording.Recorder):
 
     def write(self, file=None, gather=False, compatible_output=True, filter=None):
         recording.Recorder.write(self, file, gather, compatible_output, filter)
-        #self._simulator.recorder_list.remove(self)
 
     def record(self, ids):
         """Add the cells in `ids` to the set of recorded cells."""
@@ -45,7 +44,7 @@ class Recorder(recording.Recorder):
     def _add_spike(self, fired, time):
         ids = self.recorded.intersection(fired)
         self.data = numpy.vstack((self.data, numpy.array([list(ids), [time] * len(ids)]).T)) 
-        ## To file or memory ? ###
+        #  To file or memory?
 
     def _add_vm(self, time):
         data = self._simulator.state.sim.get_membrane_potential(list(self.recorded))   

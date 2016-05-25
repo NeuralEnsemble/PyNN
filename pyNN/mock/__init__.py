@@ -58,13 +58,10 @@ initialize = common.initialize
 get_current_time, get_time_step, get_min_delay, get_max_delay, \
                     num_processes, rank = common.build_state_queries(simulator)
 
-#            )
-
 create = common.build_create(Population)
 
 connect = common.build_connect(Projection, FixedProbabilityConnector, StaticSynapse)
 
-#set = common.set
 
 record = common.build_record(simulator)
 

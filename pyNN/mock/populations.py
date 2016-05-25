@@ -28,12 +28,8 @@ class PopulationView(common.PopulationView):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self.parent._get_parameters(*self.celltype.get_native_names())
         for name, value in parameter_space.items():
             self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
-            #ps[name][self.mask] = value.evaluate(simplify=True)
-        #ps.evaluate(simplify=True)
-        #self.parent._parameters = ps.as_dict()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -87,10 +83,6 @@ class Population(common.Population):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self._get_parameters(*self.celltype.get_native_names())
-        #ps.update(**parameter_space)
-        #ps.evaluate(simplify=True)
-        #self._parameters = ps.as_dict()
         parameter_space.evaluate(simplify=False, mask=self._mask_local)
         for name, value in parameter_space.items():
             self._parameters[name] = value

@@ -8,7 +8,6 @@ Nemo implementation of the PyNN API.
 """
 
 import logging
-Set = set
 import nemo
 from pyNN.nemo import simulator
 from pyNN import common, recording, space, core, __doc__
@@ -23,6 +22,7 @@ from pyNN.nemo.recording import *
 from pyNN import standardmodels
 
 logger = logging.getLogger("PyNN")
+Set = set
 
 
 def list_standard_models():
@@ -135,9 +135,9 @@ class Population(common.Population, common.BasePopulation):
         if isinstance(celltype, SpikeSourcePoisson):
             simulator.state.net.add_neuron(ntype, self.all_cells.tolist(), params['rate'] * i1)
         elif isinstance(celltype, SpikeSourceArray):
-            ### For the moment, we model spike_source_array as neurons that are forced to fire,
-            ### but this could be enhanced. A local copy of these devices is kept on the CPU, to send the
-            ### spikes
+            # For the moment, we model spike_source_array as neurons that are forced to fire,
+            # but this could be enhanced. A local copy of these devices is kept on the CPU, to send the
+            # spikes
             simulator.spikes_array_list += self.all_cells.tolist()
             params['precision'] = simulator.state.dt
             for idx in self.all_cells:
@@ -406,7 +406,7 @@ class Projection(common.Projection):
         if compatible_output:
             lines[:, 0] = self.pre.id_to_index(lines[:, 0])
             lines[:, 1] = self.post.id_to_index(lines[:, 1])
-        file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
+        file.write(lines, {'pre': self.pre.label, 'post': self.post.label})
         file.close()
 
 Space = space.Space

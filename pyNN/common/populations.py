@@ -293,8 +293,8 @@ class BasePopulation(object):
             # seems inefficient to do it in a loop - should do as single operation
             for name in parameter_names:
                 values = parameter_space[name]
-                all_values = { self._simulator.state.mpi_rank: values.tolist() }
-                all_indices = { self._simulator.state.mpi_rank: self.local_cells.tolist() }
+                all_values = {self._simulator.state.mpi_rank: values.tolist()}
+                all_indices = {self._simulator.state.mpi_rank: self.local_cells.tolist()}
                 all_values = recording.gather_dict(all_values)
                 all_indices = recording.gather_dict(all_indices)
                 if self._simulator.state.mpi_rank == 0:
@@ -566,7 +566,7 @@ class BasePopulation(object):
         result[:, 0] = cells
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
-            file.write(result, {'population' : self.label})
+            file.write(result, {'population': self.label})
             file.close()
 
 
@@ -1054,7 +1054,7 @@ class Assembly(object):
         (order in the Assembly)::
 
             >>> assert p.id_to_index(p[5]) == 5
-            >>> assert p.id_to_index(p.index([1,2,3])) == [1,2,3]
+            >>> assert p.id_to_index(p.index([1, 2, 3])) == [1, 2, 3]
         """
         all_cells = self.all_cells
         if not numpy.iterable(id):
@@ -1275,7 +1275,7 @@ class Assembly(object):
         result[:, 0] = cells
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
-            file.write(result, {'assembly' : self.label})
+            file.write(result, {'assembly': self.label})
             file.close()
 
     @property
@@ -1385,12 +1385,12 @@ class Assembly(object):
         """
         if isinstance(io, basestring):
             io = recording.get_io(io)
-        if gather == False and self._simulator.state.num_processes > 1:
+        if gather is False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
         data = self.get_data(variables, gather, clear, annotations)
-        if self._simulator.state.mpi_rank == 0 or gather == False:
+        if self._simulator.state.mpi_rank == 0 or gather is False:
             logger.debug("Writing data to file %s" % io)
             io.write(data)
 

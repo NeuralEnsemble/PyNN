@@ -26,8 +26,8 @@ class Izhikevich(cells.Izhikevich):
 
     nemo_name = "Izhikevich"
 
-    indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
-    initial_indices = {'u' : 0, 'v' : 1}
+    indices = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
+    initial_indices = {'u': 0, 'v': 1}
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
@@ -42,7 +42,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
     nemo_name = "PoissonSource"
 
-    indices = {'rate' : 0}
+    indices = {'rate': 0}
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
@@ -103,18 +103,18 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_curr_alpha"
 
 
@@ -135,18 +135,18 @@ class IF_curr_exp(cells.IF_curr_exp):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_curr_exp"
 
 
@@ -169,20 +169,20 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7,
-            'e_rev_E'  : 9,
-            'e_rev_I'  : 10
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7,
+            'e_rev_E': 9,
+            'e_rev_I': 10
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_cond_alpha"
 
 
@@ -205,20 +205,20 @@ class IF_cond_exp(cells.IF_cond_exp):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7,
-            'e_rev_E'  : 9,
-            'e_rev_I'  : 10
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7,
+            'e_rev_E': 9,
+            'e_rev_I': 10
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_cond_exp"
 
 

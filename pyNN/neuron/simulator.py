@@ -136,8 +136,8 @@ class _Initializer(object):
 
     def _initialize(self):
         """Call `memb_init()` for all registered cell objects."""
-        logger.info("Initializing membrane potential of %d cells and %d Populations." % \
-                     (len(self.cell_list), len(self.population_list)))
+        logger.info("Initializing membrane potential of %d cells and %d Populations." %
+                    (len(self.cell_list), len(self.population_list)))
         for cell in self.cell_list:
             cell._cell.memb_init()
         for population in self.population_list:
@@ -237,7 +237,7 @@ class _State(common.control.BaseState):
                 state.parallel_context.setup_transfer()
             h.finitialize()
             self.tstop = 0
-            logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep ))
+            logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep))
             logger.debug("local_minimum_delay on host #%d = %g" % (self.mpi_rank, local_minimum_delay))
             if self.min_delay == 'auto':
                 self.min_delay = local_minimum_delay

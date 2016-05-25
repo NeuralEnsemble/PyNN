@@ -42,7 +42,7 @@ class NeuronCurrentSource(StandardCurrentSource):
 
     @property
     def _h_amplitudes(self):
-        if self._amplitudes == None:
+        if self._amplitudes is None:
             if isinstance(self.amplitudes, Sequence):
                 self._amplitudes = h.Vector(self.amplitudes.value)
             else:
@@ -51,7 +51,7 @@ class NeuronCurrentSource(StandardCurrentSource):
 
     @property
     def _h_times(self):
-        if self._times == None:
+        if self._times is None:
             if isinstance(self.times, Sequence):
                 self._times = h.Vector(self.times.value)
             else:
@@ -162,8 +162,8 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
         self._generate()
 
     def _generate(self):
-        ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
-        ## Otherwise should have a buffer mechanism
+        # Not efficient at all... Is there a way to have those vectors computed on the fly ?
+        # Otherwise should have a buffer mechanism
         self.times = numpy.arange(self.start, self.stop + simulator.state.dt, simulator.state.dt)
         tmp = numpy.arange(0, self.stop - self.start, simulator.state.dt)
         self.amplitudes = self.offset + self.amplitude * numpy.sin(tmp * 2 * numpy.pi * self.frequency / 1000. + 2 * numpy.pi * self.phase / 360)

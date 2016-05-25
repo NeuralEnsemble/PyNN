@@ -25,12 +25,12 @@ class NativeRNG(NativeRNG, WrappedRNG):
         'lognormal':      ('lognormal',    ('mu', 'sigma')),
         'normal':         ('normal',       ('mu', 'sigma')),
         'normal_clipped': ('normal_clipped', ('mu', 'sigma', 'low', 'high')),
-        #'normal_clipped_to_boundary':
+        # 'normal_clipped_to_boundary':
         #                  ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
         'poisson':        ('poisson',      ('lambda_',)),
         'uniform':        ('uniform',      ('low', 'high')),
         'uniform_int':    ('discunif',     ('low', 'high')),
-        #'vonmises':       ('vonmises',     {'mu': 'mu', 'kappa': 'kappa'}),
+        # 'vonmises':       ('vonmises',     {'mu': 'mu', 'kappa': 'kappa'}),
     }
 
     def __init__(self, seed=None, parallel_safe=True):

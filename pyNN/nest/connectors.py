@@ -113,7 +113,7 @@ class NESTConnectorMixin(object):
                 if value.is_homogeneous:
                     params[name] = value.evaluate(simplify=True)
                 elif value.shape:
-                    params[name] = value.evaluate().flatten()    # If parameter is given as an array or function
+                    params[name] = value.evaluate().flatten()  # If parameter is given as an array or function
                 else:
                     value.shape = (1, 1)
                     params[name] = float(value.evaluate())  # If parameter is given as a single number. Checking of the dimensions should be done in NEST

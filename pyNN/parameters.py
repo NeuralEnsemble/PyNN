@@ -124,8 +124,8 @@ class Sequence(object):
         else:
             self.value = numpy.array(value, float)
 
-    #def __len__(self):
-    #    This must not be defined, otherwise Sequence is insufficiently different from NumPy array
+    # def __len__(self):
+    #     This must not be defined, otherwise Sequence is insufficiently different from NumPy array
 
     def max(self):
         """Return the maximum value from the sequence."""

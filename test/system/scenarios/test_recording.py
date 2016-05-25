@@ -84,7 +84,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
     assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))
     assert_arrays_equal(vm_all.channel_index, numpy.arange(11))
-    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([ 2, 3, 4]))
+    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([2, 3, 4]))
     assert_arrays_equal(gsyn_p1.channel_index, numpy.arange(4))
     assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
 

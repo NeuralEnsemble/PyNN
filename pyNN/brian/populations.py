@@ -70,8 +70,6 @@ class Population(common.Population):
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
         
-        #print(self.celltype.eqs)
-        #print(list(parameter_space.items()))
         self.brian_group = self.celltype.brian_model(self.size,
                                                      self.celltype.eqs,
                                                      **parameter_space)

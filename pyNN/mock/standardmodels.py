@@ -261,7 +261,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('tau_rec', 'TAU_REC'),
         ('tau_facil', 'TAU_FACIL'),
         ('u0', 'U0'),
-        ('x0', 'X' ),
+        ('x0', 'X'),
         ('y0', 'Y')
     )
     

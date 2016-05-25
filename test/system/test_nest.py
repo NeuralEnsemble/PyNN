@@ -129,7 +129,7 @@ def test_issue237():
     sim = pyNN.nest
     n_exc = 10
     sim.setup()
-    exc_noise_in_exc = sim.Population(n_exc, sim.SpikeSourcePoisson, {'rate' : 1000.})
+    exc_noise_in_exc = sim.Population(n_exc, sim.SpikeSourcePoisson, {'rate': 1000.})
     exc_cells = sim.Population(n_exc, sim.IF_cond_exp())
     exc_noise_connector = sim.OneToOneConnector()
     noise_ee_prj = sim.Projection(exc_noise_in_exc, exc_cells, exc_noise_connector, receptor_type="excitatory")

@@ -98,8 +98,10 @@ class Projection(common.Projection):
         return (simulator.Connection(self, i) for i in range(len(self)))
 
     def _set_tsodyks_params(self):
-        if 'tsodyks' in self.nest_synapse_model:  # there should be a better way to do this. In particular, if the synaptic time constant is changed
-                                                  # after creating the Projection, tau_psc ought to be changed as well.
+        if 'tsodyks' in self.nest_synapse_model:
+            # there should be a better way to do this.
+            # In particular, if the synaptic time constant is changed after
+            # creating the Projection, tau_psc ought to be changed as well.
             assert self.receptor_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
             targets = nest.GetStatus(self.nest_connections, 'target')
@@ -161,8 +163,10 @@ class Projection(common.Projection):
                              'all_to_all',
                              syn_dict)
             except nest.NESTError as e:
-                raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                             e, presynaptic_cells, postsynaptic_cell, weights, delays, self.nest_synapse_model))
+                errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                            e, presynaptic_cells, postsynaptic_cell,
+                            weights, delays, self.nest_synapse_model)
+                raise errors.ConnectionError(errmsg)
         else:
             receptor_type = postsynaptic_cell.celltype.get_receptor_type(self.receptor_type)
             if numpy.isscalar(weights):

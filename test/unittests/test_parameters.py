@@ -277,13 +277,13 @@ class ParameterSpaceTest(unittest.TestCase):
         ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(4,))
         self.assertIsInstance(ps['c'], LazyArray)
         ps.evaluate()
-        assert_array_equal(ps['c'], np.array([ 2, 5, 8, 11]))
+        assert_array_equal(ps['c'], np.array([2, 5, 8, 11]))
 
     def test_evaluate_with_mask(self):
         ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(5,))
         ps.evaluate(mask=[1, 3, 4])
-        expected = {'a': np.array([ 3, 8, 13]),
-                    'c': np.array([ 5, 11, 14]),
+        expected = {'a': np.array([3, 8, 13]),
+                    'c': np.array([5, 11, 14]),
                     'b': np.array([7, 7, 7])}
         for key in expected:
             assert_array_equal(expected[key], ps[key])

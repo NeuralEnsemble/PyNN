@@ -94,8 +94,11 @@ class Population(common.Population, PopulationMixin):
         self.last_id = simulator.state.gid_counter + self.size - 1
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id + 1)], 
                                      simulator.ID)
+
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank  # round-robin distribution of cells between nodes
+        # round-robin distribution of cells between nodes
+        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:

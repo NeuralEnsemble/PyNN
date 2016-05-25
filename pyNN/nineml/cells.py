@@ -78,7 +78,7 @@ class build_nineml_celltype(type):
         from nineml.abstraction.dynamics.utils import (
             flattener, xml, modifiers)
 
-        #Extract Parameters Back out from Dict:
+        # Extract Parameters Back out from Dict:
         combined_model = dct['combined_model']
         weight_vars = dct['weight_variables']
 
@@ -109,11 +109,13 @@ class build_nineml_celltype(type):
         dct["units"] = dict((statevar.name, _default_units[statevar.dimension.name]) for statevar in chain(flat_component.state_variables))
 
         # Recording from bindings:
-        dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime'] + [alias.lhs for alias in flat_component.aliases] + [statevar.name for statevar in flat_component.state_variables]
+        dct["recordable"] = ([port.name for port in flat_component.analog_ports]
+                             + ['spikes', 'regime']
+                             + [alias.lhs for alias in flat_component.aliases]
+                             + [statevar.name for statevar in flat_component.state_variables])
 
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
         dct["builder"](flat_component, dct["weight_variables"], hierarchical_mode=True)
 
-        #import pdb; pdb.set_trace()
         return type.__new__(cls, name, bases, dct)
 

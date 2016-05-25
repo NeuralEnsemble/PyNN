@@ -33,19 +33,19 @@ test_EIF_cond_alpha_isfa_ista.__test__ = False
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
-        'gbar_Na'   : 20.0,
-        'gbar_K'    : 6.0,
-        'g_leak'    : 0.01,
-        'cm'        : 0.2,
-        'v_offset'  : -63.0,
-        'e_rev_Na'  : 50.0,
-        'e_rev_K'   : -90.0,
+        'gbar_Na': 20.0,
+        'gbar_K': 6.0,
+        'g_leak': 0.01,
+        'cm': 0.2,
+        'v_offset': -63.0,
+        'e_rev_Na': 50.0,
+        'e_rev_K': -90.0,
         'e_rev_leak': -65.0,
-        'e_rev_E'   : 0.0,
-        'e_rev_I'   : -80.0,
-        'tau_syn_E' : 0.2,
-        'tau_syn_I' : 2.0,
-        'i_offset'  : 1.0,
+        'e_rev_E': 0.0,
+        'e_rev_I': -80.0,
+        'tau_syn_E': 0.2,
+        'tau_syn_I': 2.0,
+        'i_offset': 1.0,
     }
     hhcell = sim.create(sim.HH_cond_exp(**cellparams))
     sim.initialize(hhcell, v=-64.0)

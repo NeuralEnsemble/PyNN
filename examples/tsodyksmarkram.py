@@ -24,7 +24,7 @@ sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a
                              ("--debug", "Print debugging information"))
 
 if options.debug:
-    init_logging(None , debug=True)
+    init_logging(None, debug=True)
 
 sim.setup(quit_on_end=False)
 
