@@ -2,7 +2,7 @@
 """
 Alternative, procedural API for creating, connecting and recording from individual neurons
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

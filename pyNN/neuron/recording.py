@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -42,10 +42,16 @@ class Recorder(recording.Recorder):
             source, var_name = self._resolve_variable(cell, variable)
             hoc_var = getattr(source, "_ref_%s" % var_name)
         cell.traces[variable] = vec = h.Vector()
-        vec.record(hoc_var, self.sampling_interval)
+        if self.sampling_interval == self._simulator.state.dt:
+            vec.record(hoc_var)
+        else:
+            vec.record(hoc_var, self.sampling_interval)
         if not cell.recording_time:
             cell.record_times = h.Vector()
-            cell.record_times.record(h._ref_t, self.sampling_interval)
+            if self.sampling_interval == self._simulator.state.dt:
+                cell.record_times.record(h._ref_t)
+            else:
+                cell.record_times.record(h._ref_t, self.sampling_interval)
             cell.recording_time += 1
 
     #could be staticmethod
