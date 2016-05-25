@@ -87,7 +87,7 @@ class build_nineml_celltype(type):
         if combined_model.is_flat():
             flat_component = combined_model
         else:
-            flat_component = flattener.flatten(combined_model,name)
+            flat_component = flattener.flatten(combined_model, name)
 
         # Make the substitutions:
         flat_component.backsub_all()

@@ -33,7 +33,7 @@ class _State(object):
     def __init__(self):
         self.ctx = moose.PyMooseBase.getContext()
         self.gid_counter = 0
-        self.num_processes = 1 # we're not supporting MPI
+        self.num_processes = 1  # we're not supporting MPI
         self.mpi_rank = 0      # for now
         self.min_delay = 0.0
         self.max_delay = 1e12
@@ -47,9 +47,9 @@ class _State(object):
 
     def __set_dt(self, dt):
         print("setting dt to %g ms" % dt)
-        self.ctx.setClock(0, dt * ms, 0) # integration clock
-        self.ctx.setClock(1, dt * ms, 1) # ?
-        self.ctx.setClock(2, dt * ms, 0) # recording clock
+        self.ctx.setClock(0, dt * ms, 0)  # integration clock
+        self.ctx.setClock(1, dt * ms, 1)  # ?
+        self.ctx.setClock(2, dt * ms, 0)  # recording clock
     dt = property(fget=__get_dt, fset=__set_dt)
 
 

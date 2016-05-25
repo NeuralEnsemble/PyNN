@@ -109,7 +109,7 @@ class BaseFile(object):
 
     def rename(self, filename):
         self.close()
-        try: ## Need this because in parallel, only one node will delete the file with NFS
+        try:  # Need this because in parallel, only one node will delete the file with NFS
             os.remove(self.name)
         except Exception:
             pass
@@ -232,7 +232,7 @@ class NumpyBinaryFile(BaseFile):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         D = {}
-        for name,value in numpy.load(self.fileobj)['metadata']:
+        for name, value in numpy.load(self.fileobj)['metadata']:
             try:
                 D[name] = eval(value)
             except Exception:

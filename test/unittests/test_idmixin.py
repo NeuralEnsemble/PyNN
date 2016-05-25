@@ -116,8 +116,8 @@ class Test_IDMixin():
     def test_position_property(self):
         for id in (self.id, self.id_ns):
             assert_equal(id.position, (1.2, 3.4, 5.6))
-            id.position = (9,8,7)
-            assert_equal(id.parent._positions[id], (9,8,7))
+            id.position = (9, 8, 7)
+            assert_equal(id.parent._positions[id], (9, 8, 7))
 
     def test_local_property(self):
         for id in (self.id, self.id_ns):

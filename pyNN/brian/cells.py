@@ -67,7 +67,7 @@ class BaseNeuronGroup(brian.NeuronGroup):
                                    freeze=False)
         for name, value in parameters.items():
             setattr(self, name, value)
-        self._S0 = self._S[:,0]  # store parameter values in case of reset.
+        self._S0 = self._S[:, 0]  # store parameter values in case of reset.
                                  # TODO: update this when parameters are modified
         self.initial_values = {}
 

@@ -15,7 +15,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
-    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67,  113.13, 142.69, 174.79]) * pq.ms
+    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67, 113.13, 142.69, 174.79]) * pq.ms
     if plot_figure:
         import matplotlib.pyplot as plt
         vm = data.analogsignalarrays[0] 

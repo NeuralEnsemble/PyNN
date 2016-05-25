@@ -27,7 +27,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     
     __doc__ = synapses.AdditiveWeightDependence.__doc__
     
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):  # units?
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters

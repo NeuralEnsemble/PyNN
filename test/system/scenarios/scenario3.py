@@ -18,21 +18,21 @@ def scenario3(sim):
     init_logging(logfile=None, debug=True)
     second = 1000.0
     duration = 10
-    tau_m = 20 # ms
-    cm = 1.0 # nF
+    tau_m = 20  # ms
+    cm = 1.0  # nF
     v_reset = -60
     cell_parameters = dict(
-        tau_m = tau_m,
-        cm = cm,
-        v_rest = -70,
-        e_rev_E = 0,
-        e_rev_I = -70,
-        v_thresh = -54,
-        v_reset = v_reset,
-        tau_syn_E = 5,
-        tau_syn_I = 5,
+        tau_m=tau_m,
+        cm=cm,
+        v_rest=-70,
+        e_rev_E=0,
+        e_rev_I=-70,
+        v_thresh=-54,
+        v_reset=v_reset,
+        tau_syn_E=5,
+        tau_syn_I=5,
     )
-    g_leak = cm / tau_m # µS
+    g_leak = cm / tau_m  # µS
 
     w_min = 0.0 * g_leak
     w_max = 0.05 * g_leak
@@ -69,7 +69,7 @@ def scenario3(sim):
     initial_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights.min() >= w_min
     assert initial_weights.max() < w_max
-    assert initial_weights[0,0] != initial_weights[1,0]
+    assert initial_weights[0, 0] != initial_weights[1, 0]
 
     pre.record('spikes')
     post.record('spikes')
@@ -84,17 +84,17 @@ def scenario3(sim):
     #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
     #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
     final_weights = connections.get('weight', format='array', gather=False)
-    assert initial_weights[0,0] != final_weights[0,0]
+    assert initial_weights[0, 0] != final_weights[0, 0]
 
     try:
         import scipy.stats
     except ImportError:
         raise SkipTest
-    t,p = scipy.stats.ttest_ind(initial_weights[:50,:].flat, initial_weights[50:,:].flat)
+    t, p = scipy.stats.ttest_ind(initial_weights[:50, :].flat, initial_weights[50:, :].flat)
     assert p > 0.05, p
-    t,p = scipy.stats.ttest_ind(final_weights[:50,:].flat, final_weights[50:,:].flat)
+    t, p = scipy.stats.ttest_ind(final_weights[:50, :].flat, final_weights[50:, :].flat)
     assert p < 0.01, p
-    assert final_weights[:50,:].mean() < final_weights[50:,:].mean()
+    assert final_weights[:50, :].mean() < final_weights[50:, :].mean()
     sim.end()
     return initial_weights, final_weights, pre, post, connections
     

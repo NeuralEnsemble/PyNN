@@ -21,8 +21,8 @@ init_logging(None, debug=True)
 
 seed = 764756387
 rng = NumpyRNG(seed=seed, parallel_safe=True)
-tstop = 1000.0 # ms
-input_rate = 100.0 # Hz
+tstop = 1000.0  # ms
+input_rate = 100.0  # Hz
 cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms

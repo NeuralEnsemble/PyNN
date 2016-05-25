@@ -194,7 +194,7 @@ class Population(common.Population, common.BasePopulation):
                         list(init['u'] * i1),
                         list(init['v'] * i1))
 
-        self._mask_local = numpy.ones((n,), bool) # all cells are local
+        self._mask_local = numpy.ones((n,), bool)  # all cells are local
         self.first_id = self.all_cells[0]
         self.last_id = self.all_cells[-1]
 
@@ -324,11 +324,11 @@ class Projection(common.Projection):
         for target in targets:
             if not isinstance(target, common.IDMixin):
                 raise errors.ConnectionError("Invalid target ID: %s" % target)
-        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets),len(weights),len(delays))
+        assert len(targets) == len(weights) == len(delays), "%s %s %s" % (len(targets), len(weights), len(delays))
         synapse_type = self.synapse_type or "excitatory"
         delays = numpy.array(delays).astype(numpy.int).tolist()
         if self.synapse_type == 'inhibitory' and common.is_conductance(targets[0]):
-            weights *= -1 # NEMO wants negative values for inhibitory weights, even if these are conductances
+            weights *= -1  # NEMO wants negative values for inhibitory weights, even if these are conductances
         if isinstance(weights, numpy.ndarray):
             weights = weights.tolist()
         source = int(source)
@@ -399,13 +399,13 @@ class Projection(common.Projection):
         synapses = []
         for count, ranges in enumerate(self.connections):
             idx = range(self._ranges[count], self._ranges[count + 1])
-            lines[idx,0] = simulator.state.sim.get_sources(xrange(ranges[0], ranges[1]))
-            lines[idx,1] = simulator.state.sim.get_targets(xrange(ranges[0], ranges[1]))
-            lines[idx,2] = simulator.state.sim.get_weights(xrange(ranges[0], ranges[1]))
-            lines[idx,3] = simulator.state.sim.get_delays(xrange(ranges[0], ranges[1]))
+            lines[idx, 0] = simulator.state.sim.get_sources(xrange(ranges[0], ranges[1]))
+            lines[idx, 1] = simulator.state.sim.get_targets(xrange(ranges[0], ranges[1]))
+            lines[idx, 2] = simulator.state.sim.get_weights(xrange(ranges[0], ranges[1]))
+            lines[idx, 3] = simulator.state.sim.get_delays(xrange(ranges[0], ranges[1]))
         if compatible_output:
-            lines[:,0] = self.pre.id_to_index(lines[:, 0])
-            lines[:,1] = self.post.id_to_index(lines[:, 1])
+            lines[:, 0] = self.pre.id_to_index(lines[:, 0])
+            lines[:, 1] = self.post.id_to_index(lines[:, 1])
         file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
         file.close()
 

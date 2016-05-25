@@ -48,7 +48,7 @@ def make_sli_compatible(container):
     elif isinstance(container, dict):
         compatible = {}
 
-        for k,v in iteritems(container):
+        for k, v in iteritems(container):
             compatible[k] = make_sli_compatible_single(v)
 
     else:
@@ -80,7 +80,7 @@ def make_pynn_compatible(container):
     elif isinstance(container, dict):
         compatible = {}
 
-        for k,v in iteritems(container):
+        for k, v in iteritems(container):
             compatible[k] = make_pynn_compatible_single(v)
 
     else:

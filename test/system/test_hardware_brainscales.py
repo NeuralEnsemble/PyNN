@@ -29,7 +29,7 @@ class HardwareTest(unittest.TestCase):
         if not have_hardware_brainscales:
             raise SkipTest
         extra = {
-            'loglevel':0, 
+            'loglevel': 0, 
             'ignoreHWParameterRanges': True, 
             'useSystemSim': True, 
             'hardware': sim.hardwareSetup['one-hicann']
@@ -48,7 +48,7 @@ class HardwareTest(unittest.TestCase):
         p = sim.Population(3, sim.SpikeSourceArray(spike_times=spike_times))
         p2 = sim.Population(3, sim.Hardware_IF_cond_exp())
         syn = sim.StaticSynapse(weight=0.012)
-        con = sim.Projection(p, p2, connector = sim.OneToOneConnector(), synapse_type=syn,receptor_type='excitatory')
+        con = sim.Projection(p, p2, connector=sim.OneToOneConnector(), synapse_type=syn, receptor_type='excitatory')
         spike_times_g = p.get('spike_times')
         p2.record('v')
         sim.run(100.0)
@@ -58,8 +58,8 @@ class HardwareTest(unittest.TestCase):
         vm = data.filter(name="v")[0]
         print vm
         Figure(
-            Panel(weights,data_labels=["ext->cell"], line_properties=[{'xticks':True, 'yticks':True, 'cmap':'Greys'}]),
-            Panel(vm, ylabel="Membrane potential (mV)", data_labels=["excitatory", "excitatory"], line_properties=[{'xticks': True, 'yticks':True}]),
+            Panel(weights, data_labels=["ext->cell"], line_properties=[{'xticks': True, 'yticks': True, 'cmap': 'Greys'}]),
+            Panel(vm, ylabel="Membrane potential (mV)", data_labels=["excitatory", "excitatory"], line_properties=[{'xticks': True, 'yticks': True}]),
         ).save("result")
 
     #def test_set_parameters(self):
@@ -104,7 +104,7 @@ class HardwareTest(unittest.TestCase):
 def test_restart_loop():
     if not have_hardware_brainscales:
         raise SkipTest
-    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)
     sim.end()
     sim.setup(**extra)
@@ -129,7 +129,7 @@ def test_restart_loop():
 def test_sim_without_clearing():
     if not have_hardware_brainscales:
         raise SkipTest
-    extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+    extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)    
     
 

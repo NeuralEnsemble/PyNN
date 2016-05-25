@@ -63,7 +63,7 @@ sim.run(200.0)
 
 # === Save the results, optionally plot a figure =============================
 
-for label,p in populations.items():
+for label, p in populations.items():
     filename = normalized_filename("Results", "tsodyksmarkram_%s" % label,
                                    "pkl", options.simulator)
     p.write_data(filename, annotations={'script_name': __file__})

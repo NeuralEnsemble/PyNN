@@ -3,7 +3,7 @@ from NeuroTools import stgen
 import pyNN.neuron as neuron
 import pyNN.nest as nest
 
-pyNN_backends = {'nest':nest,'neuron':neuron}
+pyNN_backends = {'nest': nest, 'neuron': neuron}
 
 
 def run(sim):
@@ -12,21 +12,21 @@ def run(sim):
     stg = stgen.StGen()
     stg.seed(12345)
 
-    rateE = 6.0 # firing rate of ghost excitatory neurons
-    rateI = 10.5 # firing rate of ghost inhibitoryneurons
-    connectionsE = 1000.0 # number of E connections every neuron recieves
-    connectionsI = 250.0 # number of I connections every neuron recieves
-    tsim = 1000.0 # ms
+    rateE = 6.0  # firing rate of ghost excitatory neurons
+    rateI = 10.5  # firing rate of ghost inhibitoryneurons
+    connectionsE = 1000.0  # number of E connections every neuron recieves
+    connectionsI = 250.0  # number of I connections every neuron recieves
+    tsim = 1000.0  # ms
 
-    globalWeight = 0.002 # Weights of all connection in uS
-    dt = 0.01 # simulation time step in milliseconds
+    globalWeight = 0.002  # Weights of all connection in uS
+    dt = 0.01  # simulation time step in milliseconds
 
     sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, debug=True, quit_on_end=False)
 
     params = NeuroTools.parameters.ParameterSet('standard_neurons.yaml')
     myModel = sim.IF_cond_exp_gsfa_grr
-    popE = sim.Population((1,),myModel,params.excitatory,label='popE')
-    popI = sim.Population((1,),myModel,params.inhibitory,label='popI')
+    popE = sim.Population((1,), myModel, params.excitatory, label='popE')
+    popI = sim.Population((1,), myModel, params.inhibitory, label='popI')
 
     #poissonE_params = {'rate': rateE*connectionsE, 'start': 0.0, 'duration': tsim}
     #poissonE_params = {'rate': rateE, 'start': 0.0, 'duration': tsim}
@@ -36,11 +36,11 @@ def run(sim):
     spike_times_E = stg.poisson_generator(rateE * connectionsE, 0.0, tsim, array=True)
     spike_times_I = stg.poisson_generator(rateI * connectionsI, 0.0, tsim, array=True)
 
-    poissonE = sim.Population((1,),cellclass=sim.SpikeSourceArray,
-                              cellparams={'spike_times':spike_times_E},label='poissonE')
+    poissonE = sim.Population((1,), cellclass=sim.SpikeSourceArray,
+                              cellparams={'spike_times': spike_times_E}, label='poissonE')
 
-    poissonI = sim.Population((1,),cellclass=sim.SpikeSourceArray,
-                              cellparams={'spike_times':spike_times_I},label='poissonI')
+    poissonI = sim.Population((1,), cellclass=sim.SpikeSourceArray,
+                              cellparams={'spike_times': spike_times_I}, label='poissonI')
 
     myconn = sim.AllToAllConnector(weights=globalWeight, delays=dt)
 
@@ -91,7 +91,7 @@ for sim_name, sim in pyNN_backends.iteritems():
     #plot(v_E[:,1],v_E[:,2], label=sim_name)
 
     g_E = results[sim_name][4]
-    plot(g_E[:,1],g_E[:,2], label=sim_name)
+    plot(g_E[:, 1], g_E[:, 2], label=sim_name)
     
 legend()
 

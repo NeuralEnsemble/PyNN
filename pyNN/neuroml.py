@@ -11,17 +11,17 @@ from pyNN import common, connectors, cells, standardmodels
 import math
 import numpy
 import sys
-sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3]) # needed for Ubuntu
+sys.path.append('/usr/lib/python%s/site-packages/oldxml' % sys.version[:3])  # needed for Ubuntu
 import xml.dom.ext
 import xml.dom.minidom
 
 neuroml_url = 'http://morphml.org'
 namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
-             'mml':  neuroml_url + "/morphml/schema",
-             'net':  neuroml_url + "/networkml/schema",
+             'mml': neuroml_url + "/morphml/schema",
+             'net': neuroml_url + "/networkml/schema",
              'meta': neuroml_url + "/metadata/schema",
-             'bio':  neuroml_url + "/biophysics/schema",  
-             'cml':  neuroml_url + "/channelml/schema",}
+             'bio': neuroml_url + "/biophysics/schema",  
+             'cml': neuroml_url + "/channelml/schema", }
              
 neuroml_ver = "1.7.3"
 neuroml_xsd = "http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v" + neuroml_ver + "/Level3/NeuroML_Level3_v" + neuroml_ver + ".xsd"
@@ -86,7 +86,7 @@ class IF_base(object):
         
         cables_node = build_node('mml:cables')
         soma_node = build_node('mml:cable', id=0, name="Soma")
-        soma_node.appendChild(build_node('meta:group','all'))
+        soma_node.appendChild(build_node('meta:group', 'all'))
         cables_node.appendChild(soma_node)
         return segments_node, cables_node
         
@@ -101,12 +101,12 @@ class IF_base(object):
         cm_node = build_node('bio:specificCapacitance')
         cm_node.appendChild(build_parameter_node('', str(self.parameters['cm'])))  # units?
         Ra_node = build_node('bio:specificAxialResistance')
-        Ra_node.appendChild(build_parameter_node('', "0.1")) # value doesn't matter for a single compartment
+        Ra_node.appendChild(build_parameter_node('', "0.1"))  # value doesn't matter for a single compartment
         # These are not needed here
         #esyn_node     = build_node('bio:mechanism', name="ExcitatorySynapse", type="Channel Mechanism")
         #isyn_node     = build_node('bio:mechanism', name="InhibitorySynapse", type="Channel Mechanism")
         
-        for node in ifnode, passive_node, cm_node, Ra_node: # the order is important here
+        for node in ifnode, passive_node, cm_node, Ra_node:  # the order is important here
             biophys_node.appendChild(node)
         return biophys_node
         
@@ -142,7 +142,7 @@ class IF_base(object):
                                  threshold=self.parameters['v_thresh'],
                                  t_refrac=self.parameters['tau_refrac'],
                                  v_reset=self.parameters['v_reset'],
-                                 g_refrac=0.1) # this value just needs to be 'large enough'
+                                 g_refrac=0.1)  # this value just needs to be 'large enough'
         cvr_node.appendChild(ifmech_node)
         ifnode.appendChild(cvr_node)
         
@@ -298,7 +298,7 @@ class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params):
+def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -312,9 +312,9 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
         strict = extra_params['strict']
     dt = timestep
     xmldoc = xml.dom.minidom.Document()
-    neuromlNode = xmldoc.createElementNS(neuroml_url + '/neuroml/schema','neuroml')
-    neuromlNode.setAttributeNS(namespace['xsi'],'xsi:schemaLocation',"http://morphml.org/neuroml/schema " + neuroml_xsd)
-    neuromlNode.setAttribute('lengthUnits',"micron")
+    neuromlNode = xmldoc.createElementNS(neuroml_url + '/neuroml/schema', 'neuroml')
+    neuromlNode.setAttributeNS(namespace['xsi'], 'xsi:schemaLocation', "http://morphml.org/neuroml/schema " + neuroml_xsd)
+    neuromlNode.setAttribute('lengthUnits', "micron")
     xmldoc.appendChild(neuromlNode)
     
     populations_node = build_node('net:populations')
@@ -342,7 +342,7 @@ def end(compatible_output=True):
 
 def run(simtime):
     """Run the simulation for simtime ms."""
-    pass # comment in NeuroML file
+    pass  # comment in NeuroML file
 
 
 def get_min_delay():
@@ -392,13 +392,13 @@ def set(cells, cellclass, param, val=None):
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
-    pass # put a comment in the NeuroML file?
+    pass  # put a comment in the NeuroML file?
 
 
 def record_v(source, filename):
     """Record membrane potential to a file. source can be an individual cell or
     a list of cells."""
-    pass # put a comment in the NeuroML file?
+    pass  # put a comment in the NeuroML file?
 
 # ==============================================================================
 #   High-level API for creating, connecting and recording from populations of
@@ -516,7 +516,7 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
             connectivity_node.appendChild( build_node('net:per_cell_connection',
                                                       num_per_source=self.n,
                                                       direction="PreToPost",
-                                                      allow_self_connections = int(self.allow_self_connections)) )
+                                                      allow_self_connections=int(self.allow_self_connections)) )
             return connectivity_node
         else:
             raise Exception('Connection with variable connection number not implemented.')
@@ -530,7 +530,7 @@ class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
             connectivity_node.appendChild( build_node('net:per_cell_connection',
                                                       num_per_source=self.n,
                                                       direction="PostToPre",
-                                                      allow_self_connections = int(self.allow_self_connections)) )
+                                                      allow_self_connections=int(self.allow_self_connections)) )
             return connectivity_node
         else:
             raise Exception('Connection with variable connection number not implemented.')
@@ -556,7 +556,7 @@ class FromFileConnector(connectors.FromFileConnector):
     
     def connect(self, projection):
         # now open the file...
-        f = open(self.filename,'r',10000)
+        f = open(self.filename, 'r', 10000)
         lines = f.readlines()
         f.close()
         
@@ -565,8 +565,8 @@ class FromFileConnector(connectors.FromFileConnector):
         for line in lines:
             single_line = line.rstrip()
             src, tgt, w, d = single_line.split("\t", 4)
-            src = "[%s" % src.split("[",1)[1]
-            tgt = "[%s" % tgt.split("[",1)[1]
+            src = "[%s" % src.split("[", 1)[1]
+            tgt = "[%s" % tgt.split("[", 1)[1]
             input_tuples.append((eval(src), eval(tgt), float(w), float(d)))
         f.close()
         self.conn_list = input_tuples
@@ -630,6 +630,6 @@ class Projection(common.Projection):
         pass
     
     def __len__(self):
-        return 0 # needs implementing properly
+        return 0  # needs implementing properly
 
 # ==============================================================================

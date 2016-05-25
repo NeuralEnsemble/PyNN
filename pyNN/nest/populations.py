@@ -80,7 +80,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
                 cell_parameters[name] = val.value
     else:
         parameter_space.evaluate(mask=mask_local)
-        cell_parameters = list(parameter_space) # may not be the most efficient way. Might be best to set homogeneous parameters on creation, then inhomogeneous ones using SetStatus. Need some timings.
+        cell_parameters = list(parameter_space)  # may not be the most efficient way. Might be best to set homogeneous parameters on creation, then inhomogeneous ones using SetStatus. Need some timings.
         for D in cell_parameters:
             for name, val in D.items():
                 if isinstance(val, Sequence):
@@ -125,7 +125,7 @@ class Population(common.Population, PopulationMixin):
         except nest.NESTError as err:
             if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
-            raise #errors.InvalidModelError(err)
+            raise  # errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             self.all_cells_source = numpy.array(self.all_cells)        # we put the parrots into all_cells, since this will

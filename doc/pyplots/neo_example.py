@@ -12,7 +12,7 @@ connections = sim.Projection(p_in, p_out, random, syn, receptor_type='excitatory
 
 p_in.record('spikes')
 p_out.record('spikes')                    # record spikes from all neurons
-p_out[0:2].record(['v', 'w', 'gsyn_exc']) # record other variables from first two neurons
+p_out[0:2].record(['v', 'w', 'gsyn_exc'])  # record other variables from first two neurons
 
 sim.run(500.0)
 
@@ -27,7 +27,7 @@ fig_settings = {
     'font.size': 8
 }
 plt.rcParams.update(fig_settings)
-plt.figure(1, figsize=(6,8))
+plt.figure(1, figsize=(6, 8))
 
 
 def plot_spiketrains(segment):

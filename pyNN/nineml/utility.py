@@ -38,7 +38,7 @@ def reverse_map(D):
     Return a dict having D.values() as its keys and D.keys() as its values.
     """
     E = {}
-    for k,v in D.items():
+    for k, v in D.items():
         if v in E:
             raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
         E[v] = k
@@ -120,6 +120,6 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
 def map_random_distribution_parameters(name, parameters):
     parameter_map = random_distribution_parameter_map
     P = {}
-    for name,val in zip(parameter_map[name], parameters):
+    for name, val in zip(parameter_map[name], parameters):
         P[name] = val
     return P

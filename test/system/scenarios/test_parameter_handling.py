@@ -106,7 +106,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     p1 = sim.Population(4, sim.IF_cond_exp())
     p2 = sim.Population(2, sim.IF_cond_exp())
     syn = sim.TsodyksMarkramSynapse(U=0.5, weight=0.123, delay=0.1)
-    prj = sim.Projection(p1, p2, sim.FromListConnector([(0, 0) ,(3, 0), (1, 1), (1, 0), (2, 1)]), syn)
+    prj = sim.Projection(p1, p2, sim.FromListConnector([(0, 0) , (3, 0), (1, 1), (1, 0), (2, 1)]), syn)
 
     expected = numpy.array([
         (0.0, 0.0, 0.123, 0.1, 0.5),

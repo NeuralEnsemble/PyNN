@@ -73,7 +73,7 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:2].record(('v', 'gsyn_exc'))
 
-syn = sim.StaticSynapse(weight=w,delay=syn_delay)
+syn = sim.StaticSynapse(weight=w, delay=syn_delay)
 input_conns = sim.Projection(spike_source, cells, sim.FixedProbabilityConnector(0.5), syn)
 
 # === Run simulation ===========================================================

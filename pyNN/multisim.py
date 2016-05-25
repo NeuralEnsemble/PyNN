@@ -70,7 +70,7 @@ class MultiSim(object):
             return retvals
         return iterate_over_nets
             
-    def run(self, simtime, steps=1): #, *callbacks):
+    def run(self, simtime, steps=1):  # , *callbacks):
         """
         Run the model for a time `simtime` in all simulators.
         

@@ -67,6 +67,6 @@ if options.plot_figure:
         Panel(vm, y_offset=-10 * mV, xticks=True, yticks=True,
               xlabel="Time (ms)", ylabel="Membrane potential (mV)",
               ylim=(-96, -59)),
-        title = "Current injection example",
+        title="Current injection example",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)

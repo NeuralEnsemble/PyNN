@@ -32,7 +32,7 @@ class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConne
 
 class DistanceDependentProbabilityConnector(ConnectorMixin, connectors.DistanceDependentProbabilityConnector):
     definition_url = "%s/connectionrules/distance_dependent_probability.xml" % catalog_url
-    parameter_names = ('d_expression', 'allow_self_connections') # space
+    parameter_names = ('d_expression', 'allow_self_connections')  # space
 
 
 def list_connectors():

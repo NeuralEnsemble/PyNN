@@ -19,7 +19,7 @@ import warnings
 import glob
 from pyNN.recording import get_io
 
-plt.ion() #.rcParams['interactive'] = True
+plt.ion()  # .rcParams['interactive'] = True
 
 example = sys.argv[1]
 

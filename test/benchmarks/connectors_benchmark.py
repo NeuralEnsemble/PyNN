@@ -15,15 +15,15 @@ init_logging("connectors_benchmark_%s.log" % simulator_name, debug=True)
 
 
 def draw_rf(cell, positions, connections, color='k'):
-    idx = numpy.where(connections[:,1] == cell)[0]
+    idx = numpy.where(connections[:, 1] == cell)[0]
     sources = connections[idx, 0]
     for src in sources:
         plot([positions[cell, 1], positions[src, 1]], [positions[cell, 2], positions[src, 2]], c=color)
 
 
 def distances(pos_1, pos_2, N):
-    dx = abs(pos_1[:,0] - pos_2[:,0])
-    dy = abs(pos_1[:,1] - pos_2[:,1])
+    dx = abs(pos_1[:, 0] - pos_2[:, 0])
+    dy = abs(pos_1[:, 1] - pos_2[:, 1])
     dx = numpy.minimum(dx, N - dx)
     dy = numpy.minimum(dy, N - dy)
     return sqrt(dx * dx + dy * dy)
@@ -33,7 +33,7 @@ node_id = setup(timestep=0.1, min_delay=0.1, max_delay=4.)
 print("Creating cells population...")
 N = 30
 
-structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(2652))
+structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5, 0.5, 0.5), rng=NumpyRNG(2652))
 #structure = Grid2D(dx=1/float(N), dy=1/float(N))
 
 x = Population(N**2, IF_curr_exp(), structure=structure)
@@ -43,7 +43,7 @@ print("Time to build the cell population:", mytime, 's')
 
 def test(cases=[1]):
 
-    sp = Space(periodic_boundaries=((0,1), (0,1), None), axes='xy')
+    sp = Space(periodic_boundaries=((0, 1), (0, 1), None), axes='xy')
     safe = False
     callback = progress_bar.set_level
     autapse = False
@@ -125,34 +125,34 @@ def test(cases=[1]):
             print("Generating and saving %s" % fig_name)
             positions = numpy.loadtxt('Results/positions.dat')
             
-            positions[:,0] -= positions[:,0].min()
+            positions[:, 0] -= positions[:, 0].min()
             connections = files.NumpyBinaryFile('Results/connections.dat', mode='r').read()
             print(positions.shape, connections.shape)
-            connections[:,0] -= connections[:,0].min()
-            connections[:,1] -= connections[:,1].min()
-            idx_pre = connections[:,0].astype(int)
-            idx_post = connections[:,1].astype(int)
-            d = distances(positions[idx_pre,1:3], positions[idx_post,1:3], 1)
+            connections[:, 0] -= connections[:, 0].min()
+            connections[:, 1] -= connections[:, 1].min()
+            idx_pre = connections[:, 0].astype(int)
+            idx_post = connections[:, 1].astype(int)
+            d = distances(positions[idx_pre, 1:3], positions[idx_post, 1:3], 1)
             subplot(231)
             title('Cells positions')
-            plot(positions[:,1], positions[:,2], '.')
+            plot(positions[:, 1], positions[:, 2], '.')
             subplot(232)
             title('Weights distribution')
-            hist(connections[:,2], 50)
+            hist(connections[:, 2], 50)
             subplot(233)
             title('Delay distribution')
-            hist(connections[:,3], 50)
+            hist(connections[:, 3], 50)
             subplot(234)
             numpy.random.seed(74562)
-            ids = numpy.random.permutation(positions[:,0])[0:6]
+            ids = numpy.random.permutation(positions[:, 0])[0:6]
             colors = ['k', 'r', 'b', 'g', 'c', 'y']
             for count, cell in enumerate(ids):
                 draw_rf(cell, positions, connections, colors[count])
             subplot(235)
-            plot(d, connections[:,2], '.')
+            plot(d, connections[:, 2], '.')
 
             subplot(236)
-            plot(d, connections[:,3], '.')
+            plot(d, connections[:, 3], '.')
             savefig("Results/" + fig_name)
             #os.remove('Results/connections.dat')
             #os.remove('Results/positions.dat')

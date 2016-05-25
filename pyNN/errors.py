@@ -80,7 +80,7 @@ class NotLocalError(Exception):
     pass
 
 
-class RecordingError(Exception): # subclass AttributeError?
+class RecordingError(Exception):  # subclass AttributeError?
     """Attempt to record a variable that does not exist for this cell type."""
 
     def __init__(self, variable, cell_type):

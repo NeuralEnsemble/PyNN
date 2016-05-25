@@ -116,8 +116,8 @@ if options.benchmark == "COBA":
     w_inh    = Ginh*1e-3
 elif options.benchmark == "CUBA":
     celltype = sim.IF_curr_exp
-    w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
-    w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
+    w_exc = 1e-3*Gexc*(Erev_exc - v_mean)  # (nA) weight of excitatory synapses
+    w_inh = 1e-3*Ginh*(Erev_inh - v_mean)  # (nA)
     assert w_exc > 0; assert w_inh < 0
 
 # === Build the network ========================================================

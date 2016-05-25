@@ -27,7 +27,7 @@ class Recorder(recording.Recorder):
     def __init__(self, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, population, file)
-        self._devices = {} # defer creation until first call of record()
+        self._devices = {}  # defer creation until first call of record()
 
     def _create_device(self, group, variable):
         """Create a Brian recording device."""

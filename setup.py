@@ -22,7 +22,7 @@ class build(_build):
             # test if nrnivmodl was successful
             if result != 0:
                 print("Unable to compile NEURON extensions. Output was:")
-                print('  '.join([''] + stdout)) # indent error msg for easy comprehension
+                print('  '.join([''] + stdout))  # indent error msg for easy comprehension
             else:
                 print("Successfully compiled NEURON extensions.")
         else:
@@ -40,23 +40,23 @@ class build(_build):
         return nrnivmodl
 
 setup(
-    name = "PyNN",
-    version = "0.8.1dev",
-    packages = ['pyNN','pyNN.nest', 'pyNN.neuron',
+    name="PyNN",
+    version="0.8.1dev",
+    packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
                 'pyNN.utility', 'pyNN.nineml'],
-    package_data = {'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
-    author = "The PyNN team",
-    author_email = "andrew.davison@unic.cnrs-gif.fr",
-    description = "A Python package for simulator-independent specification of neuronal network models",
-    long_description = open("README.rst").read(),
-    license = "CeCILL http://www.cecill.info",
-    keywords = "computational neuroscience simulation neuron nest brian neuromorphic",
-    url = "http://neuralensemble.org/PyNN/",
-    classifiers = ['Development Status :: 4 - Beta',
+    package_data={'pyNN': ['neuron/nmodl/*.mod', "descriptions/templates/*/*"]},
+    author="The PyNN team",
+    author_email="andrew.davison@unic.cnrs-gif.fr",
+    description="A Python package for simulator-independent specification of neuronal network models",
+    long_description=open("README.rst").read(),
+    license="CeCILL http://www.cecill.info",
+    keywords="computational neuroscience simulation neuron nest brian neuromorphic",
+    url="http://neuralensemble.org/PyNN/",
+    classifiers=['Development Status :: 4 - Beta',
                    'Environment :: Console',
                    'Intended Audience :: Science/Research',
                    'License :: Other/Proprietary License',
@@ -70,6 +70,6 @@ setup(
                    'Programming Language :: Python :: 3.4',
                    'Programming Language :: Python :: 3.5',
                    'Topic :: Scientific/Engineering'],
-    cmdclass = {'build': build},
+    cmdclass={'build': build},
 )
 

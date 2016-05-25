@@ -90,7 +90,7 @@ class LatticeConnector(connectors.Connector):
         listPostIndexes = map(projection.post.id_to_index, listPostIDs)
 
         # Prepare all distances #
-        allDistances = self.space.distances(projection.post.positions,projection.pre.positions)            
+        allDistances = self.space.distances(projection.post.positions, projection.pre.positions)            
         
         # Get weights #
         weights = numpy.empty(n)
@@ -117,7 +117,7 @@ class LatticeConnector(connectors.Connector):
             # Get distances
             myTimer = time.time()
             #distances = allDistances[currentPostIndex,chosenPresIndexes]
-            distances = allDistances[currentPostIndex,chosenPresIndexes]
+            distances = allDistances[currentPostIndex, chosenPresIndexes]
             timer1 += time.time() - myTimer
                         
             # Generate gamme noise
@@ -131,7 +131,7 @@ class LatticeConnector(connectors.Connector):
                         
             # Check for small and big delays
             myTimer = time.time()
-            delaysClipped = numpy.clip(delays,sim.get_min_delay(),sim.get_max_delay())
+            delaysClipped = numpy.clip(delays, sim.get_min_delay(), sim.get_max_delay())
             howManyClipped = len((delays != delaysClipped).nonzero()[0])
             if (howManyClipped > 1):
                 print("Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n))
@@ -174,7 +174,7 @@ numberOfNodes = sim.num_processes()
 rank = sim.rank()
 
 # Log to stderr, only warnings, errors, critical
-init_logging('sim.log',num_processes=numberOfNodes,rank=rank,level=logging.DEBUG)
+init_logging('sim.log', num_processes=numberOfNodes, rank=rank, level=logging.DEBUG)
 
 ## Start message ##
 if rank == 0:
@@ -187,29 +187,29 @@ currentTimer = time.time()
 totalTimer = time.time()
 
 ## Default global parameters ##
-dt = 0.1 # simulation time step in milliseconds
-tinit = 500.0 # simtime over which the network is allowed to settle down
-tsim = 2000.0 # total simulation length in milliseconds
-globalWeight = 0.002 # Weights of all connection in uS
-latticeSize = 8 # number of neurons on one side of the cube
-propOfI = 0.2 # proportion of neurons that are inhibitory
+dt = 0.1  # simulation time step in milliseconds
+tinit = 500.0  # simtime over which the network is allowed to settle down
+tsim = 2000.0  # total simulation length in milliseconds
+globalWeight = 0.002  # Weights of all connection in uS
+latticeSize = 8  # number of neurons on one side of the cube
+propOfI = 0.2  # proportion of neurons that are inhibitory
 
 ## Connections ##
 # Rate of bkgnd #
-rateE_E = 6.0 # firing rate of ghost excitatory to E neurons
-rateE_I = 6.0 # firing rate of ghost excitatory to I neurons
-rateI_E = 10.0 # firing rate of ghost inhibitory to E neurons
-rateI_I = 10.0 # firing rate of ghost inhibitory to I neurons
+rateE_E = 6.0  # firing rate of ghost excitatory to E neurons
+rateE_I = 6.0  # firing rate of ghost excitatory to I neurons
+rateI_E = 10.0  # firing rate of ghost inhibitory to E neurons
+rateI_I = 10.0  # firing rate of ghost inhibitory to I neurons
 # Total number of connections (constant) #
-connectionsE_E = 1000.0 # number of E connections every E neuron recieves
-connectionsE_I = 1000.0 # number of E connections every I neuron recieves
-connectionsI_E = 250.0 # number of I connections every E neuron recieves
-connectionsI_I = 250.0 # number of I connections every E neuron recieves
+connectionsE_E = 1000.0  # number of E connections every E neuron recieves
+connectionsE_I = 1000.0  # number of E connections every I neuron recieves
+connectionsI_E = 250.0  # number of I connections every E neuron recieves
+connectionsI_I = 250.0  # number of I connections every E neuron recieves
 # Proportion of connections coming from inside #
-ICFactorE_E = 0.12 # proportion of E connections every E neuron recieves that will be converted
-ICFactorE_I = 0.2 # proportion of E connections every I neuron recieves that will be converted
-ICFactorI_E = 0.2 # proportion of I connections every E neuron recieves that will be converted
-ICFactorI_I = 0.2 # proportion of I connections every E neuron recieves that will be converted
+ICFactorE_E = 0.12  # proportion of E connections every E neuron recieves that will be converted
+ICFactorE_I = 0.2  # proportion of E connections every I neuron recieves that will be converted
+ICFactorI_E = 0.2  # proportion of I connections every E neuron recieves that will be converted
+ICFactorI_I = 0.2  # proportion of I connections every E neuron recieves that will be converted
 
 ## Change connections ##
 # Number of new connections to make #
@@ -224,8 +224,8 @@ if rank == 0:
 
 # The max distance is 15 approx
 printMessage("Now strating lattice simulation setup.")
-distanceFactor = 0.25 # How does distance convert to milliseconds of delay ?
-noiseFactor = 0.2 # How much do axons tend to wonder ?
+distanceFactor = 0.25  # How does distance convert to milliseconds of delay ?
+noiseFactor = 0.2  # How much do axons tend to wonder ?
 
 ## Load standard parameter file (2 neurons) ##
 # url_distant = "https://neuralensemble.org/svn/NeuroTools/trunk/std_params/"
@@ -253,8 +253,8 @@ myLabelE = "Simulated excitatory adapting neurons"
 myLabelI = "Simulated inhibitory adapting neurons"
 numberOfNeuronsI = int(latticeSize**3 * propOfI)
 numberOfNeuronsE = int(latticeSize**3 - numberOfNeuronsI)
-popE = sim.Population((numberOfNeuronsE,),myModel,params.excitatory,label=myLabelE)
-popI = sim.Population((numberOfNeuronsI,),myModel,params.inhibitory,label=myLabelI)
+popE = sim.Population((numberOfNeuronsE,), myModel, params.excitatory, label=myLabelE)
+popI = sim.Population((numberOfNeuronsI,), myModel, params.inhibitory, label=myLabelI)
 #all_cells = Assembly("All cells", popE, popI)
 
 # excitatory Poisson
@@ -263,8 +263,8 @@ poissonE_Eparams = {'rate': rateE_E * connectionsE_E, 'start': 0.0,
 poissonE_Iparams = {'rate': rateE_I * connectionsE_I, 'start': 0.0,
                     'duration': tsim}
 
-poissonE_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonE_Eparams,label='poissonE_E')
-poissonE_I = sim.Population((numberOfNeuronsI,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonE_Iparams,label='poissonE_I')
+poissonE_E = sim.Population((numberOfNeuronsE,), cellclass=sim.SpikeSourcePoisson, cellparams=poissonE_Eparams, label='poissonE_E')
+poissonE_I = sim.Population((numberOfNeuronsI,), cellclass=sim.SpikeSourcePoisson, cellparams=poissonE_Iparams, label='poissonE_I')
 
 
 # inhibitory Poisson
@@ -273,23 +273,23 @@ poissonI_Eparams = {'rate': rateI_E * connectionsI_E, 'start': 0.0,
 poissonI_Iparams = {'rate': rateI_I * connectionsI_I, 'start': 0.0,
                     'duration': tsim}
 
-poissonI_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Eparams,label='poissonI_E')
-poissonI_I = sim.Population((numberOfNeuronsI,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Iparams,label='poissonI_I')
+poissonI_E = sim.Population((numberOfNeuronsE,), cellclass=sim.SpikeSourcePoisson, cellparams=poissonI_Eparams, label='poissonI_E')
+poissonI_I = sim.Population((numberOfNeuronsI,), cellclass=sim.SpikeSourcePoisson, cellparams=poissonI_Iparams, label='poissonI_I')
 
 ## Set the position in space (lattice)##
 numpy.random.seed(0)
 latticePerm = numpy.random.permutation(latticeSize**3)
-positionE = numpy.empty([3,numberOfNeuronsE])
-positionI = numpy.empty([3,numberOfNeuronsI])
+positionE = numpy.empty([3, numberOfNeuronsE])
+positionI = numpy.empty([3, numberOfNeuronsI])
 for x in numpy.arange(latticeSize):
         for y in numpy.arange(latticeSize):
             for z in numpy.arange(latticeSize):
                 index = x * (latticeSize**2) + y * (latticeSize) + z
                 currentNeuron = latticePerm[index]
                 if currentNeuron > numberOfNeuronsE - 1:
-                    positionI[:,currentNeuron - numberOfNeuronsE] = (float(x), float(y), float(z))
+                    positionI[:, currentNeuron - numberOfNeuronsE] = (float(x), float(y), float(z))
                 else:
-                    positionE[:,currentNeuron] = (float(x), float(y), float(z))
+                    positionE[:, currentNeuron] = (float(x), float(y), float(z))
 popE.positions = positionE
 popI.positions = positionI
 
@@ -387,11 +387,11 @@ spikesI = popI.getSpikes()
 
 ## Process them ##
 if rank == 0:
-    highestIndexE = numpy.max(spikesE[:,0])
-    listNeuronsE = list(spikesE[:,0])
-    listTimesE = list(spikesE[:,1])
-    listNeuronsI = list(spikesI[:,0] + highestIndexE) 
-    listTimesI = list(spikesI[:,1])
+    highestIndexE = numpy.max(spikesE[:, 0])
+    listNeuronsE = list(spikesE[:, 0])
+    listTimesE = list(spikesE[:, 1])
+    listNeuronsI = list(spikesI[:, 0] + highestIndexE) 
+    listTimesI = list(spikesI[:, 1])
 
 ## Kill the bad dir ##
 #print("Tempdir: ", sim.tempdirs)
@@ -414,7 +414,7 @@ if rank == 0:
     pylab.figure()
     allSpikes = listTimesE + listTimesI
     allNeurons = listNeuronsE + listNeuronsI
-    pylab.plot(allSpikes,allNeurons,'r.',markersize=1,label='Action potentials')
+    pylab.plot(allSpikes, allNeurons, 'r.', markersize=1, label='Action potentials')
     
     pylab.xlabel("Time [milliseconds]")
     pylab.ylabel("Neuron (first E, then I)")
@@ -425,7 +425,7 @@ if rank == 0:
     #pylab.legend()
     
     axisHeight = pylab.axis()[3]
-    pylab.vlines(tinit,0.0,axisHeight / 8,linewidth="4",color='k',linestyles='solid')
+    pylab.vlines(tinit, 0.0, axisHeight / 8, linewidth="4", color='k', linestyles='solid')
 
     #pylab.plot(tbins,axisHeight/8/numpy.max(f)*f,linewidth="2",color='b',linestyle='steps-post')
 

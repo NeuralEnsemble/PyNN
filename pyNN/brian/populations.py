@@ -61,7 +61,7 @@ class Population(common.Population):
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
-        self._mask_local = numpy.ones((self.size,), bool) # all cells are local. This doesn't seem very efficient.
+        self._mask_local = numpy.ones((self.size,), bool)  # all cells are local. This doesn't seem very efficient.
         
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters

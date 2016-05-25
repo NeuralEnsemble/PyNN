@@ -86,8 +86,8 @@ class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
 
     translations = build_translations(
-        ('amplitudes',  'amplitudes', nA),
-        ('times',       'times',      ms)
+        ('amplitudes', 'amplitudes', nA),
+        ('times', 'times', ms)
     )
     _is_computed = False
     _is_playable = False
@@ -97,12 +97,12 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
     __doc__ = electrodes.ACSource.__doc__
 
     translations = build_translations(
-        ('amplitude',  'amplitude', nA),
-        ('start',      'start',     ms),
-        ('stop',       'stop',      ms),
-        ('frequency',  'frequency', Hz),
-        ('offset',     'offset',    nA),
-        ('phase',      'phase',     1)
+        ('amplitude', 'amplitude', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms),
+        ('frequency', 'frequency', Hz),
+        ('offset', 'offset', nA),
+        ('phase', 'phase', 1)
     )
     _is_computed = True
     _is_playable = True
@@ -122,9 +122,9 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
 
     translations = build_translations(
-        ('amplitude',  'amplitude', nA),
-        ('start',      'start',     ms),
-        ('stop',       'stop',      ms)
+        ('amplitude', 'amplitude', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms)
     )
     _is_computed = True
     _is_playable = False
@@ -146,11 +146,11 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
     __doc__ = electrodes.NoisyCurrentSource.__doc__
 
     translations = build_translations(
-        ('mean',  'mean',    nA),
-        ('start', 'start',   ms),
-        ('stop',  'stop',    ms),
-        ('stdev', 'stdev',   nA),
-        ('dt',    'dt',      ms)
+        ('mean', 'mean', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms),
+        ('stdev', 'stdev', nA),
+        ('dt', 'dt', ms)
     )
     _is_computed = True
     _is_playable = True

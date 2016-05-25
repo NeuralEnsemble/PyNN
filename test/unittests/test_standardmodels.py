@@ -210,14 +210,14 @@ def test_STDPMechanism_create():
 
 
 def test_STDPMechanism_create_invalid_types():
-    assert_raises(AssertionError, # probably want a more informative error
+    assert_raises(AssertionError,  # probably want a more informative error
                   STDPMechanism, timing_dependence="abc")
-    assert_raises(AssertionError, # probably want a more informative error
+    assert_raises(AssertionError,  # probably want a more informative error
                   STDPMechanism, weight_dependence="abc")
-    assert_raises(AssertionError, # probably want a more informative error
-                  STDPMechanism, dendritic_delay_fraction = "abc")
-    assert_raises(AssertionError, # probably want a more informative error
-                  STDPMechanism, dendritic_delay_fraction = "1.1")
+    assert_raises(AssertionError,  # probably want a more informative error
+                  STDPMechanism, dendritic_delay_fraction="abc")
+    assert_raises(AssertionError,  # probably want a more informative error
+                  STDPMechanism, dendritic_delay_fraction="1.1")
 
 
 ## test STDPWeightDependence

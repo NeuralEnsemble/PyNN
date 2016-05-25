@@ -29,7 +29,7 @@ except NameError:
 import string
 import os.path
 
-DEFAULT_TEMPLATE_ENGINE = None # can be set by user
+DEFAULT_TEMPLATE_ENGINE = None  # can be set by user
 TEMPLATE_ENGINES = {}
 
 
@@ -133,9 +133,9 @@ try:
             file (relative to pyNN/descriptions/templates/jinja2/)
             """
             assert isinstance(template, basestring)
-            try: # maybe template is a file
+            try:  # maybe template is a file
                 template = cls.env.get_template(template)
-            except Exception: # interpret template as a string
+            except Exception:  # interpret template as a string
                 template = cls.env.from_string(template)
             return template
         

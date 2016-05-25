@@ -108,8 +108,8 @@ class SingleCompartmentNeuron(BaseSingleCompartmentNeuron):
     """Single compartment with excitatory and inhibitory synapses"""
 
     synapse_models = {
-        'current':     { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
-        'conductance': { 'exp': h.ExpSyn,  'alpha': h.AlphaSyn },
+        'current': { 'exp': h.ExpISyn, 'alpha': h.AlphaISyn },
+        'conductance': { 'exp': h.ExpSyn, 'alpha': h.AlphaSyn },
     }
 
     def __init__(self, syn_type, syn_shape, c_m, i_offset,
@@ -170,11 +170,11 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         SingleCompartmentNeuron.__init__(self, syn_type, syn_shape, c_m, i_offset,
                                          tau_e, tau_i, e_e, e_i)
         self.insert('pas')
-        self.v_init = v_rest # default value
+        self.v_init = v_rest  # default value
 
     def __set_tau_m(self, value):
         #print("setting tau_m to", value, "cm =", self.seg.cm))
-        self.seg.pas.g = 1e-3 * self.seg.cm / value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        self.seg.pas.g = 1e-3 * self.seg.cm / value  # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
 
     def __get_tau_m(self):
         #print("tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm)
@@ -184,7 +184,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         #print("cm = ", self.seg.cm)
         return self.seg.cm
 
-    def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
+    def __set_cm(self, value):  # when we set cm, need to change g to maintain the same value of tau_m
         #print("setting cm to", value)
         tau_m = self.tau_m
         self.seg.cm = value
@@ -192,7 +192,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
 
     v_rest = _new_property('seg.pas', 'e')
     tau_m = property(fget=__get_tau_m, fset=__set_tau_m)
-    c_m = property(fget=__get_cm, fset=__set_cm) # if the property were called 'cm'
+    c_m = property(fget=__get_cm, fset=__set_cm)  # if the property were called 'cm'
                                                     # it would never get accessed as the
                                                     # built-in Section.cm would always
                                                     # be used first
@@ -210,7 +210,7 @@ class StandardIF(LeakySingleCompartmentNeuron):
                                               i_offset, tau_e, tau_i, e_e, e_i)
         # insert spike reset mechanism
         self.spike_reset = h.ResetRefrac(0.5, sec=self)
-        self.spike_reset.vspike = 40 # (mV) spike height
+        self.spike_reset.vspike = 40  # (mV) spike height
         self.source = self.spike_reset
         self.rec = h.NetCon(self.source, None)
 
@@ -254,11 +254,11 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     v_thresh = _new_property('adexp', 'vthresh')
     v_reset = _new_property('adexp', 'vreset')
     t_refrac = _new_property('adexp', 'trefrac')
-    B = _new_property('adexp',  'b')
-    A = _new_property('adexp',  'a')
+    B = _new_property('adexp', 'b')
+    A = _new_property('adexp', 'a')
     ## using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
-    tau_w = _new_property('adexp',  'tauw')
-    delta = _new_property('adexp',  'delta')
+    tau_w = _new_property('adexp', 'tauw')
+    delta = _new_property('adexp', 'delta')
 
     def __set_v_spike(self, value):
         self.adexp.vspike = value
@@ -269,8 +269,8 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
 
     def __set_tau_m(self, value):
-        self.seg.pas.g = 1e-3 * self.seg.cm / value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
-        self.adexp.GL = self.seg.pas.g * self.area() * 1e-2 # S/cm2 to uS
+        self.seg.pas.g = 1e-3 * self.seg.cm / value  # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        self.adexp.GL = self.seg.pas.g * self.area() * 1e-2  # S/cm2 to uS
 
     def __get_tau_m(self):
         return 1e-3 * self.seg.cm / self.seg.pas.g
@@ -361,12 +361,12 @@ class GsfaGrrIF(StandardIF):
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
 
-    q_sfa = _new_property('gsfa_grr',  'q_s')
-    q_rr = _new_property('gsfa_grr',  'q_r')
-    tau_sfa = _new_property('gsfa_grr',  'tau_s')
-    tau_rr = _new_property('gsfa_grr',  'tau_r')
-    e_sfa = _new_property('gsfa_grr',  'E_s')
-    e_rr = _new_property('gsfa_grr',  'E_r')
+    q_sfa = _new_property('gsfa_grr', 'q_s')
+    q_rr = _new_property('gsfa_grr', 'q_r')
+    tau_sfa = _new_property('gsfa_grr', 'tau_s')
+    tau_rr = _new_property('gsfa_grr', 'tau_r')
+    e_sfa = _new_property('gsfa_grr', 'E_s')
+    e_rr = _new_property('gsfa_grr', 'E_r')
 
     def __set_v_thresh(self, value):
         self.spike_reset.vthresh = value
@@ -405,7 +405,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
-        self.v_init = e_leak # default value
+        self.v_init = e_leak  # default value
 
     # not sure ena and ek are handled correctly
 
@@ -433,7 +433,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.rec = h.NetCon(self, None)
         self.switch = h.NetCon(None, self)
         self.source_section = None
-        self.seed(state.mpi_rank + state.native_rng_baseseed) # should allow user to set specific seeds somewhere, e.g. in setup()
+        self.seed(state.mpi_rank + state.native_rng_baseseed)  # should allow user to set specific seeds somewhere, e.g. in setup()
 
     def _set_interval(self, value):
         self.switch.weight[0] = -1

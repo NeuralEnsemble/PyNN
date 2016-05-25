@@ -33,19 +33,19 @@ def test_create_with_float():
 
 
 def test_create_with_list():
-    A = LazyArray([1,2,3], shape=(3,))
+    A = LazyArray([1, 2, 3], shape=(3,))
     assert A.shape == (3,)
-    assert_array_equal(A.evaluate(simplify=True), np.array([1,2,3]))
+    assert_array_equal(A.evaluate(simplify=True), np.array([1, 2, 3]))
 
 
 def test_create_with_array():
-    A = LazyArray(np.array([1,2,3]), shape=(3,))
+    A = LazyArray(np.array([1, 2, 3]), shape=(3,))
     assert A.shape == (3,)
-    assert_array_equal(A.evaluate(simplify=True), np.array([1,2,3]))
+    assert_array_equal(A.evaluate(simplify=True), np.array([1, 2, 3]))
 
 
 def test_create_inconsistent():
-    assert_raises(ValueError, LazyArray, [1,2,3], shape=4)
+    assert_raises(ValueError, LazyArray, [1, 2, 3], shape=4)
 
 
 def test_create_with_invalid_string():
@@ -76,17 +76,17 @@ def test_setitem_nonexpanded_different_value():
 
 
 def test_columnwise_iteration_with_flat_array():
-    m = LazyArray(5, shape=(4,3)) # 4 rows, 3 columns
+    m = LazyArray(5, shape=(4, 3))  # 4 rows, 3 columns
     cols = [col for col in m.by_column()]
     assert_equal(cols, [5, 5, 5])
 
 
 def test_columnwise_iteration_with_structured_array():
-    input = np.arange(12).reshape((4,3))
-    m = LazyArray(input, shape=(4,3)) # 4 rows, 3 columns
+    input = np.arange(12).reshape((4, 3))
+    m = LazyArray(input, shape=(4, 3))  # 4 rows, 3 columns
     cols = [col for col in m.by_column()]    
-    assert_array_equal(cols[0], input[:,0])
-    assert_array_equal(cols[2], input[:,2])
+    assert_array_equal(cols[0], input[:, 0])
+    assert_array_equal(cols[2], input[:, 2])
 
 
 def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
@@ -94,7 +94,7 @@ def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
     random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
     copy_input = random.RandomDistribution('normal', (0, 1), rng=MockRNG(parallel_safe=True))
-    m = LazyArray(input, shape=(4,3))
+    m = LazyArray(input, shape=(4, 3))
     cols = [col for col in m.by_column()]
     assert_array_equal(cols[0], copy_input.next(4, mask_local=False))
     assert_array_equal(cols[1], copy_input.next(4, mask_local=False))
@@ -103,8 +103,8 @@ def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
 
 
 def test_columnwise_iteration_with_function():
-    input = lambda i,j: 2 * i + j
-    m = LazyArray(input, shape=(4,3))
+    input = lambda i, j: 2 * i + j
+    m = LazyArray(input, shape=(4, 3))
     cols = [col for col in m.by_column()]
     assert_array_equal(cols[0], np.array([0, 2, 4, 6]))
     assert_array_equal(cols[1], np.array([1, 3, 5, 7]))
@@ -112,19 +112,19 @@ def test_columnwise_iteration_with_function():
     
 
 def test_columnwise_iteration_with_flat_array_and_mask():
-    m = LazyArray(5, shape=(4,3)) # 4 rows, 3 columns
+    m = LazyArray(5, shape=(4, 3))  # 4 rows, 3 columns
     mask = np.array([True, False, True])
     cols = [col for col in m.by_column(mask=mask)]
     assert_equal(cols, [5, 5])
     
 
 def test_columnwise_iteration_with_structured_array_and_mask():
-    input = np.arange(12).reshape((4,3))
-    m = LazyArray(input, shape=(4,3)) # 4 rows, 3 columns
+    input = np.arange(12).reshape((4, 3))
+    m = LazyArray(input, shape=(4, 3))  # 4 rows, 3 columns
     mask = np.array([False, True, True])
     cols = [col for col in m.by_column(mask=mask)]    
-    assert_array_equal(cols[0], input[:,1])
-    assert_array_equal(cols[1], input[:,2])
+    assert_array_equal(cols[0], input[:, 1])
+    assert_array_equal(cols[1], input[:, 2])
 
 
 def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
@@ -132,7 +132,7 @@ def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
     random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
     copy_input = random.RandomDistribution('gamma', (2, 3), rng=MockRNG(parallel_safe=True))
-    m = LazyArray(input, shape=(4,3))
+    m = LazyArray(input, shape=(4, 3))
     mask = np.array([False, False, True])
     cols = [col for col in m.by_column(mask=mask)]
     assert_equal(len(cols), 1)
@@ -141,19 +141,19 @@ def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
 
 
 def test_evaluate_with_flat_array():
-    m = LazyArray(5, shape=(4,3))
-    assert_array_equal(m.evaluate(), 5 * np.ones((4,3)))
+    m = LazyArray(5, shape=(4, 3))
+    assert_array_equal(m.evaluate(), 5 * np.ones((4, 3)))
 
 
 def test_evaluate_with_structured_array():
-    input = np.arange(12).reshape((4,3))
-    m = LazyArray(input, shape=(4,3))
+    input = np.arange(12).reshape((4, 3))
+    m = LazyArray(input, shape=(4, 3))
     assert_array_equal(m.evaluate(), input)
 
 
 def test_evaluate_with_functional_array():
-    input = lambda i,j: 2 * i + j
-    m = LazyArray(input, shape=(4,3))
+    input = lambda i, j: 2 * i + j
+    m = LazyArray(input, shape=(4, 3))
     assert_array_equal(m.evaluate(),
                         np.array([[0, 1, 2],
                                      [2, 3, 4],
@@ -162,45 +162,45 @@ def test_evaluate_with_functional_array():
 
 
 def test_iadd_with_flat_array():
-    m = LazyArray(5, shape=(4,3))
+    m = LazyArray(5, shape=(4, 3))
     m += 2
-    assert_array_equal(m.evaluate(), 7 * np.ones((4,3)))
+    assert_array_equal(m.evaluate(), 7 * np.ones((4, 3)))
     assert_equal(m.base_value, 5)
     assert_equal(m.evaluate(simplify=True), 7)
 
 
 def test_add_with_flat_array():
-    m0 = LazyArray(5, shape=(4,3))
+    m0 = LazyArray(5, shape=(4, 3))
     m1 = m0 + 2
     assert_equal(m1.evaluate(simplify=True), 7)
     assert_equal(m0.evaluate(simplify=True), 5)
 
 
 def test_lt_with_flat_array():
-    m0 = LazyArray(5, shape=(4,3))
+    m0 = LazyArray(5, shape=(4, 3))
     m1 = m0 < 10
     assert_equal(m1.evaluate(simplify=True), True)
     assert_equal(m0.evaluate(simplify=True), 5)
     
 
 def test_lt_with_structured_array():
-    input = np.arange(12).reshape((4,3))
-    m0 = LazyArray(input, shape=(4,3))
+    input = np.arange(12).reshape((4, 3))
+    m0 = LazyArray(input, shape=(4, 3))
     m1 = m0 < 5
     assert_array_equal(m1.evaluate(simplify=True), input < 5)
     
 
 def test_structured_array_lt_array():
-    input = np.arange(12).reshape((4,3))
-    m0 = LazyArray(input, shape=(4,3))
-    comparison = 5 * np.ones((4,3))
+    input = np.arange(12).reshape((4, 3))
+    m0 = LazyArray(input, shape=(4, 3))
+    comparison = 5 * np.ones((4, 3))
     m1 = m0 < comparison
     assert_array_equal(m1.evaluate(simplify=True), input < comparison)
 
 
 def test_multiple_operations_with_structured_array():
-    input = np.arange(12).reshape((4,3))
-    m0 = LazyArray(input, shape=(4,3))
+    input = np.arange(12).reshape((4, 3))
+    m0 = LazyArray(input, shape=(4, 3))
     m1 = (m0 + 2) < 5
     m2 = (m0 < 5) + 2
     assert_array_equal(m1.evaluate(simplify=True), (input + 2) < 5)
@@ -210,7 +210,7 @@ def test_multiple_operations_with_structured_array():
 
 def test_apply_function_to_constant_array():
     f = lambda m: 2 * m + 3
-    m0 = LazyArray(5, shape=(4,3))
+    m0 = LazyArray(5, shape=(4, 3))
     m1 = f(m0)
     assert isinstance(m1, larray)
     assert_equal(m1.evaluate(simplify=True), 13)
@@ -221,16 +221,16 @@ def test_apply_function_to_constant_array():
 
 def test_apply_function_to_structured_array():
     f = lambda m: 2 * m + 3
-    input = np.arange(12).reshape((4,3))
-    m0 = LazyArray(input, shape=(4,3))
+    input = np.arange(12).reshape((4, 3))
+    m0 = LazyArray(input, shape=(4, 3))
     m1 = f(m0)
     assert isinstance(m1, larray)
     assert_array_equal(m1.evaluate(simplify=True), input * 2 + 3)
 
 
 def test_apply_function_to_functional_array():
-    input = lambda i,j: 2 * i + j
-    m0 = LazyArray(input, shape=(4,3))
+    input = lambda i, j: 2 * i + j
+    m0 = LazyArray(input, shape=(4, 3))
     f = lambda m: 2 * m + 3
     m1 = f(m0)
     assert_array_equal(m1.evaluate(),
@@ -241,8 +241,8 @@ def test_apply_function_to_functional_array():
 
 
 def test_add_two_constant_arrays():
-    m0 = LazyArray(5, shape=(4,3))
-    m1 = LazyArray(7, shape=(4,3))
+    m0 = LazyArray(5, shape=(4, 3))
+    m1 = LazyArray(7, shape=(4, 3))
     m2 = m0 + m1
     assert_equal(m2.evaluate(simplify=True), 12)
     # the following tests the internals, not the behaviour
@@ -252,23 +252,23 @@ def test_add_two_constant_arrays():
     
 
 def test_add_incommensurate_arrays():
-    m0 = LazyArray(5, shape=(4,3))
-    m1 = LazyArray(7, shape=(5,3))
+    m0 = LazyArray(5, shape=(4, 3))
+    m1 = LazyArray(7, shape=(5, 3))
     assert_raises(ValueError, m0.__add__, m1)
     
 
 def test_getitem_from_constant_array():
-    m = LazyArray(3, shape=(4,3))
-    assert m[0,0] == m[3,2] == m[-1,2] == m[-4,2] == m[2,-3] == 3
-    assert_raises(IndexError, m.__getitem__, (4,0))
-    assert_raises(IndexError, m.__getitem__, (2,-4))
+    m = LazyArray(3, shape=(4, 3))
+    assert m[0, 0] == m[3, 2] == m[-1, 2] == m[-4, 2] == m[2, -3] == 3
+    assert_raises(IndexError, m.__getitem__, (4, 0))
+    assert_raises(IndexError, m.__getitem__, (2, -4))
     
 
 def test_getitem_from_constant_array():
-    m = LazyArray(3 * np.ones((4,3)), shape=(4,3))
-    assert m[0,0] == m[3,2] == m[-1,2] == m[-4,2] == m[2,-3] == 3
-    assert_raises(IndexError, m.__getitem__, (4,0))
-    assert_raises(IndexError, m.__getitem__, (2,-4))
+    m = LazyArray(3 * np.ones((4, 3)), shape=(4, 3))
+    assert m[0, 0] == m[3, 2] == m[-1, 2] == m[-4, 2] == m[2, -3] == 3
+    assert_raises(IndexError, m.__getitem__, (4, 0))
+    assert_raises(IndexError, m.__getitem__, (2, -4))
 
 
 class ParameterSpaceTest(unittest.TestCase):
@@ -277,12 +277,12 @@ class ParameterSpaceTest(unittest.TestCase):
         ps = ParameterSpace({'a': [2, 3, 5, 8], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(4,))
         self.assertIsInstance(ps['c'], LazyArray)
         ps.evaluate()
-        assert_array_equal(ps['c'], np.array([ 2,  5,  8, 11]))
+        assert_array_equal(ps['c'], np.array([ 2, 5, 8, 11]))
 
     def test_evaluate_with_mask(self):
         ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(5,))
         ps.evaluate(mask=[1, 3, 4])
-        expected = {'a': np.array([ 3,  8, 13]),
+        expected = {'a': np.array([ 3, 8, 13]),
                     'c': np.array([ 5, 11, 14]),
                     'b': np.array([7, 7, 7])}
         for key in expected:
@@ -315,7 +315,7 @@ class ParameterSpaceTest(unittest.TestCase):
     def test_iteration_items(self):
         ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(5,))
         ps.evaluate(mask=[1, 3, 4])
-        expected = {'a': np.array([3,  8, 13]),
+        expected = {'a': np.array([3, 8, 13]),
                     'c': np.array([5, 11, 14]),
                     'b': np.array([7, 7, 7])}
         for key, value in ps.items():

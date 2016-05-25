@@ -45,9 +45,9 @@ def scenario2(sim):
 
     spiketrains = neurons.get_data().segments[0].spiketrains
     assert_equal(len(spiketrains), n)
-    assert_equal(len(spiketrains[0]), 0) # first cell does not fire
-    assert_equal(len(spiketrains[1]), 1) # other cells fire once
-    assert_equal(len(spiketrains[-1]), 1) # other cells fire once
+    assert_equal(len(spiketrains[0]), 0)  # first cell does not fire
+    assert_equal(len(spiketrains[1]), 1)  # other cells fire once
+    assert_equal(len(spiketrains[-1]), 1)  # other cells fire once
     expected_spike_times = t_start + tau_m * numpy.log(I * tau_m / (I * tau_m - v_thresh * cm))
     a = spike_times = [numpy.array(st)[0] for st in spiketrains[1:]]
     b = expected_spike_times[1:]
@@ -55,7 +55,7 @@ def scenario2(sim):
     print("max error =", max_error)
     assert max_error < 0.005, max_error
     sim.end()
-    return a,b, spike_times
+    return a, b, spike_times
 
 
 if __name__ == '__main__':

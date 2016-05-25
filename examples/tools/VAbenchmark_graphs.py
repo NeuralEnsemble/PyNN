@@ -44,7 +44,7 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
               label=None, xticks=None, xticklabels=None, xmin=None, ymax=None):
     if xlabel: panel.set_xlabel(xlabel)
     if ylabel: panel.set_ylabel(ylabel)
-    for t,n in zip(bins[:-1], hist):
+    for t, n in zip(bins[:-1], hist):
         panel.bar(t, n, width=width, color=None)
     if xmin: panel.set_xlim(xmin=xmin)
     if ymax: panel.set_ylim(ymax=ymax)

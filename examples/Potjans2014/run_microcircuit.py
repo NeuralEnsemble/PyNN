@@ -32,7 +32,7 @@ job_scipt_template = """
 mpirun -np %(num_mpi_procs)d python %(output_path)s/microcircuit.py
 """
 
-f = open(system_params['output_path'] + '/sim_script.sh','w')
+f = open(system_params['output_path'] + '/sim_script.sh', 'w')
 f.write(job_scipt_template % system_params)
 f.close()
 

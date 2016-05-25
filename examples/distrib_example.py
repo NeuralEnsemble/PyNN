@@ -35,13 +35,13 @@ if comm.rank == 0:
 data3 = numpy.arange(0, 5 * (comm.rank + 1), dtype=float)
 print(comm.rank, data3)
 if comm.rank == 0:
-    sizes = range(5,5 * comm.size + 1,5)
+    sizes = range(5, 5 * comm.size + 1, 5)
     disp = [size - 5 for size in sizes]
     data3g = numpy.empty(sum(sizes))
 else:
     sizes = disp = []
     data3g = numpy.empty([])
-comm.Gatherv([data3, data3.size, MPI.DOUBLE], [data3g, (sizes,disp), MPI.DOUBLE], root=0)
+comm.Gatherv([data3, data3.size, MPI.DOUBLE], [data3g, (sizes, disp), MPI.DOUBLE], root=0)
 if comm.rank == 0:
     print("gathered (3):", data3g)
 
@@ -55,7 +55,7 @@ def gather(data):
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
     print(comm.rank, "sizes=", sizes, "displacements=", displacements)
     gdata = numpy.empty(sum(sizes))
-    comm.Gatherv([data, size, MPI.DOUBLE], [gdata, (sizes,displacements), MPI.DOUBLE], root=0)
+    comm.Gatherv([data, size, MPI.DOUBLE], [gdata, (sizes, displacements), MPI.DOUBLE], root=0)
     return gdata
 data3g = gather(data3)
 if comm.rank == 0:

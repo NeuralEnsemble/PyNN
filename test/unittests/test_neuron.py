@@ -127,7 +127,7 @@ class MockProjection(object):
 class TestFunctions(unittest.TestCase):
 
     def test_load_mechanisms(self):
-        self.assertRaises(Exception, simulator.load_mechanisms, "/tmp") # not found
+        self.assertRaises(Exception, simulator.load_mechanisms, "/tmp")  # not found
     
     def test_is_point_process(self):
         section = h.Section()
@@ -139,7 +139,7 @@ class TestFunctions(unittest.TestCase):
     def test_native_rng_pick(self):
         rng = Mock()
         rng.seed = 28754
-        rarr = simulator.nativeRNG_pick(100, rng, 'uniform', [-3,6])
+        rarr = simulator.nativeRNG_pick(100, rng, 'uniform', [-3, 6])
         assert isinstance(rarr, numpy.ndarray)
         self.assertEqual(rarr.shape, (100,))
         assert -3 <= rarr.min() < -2.5
@@ -361,9 +361,9 @@ class TestCurrentSources(unittest.TestCase):
         self.assertEqual(len(cs._devices), 2)
 
     def test_inject_step_current(self):
-        cs = MockStepCurrentSource(amplitudes=[1,2,3], times=[0.5, 1.5, 2.5])
+        cs = MockStepCurrentSource(amplitudes=[1, 2, 3], times=[0.5, 1.5, 2.5])
         cs.inject_into(self.cells)
-        self.assertEqual(len(cs._devices), 2)# 2 local cells
+        self.assertEqual(len(cs._devices), 2)  # 2 local cells
         # need more assertions about iclamps, vectors
 
 
@@ -373,7 +373,7 @@ class TestRecorder(unittest.TestCase):
     def setUp(self):
         self.p = sim.Population(2, sim.IF_cond_exp())
         self.rec = recording.Recorder(self.p)
-        self.cells = self.p.all_cells #[MockID(22), MockID(29)]
+        self.cells = self.p.all_cells  # [MockID(22), MockID(29)]
 
     def tearDown(self):
         pass
@@ -435,7 +435,7 @@ class TestStandardIF(unittest.TestCase):
     
     def test_create_cond_exp(self):
         cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
-        self.assertAlmostEqual(cell.area(), 1e5, places=10) # µm²
+        self.assertAlmostEqual(cell.area(), 1e5, places=10)  # µm²
         self.assertEqual(cell(0.5).cm, 0.246)
         self.assertEqual(cell(0.5).pas.g, 2e-5)
 

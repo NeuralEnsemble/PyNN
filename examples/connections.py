@@ -162,31 +162,31 @@ def build_connections(connector_type, connector_parameters):
         filename = options.plot_figure + '_' + connector_type.__name__
         from pyNN.utility.plotting import Figure, Panel
         array_stim_exc = normalize_array(
-            connections['stim2e'].get('delay', format="array")[0:20,:])
+            connections['stim2e'].get('delay', format="array")[0:20, :])
         array_stim_inh = normalize_array(
-            connections['stim2i'].get('delay', format="array")[0:20,:])
+            connections['stim2i'].get('delay', format="array")[0:20, :])
         array_exc_exc = normalize_array(
-            connections['e2e'].get('delay', format="array")[0:20,:])
+            connections['e2e'].get('delay', format="array")[0:20, :])
         array_exc_inh = normalize_array(
-            connections['e2i'].get('delay', format="array")[0:20,:])
+            connections['e2i'].get('delay', format="array")[0:20, :])
         array_inh_exc = normalize_array(
-            connections['i2e'].get('delay', format="array")[0:20,:])
+            connections['i2e'].get('delay', format="array")[0:20, :])
         array_inh_inh = normalize_array(
-            connections['i2i'].get('delay', format="array")[0:20,:])
+            connections['i2i'].get('delay', format="array")[0:20, :])
 
         Figure(
             Panel(array_stim_exc, data_labels=["stim->exc"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
             Panel(array_stim_inh, data_labels=["stim->inh"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
             Panel(array_exc_exc, data_labels=["exc->exc"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
             Panel(array_exc_inh, data_labels=["exc->inh"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
             Panel(array_inh_exc, data_labels=["inh->exc"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
             Panel(array_inh_inh, data_labels=["inh->inh"], line_properties=[
-                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin':0.}]),
+                {'xticks': True, 'yticks': True, 'cmap': 'Greys', 'vmin': 0.}]),
         ).save(filename)
 
     # === Finished with simulator ============================================
@@ -244,14 +244,14 @@ if __name__ == "__main__":
     # === Loop over connector types =========================================
     
     connector_type = [
-        [ sim.FixedProbabilityConnector, {'p_connect':1.0, 'rng':rng} ],
+        [ sim.FixedProbabilityConnector, {'p_connect': 1.0, 'rng': rng} ],
         [ sim.AllToAllConnector, {'allow_self_connections': False} ],
-        [ sim.DistanceDependentProbabilityConnector, {'d_expression':"exp(-abs(d))", 'rng':rng} ],
-        [ sim.IndexBasedProbabilityConnector, {'index_expression': IndexBasedProbability(), 'rng':rng} ],
-        [ sim.DisplacementDependentProbabilityConnector, {'disp_function': displacement_expression, 'rng':rng} ],
+        [ sim.DistanceDependentProbabilityConnector, {'d_expression': "exp(-abs(d))", 'rng': rng} ],
+        [ sim.IndexBasedProbabilityConnector, {'index_expression': IndexBasedProbability(), 'rng': rng} ],
+        [ sim.DisplacementDependentProbabilityConnector, {'disp_function': displacement_expression, 'rng': rng} ],
         [ sim.FromListConnector, {'conn_list': connection_list} ],
         [ sim.FromFileConnector, {'file': path, 'distributed': False} ],
-        [ sim.FixedNumberPreConnector, {'n':3, 'rng': rng} ],
+        [ sim.FixedNumberPreConnector, {'n': 3, 'rng': rng} ],
         [ sim.ArrayConnector, {'array': array_connections, 'safe': True} ]
         ]
     for conn in connector_type:

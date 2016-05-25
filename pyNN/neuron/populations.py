@@ -34,7 +34,7 @@ class PopulationMixin(object):
         """
         parameter_dict = {}
         for name in names:
-            if name == 'spike_times': # hack
+            if name == 'spike_times':  # hack
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
                 parameter_dict[name] = simplify(numpy.array([getattr(id._cell, name) for id in self]))
@@ -95,7 +95,7 @@ class Population(common.Population, PopulationMixin):
         self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id + 1)], 
                                      simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank  # round-robin distribution of cells between nodes
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:

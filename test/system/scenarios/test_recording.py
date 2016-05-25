@@ -37,7 +37,7 @@ def test_reset_recording(sim):
     assert idx(1) == [4]
     vi = lambda i: data.segments[i].analogsignalarrays[0]
     assert vi(0).shape == vi(1).shape == (101, 1)
-    assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV # the first value should be the same
+    assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV  # the first value should be the same
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
 test_reset_recording.__test__ = False
 
@@ -79,7 +79,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_equal(gsyn_p1.shape, (n_points, 4))
     assert_equal(gsyn_all.shape, (n_points, 7))
 
-    assert_arrays_equal(vm_p1[:,3], vm_all[:,8])
+    assert_arrays_equal(vm_p1[:, 3], vm_all[:, 8])
 
     assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
     assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))

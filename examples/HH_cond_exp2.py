@@ -48,7 +48,7 @@ var_names = {
     'brian': {'m': 'm', 'h': 'h', 'n': 'n'},
 }
 if simulator_name in var_names:
-    hhcell.can_record = lambda x: True # hack
+    hhcell.can_record = lambda x: True  # hack
     for native_name in var_names[simulator_name].values():
         hhcell.record(native_name)
 

@@ -18,7 +18,7 @@ from pyNN.standardmodels import StandardSynapseType
 import numpy
 try:
     from itertools import izip
-except ImportError:  #python3.x
+except ImportError:  # python3.x
     izip = zip
 try:
     basestring
@@ -274,9 +274,9 @@ class AllToAllConnector(MapConnector):
 
     def connect(self, projection):
         if not self.allow_self_connections and projection.pre == projection.post:
-            connection_map = LazyArray(lambda i,j: i != j, shape=projection.shape)
+            connection_map = LazyArray(lambda i, j: i != j, shape=projection.shape)
         elif self.allow_self_connections == 'NoMutual' and projection.pre == projection.post:
-            connection_map = LazyArray(lambda i,j: i > j, shape=projection.shape)
+            connection_map = LazyArray(lambda i, j: i > j, shape=projection.shape)
         else:
             connection_map = LazyArray(True, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
@@ -319,9 +319,9 @@ class FixedProbabilityConnector(MapConnector):
         connection_map = random_map < self.p_connect
         if projection.pre == projection.post:
             if not self.allow_self_connections:
-                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i != j, shape=projection.shape)
             elif self.allow_self_connections == 'NoMutual':
-                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 
@@ -371,9 +371,9 @@ class DistanceDependentProbabilityConnector(MapConnector):
         connection_map = random_map < probability_map
         if projection.pre == projection.post:
             if not self.allow_self_connections:
-                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i != j, shape=projection.shape)
             elif self.allow_self_connections == 'NoMutual':
-                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map, distance_map)
 
 
@@ -421,9 +421,9 @@ class IndexBasedProbabilityConnector(MapConnector):
         connection_map = random_map < probability_map
         if projection.pre == projection.post:
             if not self.allow_self_connections:
-                connection_map *= LazyArray(lambda i,j: i != j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i != j, shape=projection.shape)
             elif self.allow_self_connections == 'NoMutual':
-                connection_map *= LazyArray(lambda i,j: i > j, shape=projection.shape)
+                connection_map *= LazyArray(lambda i, j: i > j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 
@@ -830,7 +830,7 @@ class OneToOneConnector(MapConnector):
 
     def connect(self, projection):
         """Connect-up a Projection."""
-        connection_map = LazyArray(lambda i,j: i == j, shape=projection.shape)
+        connection_map = LazyArray(lambda i, j: i == j, shape=projection.shape)
         self._connect_with_map(projection, connection_map)
 
 

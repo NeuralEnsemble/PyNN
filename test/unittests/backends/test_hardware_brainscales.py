@@ -31,7 +31,7 @@ def tearDown():
 
 
 extra = {
-    'loglevel':0, 
+    'loglevel': 0, 
     'ignoreHWParameterRanges': True, 
     'useSystemSim': True, 
     'hardware': sim.hardwareSetup['one-hicann'],

@@ -115,7 +115,7 @@ class Population(common.Population):
                                       for id in range(self.first_id, self.last_id + 1)],
                                      dtype=simulator.ID)
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank  # round-robin distribution of cells between nodes
         for id in self.all_cells:
             id.parent = self
             id._build_cell(celltype.model, celltype.parameters)
@@ -180,7 +180,7 @@ class Projection(common.Projection):
         if not core.is_listlike(targets):
             targets = [targets]
             
-        weights = weights * 1000.0 # scale units
+        weights = weights * 1000.0  # scale units
         if isinstance(weights, float):
             weights = [weights]
         if isinstance(delays, float):

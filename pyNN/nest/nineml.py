@@ -17,7 +17,7 @@ Constants:
 
 """
 
-from __future__ import absolute_import # Not compatible with Python 2.4
+from __future__ import absolute_import  # Not compatible with Python 2.4
 import subprocess
 #import neuron
 from pyNN.models import BaseCellType
@@ -52,8 +52,8 @@ def nineml_celltype_from_model(name, nineml_model, synapse_components):
     Return a new NineMLCellType subclass from a NineML model.
     """
     
-    dct = {'nineml_model':nineml_model,
-           'synapse_components':synapse_components}
+    dct = {'nineml_model': nineml_model,
+           'synapse_components': synapse_components}
     return _nest_build_nineml_celltype(name, (NineMLCellType,), dct)
 
 
@@ -77,7 +77,7 @@ class _nest_build_nineml_celltype(type):
         if nineml_model.is_flat():
             flat_component = nineml_model
         else:
-            flat_component = flattening.flatten( nineml_model,name )
+            flat_component = flattening.flatten( nineml_model, name )
         
         # Make the substitutions:
         flat_component.backsub_all()
@@ -85,13 +85,13 @@ class _nest_build_nineml_celltype(type):
         #flat_component.backsub_equations()
 
         # Close any open reduce ports:
-        component_modifiers.ComponentModifier.close_all_reduce_ports(component = flat_component)
+        component_modifiers.ComponentModifier.close_all_reduce_ports(component=flat_component)
 
         flat_component.short_description = "Auto-generated 9ML neuron model for PyNN.nest"
         flat_component.long_description = "Auto-generated 9ML neuron model for PyNN.nest"
 
         # Close any open reduce ports:
-        component_modifiers.ComponentModifier.close_all_reduce_ports(component = flat_component)
+        component_modifiers.ComponentModifier.close_all_reduce_ports(component=flat_component)
 
         # synapse ports:
         synapse_ports = []
@@ -114,8 +114,8 @@ class _nest_build_nineml_celltype(type):
         dct["default_initial_values"] = dict((s.name, 0.0) for s in flat_component.state_variables)
         dct["synapse_types"] = [syn.namespace for syn in synapse_components] 
         dct["standard_receptor_type"] = (dct["synapse_types"] == ('excitatory', 'inhibitory'))
-        dct["injectable"] = True # need to determine this. How??
-        dct["conductance_based"] = True # how to determine this??
+        dct["injectable"] = True  # need to determine this. How??
+        dct["conductance_based"] = True  # how to determine this??
         dct["model_name"] = name
         dct["nest_model"] = name
 
@@ -124,7 +124,7 @@ class _nest_build_nineml_celltype(type):
         # TODO bindings -> alias and support recording of them in nest template
         #+ [binding.name for binding in flat_component.bindings]
         
-        dct["weight_variables"] = dict([ (syn.namespace,syn.namespace + '_' + syn.weight_connector )
+        dct["weight_variables"] = dict([ (syn.namespace, syn.namespace + '_' + syn.weight_connector )
                                          for syn in synapse_components ])
         
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
@@ -133,12 +133,12 @@ class _nest_build_nineml_celltype(type):
         initial_regime = flat_component.regimes_map.keys()[0]
 
         from nestbuilder import NestFileBuilder
-        nfb = NestFileBuilder(  nest_classname = name, 
-                                component = flat_component, 
-                                synapse_ports = synapse_ports,
-                                initial_regime = initial_regime,
-                                initial_values = dct["default_initial_values"],
-                                default_values = dct["default_parameters"],
+        nfb = NestFileBuilder(  nest_classname=name, 
+                                component=flat_component, 
+                                synapse_ports=synapse_ports,
+                                initial_regime=initial_regime,
+                                initial_values=dct["default_initial_values"],
+                                default_values=dct["default_parameters"],
                                 )
         nfb.compile_files()
         nest.Install('mymodule')

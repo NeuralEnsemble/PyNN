@@ -52,7 +52,7 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
         print("SMTP host and/or e-mail address not specified.\nUnable to send notification message.")
     else:
         import smtplib, datetime
-        msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address,address,subject) + msg
+        msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address, address, subject) + msg
         msg += "\nTimestamp: %s" % datetime.datetime.now().strftime("%H:%M:%S, %F")
         server = smtplib.SMTP(smtphost)
         server.sendmail(address, address, msg)
@@ -158,7 +158,7 @@ def save_population(population, filename, variables=None):
     s['spike_times'] = population.getSpikes()
     s['label'] = population.label
     s['size'] = population.size
-    s['structure'] = population.structure # should perhaps just save the positions?
+    s['structure'] = population.structure  # should perhaps just save the positions?
     variables_dict = {}
     if variables:
         for variable in variables:
@@ -181,10 +181,10 @@ def load_population(filename, sim):
     # set the spiketimes
     spikes = s['spike_times']
     for neuron in range(s['size']):
-        spike_times = spikes[spikes[:,0] == neuron][:,1]
+        spike_times = spikes[spikes[:, 0] == neuron][:, 1]
         neuron_in_new_population = neuron + population.first_id
         index = population.id_to_index(neuron_in_new_population)
-        population[index].set_parameters(**{'spike_times':spike_times})
+        population[index].set_parameters(**{'spike_times': spike_times})
     # set the variables
     for variable, value in s['variables'].items():
         setattr(population, variable, value)
@@ -269,7 +269,7 @@ class Timer(object):
         """Reset the time to zero, and start the clock."""
         self.start()
 
-    def diff(self, format=None): # I think delta() would be a better name for this method.
+    def diff(self, format=None):  # I think delta() would be a better name for this method.
         """
         Return the time since the last time :meth:`elapsed_time()` or
         :meth:`diff()` was called.
@@ -377,21 +377,21 @@ def assert_arrays_equal(a, b):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
     assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a,b)
-    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a,b)
+    assert a.shape == b.shape, "%s != %s" % (a, b)
+    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a, b)
 
 
 def assert_arrays_almost_equal(a, b, threshold):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
     assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a,b)
+    assert a.shape == b.shape, "%s != %s" % (a, b)
     assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 
 
 def sort_by_column(a, col):
     # see stackoverflow.com/questions/2828059/
-    return a[a[:,col].argsort(),:]
+    return a[a[:, col].argsort(), :]
 
 
 # based on http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize

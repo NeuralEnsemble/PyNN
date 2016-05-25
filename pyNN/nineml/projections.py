@@ -43,7 +43,7 @@ class Projection(common.Projection):
         synaptic_response, = synaptic_responses
         projection = nineml.Projection(
                                 name=safe_label,
-                                source=self.pre.to_nineml(), # or just pass ref, and then resolve later?
+                                source=self.pre.to_nineml(),  # or just pass ref, and then resolve later?
                                 target=self.post.to_nineml(),
                                 rule=connection_rule,
                                 synaptic_response=synaptic_response,

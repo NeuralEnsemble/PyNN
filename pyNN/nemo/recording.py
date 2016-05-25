@@ -60,7 +60,7 @@ class Recorder(recording.Recorder):
         """Return the recorded data as a Numpy array."""
         filtered_ids = self.filter_recorded(filter)
         if len(self.data) > 0:
-            mask = reduce(numpy.add, (self.data[:,0] == id for id in filtered_ids))                            
+            mask = reduce(numpy.add, (self.data[:, 0] == id for id in filtered_ids))                            
             data = self.data[mask]
             return data
         else:
@@ -74,7 +74,7 @@ class Recorder(recording.Recorder):
         for id in filtered_ids:
             N[id] = 0
         spikes = self._get(gather=False, compatible_output=False, filter=filter)
-        ids = numpy.sort(spikes[:,0].astype(int))
+        ids = numpy.sort(spikes[:, 0].astype(int))
         idx = numpy.unique(ids)
         left = numpy.searchsorted(ids, idx, 'left')
         right = numpy.searchsorted(ids, idx, 'right')

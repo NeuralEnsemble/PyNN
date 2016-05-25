@@ -21,7 +21,7 @@ class MyOutputChecker(doctest.OutputChecker):
     useful information.
     """
     
-    def __init__(self,strict):
+    def __init__(self, strict):
         self.strict = strict
     
     def check_output(self, want, got, optionflags):
@@ -32,7 +32,7 @@ class MyOutputChecker(doctest.OutputChecker):
                 return True
             else:  
                 try:
-                    long(want) and long(got) # where the output is an id
+                    long(want) and long(got)  # where the output is an id
                     return True
                 except ValueError:
                     try:
@@ -103,9 +103,9 @@ if __name__ == "__main__":
         print_script(docfile, options.simulator)
     else:
         exec("from pyNN.%s import *" % options.simulator)
-        setup(max_delay=10.0,debug=True)
+        setup(max_delay=10.0, debug=True)
         if options.simulator == "neuron":
-            create(IF_curr_alpha) # this is to use up ID 0, making the IDs agree with NEST.
+            create(IF_curr_alpha)  # this is to use up ID 0, making the IDs agree with NEST.
         mytestfile(docfile, globs=globals(), optionflags=optionflags, strict=options.strict)
 
     remove_data_files()

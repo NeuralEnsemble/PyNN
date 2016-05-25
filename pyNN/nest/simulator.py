@@ -57,13 +57,13 @@ class _State(common.control.BaseState):
         self.optimize = False
         self.spike_precision = "off_grid"
         self.verbosity = "warning"
-        self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
+        self._cache_num_processes = nest.GetKernelStatus()['num_processes']  # avoids blocking if only some nodes call num_processes
                                                                             # do the same for rank?
         # allow NEST to erase previously written files (defaut with all the other simulators)
         nest.SetKernelStatus({'overwrite_files' : True})
         self.tempdirs = []
         self.recording_devices = []
-        self.populations = [] # needed for reset
+        self.populations = []  # needed for reset
 
     @property
     def t(self):
@@ -138,7 +138,7 @@ class _State(common.control.BaseState):
                 device.connect_to_cells()
                 device._local_files_merged = False
         if not self.running and simtime > 0:
-            simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
         nest.Simulate(simtime)
 
@@ -165,8 +165,8 @@ class _State(common.control.BaseState):
         nest.ResetKernel()
         # set tempdir
         tempdir = tempfile.mkdtemp()
-        self.tempdirs.append(tempdir) # append tempdir to tempdirs list
-        nest.SetKernelStatus({'data_path': tempdir,})
+        self.tempdirs.append(tempdir)  # append tempdir to tempdirs list
+        nest.SetKernelStatus({'data_path': tempdir, })
         self.segment_counter = -1
         self.reset()
 
@@ -228,7 +228,7 @@ class Connection(common.Connection):
         """Synaptic weight in nA or µS."""
         w_nA = nest.GetStatus([self.id()], 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
-            w_nA *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
+            w_nA *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
         return 0.001 * w_nA
 
     def _set_delay(self, d):

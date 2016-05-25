@@ -71,4 +71,4 @@ def test_build_record_with_assembly():
     source.record = Mock()
     record_function('foo', source, "filename")
     source.record.assert_called_with('foo', to_file="filename", sampling_interval=None)
-    assert_equal(simulator.state.write_on_end, [(source, 'foo', "filename")]) # not sure this is what we want - won't file get over-written?
+    assert_equal(simulator.state.write_on_end, [(source, 'foo', "filename")])  # not sure this is what we want - won't file get over-written?

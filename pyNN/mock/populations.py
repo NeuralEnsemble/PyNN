@@ -24,7 +24,7 @@ class PopulationView(common.PopulationView):
             if isinstance(value, numpy.ndarray):
                 value = value[self.mask]
             parameter_dict[name] = simplify(value)
-        return ParameterSpace(parameter_dict, shape=(self.size,)) # or local size?
+        return ParameterSpace(parameter_dict, shape=(self.size,))  # or local size?
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""

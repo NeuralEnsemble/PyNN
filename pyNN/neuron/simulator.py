@@ -77,7 +77,7 @@ def is_point_process(obj):
     return hasattr(obj, 'loc')
 
 
-def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
+def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0, 1]):
     """
     Pick random numbers from a Hoc Random object.
 
@@ -128,7 +128,7 @@ class _Initializer(object):
         """
         for item in items:
             if isinstance(item, (common.BasePopulation, common.Assembly)):
-                if item.celltype.injectable: # don't do memb_init() on spike sources
+                if item.celltype.injectable:  # don't do memb_init() on spike sources
                     self.population_list.append(item)
             else:
                 if hasattr(item._cell, "memb_init"):
@@ -195,13 +195,13 @@ class _State(common.control.BaseState):
     def register_gid(self, gid, source, section=None):
         """Register a global ID with the global `ParallelContext` instance."""
         ###print("registering gid %s to %s (section=%s)" % (gid, source, section))
-        self.parallel_context.set_gid2node(gid, self.mpi_rank) # assign the gid to this node
+        self.parallel_context.set_gid2node(gid, self.mpi_rank)  # assign the gid to this node
         if is_point_process(source):
             nc = h.NetCon(source, None)                          # } associate the cell spike source
         else:
             nc = h.NetCon(source, None, sec=section)
         self.parallel_context.cell(gid, nc)                     # } with the gid (using a temporary NetCon)
-        self.gid_sources.append(source) # gid_clear (in _State.reset()) will cause a
+        self.gid_sources.append(source)  # gid_clear (in _State.reset()) will cause a
                                         # segmentation fault if any of the sources
                                         # registered using pc.cell() no longer exist, so
                                         # we keep a reference to all sources in the
@@ -214,7 +214,7 @@ class _State(common.control.BaseState):
         self.gid_sources = []
         self.recorders = set([])
         self.gid_counter = 0
-        self.vargid_offsets = dict() # Contains the start of the available "variable"-GID range for each projection (as opposed to "cell"-GIDs)
+        self.vargid_offsets = dict()  # Contains the start of the available "variable"-GID range for each projection (as opposed to "cell"-GIDs)
         h.plastic_connections = []
         self.segment_counter = -1
         self.reset()
@@ -317,7 +317,7 @@ class ID(int, common.IDMixin):
         self._cell = cell_model(**cell_parameters)          # create the cell object
         state.register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
-            state.parallel_context.threshold(int(self), self._cell.get_threshold()) # the problem is that self._cell does not know its own gid
+            state.parallel_context.threshold(int(self), self._cell.get_threshold())  # the problem is that self._cell does not know its own gid
 
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
@@ -374,7 +374,7 @@ class Connection(common.Connection):
         mechanism = synapse_type.model
         self.weight_adjuster = getattr(h, mechanism)(0.5)
         if synapse_type.postsynaptic_variable == 'spikes':
-            parameters['allow_update_on_post'] = int(False) # for compatibility with NEST
+            parameters['allow_update_on_post'] = int(False)  # for compatibility with NEST
             self.ddf = parameters.pop('dendritic_delay_fraction')
             # If ddf=1, the synaptic delay
             # `d` is considered to occur entirely in the post-synaptic
@@ -535,7 +535,7 @@ setattr(Connection, 'rho', generate_synapse_property('rho'))
 # --- Initialization, and module attributes ------------------------------------
 
 mech_path = os.path.join(pyNN_path[0], 'neuron', 'nmodl')
-load_mechanisms(mech_path) # maintains a list of mechanisms that have already been imported
+load_mechanisms(mech_path)  # maintains a list of mechanisms that have already been imported
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 initializer = _Initializer()

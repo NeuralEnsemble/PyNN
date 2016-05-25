@@ -90,7 +90,7 @@ class IDMixin(object):
         """Return a dict of all cell parameters."""
         if self.local:
             parameter_names = self.celltype.get_parameter_names()
-            return dict((k, v) for k,v in zip(parameter_names, self.as_view().get(parameter_names)))
+            return dict((k, v) for k, v in zip(parameter_names, self.as_view().get(parameter_names)))
         else:
             raise errors.NotLocalError("Cannot obtain parameters for a cell that does not exist on this node.")
 
@@ -176,7 +176,7 @@ class BasePopulation(object):
     @property
     def local_size(self):
         """Return the number of cells in the population on the local MPI node"""
-        return len(self.local_cells) # would self._mask_local.sum() be faster?
+        return len(self.local_cells)  # would self._mask_local.sum() be faster?
 
     def __iter__(self):
         """Iterator over cell ids on the local node."""
@@ -279,14 +279,14 @@ class BasePopulation(object):
             return_list = True
         if isinstance(self.celltype, standardmodels.StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in parameter_names):
-                native_names = self.celltype.get_native_names() # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names()  # need all parameters in order to calculate values
             else:
                 native_names = self.celltype.get_native_names(*parameter_names)
             native_parameter_space = self._get_parameters(*native_names)
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
             parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
-        parameter_space.evaluate(simplify=simplify) # what if parameter space is homogeneous on some nodes but not on others?
+        parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
 
         parameters = dict(parameter_space.items())
         if gather == True and self._simulator.state.num_processes > 1:
@@ -421,7 +421,7 @@ class BasePopulation(object):
         `sampling_interval` should be a value in milliseconds, and an integer
         multiple of the simulation timestep.
         """
-        if variables is None: # reset the list of things to record
+        if variables is None:  # reset the list of things to record
                               # note that if record(None) is called on a view of a population
                               # recording will be reset for the entire population, not just the view
             self.recorder.reset()
@@ -563,8 +563,8 @@ class BasePopulation(object):
             file = recording.files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:,0] = cells
-        result[:,1:4] = self.positions.T
+        result[:, 0] = cells
+        result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'population' : self.label})
             file.close()
@@ -629,7 +629,7 @@ class Population(BasePopulation):
                 structure = space.Grid3D(nx / float(ny), nx / float(nz))
             else:
                 raise Exception("A maximum of 3 dimensions is allowed. What do you think this is, string theory?")
-            size = int(reduce(operator.mul, size)) # NEST doesn't like numpy.int, so to be safe we cast to Python int
+            size = int(reduce(operator.mul, size))  # NEST doesn't like numpy.int, so to be safe we cast to Python int
         self.size = size
         self.label = label or 'population%d' % Population._nPop
         self._structure = structure or space.Line()
@@ -759,7 +759,7 @@ class Population(BasePopulation):
             first_id = self.local_cells[0]
             context.update({
                 "local_first_id": first_id,
-                "cell_parameters": {} #first_id.get_parameters(),
+                "cell_parameters": {}  # first_id.get_parameters(),
             })
         if self.structure:
             context["structure"] = self.structure.describe(template=None)
@@ -801,7 +801,7 @@ class PopulationView(BasePopulation):
                      "e.g. pyNN.nest or pyNN.neuron"
             raise Exception(errmsg)
         self.parent = parent
-        self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
+        self.mask = selector  # later we can have fancier selectors, for now we just have numpy masks
         # maybe just redefine __getattr__ instead of the following...
         self.celltype = self.parent.celltype
         # If the mask is a slice, IDs will be consecutives without duplication.
@@ -823,7 +823,7 @@ class PopulationView(BasePopulation):
         self.label = label or "view of '%s' with size %s" % (parent.label, self.size)
         self._mask_local = self.parent._mask_local[self.mask]
         self.local_cells = self.all_cells[self._mask_local]
-        self.first_id = numpy.min(self.all_cells) # only works if we assume all_cells is sorted, otherwise could use min()
+        self.first_id = numpy.min(self.all_cells)  # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id = numpy.max(self.all_cells)
         self.recorder = self.parent.recorder
         self._record_filter = self.all_cells
@@ -967,7 +967,7 @@ class Assembly(object):
                     data = numpy.concatenate((p.all_cells, element.all_cells))
                     if len(numpy.unique(data)) != len(p.all_cells) + len(element.all_cells):
                         logging.warning('Adding a PopulationView to an Assembly containing elements already present is not posible')
-                        double = True #Should we automatically remove duplicated IDs ?
+                        double = True  # Should we automatically remove duplicated IDs ?
                         break
                 if not double:
                     self.populations.append(element)
@@ -1117,7 +1117,7 @@ class Assembly(object):
             boundaries.append(count)
         boundaries = numpy.array(boundaries, dtype=numpy.int)
 
-        if isinstance(index, (int, numpy.integer)): # return an ID
+        if isinstance(index, (int, numpy.integer)):  # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index - boundaries[pindex]]
         elif isinstance(index, (slice, tuple, list, numpy.ndarray)):
@@ -1272,8 +1272,8 @@ class Assembly(object):
             file = files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:,0] = cells
-        result[:,1:4] = self.positions.T
+        result[:, 0] = cells
+        result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'assembly' : self.label})
             file.close()
@@ -1281,7 +1281,7 @@ class Assembly(object):
     @property
     def position_generator(self):
         def gen(i):
-            return self.positions[:,i]
+            return self.positions[:, i]
         return gen
 
     def get_data(self, variables='all', gather=True, clear=False, annotations=None):
@@ -1304,16 +1304,16 @@ class Assembly(object):
         description = self.describe()
         blocks = [p.get_data(variables, gather, clear) for p in self.populations]
         offset = 0
-        for block,p in zip(blocks, self.populations):
+        for block, p in zip(blocks, self.populations):
             for segment in block.segments:
                 #segment.name = name
                 #segment.description = description
                 for signal_array in segment.analogsignalarrays:
                     signal_array.channel_index = numpy.array(signal_array.channel_index) + offset  # hack
             offset += p.size
-        for i,block in enumerate(blocks): ##
+        for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
-            for j,segment in enumerate(block.segments):
+            for j, segment in enumerate(block.segments):
                 logger.debug("  %d: %s", j, segment.name)
                 for arr in segment.analogsignalarrays:
                     logger.debug("    %s %s", arr.shape, arr.name)

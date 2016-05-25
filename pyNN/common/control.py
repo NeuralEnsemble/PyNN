@@ -18,7 +18,7 @@ DEFAULT_MIN_DELAY = 'auto'
 
 ##if not 'simulator' in locals():
 ##    simulator = None  # should be set by simulator-specific modules
-assert 'simulator' not in locals() ##
+assert 'simulator' not in locals()
 
 
 class BaseState(object):
@@ -28,7 +28,7 @@ class BaseState(object):
         """Initialize the simulator."""
         self.running = False
         self.t_start = 0
-        self.write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
+        self.write_on_end = []  # a list of (population, variable, filename) combinations that should be written to file on end()
         self.recorders = set([])
 
 

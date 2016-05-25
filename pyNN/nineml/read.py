@@ -26,7 +26,7 @@ def scale(quantity):
         'Hz': 1,
         'nF': 1,
         'nA': 1,
-        'Mohm': 1,  ## ??
+        'Mohm': 1,  # ??
         'unknown': 1,
         'unitless': 1,
     }
@@ -163,7 +163,7 @@ class Network(object):
             for target_population in target_populations:
                 if target_population.name in self.psr_map:
                     self.psr_map[target_population.name]['port_connections'].update(projection.port_connections)
-                    self.psr_map[target_population.name]['response_component'] = projection.response   ## hack? what about clashes?
+                    self.psr_map[target_population.name]['response_component'] = projection.response  # hack? what about clashes?
                 else:
                     self.psr_map[target_population.name] = {'port_connections': set(projection.port_connections),
                                                             'response_component': projection.response}

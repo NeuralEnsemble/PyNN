@@ -51,7 +51,7 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_create_with_slice_selector(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        mask = slice(3,9,2)
+        mask = slice(3, 9, 2)
         pv = sim.PopulationView(parent=p, selector=mask)
         self.assertEqual(pv.parent, p)
         self.assertEqual(pv.size, 3)
@@ -66,7 +66,7 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_create_with_boolean_array_selector(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        mask = numpy.array([0,0,0,1,0,1,0,1,0,0,0], dtype=bool)
+        mask = numpy.array([0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=bool)
         pv = sim.PopulationView(parent=p, selector=mask)
         assert_array_equal(pv.all_cells, numpy.array([p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         #assert_array_equal(pv.mask, mask)
@@ -83,12 +83,12 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_create_with_slice_selector(self, sim=sim):
         p = sim.Population(11, sim.HH_cond_exp())
-        mask1 = slice(0,9,1)
+        mask1 = slice(0, 9, 1)
         pv1 = sim.PopulationView(parent=p, selector=mask1)
         assert_array_equal(pv1.all_cells, p.all_cells[0:9])
-        mask2 = slice(3,9,2)
+        mask2 = slice(3, 9, 2)
         pv2 = sim.PopulationView(parent=pv1, selector=mask2)
-        self.assertEqual(pv2.parent, pv1) # or would it be better to resolve the parent chain up to an actual Population?
+        self.assertEqual(pv2.parent, pv1)  # or would it be better to resolve the parent chain up to an actual Population?
         assert_array_equal(pv2.all_cells, numpy.array([p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         #assert_array_equal(pv2._mask_local, numpy.array([1,0,0], dtype=bool))
 
@@ -97,7 +97,7 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_structure_property(self, sim=sim):
         p = sim.Population(11, sim.SpikeSourcePoisson())
-        mask = slice(3,9,2)
+        mask = slice(3, 9, 2)
         pv = sim.PopulationView(parent=p, selector=mask)
         self.assertEqual(pv.structure, p.structure)
 
@@ -105,10 +105,10 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_get_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_exp())
-        ppos = numpy.random.uniform(size=(3,11))
+        ppos = numpy.random.uniform(size=(3, 11))
         p._positions = ppos
-        pv = sim.PopulationView(parent=p, selector=slice(3,9,2))
-        assert_array_equal(pv.positions, numpy.array([ppos[:,3], ppos[:,5], ppos[:,7]]).T)
+        pv = sim.PopulationView(parent=p, selector=slice(3, 9, 2))
+        assert_array_equal(pv.positions, numpy.array([ppos[:, 3], ppos[:, 5], ppos[:, 7]]).T)
 
     @register()
     def test_id_to_index(self, sim=sim):
@@ -123,7 +123,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_id_to_index_with_array(self, sim=sim):
         p = sim.Population(121, sim.IF_curr_alpha())
         pv = p[2, 5, 7, 8, 19, 37, 49, 82, 83, 99]
-        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), numpy.arange(3,9,2))
+        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), numpy.arange(3, 9, 2))
 
     @register()
     def test_id_to_index_with_invalid_id(self, sim=sim):
@@ -155,7 +155,7 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_get_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        pos = numpy.arange(33).reshape(3,11)
+        pos = numpy.arange(33).reshape(3, 11)
         p.positions = pos
         pv = p[2, 5, 7, 8]
         assert_array_equal(pv.positions, pos[:, [2, 5, 7, 8]])
@@ -164,10 +164,10 @@ class PopulationViewTest(unittest.TestCase):
     def test_position_generator(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
         pv = p[2, 5, 7, 8]
-        assert_array_equal(pv.position_generator(0), p.positions[:,2])
-        assert_array_equal(pv.position_generator(3), p.positions[:,8])
-        assert_array_equal(pv.position_generator(-1), p.positions[:,8])
-        assert_array_equal(pv.position_generator(-4), p.positions[:,2])
+        assert_array_equal(pv.position_generator(0), p.positions[:, 2])
+        assert_array_equal(pv.position_generator(3), p.positions[:, 8])
+        assert_array_equal(pv.position_generator(-1), p.positions[:, 8])
+        assert_array_equal(pv.position_generator(-4), p.positions[:, 2])
         self.assertRaises(IndexError, pv.position_generator, 4)
         self.assertRaises(IndexError, pv.position_generator, -5)
 
@@ -200,7 +200,7 @@ class PopulationViewTest(unittest.TestCase):
        p = sim.Population(23, sim.HH_cond_exp())
        pv1 = p[1, 5, 6, 8, 11, 12, 15, 16, 19, 20]
 
-       pv2 = pv1[list(range(3,8))]
+       pv2 = pv1[list(range(3, 8))]
        self.assertEqual(pv2.parent, pv1)
        assert_array_almost_equal(pv2.all_cells, p.all_cells[[8, 11, 12, 15, 16]])
 
@@ -209,7 +209,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(23, sim.HH_cond_exp())
         pv1 = p[1, 5, 6, 8, 11, 12, 15, 16, 19, 20]
 
-        pv2 = pv1[(3,5,7)]
+        pv2 = pv1[(3, 5, 7)]
         self.assertEqual(pv2.parent, pv1)
         assert_array_almost_equal(pv2.all_cells, p.all_cells[[8, 12, 16]])
 
@@ -256,7 +256,7 @@ class PopulationViewTest(unittest.TestCase):
     @register()
     def test_nearest(self, sim=sim):
         p = sim.Population(13, sim.IF_cond_exp())
-        p.positions = numpy.arange(39).reshape((13,3)).T
+        p.positions = numpy.arange(39).reshape((13, 3)).T
         pv = p[0, 2, 5, 11]
         self.assertEqual(pv.nearest((0.0, 1.0, 2.0)), pv[0])
         self.assertEqual(pv.nearest((3.0, 4.0, 5.0)), pv[0])
@@ -466,7 +466,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_record_invalid_variable(self, sim=sim):
         pv = sim.Population(14, sim.IF_curr_alpha())[::3]
         self.assertRaises(errors.RecordingError,
-                          pv.record, ('v', 'gsyn_exc')) # can't record gsyn_exc from this celltype
+                          pv.record, ('v', 'gsyn_exc'))  # can't record gsyn_exc from this celltype
 
     #def test_write_data(self, sim=sim):
     #    self.fail()

@@ -154,7 +154,7 @@ def filter_by_variables(segment, variables):
     if variables == 'all':
         return segment
     else:
-        new_segment = copy(segment) # shallow copy
+        new_segment = copy(segment)  # shallow copy
         if 'spikes' not in variables:
             new_segment.spiketrains = []
         new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
@@ -246,13 +246,13 @@ class Recorder(object):
     def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
-                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
+                              rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end
         variables_to_include = set(self.recorded.keys())
         if variables is not 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
             if variable == 'spikes':
-                t_stop = self._simulator.state.t * pq.ms # must run on all MPI nodes
+                t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
                 segment.spiketrains = [
                     neo.SpikeTrain(self._get_spiketimes(id),
                                    t_start=self._recording_start_time,
@@ -296,7 +296,7 @@ class Recorder(object):
         data = neo.Block()
         data.segments = [filter_by_variables(segment, variables)
                          for segment in self.cache]
-        if self._simulator.state.running: # reset() has not been called, so current segment is not in cache
+        if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables, clear=clear))
         data.name = self.population.label
         data.description = self.population.describe()
@@ -349,7 +349,7 @@ class Recorder(object):
                 'simulator': self._simulator.name,
             }
         metadata.update(self.population.annotations)
-        metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = self._simulator.state.dt  # note that this has to run on all nodes (at least for NEST)
         metadata['mpi_processes'] = self._simulator.state.num_processes
         return metadata
 

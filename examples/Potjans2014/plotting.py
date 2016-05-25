@@ -10,21 +10,21 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     spikes = []
 
     # Read out spikes for each population
-    layer_list = ['L23','L4','L5','L6']
-    pop_list = ['E','I'] 
+    layer_list = ['L23', 'L4', 'L5', 'L6']
+    pop_list = ['E', 'I'] 
 
     for i in range(8):
         layer = i / 2
         pop = i % 2
         filestart = path + 'spikes_' + str(layer_list[layer]) + '_' + str(pop_list[pop]) + '*'
         filelist = glob.glob(filestart)
-        pop_spike_array = np.empty((0,2))
+        pop_spike_array = np.empty((0, 2))
         last_id = 0
         for file_name in filelist:
             spike_array = np.loadtxt(file_name)
-            spike_array[:,1] = spike_array[:,1] + last_id
-            pop_spike_array = np.vstack((pop_spike_array,spike_array))
-            last_id = pop_spike_array[-1,1]
+            spike_array[:, 1] = spike_array[:, 1] + last_id
+            pop_spike_array = np.vstack((pop_spike_array, spike_array))
+            last_id = pop_spike_array[-1, 1]
         spikes.append(pop_spike_array)
 
     # Plot spike times in raster plot and bar plot with the average firing rates of each population
@@ -44,8 +44,8 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
         layer = i / 2
         pop = i % 2
         rate = 0.0
-        t_spikes = spikes[i][:,0]
-        ids = spikes[i][:,1] + (id_count + 1)
+        t_spikes = spikes[i][:, 0]
+        ids = spikes[i][:, 1] + (id_count + 1)
         filtered_times_indices = [np.where((t_spikes > t_start) & (t_spikes < t_stop))][0]
         t_spikes = t_spikes[filtered_times_indices]
         ids = ids[filtered_times_indices]
@@ -62,14 +62,14 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
         id_count = ids[-1]
 
     # Plot bar plot
-    axarr[1].barh(np.arange(0,8,1) + 0.1,rates[::-1],color=color[::-1] * 4)
+    axarr[1].barh(np.arange(0, 8, 1) + 0.1, rates[::-1], color=color[::-1] * 4)
 
     # Set labels
-    axarr[0].set_ylim((0.0,id_count))
+    axarr[0].set_ylim((0.0, id_count))
     axarr[0].set_yticklabels([])
     axarr[0].set_xlabel('time (ms)')
-    axarr[1].set_ylim((0.0,8.5))
-    axarr[1].set_yticks(np.arange(0.5,8.5,1.0))
+    axarr[1].set_ylim((0.0, 8.5))
+    axarr[1].set_yticks(np.arange(0.5, 8.5, 1.0))
     axarr[1].set_yticklabels(pops[::-1])
     axarr[1].set_xlabel('rate (spikes/s)')
 

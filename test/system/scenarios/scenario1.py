@@ -51,7 +51,7 @@ def scenario1(sim):
     for name, pconn, receptor_type in (
         ('excitatory', pconn_recurr, 'excitatory'),
         ('inhibitory', pconn_recurr, 'inhibitory'),
-        ('input',      pconn_input,  'excitatory'),
+        ('input', pconn_input, 'excitatory'),
     ):
         connector = sim.FixedProbabilityConnector(pconn, rng=rng)
         syn = sim.StaticSynapse(weight=weights[name], delay=delay)

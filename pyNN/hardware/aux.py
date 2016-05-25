@@ -45,7 +45,7 @@ def get_pynn_hw_path():
     
 
 def get_hardware_path(symap2ic_path):
-    hardware_path = path.join(symap2ic_path,"components/pynnhw/src/hardware")
+    hardware_path = path.join(symap2ic_path, "components/pynnhw/src/hardware")
     if not path.exists(hardware_path):
         raise Exception(
             """

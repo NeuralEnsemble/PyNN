@@ -38,14 +38,14 @@ def build_translations(*translation_list):
         assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
         pynn_name = item[0]
         sim_name = item[1]
-        if len(item) == 2: # no transformation
+        if len(item) == 2:  # no transformation
             f = pynn_name
             g = sim_name
-        elif len(item) == 3: # simple multiplicative factor
+        elif len(item) == 3:  # simple multiplicative factor
             scale_factor = item[2]
             f = "float(%g)*%s" % (scale_factor, pynn_name)
             g = "%s/float(%g)" % (sim_name, scale_factor)
-        elif len(item) == 4: # more complex transformation
+        elif len(item) == 4:  # more complex transformation
             f = item[2]
             g = item[3]
         translations[pynn_name] = {'translated_name': sim_name,
@@ -74,7 +74,7 @@ class StandardModelType(models.BaseModelType):
         _parameters = deepcopy(parameters)
         cls = self.__class__
         if parameters.schema != self.get_schema():
-            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema())) # should replace this with a PyNN-specific exception type
+            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
         native_parameters = {}
         #for name in parameters.schema:
         for name in parameters.keys():
@@ -98,7 +98,7 @@ class StandardModelType(models.BaseModelType):
         """Translate simulator-specific model parameters to standardized parameters."""
         cls = self.__class__
         standard_parameters = {}
-        for name,D  in self.translations.items():
+        for name, D in self.translations.items():
             tname = D['translated_name']
             if tname in native_parameters.keys():
                 if callable(D['reverse_transform']):
@@ -143,7 +143,7 @@ class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
     recordable = ['spikes', 'v', 'gsyn']
     receptor_types = ('excitatory', 'inhibitory')
-    always_local = False # override for NEST spike sources
+    always_local = False  # override for NEST spike sources
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):

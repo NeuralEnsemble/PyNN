@@ -122,7 +122,7 @@ class StandardIF(moose.IntFire, RecorderMixin):
         self.esyn = moose.SynChan("%s/excitatory" % path)
         self.isyn = moose.SynChan("%s/inhibitory" % path)
         for syn in self.esyn, self.isyn:
-            syn.tau2 = 1e-6 # instantaneous rise, for shape=='exp'
+            syn.tau2 = 1e-6  # instantaneous rise, for shape=='exp'
             syn.Gbar = 1 * uS
             self.connect("channel", syn, "channel")
             syn.n_incoming_connections = 0
@@ -136,7 +136,7 @@ class StandardIF(moose.IntFire, RecorderMixin):
         self.source.thresh = 0.0
         self.source.abs_refract = 2.0
         self.connect("VmSrc", self.source, "Vm")
-        self.comp = self # for recorder mixin
+        self.comp = self  # for recorder mixin
         
     def _get_tau_e(self):
         return self.esyn.tau1
@@ -178,7 +178,7 @@ class RandomSpikeSource(moose.RandomSpike):
         self.minAmp = 1.0
         self.maxAmp = 1.0
         self.rate = rate
-        self.reset = 1 #True
+        self.reset = 1  # True
         self.resetValue = 0.0
         # how to handle start and duration?
         self.useClock(0)

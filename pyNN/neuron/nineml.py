@@ -70,7 +70,7 @@ class NineMLCellType(BaseCellType):
 
     def __init__(self, **parameters):
         BaseCellType.__init__(self, **parameters)
-        self.extra_parameters = {"type": self}  #self.__class__?
+        self.extra_parameters = {"type": self}  # self.__class__?
 
 
 def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None):  # weight variables should really be within component

@@ -27,7 +27,7 @@ class BaseModelType(object):
             self.parameter_space.update(**parameters)
 
     def __repr__(self):
-        return "%s(<parameters>)" % self.__class__.__name__ # should really include the parameters explicitly, to be unambiguous
+        return "%s(<parameters>)" % self.__class__.__name__  # should really include the parameters explicitly, to be unambiguous
 
     @classmethod
     def has_parameter(cls, name):
@@ -61,7 +61,7 @@ class BaseModelType(object):
             "name": self.__class__.__name__,
             "default_parameters": self.default_parameters,
             "default_initial_values": self.default_initial_values,
-            "parameters": self.parameter_space._parameters, # should add a describe() method to ParameterSpace
+            "parameters": self.parameter_space._parameters,  # should add a describe() method to ParameterSpace
         }
         return descriptions.render(engine, template, context)
 
@@ -70,8 +70,8 @@ class BaseCellType(BaseModelType):
     """Base class for cell model classes."""
     recordable = []
     receptor_types = []
-    conductance_based = True # override for cells with current-based synapses
-    injectable = True # override for spike sources
+    conductance_based = True  # override for cells with current-based synapses
+    injectable = True  # override for spike sources
     
     def can_record(self, variable):
         return variable in self.recordable
@@ -85,8 +85,8 @@ class BaseCurrentSource(BaseModelType):
 class BaseSynapseType(BaseModelType):
     """Base class for synapse model classes."""
     
-    connection_type = None # override to specify a non-standard connection type (i.e. GapJunctions)
-    has_presynaptic_components = False # override for synapses that include an active presynaptic components 
+    connection_type = None  # override to specify a non-standard connection type (i.e. GapJunctions)
+    has_presynaptic_components = False  # override for synapses that include an active presynaptic components 
 
     def __init__(self, **parameters):
         """
