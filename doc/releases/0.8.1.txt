@@ -1,0 +1,23 @@
+========================
+PyNN 0.8.1 release notes
+========================
+
+25th May 2016
+
+Welcome to PyNN 0.8.1!
+
+
+NEST 2.10
+---------
+
+This release introduces support for NEST_ 2.10. Previous versions of NEST are no longer supported.
+
+Other changes
+-------------
+
+  * `Assorted bug fixes`_
+
+
+
+.. _NEST: http://www.nest-simulator.org/
+.. _`Assorted bug fixes`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+milestone%3A0.8.1
