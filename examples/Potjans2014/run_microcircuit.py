@@ -21,7 +21,7 @@ shutil.copy('connectivity.py', system_params['output_path'])
 shutil.copy('scaling.py', system_params['output_path'])
 shutil.copy('plotting.py', system_params['output_path'])
 
-job_scipt_template = """
+job_script_template = """
 #PBS -o %(output_path)s/%(outfile)s
 #PBS -e %(output_path)s/%(errfile)s 
 #PBS -l walltime=%(walltime)s
@@ -33,7 +33,7 @@ mpirun -np %(num_mpi_procs)d python %(output_path)s/microcircuit.py
 """
 
 f = open(system_params['output_path'] + '/sim_script.sh', 'w')
-f.write(job_scipt_template % system_params)
+f.write(job_script_template % system_params)
 f.close()
 
 os.system('cd %(output_path)s && %(submit_cmd)s sim_script.sh' % system_params)

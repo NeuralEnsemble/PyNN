@@ -78,12 +78,12 @@ class Network:
         K_full = scaling.get_indegrees()
 
         if K_scaling != 1 :
-            self.w, self.w_ext, self.DC_amp = scaling.adjust_w_and_ext_to_K(K_full, K_scaling, self.w, self.DC_amp)
+            self.w, self.w_ext, self.K_ext, self.DC_amp = scaling.adjust_w_and_ext_to_K(K_full, K_scaling, self.w, self.DC_amp)
         else:
             self.w_ext = w_ext
 
         if sim.rank() == 0:
-            print('w: %g' % self.w)
+            print('w: %s' % self.w)
 
         for target_layer in layers :
             for target_pop in pops :
@@ -95,21 +95,21 @@ class Network:
                 if input_type == 'poisson':
                     poisson_generator = sim.Population(this_pop.size,
                                                        sim.SpikeSourcePoisson, {
-                                                           'rate': bg_rate * K_ext[target_layer][target_pop]})
+                                                           'rate': bg_rate * self.K_ext[target_layer][target_pop]})
                     conn = sim.OneToOneConnector()
                     syn = sim.StaticSynapse(weight=self.w_ext)
                     sim.Projection(poisson_generator, this_pop, conn, syn, receptor_type='excitatory')
                 if thalamic_input:
                     # Thalamic inputs
                     if sim.rank() == 0 :
-                        print('creating thalamic connections to %s%s') % (target_layer, target_pop))
+                        print('creating thalamic connections to %s%s' % (target_layer, target_pop))
                     C_thal=thal_params['C'][target_layer][target_pop]
                     n_target=N_full[target_layer][target_pop]
                     K_thal=round(np.log(1 - C_thal) / np.log((n_target * thal_params['n_thal'] - 1.) /
                              (n_target * thal_params['n_thal']))) / n_target
-                        FixedTotalNumberConnect(sim, self.thalamic_population,
-                                                this_pop, K_thal, w_ext, w_rel * w_ext,
-                                                d_mean['E'], d_sd['E'])
+                    FixedTotalNumberConnect(sim, self.thalamic_population,
+                                            this_pop, K_thal, w_ext, w_rel * w_ext,
+                                            d_mean['E'], d_sd['E'])
                 # Recurrent inputs
                 for source_layer in layers :
                     for source_pop in pops :

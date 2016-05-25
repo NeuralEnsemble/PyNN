@@ -18,7 +18,7 @@ params_dict = {
     # This scaling was not part of the original study, but this option is included
     # here to enable simulations on small systems that give results similar to
     # full-scale simulations.
-    'K_scaling' : 1.,
+    'K_scaling' : 0.5,
     # Type of background input. Possible values: 'poisson' or 'DC'
     # If 'DC' is chosen, a constant external current is provided, equal to the mean 
     # current due to the Poisson input used in the default version of the model.
