@@ -76,13 +76,13 @@ class Network:
         K_full = scaling.get_indegrees()
 
         if K_scaling != 1 :
-            self.w, self.w_ext, self.DC_amp = scaling.adjust_w_and_ext_to_K(K_full, K_scaling, self.w, self.DC_amp)
+            self.w, self.w_ext, self.K_ext, self.DC_amp = scaling.adjust_w_and_ext_to_K(K_full, K_scaling, self.w, self.DC_amp)
         else:
             self.w_ext = w_ext
 
 
         if sim.rank() == 0:
-            print('w: %g' % self.w)
+            print 'w:', self.w
 
         for target_layer in layers :
             for target_pop in pops :
@@ -93,7 +93,7 @@ class Network:
                     this_pop.set(i_offset=self.DC_amp[target_layer][target_pop])
                 if input_type == 'poisson':
                     poisson_generator = sim.Population(this_pop.size, \
-                        sim.SpikeSourcePoisson, {'rate': bg_rate*K_ext[target_layer][target_pop]})
+                        sim.SpikeSourcePoisson, {'rate': bg_rate*self.K_ext[target_layer][target_pop]})
                     conn = sim.OneToOneConnector()
                     syn = sim.StaticSynapse(weight=self.w_ext)
                     sim.Projection(poisson_generator, this_pop, conn, syn, receptor_type = 'excitatory')
