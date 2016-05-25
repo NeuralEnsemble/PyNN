@@ -21,14 +21,14 @@ def ticket166(sim, plot_figure=False):
     conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(), syn)
     cells.record('v')
 
-    spiketimes = numpy.arange(2.0, t_step, t_step/13.0)
+    spiketimes = numpy.arange(2.0, t_step, t_step / 13.0)
     spikesources[0].spike_times = spiketimes
     spikesources[1].spike_times = spiketimes + lag
 
     t = sim.run(t_step) # both neurons depolarized by synaptic input
     t = sim.run(t_step) # no more synaptic input, neurons decay
 
-    spiketimes += 2*t_step
+    spiketimes += 2 * t_step
     spikesources[0].spike_times = spiketimes
     # note we add no new spikes to the second source
     t = sim.run(t_step) # first neuron gets depolarized again

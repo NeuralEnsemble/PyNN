@@ -229,7 +229,7 @@ class MapConnector(Connector):
                     #logger.debug("Connecting to %d from %s" % (col, source_mask))
                     projection._convergent_connect(source_mask, col, **connection_parameters)
                     if self.callback:
-                        self.callback(count/projection.post.local_size)
+                        self.callback(count / projection.post.local_size)
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
         """
@@ -518,7 +518,7 @@ class FromListConnector(Connector):
                            assume_unique=True)
         local_targets = targets[local]
         self.conn_list = self.conn_list[idx]
-        left  = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'left')
+        left = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'left')
         right = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'right')
         logger.debug("idx = %s", idx)
         logger.debug("targets = %s", targets)
@@ -530,7 +530,7 @@ class FromListConnector(Connector):
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             connection_parameters = deepcopy(projection.synapse_type.parameter_space)
-            connection_parameters.shape = (r-l,)
+            connection_parameters.shape = (r - l,)
             for col, name in enumerate(self.column_names, 2):
                 connection_parameters.update(**{name: self.conn_list[l:r, col]})
             if isinstance(projection.synapse_type, StandardSynapseType):
@@ -682,7 +682,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
                 remainder = n % all_cells.size
                 target_sets = []
                 if full_sets > 0:
-                    target_sets = [all_cells]*full_sets
+                    target_sets = [all_cells] * full_sets
                 if remainder > 0:
                     target_sets.append(self.rng.permutation(all_cells)[:remainder])
                 targets = numpy.hstack(target_sets)
@@ -786,7 +786,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                         remainder = n % projection.pre.size
                         source_sets = []
                         if full_sets > 0:
-                            source_sets = [all_cells]*full_sets
+                            source_sets = [all_cells] * full_sets
                         if remainder > 0:
                             source_sets.append(self.rng.permutation(all_cells)[:remainder])
                         sources = numpy.hstack(source_sets)
@@ -806,7 +806,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                             allowed_cells = all_cells[all_cells != i]
                             source_sets = []
                             if full_sets > 0:
-                                source_sets = [allowed_cells]*full_sets
+                                source_sets = [allowed_cells] * full_sets
                             if remainder > 0:
                                 source_sets.append(self.rng.permutation(allowed_cells)[:remainder])
                             sources = numpy.hstack(source_sets)
@@ -865,10 +865,10 @@ class SmallWorldConnector(Connector):
         Connector.__init__(self, safe, callback)
         assert 0 <= rewiring <= 1
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
-        self.rewiring               = rewiring
-        self.d_expression           = "d < %g" % degree
+        self.rewiring = rewiring
+        self.d_expression = "d < %g" % degree
         self.allow_self_connections = allow_self_connections
-        self.n_connections          = n_connections
+        self.n_connections = n_connections
         self.rng = _get_rng(rng)
 
     def connect(self, projection):
@@ -905,7 +905,7 @@ class CSAConnector(MapConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         # Cut out finite part
-        c = csa.cross((0, projection.pre.size-1), (0, projection.post.size-1)) * self.cset  # can't we cut out just the columns we want?
+        c = csa.cross((0, projection.pre.size - 1), (0, projection.post.size - 1)) * self.cset  # can't we cut out just the columns we want?
 
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
@@ -1001,11 +1001,11 @@ class FixedTotalNumberConnector(FixedNumberConnector):
         num_processes = projection._simulator.state.num_processes
 
         # Assume that targets are equally distributed over processes
-        targets_per_process = int(len(projection.post)/num_processes)
+        targets_per_process = int(len(projection.post) / num_processes)
             
         # Calculate the number of synapses on each process
         bino = RandomDistribution('binomial',
-                                  [self.n, targets_per_process/len(projection.post)],
+                                  [self.n, targets_per_process / len(projection.post)],
                                   rng=self.rng)
         num_conns_on_vp = numpy.zeros(num_processes, dtype=int)
         sum_dist = 0

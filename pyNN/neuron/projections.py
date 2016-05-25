@@ -46,7 +46,7 @@ class Projection(common.Projection):
         if self.synapse_type.presynaptic_type:
             self._configure_presynaptic_components()
         _projections.append(self)
-        logger.info("--- Projection[%s].__init__() ---" %self.label)
+        logger.info("--- Projection[%s].__init__() ---" % self.label)
 
     @property
     def connections(self):
@@ -61,12 +61,12 @@ class Projection(common.Projection):
             if i < len(self):
                 return self.connections[i]
             else:
-                raise IndexError("%d > %d" % (i, len(self)-1))
+                raise IndexError("%d > %d" % (i, len(self) - 1))
         elif isinstance(i, slice):
             if i.stop < len(self):
                 return [self.connections[j] for j in range(*i.indices(i.stop))]
             else:
-                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+                raise IndexError("%d > %d" % (i.stop, len(self) - 1))
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""

@@ -39,7 +39,7 @@ def _savetxt(filename, data, format, delimiter):
     """
     f = open(filename, 'w')
     for row in data:
-        f.write(delimiter.join([format%val for val in row]) + '\n')
+        f.write(delimiter.join([format % val for val in row]) + '\n')
     f.close()
 
 

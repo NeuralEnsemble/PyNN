@@ -85,7 +85,7 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
     """
     native_rng = h.Random(0 or rng.seed)
     rarr = [getattr(native_rng, distribution)(*parameters)]
-    rarr.extend([native_rng.repick() for j in xrange(n-1)])
+    rarr.extend([native_rng.repick() for j in xrange(n - 1)])
     return numpy.array(rarr)
 
 
@@ -168,7 +168,7 @@ class _State(common.control.BaseState):
         h('objref plastic_connections')
         self.clear()
         self.default_maxstep = 10.0
-        self.native_rng_baseseed  = 0
+        self.native_rng_baseseed = 0
 
     t = h_property('t')
 
@@ -176,7 +176,7 @@ class _State(common.control.BaseState):
         return h.dt
 
     def __set_dt(self, dt):
-        h.steps_per_ms = 1.0/dt
+        h.steps_per_ms = 1.0 / dt
         h.dt = dt
     dt = property(fget=__get_dt, fset=__set_dt)
     tstop = h_property('tstop')         # these are stored in hoc so that we
@@ -357,7 +357,7 @@ class Connection(common.Connection):
         # synaptic channels, need to set nc.weight[1] here
         if self.nc.wcnt() > 1 and hasattr(self.postsynaptic_cell._cell, "type"):
             self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(projection.receptor_type)
-        self.nc.delay  = parameters.pop('delay')
+        self.nc.delay = parameters.pop('delay')
         if projection.synapse_type.model is not None:
             self._setup_plasticity(projection.synapse_type, parameters)
         # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
@@ -423,9 +423,9 @@ class Connection(common.Connection):
     def _set_delay(self, d):
         self.nc.delay = d
         if hasattr(self, 'pre2wa'):
-            self.pre2wa.delay = float(d)*(1-self.ddf)
+            self.pre2wa.delay = float(d) * (1 - self.ddf)
         if hasattr(self, 'post2wa'):
-            self.post2wa.delay = float(d)*self.ddf
+            self.post2wa.delay = float(d) * self.ddf
 
     def _get_delay(self):
         """Connection delay in ms."""

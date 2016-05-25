@@ -102,9 +102,9 @@ class _nest_build_nineml_celltype(type):
             syn_component = nineml_model.subnodes[syn.namespace]
             recv_event_ports = list(syn_component.query.event_recv_ports)
             # check there's only one
-            if len(recv_event_ports)!=1:
+            if len(recv_event_ports) != 1:
                 raise ValueError("A synapse component has multiple recv ports.  Cannot dis-ambiguate")
-            synapse_ports.append(syn.namespace+'_'+recv_event_ports[0].name)
+            synapse_ports.append(syn.namespace + '_' + recv_event_ports[0].name)
 
         # New:
         dct["combined_model"] = flat_component
@@ -124,7 +124,7 @@ class _nest_build_nineml_celltype(type):
         # TODO bindings -> alias and support recording of them in nest template
         #+ [binding.name for binding in flat_component.bindings]
         
-        dct["weight_variables"] = dict([ (syn.namespace,syn.namespace+'_'+syn.weight_connector )
+        dct["weight_variables"] = dict([ (syn.namespace,syn.namespace + '_' + syn.weight_connector )
                                          for syn in synapse_components ])
         
         logger.debug("Creating class '%s' with bases %s and dictionary %s" % (name, bases, dct))
@@ -136,7 +136,7 @@ class _nest_build_nineml_celltype(type):
         nfb = NestFileBuilder(  nest_classname = name, 
                                 component = flat_component, 
                                 synapse_ports = synapse_ports,
-                                initial_regime =  initial_regime,
+                                initial_regime = initial_regime,
                                 initial_values = dct["default_initial_values"],
                                 default_values = dct["default_parameters"],
                                 )

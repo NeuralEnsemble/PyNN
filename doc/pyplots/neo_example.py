@@ -54,7 +54,7 @@ panel = 3
 for array in data_out.segments[0].analogsignalarrays:
     for i in range(array.shape[1]):
         plt.subplot(n_panels, 1, panel)
-        plot_signal(array, i, colour='bg'[panel%2])
+        plot_signal(array, i, colour='bg'[panel % 2])
         panel += 1
 plt.xlabel("time (%s)" % array.times.units._dimensionality.string)
 plt.setp(plt.gca().get_xticklabels(), visible=True)

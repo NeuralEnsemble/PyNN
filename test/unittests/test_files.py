@@ -78,7 +78,7 @@ def test_StandardTextFile_read():
 
 def test_PickleFile():
     pf = files.PickleFile("tmp.pickle", "wb")
-    data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+    data = [(0, 2.3),(1, 3.4),(2, 4.3)]
     metadata = {'a': 1, 'b': 9.99}
     pf.write(data, metadata)
     pf.close()
@@ -108,7 +108,7 @@ def test_PickleFile():
 def test_HDF5ArrayFile():
     if files.have_hdf5:
         h5f = files.HDF5ArrayFile("tmp.h5", "w")
-        data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+        data = [(0, 2.3),(1, 3.4),(2, 4.3)]
         metadata = {'a': 1, 'b': 9.99}
         h5f.write(data, metadata)
         h5f.close()

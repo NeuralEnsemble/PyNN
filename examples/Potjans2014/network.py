@@ -26,7 +26,7 @@ class Network:
         for layer in layers:
             self.pops[layer] = {}
             for pop in pops:
-                self.pops[layer][pop] = sim.Population(int(N_full[layer][pop]* \
+                self.pops[layer][pop] = sim.Population(int(N_full[layer][pop] * \
                     N_scaling), model, cellparams=neuron_params)
                 self.pops[layer][pop].initialize(v=distr)
                 # Store whether population is inhibitory or excitatory
@@ -35,7 +35,7 @@ class Network:
 
                 # Spike recording
                 if record_fraction:
-                    num_spikes = round(this_pop.size*frac_record_spikes)
+                    num_spikes = round(this_pop.size * frac_record_spikes)
                 else:
                     num_spikes = n_record
                 this_pop[0:num_spikes].record('spikes')
@@ -43,7 +43,7 @@ class Network:
                 # Membrane potential recording
                 if record_v:
                     if record_fraction:
-                        num_v = round(this_pop.size*frac_record_v)
+                        num_v = round(this_pop.size * frac_record_v)
 
                     else:
                         num_v = n_record_v
@@ -64,8 +64,8 @@ class Network:
             for target_layer in layers:
                 self.DC_amp[target_layer] = {}
                 for target_pop in pops:
-                    self.DC_amp[target_layer][target_pop] = bg_rate* \
-                    K_ext[target_layer][target_pop]*w_mean*neuron_params['tau_syn_E']/1000.
+                    self.DC_amp[target_layer][target_pop] = bg_rate * \
+                    K_ext[target_layer][target_pop] * w_mean * neuron_params['tau_syn_E'] / 1000.
         else:
             self.DC_amp = {'L23': {'E':0., 'I':0.},
                            'L4' : {'E':0., 'I':0.},
@@ -105,8 +105,8 @@ class Network:
                         print('creating thalamic connections to %s%s') % (target_layer, target_pop))
                     C_thal = thal_params['C'][target_layer][target_pop]
                     n_target = N_full[target_layer][target_pop]
-                    K_thal = round(np.log(1-C_thal)/np.log((n_target*thal_params['n_thal']-1.)/
-                             (n_target*thal_params['n_thal'])))/n_target
+                    K_thal = round(np.log(1 - C_thal) / np.log((n_target * thal_params['n_thal'] - 1.) /
+                             (n_target * thal_params['n_thal']))) / n_target
                         FixedTotalNumberConnect(sim, self.thalamic_population,
                                                 this_pop, K_thal, w_ext, w_rel * w_ext,
                                                 d_mean['E'], d_sd['E'])
@@ -118,9 +118,9 @@ class Network:
                             print('creating connections from %s%s to %s%s' % (source_layer, source_pop, target_layer, target_pop))
                         weight = self.w[target_index][source_index]
                         if source_pop == 'E' and source_layer == 'L4' and target_layer == 'L23' and target_pop == 'E':
-                            w_sd = weight*w_rel_234
+                            w_sd = weight * w_rel_234
                         else:
-                            w_sd = abs(weight*w_rel)
+                            w_sd = abs(weight * w_rel)
                         FixedTotalNumberConnect(sim, self.pops[source_layer][source_pop],
                                                 self.pops[target_layer][target_pop],\
                                                 K_full[target_index][source_index] * K_scaling,
@@ -129,7 +129,7 @@ class Network:
 
 
 def create_weight_matrix():
-    w = np.zeros([n_layers*n_pops_per_layer, n_layers*n_pops_per_layer])
+    w = np.zeros([n_layers * n_pops_per_layer, n_layers * n_pops_per_layer])
     for target_layer in layers:
         for target_pop in pops:
             target_index = structure[target_layer][target_pop]
@@ -142,5 +142,5 @@ def create_weight_matrix():
                         else:
                             w[target_index][source_index] = w_mean
                     else:
-                        w[target_index][source_index] = g*w_mean
+                        w[target_index][source_index] = g * w_mean
     return w

@@ -57,10 +57,10 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     class spike_player(object):
         
         def __init__(self, spike_times=[], precision=1):
-            self.spike_times = precision * numpy.round(spike_times/precision)        
+            self.spike_times = precision * numpy.round(spike_times / precision)        
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
-            self.cursor      = 0
-            self.N           = len(self.spike_times)
+            self.cursor = 0
+            self.N = len(self.spike_times)
 
         @property
         def next_spike(self):
@@ -73,10 +73,10 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             self.cursor += 1
 
         def reset(self, spike_times, precision):
-            self.spike_times = precision * numpy.round(spike_times/precision)
+            self.spike_times = precision * numpy.round(spike_times / precision)
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
-            self.N           = len(self.spike_times)
-            self.cursor      = 0
+            self.N = len(self.spike_times)
+            self.cursor = 0
 
     def __init__(self, parameters):
         cells.SpikeSourceArray.__init__(self, parameters)        

@@ -72,7 +72,7 @@ def build_run(simulator):
         documentation of the ``run()`` function for further information.
         """
         now = simulator.state.t
-        if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
+        if time_point - now < -simulator.state.dt / 2.0:  # allow for floating point error
             raise ValueError("Time %g is in the past (current time %g)" % (time_point, now))
         if callbacks:
             callback_events = [(callback(simulator.state.t), callback)

@@ -100,7 +100,7 @@ for example in examples:
     shutil.copy(img_path, image_dir)
     img_file = os.path.basename(img_path)
     title = get_title(example)
-    underline = "="*len(title)
+    underline = "=" * len(title)
     with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
         fp.write(template.format(**locals()))
     example_index += "   examples/{}\n".format(example.replace(".py", ""))
@@ -122,7 +122,7 @@ img_path, = list_files(".png").difference(files_initial)
 shutil.copy(img_path, image_dir)
 img_file = os.path.basename(img_path)
 title = get_title(example)
-underline = "="*len(title)
+underline = "=" * len(title)
 with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
     fp.write(template.format(**locals()))
 example_index += "   examples/{}\n".format(example.replace(".py", ""))

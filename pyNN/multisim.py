@@ -77,7 +77,7 @@ class MultiSim(object):
         The run may be broken into a number of steps (each of equal duration).
         #Any functions in `callbacks` will be called after each step.
         """
-        dt = float(simtime)/steps
+        dt = float(simtime) / steps
         for i in range(steps):
             for sim_name in self.processes:
                 self.task_queues[sim_name].put(('sim', 'run', [dt], {}))

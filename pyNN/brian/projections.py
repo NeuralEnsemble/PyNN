@@ -46,7 +46,7 @@ class Connection(common.Connection):
         return self.projection._brian_synapses[self.i_group][self.j_group].delay[self.index] * 1e3
 
     weight = property(_get_weight, _set_weight)
-    delay  = property(_get_delay, _set_delay)
+    delay = property(_get_delay, _set_delay)
 
     def as_tuple(self, *attribute_names):
         # should return indices, not IDs for source and target
@@ -237,4 +237,4 @@ class Projection(common.Projection):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         tau_syn_var = self.synapse_type.tau_syn_var[self.receptor_type]
-        self._brian_synapses[0][0].tau_syn = self.post.get(tau_syn_var)*brian.ms  # assumes homogeneous and excitatory - to be fixed properly
+        self._brian_synapses[0][0].tau_syn = self.post.get(tau_syn_var) * brian.ms  # assumes homogeneous and excitatory - to be fixed properly

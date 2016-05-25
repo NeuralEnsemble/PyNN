@@ -141,9 +141,9 @@ class StandardModelType(models.BaseModelType):
 
 class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
-    recordable    = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn']
     receptor_types = ('excitatory', 'inhibitory')
-    always_local  = False # override for NEST spike sources
+    always_local = False # override for NEST spike sources
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):

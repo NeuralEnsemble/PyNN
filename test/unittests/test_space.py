@@ -20,9 +20,9 @@ from math import sqrt
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
     if a.shape != b.shape:
         raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
-    if not (abs(a-b) < threshold).all():
+    if not (abs(a - b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
-        err_msg += "\nlargest difference = %g" % abs(a-b).max()
+        err_msg += "\nlargest difference = %g" % abs(a - b).max()
         if msg:
             err_msg += "\nOther information: %s" % msg
         raise unittest.TestCase.failureException(err_msg)
@@ -64,7 +64,7 @@ class SpaceTest(unittest.TestCase):
                        [2.0, 3.0, 4.0]])
 
     def assertArraysEqual(self, A, B):
-        self.assert_((A==B).all(), "%s != %s" % (A,B))
+        self.assert_((A == B).all(), "%s != %s" % (A,B))
 
     def test_infinite_space_with_3D_distances(self):
         s = space.Space()
@@ -118,14 +118,14 @@ class SpaceTest(unittest.TestCase):
     def test_cylindrical_space(self):
         s = space.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
-        self.assertEqual(s.distances(self.A, self.D), sqrt(4+4+1))
-        self.assertEqual(s.distances(self.C, self.D), sqrt(4+1+0))
+        self.assertEqual(s.distances(self.A, self.D), sqrt(4 + 4 + 1))
+        self.assertEqual(s.distances(self.C, self.D), sqrt(4 + 1 + 0))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
-                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(4+4+1)]))
+                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(4 + 4 + 1)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
         self.assertArraysEqual(s.distances(self.C, self.ABCD),
-                               numpy.array([sqrt(3), sqrt(4+4+4), 0.0, sqrt(4+1+0)]))
+                               numpy.array([sqrt(3), sqrt(4 + 4 + 4), 0.0, sqrt(4 + 1 + 0)]))
 
 
 class LineTest(unittest.TestCase):
@@ -196,11 +196,11 @@ class Grid2D_Test(object):
             self.grid2.generate_positions(12),
             numpy.array([
                 [123,456,789], [123,465.9,789],
-                [123+11.1,456,789], [123+11.1,465.9,789],
-                [123+22.2,456,789], [123+22.2,465.9,789],
-                [123+33.3,456,789], [123+33.3,465.9,789],
-                [123+44.4,456,789], [123+44.4,465.9,789],
-                [123+55.5,456,789], [123+55.5,465.9,789],
+                [123 + 11.1,456,789], [123 + 11.1,465.9,789],
+                [123 + 22.2,456,789], [123 + 22.2,465.9,789],
+                [123 + 33.3,456,789], [123 + 33.3,465.9,789],
+                [123 + 44.4,456,789], [123 + 44.4,465.9,789],
+                [123 + 55.5,456,789], [123 + 55.5,465.9,789],
             ]).T,
             1e-15)
 

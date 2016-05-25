@@ -222,14 +222,14 @@ class Connection(common.Connection):
     postsynaptic_cell = target
 
     def _set_weight(self, w):
-        nest.SetStatus([self.id()], 'weight', w*1000.0)
+        nest.SetStatus([self.id()], 'weight', w * 1000.0)
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
         w_nA = nest.GetStatus([self.id()], 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
             w_nA *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
-        return 0.001*w_nA
+        return 0.001 * w_nA
 
     def _set_delay(self, d):
         nest.SetStatus([self.id()], 'delay', d)
@@ -239,7 +239,7 @@ class Connection(common.Connection):
         return nest.GetStatus([self.id()], 'delay')[0]
 
     weight = property(_get_weight, _set_weight)
-    delay  = property(_get_delay, _set_delay)
+    delay = property(_get_delay, _set_delay)
 
 
 def generate_synapse_property(name):

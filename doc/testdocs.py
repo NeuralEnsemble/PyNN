@@ -8,7 +8,7 @@ import sys
 import os
 from optparse import OptionParser
 
-optionflags = doctest.IGNORE_EXCEPTION_DETAIL+doctest.NORMALIZE_WHITESPACE
+optionflags = doctest.IGNORE_EXCEPTION_DETAIL + doctest.NORMALIZE_WHITESPACE
 optionflags = doctest.NORMALIZE_WHITESPACE
 
 

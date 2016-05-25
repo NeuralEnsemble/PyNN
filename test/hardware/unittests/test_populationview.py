@@ -250,7 +250,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_get_multiple_inhomogeneous_params_with_gather(self):
         p = sim.Population(4, sim.IF_cond_exp(tau_m=[12.1,12.2,12.3,12.4],
                                               cm=0.2,
-                                              i_offset=lambda i: 0.*i))
+                                              i_offset=lambda i: 0. * i))
         pv = p[0, 1, 3]
         cm, tau_m, i_offset = pv.get(('cm', 'tau_m', 'i_offset'), gather=True)
         self.assertIsInstance(cm, float)
@@ -277,12 +277,12 @@ class PopulationViewTest(unittest.TestCase):
         tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([0.2,0.2,0.2,0.2]))
         assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
-        assert_array_equal(i_offset, 0.*numpy.zeros((4,)))
+        assert_array_equal(i_offset, 0. * numpy.zeros((4,)))
 
         tau_m, cm, i_offset = pv.get(('tau_m', 'cm', 'i_offset'), gather=True)
         assert_array_equal(cm, numpy.array([0.2,0.2,0.2]))
         assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87]))
-        assert_array_equal(i_offset, 0.*numpy.ones((3,)))
+        assert_array_equal(i_offset, 0. * numpy.ones((3,)))
 
     def test_set_invalid_name(self):
         p = sim.Population(9, sim.EIF_cond_exp_isfa_ista())
@@ -309,7 +309,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_set_array(self):
         p = sim.Population(5, sim.IF_cond_exp, {'v_thresh': -54.3})
         pv = p[2:]
-        pv.set(v_thresh=-50.0+numpy.arange(3))
+        pv.set(v_thresh=-50.0 + numpy.arange(3))
         assert_array_equal(p.get('v_thresh', gather=True),
                            numpy.array([-54.3, -54.3, -50.0, -49.0, -48.0]))
 
@@ -344,7 +344,7 @@ class PopulationViewTest(unittest.TestCase):
         sim.run(12.3)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(12.3/sim.get_time_step())) + 1
+        n_values = int(round(12.3 / sim.get_time_step())) + 1
         self.assertEqual(data.analogsignalarrays[0].name, 'v')
         self.assertEqual(data.analogsignalarrays[0].shape, (n_values, pv.size))
 
@@ -355,7 +355,7 @@ class PopulationViewTest(unittest.TestCase):
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(10.0/sim.get_time_step())) + 1
+        n_values = int(round(10.0 / sim.get_time_step())) + 1
         names = set(arr.name for arr in data.analogsignalarrays)
         self.assertEqual(names, set(('v')))
         for arr in data.analogsignalarrays:

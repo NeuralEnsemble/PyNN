@@ -81,7 +81,7 @@ class State(common.control.BaseState):
     def _get_dt(self):
         if self.network.clock is None:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
-        return float(self.network.clock.dt/ms)
+        return float(self.network.clock.dt / ms)
 
     def _set_dt(self, timestep):
         logger.debug("Setting timestep to %s", timestep)
@@ -92,7 +92,7 @@ class State(common.control.BaseState):
 
     @property
     def t(self):
-        return float(self.network.clock.t/ms)
+        return float(self.network.clock.t / ms)
 
     def _get_min_delay(self):
         if self._min_delay == 'auto':

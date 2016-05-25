@@ -49,15 +49,15 @@ class RecorderMixin(object):
 
 class SingleCompHH(moose.Neutral, RecorderMixin):
     
-    def __init__(self, path, GbarNa=20*uS, GbarK=6*uS, GLeak=0.01*uS, Cm=0.2*nF,
-                 ENa=40*mV, EK=-90*mV, VLeak=-65*mV, Voff=-63*mV, ESynE=0*mV,
-                 ESynI=-70*mV, tauE=2*ms, tauI=5*ms, inject=0*nA, initVm=-65*mV):
+    def __init__(self, path, GbarNa=20 * uS, GbarK=6 * uS, GLeak=0.01 * uS, Cm=0.2 * nF,
+                 ENa=40 * mV, EK=-90 * mV, VLeak=-65 * mV, Voff=-63 * mV, ESynE=0 * mV,
+                 ESynI=-70 * mV, tauE=2 * ms, tauI=5 * ms, inject=0 * nA, initVm=-65 * mV):
         moose.Neutral.__init__(self, path)
         self.comp = moose.Compartment("compartment", self)
         print("compartment is at %s" % self.comp.path)
         print(locals())
         self.comp.initVm = initVm
-        self.comp.Rm = 1/GLeak
+        self.comp.Rm = 1 / GLeak
         self.comp.Cm = Cm
         self.comp.Em = VLeak
         self.comp.inject = inject
@@ -66,17 +66,17 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
         self.na.Gbar = GbarNa
         self.na.Xpower = 3
         self.na.Ypower = 1
-        self.na.setupAlpha("X", 3.2e5 * (13*mV+Voff), -3.2e5, -1, -(13*mV+Voff), -4*mV, # alpha
-                               -2.8e5 * (40*mV+Voff),  2.8e5, -1, -(40*mV+Voff), 5*mV)  # beta
-        self.na.setupAlpha("Y", 128,                   0,      0, -(17*mV+Voff), 18*mV, # alpha
-                                4.0e3,                 0,      1, -(40*mV+Voff), -5*mV) # beta
+        self.na.setupAlpha("X", 3.2e5 * (13 * mV + Voff), -3.2e5, -1, -(13 * mV + Voff), -4 * mV, # alpha
+                               -2.8e5 * (40 * mV + Voff),  2.8e5, -1, -(40 * mV + Voff), 5 * mV)  # beta
+        self.na.setupAlpha("Y", 128,                   0,      0, -(17 * mV + Voff), 18 * mV, # alpha
+                                4.0e3,                 0,      1, -(40 * mV + Voff), -5 * mV) # beta
 
         self.k = moose.HHChannel("k", self.comp)
         self.k.Ek = EK
         self.k.Gbar = GbarK
         self.k.Xpower = 4
-        self.k.setupAlpha("X", 3.2e4 * (15*mV+Voff), -3.2e4, -1, -(15*mV+Voff), -5*mV,
-                               500,                  0,       0, -(10*mV+Voff),  40*mV)
+        self.k.setupAlpha("X", 3.2e4 * (15 * mV + Voff), -3.2e4, -1, -(15 * mV + Voff), -5 * mV,
+                               500,                  0,       0, -(10 * mV + Voff),  40 * mV)
 
         self.esyn = moose.SynChan("excitatory", self.comp)
         self.esyn.Ek = ESynE
@@ -86,7 +86,7 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
         self.isyn.tau1 = tauI
         for syn in self.esyn, self.isyn:
             syn.tau2 = 1e-6
-            syn.Gbar = 1*uS
+            syn.Gbar = 1 * uS
             self.comp.connect("channel", syn, "channel")
             syn.n_incoming_connections = 0
 
@@ -123,7 +123,7 @@ class StandardIF(moose.IntFire, RecorderMixin):
         self.isyn = moose.SynChan("%s/inhibitory" % path)
         for syn in self.esyn, self.isyn:
             syn.tau2 = 1e-6 # instantaneous rise, for shape=='exp'
-            syn.Gbar = 1*uS
+            syn.Gbar = 1 * uS
             self.connect("channel", syn, "channel")
             syn.n_incoming_connections = 0
         
@@ -204,7 +204,7 @@ class VectorSpikeSource(moose.TimeTable):
         self._spike_times = spike_times
         filename = self.filename or "%s/%s.spikes" % (temporary_directory,
                                                       uuid.uuid4().hex)
-        numpy.savetxt(filename, spike_times*ms, "%g")
+        numpy.savetxt(filename, spike_times * ms, "%g")
         self.filename = filename
         
     def _get_spike_times(self):

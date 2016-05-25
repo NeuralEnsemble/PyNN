@@ -101,7 +101,7 @@ class Recorder(recording.Recorder):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
             signals = numpy.vstack((id._cell.traces[variable] for id in ids)).T
-            expected_length = int(simulator.state.tstop/self.sampling_interval) + 1
+            expected_length = int(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = numpy.vstack((signals, signals[-1, :]))
         else:

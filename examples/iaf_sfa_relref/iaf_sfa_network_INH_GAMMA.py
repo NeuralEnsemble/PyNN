@@ -120,7 +120,7 @@ class LatticeConnector(connectors.Connector):
                 
             # Create delays with distance and noise
             myTimer = time.time()
-            delays = dist_factor * distances * (1.0+noise)
+            delays = dist_factor * distances * (1.0 + noise)
             timer2 += time.time() - myTimer
             #delays[:] = 1.0
                         
@@ -139,7 +139,7 @@ class LatticeConnector(connectors.Connector):
             timer4 += time.time() - myTimer
             
         # Print timings
-        if rank==0:
+        if rank == 0:
             print("\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 1: %5.4f seconds" % timer1).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 2: %5.4f seconds" % timer2).ljust(60) + "\033[m")
@@ -150,7 +150,7 @@ class LatticeConnector(connectors.Connector):
 ###################### FUNCTIONS ###########################
 def printTimer(message):
     global currentTimer, rank
-    if rank==0:
+    if rank == 0:
         string1 = "\033[0;46m" + (message + ": ").ljust(30) + "\033[m"
         string2 = "\033[1;46m" + ("%5.2f" % (time.time() - currentTimer) + " seconds").rjust(30) + "\033[m"
         print(string1 + string2)
@@ -159,7 +159,7 @@ def printTimer(message):
 
 def printMessage(message):
     global rank
-    if rank==0:
+    if rank == 0:
         print("\033[2;46m" + (message).ljust(60) + "\033[m")
 
 
@@ -172,7 +172,7 @@ rank = sim.rank()
 init_logging(None, num_processes=numberOfNodes, rank=rank, level=logging.WARNING)
 
 ## Start message ##
-if rank==0:
+if rank == 0:
     print("\033[1;45m" + (("Lattice Simulation").rjust(38)).ljust(60) + "\033[m")
     print("\033[0;44m" + ("MPI_Rank: %d  " % rank + " MPI_Size: %d " % numberOfNodes).ljust(60) + "\033[m")
 
@@ -214,7 +214,7 @@ NumOfConI_E = int(connectionsI_E * ICFactorI_E)
 NumOfConI_I = int(connectionsI_I * ICFactorI_I)
 
 # Print out chosen values
-if rank==0:
+if rank == 0:
     print("\033[0;44m" + ("E_E:%5.2f  " % ICFactorE_E + " E_I:%5.2f  " % ICFactorE_I + " I_E:%5.2f  " % ICFactorI_E + " I_I:%5.2f" % ICFactorI_I).ljust(60) + "\033[m")
 
 # The max distance is 15 approx
@@ -244,10 +244,10 @@ myModel = sim.IF_cond_exp_gsfa_grr
 sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, debug=True, quit_on_end=False)
 
 # dynamic stimulus E->E, E->I
-f = numpy.array([rateE_E, rateE_E*1.5, rateE_E, rateE_E])
+f = numpy.array([rateE_E, rateE_E * 1.5, rateE_E, rateE_E])
 tbins = numpy.array([0.0,1000.0,1200.0,2000.0])
-a = numpy.array([3.0]*4)
-b = 1.0/(f*a)
+a = numpy.array([3.0] * 4)
+b = 1.0 / (f * a)
 
 ## Stochastic input preparation ##
 gammaE_Eparams = {'tbins':tbins,'a': a,
@@ -261,13 +261,13 @@ gammaE_I = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gamm
 # these generators are to be silenced after the initial 500ms
 gammaE_E_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Eparams)
 gammaE_I_silenced = sim.Population((1,),cellclass=sim.SpikeSourceInhGamma,cellparams=gammaE_Iparams)
-gammaE_I_silenced.stop=tinit
-gammaE_E_silenced.stop=tinit
+gammaE_I_silenced.stop = tinit
+gammaE_E_silenced.stop = tinit
 
 # inhibitory is Poisson
-poissonI_Eparams = {'rate': rateI_E*connectionsI_E, 'start': 0.0,
+poissonI_Eparams = {'rate': rateI_E * connectionsI_E, 'start': 0.0,
                     'duration': tsim}
-poissonI_Iparams = {'rate': rateI_I*connectionsI_I, 'start': 0.0,
+poissonI_Iparams = {'rate': rateI_I * connectionsI_I, 'start': 0.0,
                     'duration': tsim}
 
 poissonI_E = sim.Population((1,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Eparams,label='poissonI_E')
@@ -290,10 +290,10 @@ positionI = numpy.empty([3,numberOfNeuronsI])
 for x in numpy.arange(latticeSize):
         for y in numpy.arange(latticeSize):
             for z in numpy.arange(latticeSize):
-                index = x * (latticeSize**2)  +  y * (latticeSize) + z
+                index = x * (latticeSize**2) + y * (latticeSize) + z
                 currentNeuron = latticePerm[index]
-                if currentNeuron > numberOfNeuronsE-1:
-                    positionI[:,currentNeuron-numberOfNeuronsE] = (float(x), float(y), float(z))
+                if currentNeuron > numberOfNeuronsE - 1:
+                    positionI[:,currentNeuron - numberOfNeuronsE] = (float(x), float(y), float(z))
                 else:
                     positionE[:,currentNeuron] = (float(x), float(y), float(z))
 popE.positions = positionE
@@ -329,8 +329,8 @@ myConnectorI = sim.AllToAllConnector(weights=globalWeight, delays=0.1)
 # the inh_gamma_generator sends a independent realization to each post connection
 # So this is "as if" there where "num connection" independent inh_gamma_generators
 # impinging on the target
-myConnectorE_E = sim.FixedNumberPreConnector(int(connectionsE_E)-NumOfConE_E,weights=globalWeight, delays=0.1)
-myConnectorE_I = sim.FixedNumberPreConnector(int(connectionsE_I)-NumOfConE_I,weights=globalWeight, delays=0.1)
+myConnectorE_E = sim.FixedNumberPreConnector(int(connectionsE_E) - NumOfConE_E,weights=globalWeight, delays=0.1)
+myConnectorE_I = sim.FixedNumberPreConnector(int(connectionsE_I) - NumOfConE_I,weights=globalWeight, delays=0.1)
 # a sub-set of the inh_gamma_generaters are silenced after a time "tinit"
 myConnectorE_E_silenced = sim.FixedNumberPreConnector(NumOfConE_E,weights=globalWeight, delays=0.1)
 myConnectorE_I_silenced = sim.FixedNumberPreConnector(NumOfConE_I,weights=globalWeight, delays=0.1)
@@ -399,25 +399,25 @@ myConnectorI_E = LatticeConnector(weights=globalWeight, dist_factor=distanceFact
 myConnectorI_I = LatticeConnector(weights=globalWeight, dist_factor=distanceFactor,
                                   noise_factor=noiseFactor, n=NumOfConI_I)
 # Execute the projections #
-printMessage("Now changing E_E connections for " + str(NumOfConE_E)+ " new connections")
+printMessage("Now changing E_E connections for " + str(NumOfConE_E) + " new connections")
 prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory', synapse_type=sd)
 printTimer("Time for E_E connections")
 
-printMessage("Now changing E_I connections for " + str(NumOfConE_I)+ " new connections")
+printMessage("Now changing E_I connections for " + str(NumOfConE_I) + " new connections")
 prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory', synapse_type=sd)
 printTimer("Time for E_I connections")
 
-printMessage("Now changing I_E connections for " + str(NumOfConI_E)+ " new connections")
+printMessage("Now changing I_E connections for " + str(NumOfConI_E) + " new connections")
 prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory', synapse_type=sd)
 printTimer("Time for I_E connections")
 
-printMessage("Now changing I_I connections for " + str(NumOfConI_I)+ " new connections")
+printMessage("Now changing I_I connections for " + str(NumOfConI_I) + " new connections")
 prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory', synapse_type=sd)
 printTimer("Time for I_I connections")
 
 ## Run the simulation once lattice is inter-connected ##
 printMessage("Now running with inter-lattice connections.")
-sim.run(int(tsim-tinit))
+sim.run(int(tsim - tinit))
 printTimer("Time for second half of run")
 simTimer = time.time()
 
@@ -430,7 +430,7 @@ spikesE = popE.getSpikes()
 spikesI = popI.getSpikes()
 
 ## Process them ##
-if rank==0:
+if rank == 0:
     highestIndexE = numpy.max(spikesE[:,0])
     listNeuronsE = list(spikesE[:,0])
     listTimesE = list(spikesE[:,1])
@@ -452,26 +452,26 @@ sim.end()
 
 
 ###################### PLOTTING ###########################
-if rank==0:
+if rank == 0:
     
 ## Graph Burst ##
     pylab.figure()
-    allSpikes = listTimesE+listTimesI
-    allNeurons = listNeuronsE+listNeuronsI
+    allSpikes = listTimesE + listTimesI
+    allNeurons = listNeuronsE + listNeuronsI
     pylab.plot(allSpikes,allNeurons,'r.',markersize=1,label='Action potentials')
     
     pylab.xlabel("Time [milliseconds]")
     pylab.ylabel("Neuron (first E, then I)")
-    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$,"+
+    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$," +
                "$C_{I\\rightarrow E}=%.2f$, $C_{I\\rightarrow I}=%.2f$,") %
                 (ICFactorE_E, ICFactorE_I, ICFactorI_E, ICFactorI_I))
     pylab.suptitle("Layer 4 model with Connection Factors:")
     #pylab.legend()
     
     axisHeight = pylab.axis()[3]
-    pylab.vlines(tinit,0.0,axisHeight/8,linewidth="4",color='k',linestyles='solid')
+    pylab.vlines(tinit,0.0,axisHeight / 8,linewidth="4",color='k',linestyles='solid')
 
-    pylab.plot(tbins,axisHeight/8/numpy.max(f)*f,linewidth="2",color='b',linestyle='steps-post')
+    pylab.plot(tbins,axisHeight / 8 / numpy.max(f) * f,linewidth="2",color='b',linestyle='steps-post')
 
     if numberOfNodes != 0:
         pylab.savefig("myFigure.pdf")
@@ -485,8 +485,8 @@ if rank==0:
 
     string1 = "\033[0;44m" + ("Total simulation time: ").ljust(30) + "\033[m"
     string2 = "\033[1;44m" + ("%5.2f" % (simTimer - totalTimer) + " seconds").rjust(30) + "\033[m"
-    print(string1+string2)
+    print(string1 + string2)
 
     string1 = "\033[0;44m" + ("Total time: ").ljust(30) + "\033[m"
     string2 = "\033[1;44m" + ("%5.2f" % (time.time() - totalTimer) + " seconds").rjust(30) + "\033[m"
-    print(string1+string2)
+    print(string1 + string2)

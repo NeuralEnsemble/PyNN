@@ -185,9 +185,9 @@ class Sequence(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([Sequence(self.value/x) for x in val], dtype=Sequence) # reshape if necessary?
+            return numpy.array([Sequence(self.value / x) for x in val], dtype=Sequence) # reshape if necessary?
         else:
-            return Sequence(self.value/val)
+            return Sequence(self.value / val)
 
     def __eq__(self, other):
         if isinstance(other, Sequence):
@@ -417,7 +417,7 @@ class ParameterSpace(object):
                 yield D
 
     def __eq__(self, other):
-        return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
+        return (all(a == b for a,b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
                 and self._shape == other._shape)
 
@@ -448,7 +448,7 @@ def simplify(value):
     share. Otherwise, pass the value through.
     """
     if isinstance(value, numpy.ndarray):
-        if (value==value[0]).all():
+        if (value == value[0]).all():
             return value[0]
         else:
             return value

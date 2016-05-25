@@ -32,10 +32,10 @@ def scenario3(sim):
         tau_syn_E = 5,
         tau_syn_I = 5,
     )
-    g_leak = cm/tau_m # µS
+    g_leak = cm / tau_m # µS
 
-    w_min = 0.0*g_leak
-    w_max = 0.05*g_leak
+    w_min = 0.0 * g_leak
+    w_max = 0.05 * g_leak
 
     r1 = 5.0
     r2 = 40.0
@@ -44,7 +44,7 @@ def scenario3(sim):
     pre = sim.Population(100, sim.SpikeSourcePoisson())
     post = sim.Population(10, sim.IF_cond_exp())
 
-    pre.set(duration=duration*second)
+    pre.set(duration=duration * second)
     pre.set(start=0.0)
     pre[:50].set(rate=r1)
     pre[50:].set(rate=r2)
@@ -75,10 +75,10 @@ def scenario3(sim):
     post.record('spikes')
     post[0:1].record('v')
 
-    sim.run(duration*second)
+    sim.run(duration * second)
 
-    actual_rate = pre.mean_spike_count()/duration
-    expected_rate = (r1+r2)/2
+    actual_rate = pre.mean_spike_count() / duration
+    expected_rate = (r1 + r2) / 2
     errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
     assert abs(actual_rate - expected_rate) < 1, errmsg
     #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1

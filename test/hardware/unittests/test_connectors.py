@@ -233,7 +233,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     def test_connect_with_weight_function(self):
         C = connectors.FixedProbabilityConnector(p_connect=0.85,
                                                  rng=MockRNG(delta=0.1))
-        syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
+        syn = sim.StaticSynapse(weight=lambda d: 0.1 * d)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
                          [(0, 1, 0.1, 0.123),
@@ -384,7 +384,7 @@ class TestFromFileConnector(unittest.TestCase):
                           (2, 3, 0.3, 0.12)])
 
     def test_connect_with_standard_text_file_distributed(self):
-        local_connection_list = [c for c in self.connection_list if c[1]%2 == 1]
+        local_connection_list = [c for c in self.connection_list if c[1] % 2 == 1]
         numpy.savetxt("test.connections.1", local_connection_list)
         C = connectors.FromFileConnector("test.connections", distributed=True)
         syn = sim.StaticSynapse()
@@ -815,6 +815,6 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(4.3, connectors.check_weights(4.3, 'excitatory', is_conductance=None))
 
     def test_check_delay(self):
-        self.assertEqual(connectors.check_delays(2*self.MIN_DELAY, self.MIN_DELAY, 1e99), 2*self.MIN_DELAY)
-        self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5*self.MIN_DELAY, self.MIN_DELAY, 1e99)
+        self.assertEqual(connectors.check_delays(2 * self.MIN_DELAY, self.MIN_DELAY, 1e99), 2 * self.MIN_DELAY)
+        self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5 * self.MIN_DELAY, self.MIN_DELAY, 1e99)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 3.0, self.MIN_DELAY, 2.0)

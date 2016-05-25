@@ -55,12 +55,12 @@ cells = sim.Population(n, sim.IF_cond_alpha(**cell_params),
                        initial_values={'v': rnd('uniform', (-60.0, -50.0))},
                        label="cells")
 
-number = int(2*simtime*input_rate/1000.0)
+number = int(2 * simtime * input_rate / 1000.0)
 numpy.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:
@@ -84,7 +84,7 @@ filename = normalized_filename("Results", "small_network", "pkl",
                                options.simulator, sim.num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
+print("Mean firing rate: ", cells.mean_spike_count() * 1000.0 / simtime, "Hz")
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel

@@ -5,7 +5,7 @@ import shutil
 # Creates output folder if it does not exist yet, creates sim_script.sh, 
 # and submits it to the queue
 
-system_params['num_mpi_procs'] = system_params['n_nodes']*system_params['n_procs_per_node']
+system_params['num_mpi_procs'] = system_params['n_nodes'] * system_params['n_procs_per_node']
 
 # Copy simulation scripts to output directory
 try :
@@ -32,7 +32,7 @@ job_scipt_template = """
 mpirun -np %(num_mpi_procs)d python %(output_path)s/microcircuit.py
 """
 
-f = open(system_params['output_path']+'/sim_script.sh','w')
+f = open(system_params['output_path'] + '/sim_script.sh','w')
 f.write(job_scipt_template % system_params)
 f.close()
 

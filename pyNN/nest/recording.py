@@ -57,7 +57,7 @@ class RecordingDevice(object):
         values = events[nest_variable] * scale_factor # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
         for id in desired_ids:
-            data[id] = values[ids==id]
+            data[id] = values[ids == id]
             if variable != 'times':
                 # NEST does not record values at the zeroth time step, so we
                 # add them here.

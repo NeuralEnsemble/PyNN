@@ -21,8 +21,8 @@ def all_to_all_static_no_self(sim):
     print(weights)
     delays = prj.get('delay', format='list', gather=False)
     i, j, d = numpy.array(delays).T
-    assert_arrays_almost_equal(d, 0.2 + 0.3*abs(i - j), 1e-9)
-    assert_equal(d.size, p.size*(p.size - 1))
+    assert_arrays_almost_equal(d, 0.2 + 0.3 * abs(i - j), 1e-9)
+    assert_equal(d.size, p.size * (p.size - 1))
     sim.end()
 
 
@@ -31,12 +31,12 @@ def all_to_all_tsodyksmarkram(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
-    synapse_type = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02*d+0.1)
+    synapse_type = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02 * d + 0.1)
     prj = sim.Projection(p1, p2, sim.AllToAllConnector(), synapse_type)
     i, j, w, d, u = numpy.array(prj.get(['weight', 'delay', 'U'], format='list', gather=False)).T
     assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5*numpy.ones(p2.size * p1.size))
-    assert_arrays_equal(u, 0.02*abs(i-j) + 0.1)
+    assert_arrays_equal(d, 0.5 * numpy.ones(p2.size * p1.size))
+    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
     weights, delays, U = prj.get(['weight', 'delay', 'U'], format='array', gather=False)
     print(weights)
     print(delays)  # should all be 0.5
@@ -68,7 +68,7 @@ def fixed_number_pre_no_replacement(sim):
     print(weights2)
     print(delays2)
     for i, j, d in delays2:
-        assert_almost_equal(d, 0.2 + 0.3*abs(i - j), 9)
+        assert_almost_equal(d, 0.2 + 0.3 * abs(i - j), 9)
     for column in weights2.T:
         assert_equal((~numpy.isnan(column)).sum(), 3)
         column[numpy.isnan(column)] = 0
@@ -98,7 +98,7 @@ def fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
     connector1 = sim.FixedNumberPreConnector(n=3, with_replacement=True, rng=NumpyRNG())
-    synapse_type2 = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02*d+0.1)
+    synapse_type2 = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02 * d + 0.1)
     #synapse_type2 = sim.TsodyksMarkramSynapse(weight=0.001, delay=0.5, U=lambda d: 2*d+0.1)
     prj2 = sim.Projection(p1, p2, connector1, synapse_type2)
     print("Projection 2")
@@ -107,8 +107,8 @@ def fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     pprint(x)
     i, j, w, d, u = numpy.array(x).T
     assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5*numpy.ones(p2.size * connector1.n))
-    assert_arrays_equal(u, 0.02*abs(i-j) + 0.1)
+    assert_arrays_equal(d, 0.5 * numpy.ones(p2.size * connector1.n))
+    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
     sim.end()
 
 
@@ -136,7 +136,7 @@ def fixed_number_post_no_replacement(sim):
     print(weights2)
     print(delays2)
     for i, j, d in delays2:
-        assert_almost_equal(d, 0.2 + 0.3*abs(i - j), 9)
+        assert_almost_equal(d, 0.2 + 0.3 * abs(i - j), 9)
     for row in weights2:
         assert_equal((~numpy.isnan(row)).sum(), 3)
     sim.end()
@@ -165,7 +165,7 @@ def fixed_number_post_with_replacement_heterogeneous_parameters(sim):
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
     connector1 = sim.FixedNumberPostConnector(n=3, with_replacement=True, rng=NumpyRNG())
-    synapse_type2 = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02*d+0.1)
+    synapse_type2 = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02 * d + 0.1)
     #synapse_type2 = sim.TsodyksMarkramSynapse(weight=0.001, delay=0.5, U=lambda d: 2*d+0.1)
     prj2 = sim.Projection(p1, p2, connector1, synapse_type2)
     print("Projection 2")
@@ -174,8 +174,8 @@ def fixed_number_post_with_replacement_heterogeneous_parameters(sim):
     pprint(x)
     i, j, w, d, u = numpy.array(x).T
     assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5*numpy.ones(p1.size * connector1.n))
-    assert_arrays_equal(u, 0.02*abs(i-j) + 0.1)
+    assert_arrays_equal(d, 0.5 * numpy.ones(p1.size * connector1.n))
+    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
     sim.end()
 
 

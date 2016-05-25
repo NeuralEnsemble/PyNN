@@ -269,7 +269,7 @@ class AssemblyTest(unittest.TestCase):
         p2 = sim.Population(6, sim.IF_cond_exp())
         p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
-        self.assertRaises(IndexError, a.id_to_index, p3.last_id+1)
+        self.assertRaises(IndexError, a.id_to_index, p3.last_id + 1)
 
     def test_getitem_int(self):
         p1 = sim.Population(11, sim.IF_cond_exp())

@@ -27,9 +27,9 @@ popI = sim.Population((1,),myModel,params.inhibitory,label='popI')
 
 ### Poisson input ###
 
-poissonE_params = {'rate': rateE*connectionsE, 'start': 0.0, 'duration': tsim}
+poissonE_params = {'rate': rateE * connectionsE, 'start': 0.0, 'duration': tsim}
 #poissonE_params = {'rate': rateE, 'start': 0.0, 'duration': tsim}
-poissonI_params = {'rate': rateI*connectionsI, 'start': 0.0, 'duration': tsim}
+poissonI_params = {'rate': rateI * connectionsI, 'start': 0.0, 'duration': tsim}
 #poissonI_params = {'rate': rateI, 'start': 0.0, 'duration': tsim}
 
 poissonE = sim.Population((1,),cellclass=sim.SpikeSourcePoisson,
@@ -58,7 +58,7 @@ popE.record_gsyn(to_file=False)
 t1 = time()
 sim.run(tsim)
 t2 = time()
-print("Elapsed %f seconds." % (t2-t1,))
+print("Elapsed %f seconds." % (t2 - t1,))
 
 ## Get spikes ##
 spikesE = popE.getSpikes()
@@ -68,8 +68,8 @@ spikesI = popI.getSpikes()
 
 #print(spikesE)
 # should be about 6.0Hz
-print(float(len(spikesE))/tsim*1000.0)
+print(float(len(spikesE)) / tsim * 1000.0)
 # should be about 10.0Hz
-print(float(len(spikesI))/tsim*1000.0)
+print(float(len(spikesI)) / tsim * 1000.0)
 
 sim.end()

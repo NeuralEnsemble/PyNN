@@ -33,8 +33,8 @@ def run(sim):
     #poissonI_params = {'rate': rateI*connectionsI, 'start': 0.0, 'duration': tsim}
     #poissonI_params = {'rate': rateI, 'start': 0.0, 'duration': tsim}
 
-    spike_times_E = stg.poisson_generator(rateE*connectionsE, 0.0, tsim, array=True)
-    spike_times_I = stg.poisson_generator(rateI*connectionsI, 0.0, tsim, array=True)
+    spike_times_E = stg.poisson_generator(rateE * connectionsE, 0.0, tsim, array=True)
+    spike_times_I = stg.poisson_generator(rateI * connectionsI, 0.0, tsim, array=True)
 
     poissonE = sim.Population((1,),cellclass=sim.SpikeSourceArray,
                               cellparams={'spike_times':spike_times_E},label='poissonE')
@@ -74,9 +74,9 @@ def run(sim):
    
     #print(spikesE)
     # should be about 6.0Hz
-    print(float(len(spikesE))/tsim*1000.0)
+    print(float(len(spikesE)) / tsim * 1000.0)
     # should be about 10.0Hz
-    print(float(len(spikesI))/tsim*1000.0)
+    print(float(len(spikesI)) / tsim * 1000.0)
 
     sim.end()
 

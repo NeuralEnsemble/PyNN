@@ -17,14 +17,14 @@ import xml.dom.minidom
 
 neuroml_url = 'http://morphml.org'
 namespace = {'xsi': "http://www.w3.org/2001/XMLSchema-instance",
-             'mml':  neuroml_url+"/morphml/schema",
-             'net':  neuroml_url+"/networkml/schema",
-             'meta': neuroml_url+"/metadata/schema",
-             'bio':  neuroml_url+"/biophysics/schema",  
-             'cml':  neuroml_url+"/channelml/schema",}
+             'mml':  neuroml_url + "/morphml/schema",
+             'net':  neuroml_url + "/networkml/schema",
+             'meta': neuroml_url + "/metadata/schema",
+             'bio':  neuroml_url + "/biophysics/schema",  
+             'cml':  neuroml_url + "/channelml/schema",}
              
-neuroml_ver="1.7.3"
-neuroml_xsd="http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v"+neuroml_ver+"/Level3/NeuroML_Level3_v"+neuroml_ver+".xsd"
+neuroml_ver = "1.7.3"
+neuroml_xsd = "http://www.neuroml.org/NeuroMLValidator/NeuroMLFiles/Schemata/v" + neuroml_ver + "/Level3/NeuroML_Level3_v" + neuroml_ver + ".xsd"
 
 strict = False
 
@@ -80,11 +80,11 @@ class IF_base(object):
         segments_node = build_node('mml:segments')
         soma_node = build_node('mml:segment', id=0, name="Soma", cable=0)
         # L = 100  diam = 1000/PI: gives area = 10³ cm²
-        soma_node.appendChild(build_node('mml:proximal', x=0, y=0, z=0, diameter=1000/math.pi))
-        soma_node.appendChild(build_node('mml:distal', x=0, y=0, z=100, diameter=1000/math.pi))
+        soma_node.appendChild(build_node('mml:proximal', x=0, y=0, z=0, diameter=1000 / math.pi))
+        soma_node.appendChild(build_node('mml:distal', x=0, y=0, z=100, diameter=1000 / math.pi))
         segments_node.appendChild(soma_node)
         
-        cables_node   = build_node('mml:cables')
+        cables_node = build_node('mml:cables')
         soma_node = build_node('mml:cable', id=0, name="Soma")
         soma_node.appendChild(build_node('meta:group','all'))
         cables_node.appendChild(soma_node)
@@ -92,15 +92,15 @@ class IF_base(object):
         
     def define_biophysics(self):
         # L = 100  diam = 1000/PI  // 
-        biophys_node  = build_node(':biophysics', units="Physiological Units")
-        ifnode        = build_node('bio:mechanism', name="IandF_"+self.label, type='Channel Mechanism')
-        passive_node  = build_node('bio:mechanism', name="pas_"+self.label, type='Channel Mechanism', passive_conductance="true")
+        biophys_node = build_node(':biophysics', units="Physiological Units")
+        ifnode = build_node('bio:mechanism', name="IandF_" + self.label, type='Channel Mechanism')
+        passive_node = build_node('bio:mechanism', name="pas_" + self.label, type='Channel Mechanism', passive_conductance="true")
         # g_max = 10�?�³cm/tau_m  // cm(nF)/tau_m(ms) = G(µS) = 10�?��?�G(S). Divide by area (10³) to get factor of 10�?�³
-        gmax = str(1e-3*self.parameters['cm']/self.parameters['tau_m'])
+        gmax = str(1e-3 * self.parameters['cm'] / self.parameters['tau_m'])
         passive_node.appendChild(build_parameter_node('gmax', gmax))
-        cm_node       = build_node('bio:specificCapacitance')
+        cm_node = build_node('bio:specificCapacitance')
         cm_node.appendChild(build_parameter_node('', str(self.parameters['cm'])))  # units?
-        Ra_node       = build_node('bio:specificAxialResistance')
+        Ra_node = build_node('bio:specificAxialResistance')
         Ra_node.appendChild(build_parameter_node('', "0.1")) # value doesn't matter for a single compartment
         # These are not needed here
         #esyn_node     = build_node('bio:mechanism', name="ExcitatorySynapse", type="Channel Mechanism")
@@ -111,10 +111,10 @@ class IF_base(object):
         return biophys_node
         
     def define_connectivity(self):
-        conn_node  = build_node(':connectivity')
-        esyn_node  = build_node('net:potential_syn_loc', synapse_type="ExcSyn_"+self.label, synapse_direction="preAndOrPost")
+        conn_node = build_node(':connectivity')
+        esyn_node = build_node('net:potential_syn_loc', synapse_type="ExcSyn_" + self.label, synapse_direction="preAndOrPost")
         esyn_node.appendChild(build_node('net:group'))
-        isyn_node  = build_node('net:potential_syn_loc', synapse_type="InhSyn_"+self.label, synapse_direction="preAndOrPost")
+        isyn_node = build_node('net:potential_syn_loc', synapse_type="InhSyn_" + self.label, synapse_direction="preAndOrPost")
         isyn_node.appendChild(build_node('net:group'))
         
         for node in esyn_node, isyn_node: 
@@ -123,9 +123,9 @@ class IF_base(object):
         
     def define_channel_types(self):
         
-        passive_node = build_node('cml:channel_type', name="pas_"+self.label, density="yes")
+        passive_node = build_node('cml:channel_type', name="pas_" + self.label, density="yes")
         passive_node.appendChild( build_node('meta:notes', "Simple example of a leak/passive conductance") )
-        gmax = str(1e-3*self.parameters['cm']/self.parameters['tau_m'])
+        gmax = str(1e-3 * self.parameters['cm'] / self.parameters['tau_m'])
         
         cvr_node = build_node('cml:current_voltage_relation', 
                               cond_law="ohmic",
@@ -135,7 +135,7 @@ class IF_base(object):
                               
         passive_node.appendChild(cvr_node)
         
-        ifnode = build_node('cml:channel_type', name="IandF_"+self.label)
+        ifnode = build_node('cml:channel_type', name="IandF_" + self.label)
         ifnode.appendChild( build_node('meta:notes', "Spike and reset mechanism") )
         cvr_node = build_node('cml:current_voltage_relation')
         ifmech_node = build_node('cml:integrate_and_fire',
@@ -149,13 +149,13 @@ class IF_base(object):
         return [passive_node, ifnode]
             
     def define_synapse_types(self, synapse_type):
-        esyn_node = build_node('cml:synapse_type', name="ExcSyn_"+self.label)
-        rise_time_exc="0"
-        rise_time_inh="0"
+        esyn_node = build_node('cml:synapse_type', name="ExcSyn_" + self.label)
+        rise_time_exc = "0"
+        rise_time_inh = "0"
         
         if synapse_type == 'alpha_syn':
-            rise_time_exc=self.parameters['tau_syn_E']
-            rise_time_inh=self.parameters['tau_syn_I']
+            rise_time_exc = self.parameters['tau_syn_E']
+            rise_time_inh = self.parameters['tau_syn_I']
             
         esyn_node.appendChild( build_node('cml:doub_exp_syn',
                                           max_conductance="1.0e-5",
@@ -163,7 +163,7 @@ class IF_base(object):
                                           decay_time=self.parameters['tau_syn_E'],
                                           reversal_potential=self.parameters['e_rev_E'] ) )
                                           
-        isyn_node = build_node('cml:synapse_type', name="InhSynSyn_"+self.label)
+        isyn_node = build_node('cml:synapse_type', name="InhSynSyn_" + self.label)
         isyn_node.appendChild( build_node('cml:doub_exp_syn',
                                           max_conductance="1.0e-5",
                                           rise_time=rise_time_inh,
@@ -312,8 +312,8 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
         strict = extra_params['strict']
     dt = timestep
     xmldoc = xml.dom.minidom.Document()
-    neuromlNode = xmldoc.createElementNS(neuroml_url+'/neuroml/schema','neuroml')
-    neuromlNode.setAttributeNS(namespace['xsi'],'xsi:schemaLocation',"http://morphml.org/neuroml/schema "+neuroml_xsd)
+    neuromlNode = xmldoc.createElementNS(neuroml_url + '/neuroml/schema','neuroml')
+    neuromlNode.setAttributeNS(namespace['xsi'],'xsi:schemaLocation',"http://morphml.org/neuroml/schema " + neuroml_xsd)
     neuromlNode.setAttribute('lengthUnits',"micron")
     xmldoc.appendChild(neuromlNode)
     
@@ -460,8 +460,8 @@ class Population(common.Population):
             channels_node.appendChild(synapse_node)
 
         self.first_id = 0
-        self.last_id = self.size-1
-        self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id+1)], dtype=ID)
+        self.last_id = self.size - 1
+        self.all_cells = numpy.array([ID(id) for id in range(self.first_id, self.last_id + 1)], dtype=ID)
         self._mask_local = numpy.ones_like(self.all_cells).astype(bool)
         self.local_cells = self.all_cells[self._mask_local]
 

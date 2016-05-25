@@ -45,7 +45,7 @@ def test_ticket168():
     cell[0].rate = 12
     pynn.run(10.)
     assert_almost_equal(pynn.get_current_time(), 10.0, places=11)
-    assert_equal(cell[0]._cell.interval, 1000.0/12.0)
+    assert_equal(cell[0]._cell.interval, 1000.0 / 12.0)
 
 
 class SimpleNeuron(object):
@@ -180,11 +180,11 @@ def test_record_native_model():
     assert_equal(len(data), 2) # one array per variable
     assert_equal(data[0].name, 'apical(1.0).v')
     assert_equal(data[1].name, 'soma(0.5).ina')
-    assert_equal(data[0].sampling_rate, 10.0*pq.kHz)
+    assert_equal(data[0].sampling_rate, 10.0 * pq.kHz)
     assert_equal(data[0].units, pq.mV)
-    assert_equal(data[1].units, pq.mA/pq.cm**2)
-    assert_equal(data[0].t_start, 0.0*pq.ms)
-    assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert_equal(data[1].units, pq.mA / pq.cm**2)
+    assert_equal(data[0].t_start, 0.0 * pq.ms)
+    assert_equal(data[0].t_stop, 250.1 * pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
     assert_equal(data[0].shape, (2501, 10))
     return data
 

@@ -31,7 +31,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters
-        self.parameters['mu_plus']  = 0.
+        self.parameters['mu_plus'] = 0.
         self.parameters['mu_minus'] = 0.
 
 
@@ -45,8 +45,8 @@ class SpikePairRule(synapses.SpikePairRule):
         self.parameters = parameters
 
     def pre_fire(self, precision=1.):
-        return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_plus'])
+        return numpy.exp(-numpy.arange(0., 30, precision) / self.parameters['tau_plus'])
 
     def post_fire(self, precision=1.):
-        return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_minus'])
+        return numpy.exp(-numpy.arange(0., 30, precision) / self.parameters['tau_minus'])
 

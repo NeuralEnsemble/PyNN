@@ -80,7 +80,7 @@ def get_script_args(n_args, usage=''):
                 script_index = 0
     else:
         script_index = 0
-    args = sys.argv[script_index+1:script_index+1+n_args]
+    args = sys.argv[script_index + 1:script_index + 1 + n_args]
     if len(args) != n_args:
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
         raise Exception(usage)
@@ -141,7 +141,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
         log_level = level
 
     logging.basicConfig(level=log_level,
-                        format=mpi_prefix+'%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
+                        format=mpi_prefix + '%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
     return logging.getLogger("PyNN")
@@ -182,7 +182,7 @@ def load_population(filename, sim):
     spikes = s['spike_times']
     for neuron in range(s['size']):
         spike_times = spikes[spikes[:,0] == neuron][:,1]
-        neuron_in_new_population = neuron+population.first_id
+        neuron_in_new_population = neuron + population.first_id
         index = population.id_to_index(neuron_in_new_population)
         population[index].set_parameters(**{'spike_times':spike_times})
     # set the variables
@@ -280,7 +280,7 @@ class Timer(object):
         current_time = time.time()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
-        if format=='long':
+        if format == 'long':
             time_since_last_check = Timer.time_in_words(time_since_last_check)
         return time_since_last_check
 
@@ -305,10 +305,10 @@ class Timer(object):
         T['day'], T['hour'] = divmod(h, 24)
 
         def add_units(val, units):
-            return "%d %s" % (int(val), units) + (val>1 and 's' or '')
+            return "%d %s" % (int(val), units) + (val > 1 and 's' or '')
         return ', '.join([add_units(T[part], part)
                           for part in ('year', 'day', 'hour', 'minute', 'second')
-                          if T[part]>0])
+                          if T[part] > 0])
 
     def mark(self, label):
         """
@@ -353,7 +353,7 @@ class ProgressBar(object):
             # build a progress bar with self.char and spaces (to create a
             # fixed bar (the percent string doesn't move)
             bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
-        bar = u'[ %s ] %3.0f%%' % (bar, 100*level)
+        bar = u'[ %s ] %3.0f%%' % (bar, 100 * level)
         print(bar, end=u' \r')
         sys.stdout.flush()
 
@@ -364,12 +364,12 @@ class ProgressBar(object):
 class SimulationProgressBar(ProgressBar):
 
     def __init__(self, interval, t_stop, char="#", mode="fixed"):
-        super(SimulationProgressBar, self).__init__(width=int(t_stop/interval), char=char, mode=mode)
+        super(SimulationProgressBar, self).__init__(width=int(t_stop / interval), char=char, mode=mode)
         self.interval = interval
         self.t_stop = t_stop
 
     def __call__(self, t):
-        self.set_level(t/self.t_stop)
+        self.set_level(t / self.t_stop)
         return t + self.interval
 
 
@@ -378,7 +378,7 @@ def assert_arrays_equal(a, b):
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
     assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
     assert a.shape == b.shape, "%s != %s" % (a,b)
-    assert (a.flatten()==b.flatten()).all(), "%s != %s" % (a,b)
+    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a,b)
 
 
 def assert_arrays_almost_equal(a, b, threshold):

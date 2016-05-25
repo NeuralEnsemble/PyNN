@@ -94,7 +94,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(0, spiketrains[0].t_stop/ms)
+    ax.set_xlim(0, spiketrains[0].t_stop / ms)
     handle_options(ax, options)
     max_index = 0
     min_index = maxint
@@ -175,19 +175,19 @@ class Figure(object):
         else:
             settings = DEFAULT_FIG_SETTINGS
         plt.rcParams.update(settings)
-        width, height = options.get("size", (6, 2*n_panels + 1.2))
+        width, height = options.get("size", (6, 2 * n_panels + 1.2))
         self.fig = plt.figure(1, figsize=(width, height))
         gs = gridspec.GridSpec(n_panels, 1)
         if "annotations" in options:
-            gs.update(bottom=1.2/height)  # leave space for annotations
-        gs.update(top=1 - 0.8/height, hspace=0.25)
+            gs.update(bottom=1.2 / height)  # leave space for annotations
+        gs.update(top=1 - 0.8 / height, hspace=0.25)
         #print(gs.get_grid_positions(self.fig))
 
         for i, panel in enumerate(panels):
             panel.plot(plt.subplot(gs[i, 0]))
 
         if "title" in options:
-            self.fig.text(0.5, 1 - 0.5/height, options["title"],
+            self.fig.text(0.5, 1 - 0.5 / height, options["title"],
                           ha="center", va="top", fontsize="large")
         if "annotations" in options:
             plt.figtext(0.01, 0.01, options["annotations"], fontsize=6, verticalalignment='bottom')
@@ -267,8 +267,8 @@ def comparison_plot(segments, labels, title='', annotations=None,
     by_var_and_channel = defaultdict(lambda: defaultdict(list))
     line_properties = []
     for k, (segment, label) in enumerate(zip(segments, labels)):
-        lw = 2*(n_seg - k) - 1
-        col = 'rbgmck'[k%6]
+        lw = 2 * (n_seg - k) - 1
+        col = 'rbgmck'[k % 6]
         line_properties.append({"linewidth": lw, "color": col})
         for array in segment.analogsignalarrays:
             for i in array.channel_index.argsort():

@@ -123,7 +123,7 @@ w_ext = 87.8e-3 # nA
 # Mean synaptic weight for L4e->L2/3e connections 
 # See p. 801 of the paper, second paragraph under 'Model Parameterization', 
 # and the caption to Supplementary Fig. 7
-w_234 = 2*w_mean # nA
+w_234 = 2 * w_mean # nA
 
 # Standard deviation of weight distribution relative to mean for 
 # all projections except L4e->L2/3e

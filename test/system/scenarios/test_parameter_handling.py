@@ -74,7 +74,7 @@ def test_set_synaptic_parameters_fully_connected(sim):
     if mpi_rank == 0:
         assert_arrays_equal(actual, expected)
 
-    f_delay = lambda d: 0.5+d
+    f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
     expected = numpy.array([[0.5, 1.5], [1.5, 0.5], [2.5, 1.5], [3.5, 2.5]])
     actual = prj.get('delay', format='array')
@@ -134,7 +134,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     if mpi_rank == 0:
         assert_array_equal(actual, expected)
 
-    f_delay = lambda d: 0.5+d
+    f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
     expected = numpy.array([[0.5, nan], [1.5, 0.5], [nan, 1.5], [3.5, nan]])
     actual = prj.get('delay', format='array')
@@ -209,7 +209,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     #     ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
     #     assert_arrays_almost_equal(actual[ind], expected, 1e-16)
 
-    f_delay = lambda d: 0.5+d
+    f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
     expected = numpy.array([
         (0.0, 0.0, 0.5),

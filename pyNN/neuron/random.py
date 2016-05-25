@@ -71,14 +71,14 @@ class NativeRNG(NativeRNG, WrappedRNG):
             #  gamma(k, 1/lambda) = erlang(k, lambda)
             #  mean(erlang) = k/lambda
             #  var(erlang) = k/lambda^2
-            mean = k*theta
-            variance = mean*theta
+            mean = k * theta
+            variance = mean * theta
             return self._next_n("erlang", n, (mean, variance))
         else:
             raise Exception("The general case of the gamma distribution is not supported.")
 
     def normal(self, n, mu, sigma):
-        return self._next_n("normal", n, (mu, sigma*sigma))
+        return self._next_n("normal", n, (mu, sigma * sigma))
 
     def normal_clipped(self, n, mu, sigma, low, high):
         """ """

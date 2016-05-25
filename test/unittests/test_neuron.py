@@ -101,7 +101,7 @@ class MockID(int):
 
     def __init__(self, n):
         int.__init__(n)
-        self.local = bool(n%2)
+        self.local = bool(n % 2)
         self.celltype = MockCellClass()
         self._cell = MockCell()
 
@@ -251,7 +251,7 @@ class TestPopulation(unittest.TestCase):
     def setUp(self):
         sim.setup()
         self.p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
-                                                      'cm': lambda i: 0.987 + 0.01*i,
+                                                      'cm': lambda i: 0.987 + 0.01 * i,
                                                       'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
 
     def test__get_parameters(self):

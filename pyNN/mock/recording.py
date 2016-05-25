@@ -10,11 +10,11 @@ class Recorder(recording.Recorder):
         pass
 
     def _get_spiketimes(self, id):
-        return numpy.array([id, id+5], dtype=float) % self._simulator.state.t
+        return numpy.array([id, id + 5], dtype=float) % self._simulator.state.t
 
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
-        n_samples = int(round(self._simulator.state.t/self._simulator.state.dt)) + 1
+        n_samples = int(round(self._simulator.state.t / self._simulator.state.dt)) + 1
         return numpy.vstack((numpy.random.uniform(size=n_samples) for id in ids)).T
 
     def _local_count(self, variable, filter_ids=None):

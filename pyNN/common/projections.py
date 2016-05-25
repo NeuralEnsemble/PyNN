@@ -79,9 +79,9 @@ class Projection(object):
             if not postsynaptic_neurons._homogeneous_synapses:
                 raise errors.ConnectionError('Projection to an Assembly object can be made only with homogeneous synapses types')
 
-        self.pre    = presynaptic_neurons  #  } these really
+        self.pre = presynaptic_neurons  #  } these really
         self.source = source               #  } should be
-        self.post   = postsynaptic_neurons #  } read-only
+        self.post = postsynaptic_neurons #  } read-only
         self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
@@ -272,7 +272,7 @@ class Projection(object):
             values = self._get_attributes_as_list(*names)
             if gather and self._simulator.state.num_processes > 1:
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                all_values = recording.gather_dict(all_values, all=(gather == 'all'))
                 if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     values = reduce(operator.add, all_values.values())
             if not with_address and return_single:
@@ -282,17 +282,17 @@ class Projection(object):
             if gather and self._simulator.state.num_processes > 1:
                 # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
                 # Slaves nodes are returning list of connections, so this may be inconsistent...
-                names      = list(attribute_names)
-                names      = ["presynaptic_index", "postsynaptic_index"] + names
-                values     = self._get_attributes_as_list(*names)
+                names = list(attribute_names)
+                names = ["presynaptic_index", "postsynaptic_index"] + names
+                values = self._get_attributes_as_list(*names)
                 all_values = { self._simulator.state.mpi_rank: values }
-                all_values = recording.gather_dict(all_values, all=(gather=='all'))
+                all_values = recording.gather_dict(all_values, all=(gather == 'all'))
                 if gather == 'all' or self._simulator.state.mpi_rank == 0:
                     tmp_values = reduce(operator.add, all_values.values())
-                    values     = self._get_attributes_as_arrays(*attribute_names)
+                    values = self._get_attributes_as_arrays(*attribute_names)
                     tmp_values = numpy.array(tmp_values)
                     for i in xrange(len(values)):
-                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2+i]
+                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2 + i]
             else:
                 values = self._get_attributes_as_arrays(*attribute_names)
             if return_single:
@@ -388,7 +388,7 @@ class Projection(object):
             min = weights.min()
         if max is None:
             max = weights.max()
-        bins = numpy.linspace(min, max, nbins+1)
+        bins = numpy.linspace(min, max, nbins + 1)
         return numpy.histogram(weights, bins)  # returns n, bins
 
     def describe(self, template='projection_default.txt', engine='default'):

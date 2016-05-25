@@ -35,7 +35,7 @@ from pyNN import common, errors, core, utility
 from pyNN.nemo.standardmodels.cells import SpikeSourceArray, SpikeSourcePoisson
 
 # Global variables
-recorder_list     = []
+recorder_list = []
 spikes_array_list = []
 
 logger = logging.getLogger("PyNN")
@@ -48,19 +48,19 @@ class _State(object):
     
     def __init__(self, timestep, min_delay, max_delay):
         """Initialize the simulator."""
-        self.net           = nemo.Network()
-        self.conf          = nemo.Configuration()	
-        self.initialized   = True
+        self.net = nemo.Network()
+        self.conf = nemo.Configuration()	
+        self.initialized = True
         self.num_processes = 1
-        self.mpi_rank      = 0
-        self.min_delay     = min_delay
-        self.max_delay     = max_delay
-        self.gid           = 0
-        self.dt            = timestep
-        self.simulation    = None
-        self.stdp          = None
-        self.time          = 0
-        self._fired        = []
+        self.mpi_rank = 0
+        self.min_delay = min_delay
+        self.max_delay = max_delay
+        self.gid = 0
+        self.dt = timestep
+        self.simulation = None
+        self.stdp = None
+        self.time = 0
+        self._fired = []
 
     @property
     def sim(self):
@@ -75,9 +75,9 @@ class _State(object):
 
     def set_stdp(self, stdp):
         self.stdp = stdp
-        pre   = self.stdp.timing_dependence.pre_fire(self.dt)
-        post  = self.stdp.timing_dependence.pre_fire(self.dt)
-        pre  *= self.stdp.weight_dependence.parameters['A_plus']
+        pre = self.stdp.timing_dependence.pre_fire(self.dt)
+        post = self.stdp.timing_dependence.pre_fire(self.dt)
+        pre *= self.stdp.weight_dependence.parameters['A_plus']
         post *= -self.stdp.weight_dependence.parameters['A_minus']        
         w_min = self.stdp.weight_dependence.parameters['w_min']
         w_max = self.stdp.weight_dependence.parameters['w_max'] 
@@ -88,14 +88,14 @@ class _State(object):
         if self.simulation is None:
             self.simulation = nemo.Simulation(self.net, self.conf)
 
-        arrays_sources   = []
+        arrays_sources = []
 
         for source in spikes_array_list:
             if isinstance(source.celltype, SpikeSourceArray):
                 arrays_sources.append(source)
         
-        for t in numpy.arange(self.time, self.time+simtime, self.dt):
-            spikes   = []
+        for t in numpy.arange(self.time, self.time + simtime, self.dt):
+            spikes = []
             currents = []
             for source in arrays_sources:
                 if source.player.next_spike == t:
@@ -110,7 +110,7 @@ class _State(object):
                     recorder._add_gsyn(self.t)
 
             self._fired = self.sim.step(spikes, currents)
-            self.time  += self.dt
+            self.time += self.dt
         
             if self.stdp:
                 self.simulation.apply_stdp(self.dt)
@@ -124,7 +124,7 @@ class _State(object):
 
 def reset():
     """Reset the state of the current network to time t = 0."""
-    state.time   = 0
+    state.time = 0
     state._fired = []
     
 # --- For implementation of access to individual neurons' parameters -----------

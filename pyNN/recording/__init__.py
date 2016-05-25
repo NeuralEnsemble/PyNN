@@ -61,7 +61,7 @@ def gather_array(data):
         return gdata
     else:
         num_columns = data.shape[1]
-        return gdata.reshape((gdata.size/num_columns, num_columns))
+        return gdata.reshape((gdata.size / num_columns, num_columns))
 
 
 def gather_dict(D, all=False):
@@ -170,7 +170,7 @@ def remove_duplicate_spiketrains(data):
             spiketrains[index] = spiketrain
         min_index = min(spiketrains.keys())
         max_index = max(spiketrains.keys())
-        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index+1)]
+        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index + 1)]
     return data
 
 
@@ -266,8 +266,8 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
-                sampling_period = self.sampling_interval*pq.ms
-                current_time = self._simulator.state.t*pq.ms
+                sampling_period = self.sampling_interval * pq.ms
+                current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
@@ -285,7 +285,7 @@ class Recorder(object):
                             source_ids=source_ids)
                     )
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, channel_indices)
-                    assert segment.analogsignalarrays[0].t_stop - current_time - 2*sampling_period < 1e-10
+                    assert segment.analogsignalarrays[0].t_stop - current_time - 2 * sampling_period < 1e-10
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
@@ -327,7 +327,7 @@ class Recorder(object):
         if isinstance(file, basestring):
             file = get_io(file)
         io = file or self.file
-        if gather==False and self._simulator.state.num_processes > 1:
+        if gather == False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))

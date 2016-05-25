@@ -61,7 +61,7 @@ class NESTRandomDistribution(object):
         return self
 
     def repr(self):
-        D =  {'distribution': self.name}
+        D = {'distribution': self.name}
         D.update(self.parameters)
         return D
 
@@ -72,7 +72,7 @@ class NESTRandomDistribution(object):
         if self.name in self.scale_parameters:
             for parameter_name in self.scale_parameters[self.name]:
                 print("Multiplying parameter %s by %s" % (parameter_name, value))
-                new_parameters[parameter_name] *=value
+                new_parameters[parameter_name] *= value
         else:
             raise NotImplementedError("Scaling not supported or not yet implemented for the %s distribution" % self.name)
         return NESTRandomDistribution(self.name, new_parameters)

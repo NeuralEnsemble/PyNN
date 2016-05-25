@@ -53,7 +53,7 @@ class LatticeConnector(connectors.Connector):
                           distribution).
         `n`            -- Number of connections to make for each neuron.
         """
-        connectors.Connector.__init__(self, weights, dist_factor*1.0)
+        connectors.Connector.__init__(self, weights, dist_factor * 1.0)
         self.dist_factor = dist_factor
         self.noise_factor = noise_factor
         self.n = n
@@ -125,7 +125,7 @@ class LatticeConnector(connectors.Connector):
                 
             # Create delays with distance and noise
             myTimer = time.time()
-            delays = dist_factor * distances * (1.0+noise)
+            delays = dist_factor * distances * (1.0 + noise)
             timer2 += time.time() - myTimer
             #delays[:] = 1.0
                         
@@ -144,7 +144,7 @@ class LatticeConnector(connectors.Connector):
             timer4 += time.time() - myTimer
             
         # Print timings
-        if rank==0:
+        if rank == 0:
             print("\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 1: %5.4f seconds" % timer1).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 2: %5.4f seconds" % timer2).ljust(60) + "\033[m")
@@ -155,7 +155,7 @@ class LatticeConnector(connectors.Connector):
 ###################### FUNCTIONS ###########################
 def printTimer(message):
     global currentTimer, rank
-    if rank==0:
+    if rank == 0:
         string1 = "\033[0;46m" + (message + ": ").ljust(30) + "\033[m"
         string2 = "\033[1;46m" + ("%5.2f" % (time.time() - currentTimer) + " seconds").rjust(30) + "\033[m"
         print(string1 + string2)
@@ -164,7 +164,7 @@ def printTimer(message):
 
 def printMessage(message):
     global rank
-    if rank==0:
+    if rank == 0:
         print("\033[2;46m" + (message).ljust(60) + "\033[m")
 
 
@@ -177,7 +177,7 @@ rank = sim.rank()
 init_logging('sim.log',num_processes=numberOfNodes,rank=rank,level=logging.DEBUG)
 
 ## Start message ##
-if rank==0:
+if rank == 0:
     print("\033[1;45m" + (("Lattice Simulation").rjust(38)).ljust(60) + "\033[m")
     print("\033[0;44m" + ("MPI_Rank: %d  " % rank + " MPI_Size: %d " % numberOfNodes).ljust(60) + "\033[m")
 
@@ -219,7 +219,7 @@ NumOfConI_E = int(connectionsI_E * ICFactorI_E)
 NumOfConI_I = int(connectionsI_I * ICFactorI_I)
 
 # Print out chosen values
-if rank==0:
+if rank == 0:
     print("\033[0;44m" + ("E_E:%5.2f  " % ICFactorE_E + " E_I:%5.2f  " % ICFactorE_I + " I_E:%5.2f  " % ICFactorI_E + " I_I:%5.2f" % ICFactorI_I).ljust(60) + "\033[m")
 
 # The max distance is 15 approx
@@ -258,9 +258,9 @@ popI = sim.Population((numberOfNeuronsI,),myModel,params.inhibitory,label=myLabe
 #all_cells = Assembly("All cells", popE, popI)
 
 # excitatory Poisson
-poissonE_Eparams = {'rate': rateE_E*connectionsE_E, 'start': 0.0,
+poissonE_Eparams = {'rate': rateE_E * connectionsE_E, 'start': 0.0,
                     'duration': tsim}
-poissonE_Iparams = {'rate': rateE_I*connectionsE_I, 'start': 0.0,
+poissonE_Iparams = {'rate': rateE_I * connectionsE_I, 'start': 0.0,
                     'duration': tsim}
 
 poissonE_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonE_Eparams,label='poissonE_E')
@@ -268,9 +268,9 @@ poissonE_I = sim.Population((numberOfNeuronsI,),cellclass=sim.SpikeSourcePoisson
 
 
 # inhibitory Poisson
-poissonI_Eparams = {'rate': rateI_E*connectionsI_E, 'start': 0.0,
+poissonI_Eparams = {'rate': rateI_E * connectionsI_E, 'start': 0.0,
                     'duration': tsim}
-poissonI_Iparams = {'rate': rateI_I*connectionsI_I, 'start': 0.0,
+poissonI_Iparams = {'rate': rateI_I * connectionsI_I, 'start': 0.0,
                     'duration': tsim}
 
 poissonI_E = sim.Population((numberOfNeuronsE,),cellclass=sim.SpikeSourcePoisson,cellparams=poissonI_Eparams,label='poissonI_E')
@@ -284,10 +284,10 @@ positionI = numpy.empty([3,numberOfNeuronsI])
 for x in numpy.arange(latticeSize):
         for y in numpy.arange(latticeSize):
             for z in numpy.arange(latticeSize):
-                index = x * (latticeSize**2)  +  y * (latticeSize) + z
+                index = x * (latticeSize**2) + y * (latticeSize) + z
                 currentNeuron = latticePerm[index]
-                if currentNeuron > numberOfNeuronsE-1:
-                    positionI[:,currentNeuron-numberOfNeuronsE] = (float(x), float(y), float(z))
+                if currentNeuron > numberOfNeuronsE - 1:
+                    positionI[:,currentNeuron - numberOfNeuronsE] = (float(x), float(y), float(z))
                 else:
                     positionE[:,currentNeuron] = (float(x), float(y), float(z))
 popE.positions = positionE
@@ -354,25 +354,25 @@ myConnectorI_E = LatticeConnector(weights=globalWeight, dist_factor=distanceFact
 myConnectorI_I = LatticeConnector(weights=globalWeight, dist_factor=distanceFactor,
                                   noise_factor=noiseFactor, n=NumOfConI_I)
 # Execute the projections #
-printMessage("Now changing E_E connections for " + str(NumOfConE_E)+ " new connections")
+printMessage("Now changing E_E connections for " + str(NumOfConE_E) + " new connections")
 prjLatticeE_E = sim.Projection(popE, popE, method=myConnectorE_E, target='excitatory')
 printTimer("Time for E_E connections")
 
-printMessage("Now changing E_I connections for " + str(NumOfConE_I)+ " new connections")
+printMessage("Now changing E_I connections for " + str(NumOfConE_I) + " new connections")
 prjLatticeE_I = sim.Projection(popE, popI, method=myConnectorE_I, target='excitatory')
 printTimer("Time for E_I connections")
 
-printMessage("Now changing I_E connections for " + str(NumOfConI_E)+ " new connections")
+printMessage("Now changing I_E connections for " + str(NumOfConI_E) + " new connections")
 prjLatticeI_E = sim.Projection(popI, popE, method=myConnectorI_E, target='inhibitory')
 printTimer("Time for I_E connections")
 
-printMessage("Now changing I_I connections for " + str(NumOfConI_I)+ " new connections")
+printMessage("Now changing I_I connections for " + str(NumOfConI_I) + " new connections")
 prjLatticeI_I = sim.Projection(popI, popI, method=myConnectorI_I, target='inhibitory')
 printTimer("Time for I_I connections")
 
 ## Run the simulation once lattice is inter-connected ##
 printMessage("Now running with inter-lattice connections.")
-sim.run(int(tsim-tinit))
+sim.run(int(tsim - tinit))
 printTimer("Time for second half of run")
 simTimer = time.time()
 
@@ -386,7 +386,7 @@ popE.printSpikes('spikes.dat')
 spikesI = popI.getSpikes()
 
 ## Process them ##
-if rank==0:
+if rank == 0:
     highestIndexE = numpy.max(spikesE[:,0])
     listNeuronsE = list(spikesE[:,0])
     listTimesE = list(spikesE[:,1])
@@ -408,24 +408,24 @@ sim.end()
 
 
 ###################### PLOTTING ###########################
-if rank==0:
+if rank == 0:
     
 ## Graph Burst ##
     pylab.figure()
-    allSpikes = listTimesE+listTimesI
-    allNeurons = listNeuronsE+listNeuronsI
+    allSpikes = listTimesE + listTimesI
+    allNeurons = listNeuronsE + listNeuronsI
     pylab.plot(allSpikes,allNeurons,'r.',markersize=1,label='Action potentials')
     
     pylab.xlabel("Time [milliseconds]")
     pylab.ylabel("Neuron (first E, then I)")
-    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$,"+
+    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$," +
                "$C_{I\\rightarrow E}=%.2f$, $C_{I\\rightarrow I}=%.2f$,") %
                 (ICFactorE_E, ICFactorE_I, ICFactorI_E, ICFactorI_I))
     pylab.suptitle("Layer 4 model with Connection Factors:")
     #pylab.legend()
     
     axisHeight = pylab.axis()[3]
-    pylab.vlines(tinit,0.0,axisHeight/8,linewidth="4",color='k',linestyles='solid')
+    pylab.vlines(tinit,0.0,axisHeight / 8,linewidth="4",color='k',linestyles='solid')
 
     #pylab.plot(tbins,axisHeight/8/numpy.max(f)*f,linewidth="2",color='b',linestyle='steps-post')
 

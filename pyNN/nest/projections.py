@@ -66,12 +66,12 @@ class Projection(common.Projection):
             if i < len(self):
                 return simulator.Connection(self, i)
             else:
-                raise IndexError("%d > %d" % (i, len(self)-1))
+                raise IndexError("%d > %d" % (i, len(self) - 1))
         elif isinstance(i, slice):
             if i.stop < len(self):
                 return [simulator.Connection(self, j) for j in range(i.start, i.stop, i.step or 1)]
             else:
-                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+                raise IndexError("%d > %d" % (i.stop, len(self) - 1))
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""

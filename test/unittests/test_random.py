@@ -19,9 +19,9 @@ else:
 
 
 def assert_arrays_almost_equal(a, b, threshold):
-    if not (abs(a-b) < threshold).all():
+    if not (abs(a - b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
-        err_msg += "\nlargest difference = %g" % abs(a-b).max()
+        err_msg += "\nlargest difference = %g" % abs(a - b).max()
         raise unittest.TestCase.failureException(err_msg)
 
 
@@ -32,7 +32,7 @@ class SimpleTests(unittest.TestCase):
     def setUp(self):
         self.rnglist = [random.NumpyRNG(seed=987)]
         for rng in self.rnglist:
-            rng.mpi_rank=0; rng.num_processes=1
+            rng.mpi_rank = 0; rng.num_processes = 1
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
         if have_nrn:
@@ -92,8 +92,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng1.seed, 1001)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1},)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1},)
-            self.assertEqual(len(draw0), 5//2+1)
-            self.assertEqual(len(draw1), 5//2+1)
+            self.assertEqual(len(draw0), 5 // 2 + 1)
+            self.assertEqual(len(draw1), 5 // 2 + 1)
             self.assertNotEqual(draw0.tolist(), draw1.tolist())
 
     def test_parallel_safe_with_mask_local(self):
@@ -162,15 +162,15 @@ class RandomDistributionTests(unittest.TestCase):
         rd1 = random.RandomDistribution('normal', mu=mean, sigma=std, rng=self.rnglist[0])
         vals_list = [rd1.next(100)]
         for vals in vals_list:
-            assert vals.min() > mean-4*std
-            assert vals.min() < mean+4*std
+            assert vals.min() > mean - 4 * std
+            assert vals.min() < mean + 4 * std
             assert abs(vals.mean() - mean) < 0.2, abs(vals.mean() - mean)
 
     def test_gamma(self):
         a = 2.0
         b = 0.5
         for rng in self.rnglist:
-            rd = random.RandomDistribution('gamma', k=a, theta=1/b, rng=rng)
+            rd = random.RandomDistribution('gamma', k=a, theta=1 / b, rng=rng)
             vals = rd.next(100)
             # need to check vals are as expected
             str(rd)  # should be in a separate test

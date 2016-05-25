@@ -144,7 +144,7 @@ def build_connections(connector_type, connector_parameters):
         connections['stim2e'].size(), connections['stim2i'].size())
 
     if node_id == 0:
-        print("\n\n--- Connector : %s ---"  % connector_type.__name__)
+        print("\n\n--- Connector : %s ---" % connector_type.__name__)
         print("Nodes                  : %d" % np)
         print("Number of Stims        : %d" % n_ext)
         print("Number of Exc Neurons  : %d" % n_exc)

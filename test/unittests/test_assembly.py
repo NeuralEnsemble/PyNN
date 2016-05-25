@@ -326,7 +326,7 @@ class AssemblyTest(unittest.TestCase):
         p2 = sim.Population(6, sim.IF_cond_alpha())
         p3 = sim.Population(3, sim.IF_curr_exp())
         a = sim.Assembly(p3, p1, p2)
-        self.assertRaises(IndexError, a.id_to_index, p3.last_id+1)
+        self.assertRaises(IndexError, a.id_to_index, p3.last_id + 1)
 
     @register()
     def test_getitem_int(self, sim=sim):
@@ -406,18 +406,18 @@ class AssemblyTest(unittest.TestCase):
         self.assertEqual(len(seg0.analogsignalarrays), 1)
         v = seg0.filter(name='v')[0]
         self.assertEqual(v.name, 'v')
-        num_points = int(round((t1 + t2)/sim.get_time_step())) + 1
+        num_points = int(round((t1 + t2) / sim.get_time_step())) + 1
         self.assertEqual(v.shape, (num_points, a.size))
-        self.assertEqual(v.t_start, 0.0*pq.ms)
+        self.assertEqual(v.t_start, 0.0 * pq.ms)
         self.assertEqual(v.units, pq.mV)
-        self.assertEqual(v.sampling_period, 0.1*pq.ms)
+        self.assertEqual(v.sampling_period, 0.1 * pq.ms)
         self.assertEqual(len(seg0.spiketrains), 0)
         
         seg1 = data.segments[1]
         self.assertEqual(len(seg1.analogsignalarrays), 2)
         w = seg1.filter(name='w')[0]
         self.assertEqual(w.name, 'w')
-        num_points = int(round(t3/sim.get_time_step())) + 1
+        num_points = int(round(t3 / sim.get_time_step())) + 1
         self.assertEqual(w.shape, (num_points, p3.size))
         self.assertEqual(v.t_start, 0.0)
         self.assertEqual(len(seg1.spiketrains), a.size)
@@ -515,10 +515,10 @@ class AssemblyTest(unittest.TestCase):
     def test_get_multiple_inhomogeneous_params_with_gather(self, sim=sim):
         p1 = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
                                                tau_syn_E=[0.987, 0.988, 0.989, 0.990],
-                                               tau_syn_I=lambda i: 0.5+0.1*i))
+                                               tau_syn_I=lambda i: 0.5 + 0.1 * i))
         p2 = sim.Population(3, sim.EIF_cond_exp_isfa_ista(tau_m=12.3,
                                                           tau_syn_E=[0.991, 0.992, 0.993],
-                                                          tau_syn_I=lambda i: 0.5+0.1*(i + 4)))
+                                                          tau_syn_I=lambda i: 0.5 + 0.1 * (i + 4)))
         a = p1 + p2
         tau_syn_E, tau_m, tau_syn_I = a.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
         self.assertIsInstance(tau_m, float)
@@ -533,10 +533,10 @@ class AssemblyTest(unittest.TestCase):
         sim.simulator.state.mpi_rank = 1
         p1 = sim.Population(4, sim.IF_cond_exp(tau_m=12.3,
                                                tau_syn_E=[0.987, 0.988, 0.989, 0.990],
-                                               i_offset=lambda i: -0.2*i))
+                                               i_offset=lambda i: -0.2 * i))
         p2 = sim.Population(3, sim.IF_curr_exp(tau_m=12.3,
                                                tau_syn_E=[0.991, 0.992, 0.993],
-                                               i_offset=lambda i: -0.2*(i + 4)))
+                                               i_offset=lambda i: -0.2 * (i + 4)))
         a = p1 + p2
         tau_syn_E, tau_m, i_offset = a.get(('tau_syn_E', 'tau_m', 'i_offset'), gather=False)
         self.assertIsInstance(tau_m, float)

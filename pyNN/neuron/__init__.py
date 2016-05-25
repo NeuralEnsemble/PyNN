@@ -87,7 +87,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     if 'native_rng_baseseed' in extra_params:
         simulator.state.native_rng_baseseed = int(extra_params['native_rng_baseseed'])
     if 'default_maxstep' in extra_params:
-        simulator.state.default_maxstep=float(extra_params['default_maxstep'])
+        simulator.state.default_maxstep = float(extra_params['default_maxstep'])
     return rank()
 
 

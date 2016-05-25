@@ -23,11 +23,11 @@ class Recorder(recording.Recorder):
         recording.Recorder.__init__(self, variable, population, file)
         self._simulator.recorder_list.append(self)
         if self.variable is "spikes":
-            self.data  = numpy.empty([0, 2])
+            self.data = numpy.empty([0, 2])
         elif self.variable is "v":
-            self.data  = numpy.empty([0, 3])
+            self.data = numpy.empty([0, 3])
         elif self.variable is "gsyn":
-            self.data  = numpy.empty([0, 4])
+            self.data = numpy.empty([0, 4])
         else:
             raise Exception("Nemo can record only v and spikes for now !")    
 
@@ -43,24 +43,24 @@ class Recorder(recording.Recorder):
         raise NotImplementedError("Recording reset is not currently supported for pyNN.nemo")
 
     def _add_spike(self, fired, time):
-        ids       = self.recorded.intersection(fired)
-        self.data = numpy.vstack((self.data, numpy.array([list(ids), [time]*len(ids)]).T)) 
+        ids = self.recorded.intersection(fired)
+        self.data = numpy.vstack((self.data, numpy.array([list(ids), [time] * len(ids)]).T)) 
         ## To file or memory ? ###
 
     def _add_vm(self, time):
-        data      =  self._simulator.state.sim.get_membrane_potential(list(self.recorded))   
-        self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time]*len(self.recorded), data]).T))
+        data = self._simulator.state.sim.get_membrane_potential(list(self.recorded))   
+        self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time] * len(self.recorded), data]).T))
 
     def _add_gsyn(self, time):
-        ge      =  self._simulator.state.sim.get_neuron_state(list(self.recorded), 1)
-        gi      =  self._simulator.state.sim.get_neuron_state(list(self.recorded), 2) 
-        self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time]*len(self.recorded), ge, gi]).T))
+        ge = self._simulator.state.sim.get_neuron_state(list(self.recorded), 1)
+        gi = self._simulator.state.sim.get_neuron_state(list(self.recorded), 2) 
+        self.data = numpy.vstack((self.data, numpy.array([list(self.recorded), [time] * len(self.recorded), ge, gi]).T))
 
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         filtered_ids = self.filter_recorded(filter)
         if len(self.data) > 0:
-            mask = reduce(numpy.add, (self.data[:,0]==id for id in filtered_ids))                            
+            mask = reduce(numpy.add, (self.data[:,0] == id for id in filtered_ids))                            
             data = self.data[mask]
             return data
         else:
@@ -69,15 +69,15 @@ class Recorder(recording.Recorder):
     def _local_count(self, filter=None):
         N = {}
         filtered_ids = self.filter_recorded(filter)
-        cells        = list(filtered_ids)
+        cells = list(filtered_ids)
         filtered_ids = numpy.array(cells)   
         for id in filtered_ids:
             N[id] = 0
         spikes = self._get(gather=False, compatible_output=False, filter=filter)
-        ids   = numpy.sort(spikes[:,0].astype(int))
-        idx   = numpy.unique(ids)
-        left  = numpy.searchsorted(ids, idx, 'left')
+        ids = numpy.sort(spikes[:,0].astype(int))
+        idx = numpy.unique(ids)
+        left = numpy.searchsorted(ids, idx, 'left')
         right = numpy.searchsorted(ids, idx, 'right')
         for id, l, r in zip(idx, left, right):
-            N[id] = r-l
+            N[id] = r - l
         return N

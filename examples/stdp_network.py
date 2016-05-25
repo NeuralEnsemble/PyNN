@@ -42,7 +42,7 @@ synaptic_parameters = {
 
 sim.setup()
 
-all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp(**cell_parameters),
+all_cells = sim.Population(n_exc + n_inh, sim.IF_cond_exp(**cell_parameters),
                            structure=space.Grid2D(**grid_parameters),
                            label="All Cells")
 exc_cells = all_cells[:n_exc]; exc_cells.label = "Excitatory cells"

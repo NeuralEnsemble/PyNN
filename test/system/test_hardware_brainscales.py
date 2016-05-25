@@ -37,10 +37,10 @@ class HardwareTest(unittest.TestCase):
         sim.setup(**extra)
 
     def test_IF_cond_exp_default_values(self):
-        ifcell  = sim.IF_cond_exp()
+        ifcell = sim.IF_cond_exp()
         
     def test_IF_cond_exp_default_values2(self):
-        ifcell  = sim.IF_cond_exp()
+        ifcell = sim.IF_cond_exp()
 
     def test_SpikeSourceArray(self):
         from pyNN.utility.plotting import Figure, Panel

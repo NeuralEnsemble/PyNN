@@ -22,7 +22,7 @@ from pyNN import common, core
 recorder_list = []
 
 ms = 1e-3
-in_ms = 1.0/ms
+in_ms = 1.0 / ms
 
 # --- For implementation of get_time_step() and similar functions --------------
 
@@ -40,23 +40,23 @@ class _State(object):
 
     @property
     def t(self):
-        return self.ctx.getCurrentTime()*in_ms
+        return self.ctx.getCurrentTime() * in_ms
     
     def __get_dt(self):
-        return self.ctx.getClocks()[0]*in_ms
+        return self.ctx.getClocks()[0] * in_ms
 
     def __set_dt(self, dt):
         print("setting dt to %g ms" % dt)
-        self.ctx.setClock(0, dt*ms, 0) # integration clock
-        self.ctx.setClock(1, dt*ms, 1) # ?
-        self.ctx.setClock(2, dt*ms, 0) # recording clock
+        self.ctx.setClock(0, dt * ms, 0) # integration clock
+        self.ctx.setClock(1, dt * ms, 1) # ?
+        self.ctx.setClock(2, dt * ms, 0) # recording clock
     dt = property(fget=__get_dt, fset=__set_dt)
 
 
 def run(simtime):
     print("simulating for %g ms" % simtime)
     state.ctx.reset()
-    state.ctx.step(simtime*ms)
+    state.ctx.step(simtime * ms)
 
 
 def reset():
