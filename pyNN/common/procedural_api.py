@@ -57,7 +57,11 @@ def set(cells, **parameters):
     PyNN units (i.e. millivolts, nanoamps, milliseconds, microsiemens,
     nanofarads, event per second).
     """
-    assert isinstance(cells, (BasePopulation, Assembly))
+    if not isinstance(cells, (BasePopulation, Assembly)):
+        errmsg = "For individual cells, set values using the parameter name directly, " \
+                 "e.g. population[0].tau_m = 20.0, or use 'set' on a population view, " \
+                 "e.g. set(population[0:1], tau_m=20.0)"
+        raise AttributeError(errmsg)
     cells.set(**parameters)
 
 

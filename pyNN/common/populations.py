@@ -54,6 +54,11 @@ class IDMixin(object):
     def __getattr__(self, name):
         if name == "parent":
             raise Exception("parent is not set")
+        elif name == "set":
+            errmsg = "For individual cells, set values using the parameter name directly, " \
+                     "e.g. population[0].tau_m = 20.0, or use 'set' on a population view, " \
+                     "e.g. population[0:1].set(tau_m=20.0)"
+            raise AttributeError(errmsg)
         try:
             val = self.get_parameters()[name]
         except KeyError:
