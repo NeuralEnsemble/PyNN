@@ -987,3 +987,21 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(connectors.check_delays(2*self.MIN_DELAY, self.MIN_DELAY, 1e99), 2*self.MIN_DELAY)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5*self.MIN_DELAY, self.MIN_DELAY, 1e99)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 3.0, self.MIN_DELAY, 2.0)
+
+
+@register_class()
+class TestFixedTotalNumberConnector(unittest.TestCase):
+
+    def setUp(self, sim=sim):
+        sim.setup(num_processes=2, rank=1, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([0, 1, 0, 1, 0], dtype=bool))
+
+    def test_1(self):
+        C = connectors.FixedTotalNumberConnector(n=12, rng=random.NumpyRNG())
+        syn = sim.StaticSynapse(weight="0.5*d")
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        connections = prj.get(["weight", "delay"], format='list', gather=False)
+        self.assertLess(len(connections), 12)    # unlikely to be 12, since we have 2 MPI nodes
+        self.assertGreater(len(connections), 0)  # unlikely to be 0

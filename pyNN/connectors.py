@@ -142,6 +142,24 @@ class MapConnector(Connector):
     """
 
     def _standard_connect(self, projection, connection_map_generator, distance_map=None):
+        """
+
+        `connection_map_generator` should be a function or other callable, with one optional
+        argument `mask`, which returns an iterable.
+
+        The iterable should produce one element per post-synaptic neuron.
+
+        Each element should be either:
+            (i) a boolean array, indicating which of the pre-synaptic neurons
+                should be connected to,
+            (ii) an integer array indicating the same thing using indices,
+            (iii) or a single boolean, meaning connect to all/none.
+
+        The `mask` argument, a boolean array, can be used to limit processing to just
+        neurons which exist on the local MPI node.
+
+        todo: explain the argument `distance_map`.
+        """
 
         column_indices = numpy.arange(projection.post.size)
 
@@ -973,18 +991,24 @@ class FixedTotalNumberConnector(FixedNumberConnector):
         self.rng = _get_rng(rng)
 
     def connect(self, projection):
+        # This implementation is not "parallel safe" for random numbers.
+        # todo: support the `parallel_safe` flag.
+
         # Determine number of processes and current rank
-        rank, num_processes = get_mpi_config()
+        rank = projection._simulator.state.mpi_rank
+        num_processes = projection._simulator.state.num_processes
 
         # Assume that targets are equally distributed over processes
         targets_per_process = int(len(projection.post)/num_processes)
             
         # Calculate the number of synapses on each process
-        bino = RandomDistribution('binomial',[self.n,targets_per_process/len(projection.post)], rng=self.rng)
-        num_conns_on_vp = numpy.zeros(num_processes)
+        bino = RandomDistribution('binomial',
+                                  [self.n, targets_per_process/len(projection.post)],
+                                  rng=self.rng)
+        num_conns_on_vp = numpy.zeros(num_processes, dtype=int)
         sum_dist = 0
         sum_partitions = 0
-        for k in xrange(num_processes) :
+        for k in range(num_processes) :
             p_local = targets_per_process / ( len(projection.post) - sum_dist)
             bino.parameters['p'] = p_local
             bino.parameters['n'] = self.n - sum_partitions
@@ -993,19 +1017,18 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             sum_partitions += num_conns_on_vp[k]
 
         # Draw random sources and targets 
-        while num_conns_on_vp[rank] > 0 :
-            s_index = self.rng.rng.randint(low=0, high=len(projection.pre.all_cells))
-            t_index = self.rng.rng.randint(low=0, high=len(projection.post.local_cells))
-            t_index = numpy.where(projection.post.all_cells == int(projection.post.local_cells[t_index]))[0][0]
+        connections = [[] for i in range(projection.post.size)]
+        possible_targets = numpy.arange(projection.post.size)[projection.post._mask_local]
+        for i in range(num_conns_on_vp[rank]):
+            source_index = self.rng.next(1, 'uniform_int',
+                                         {"low": 0, "high": projection.pre.size},
+                                         mask_local=False)[0]
+            target_index = self.rng.choice(possible_targets, size=1)
+            connections[target_index].append(source_index)
 
-            # Evaluate the lazy arrays containing the synaptic parameters
-            parameter_space = self._parameters_from_synapse_type(projection)
-            connection_parameters = {}
-            for name, map in parameter_space.items():
-                if map.is_homogeneous:
-                    connection_parameters[name] = map.evaluate(simplify=True)
-                else:
-                    connection_parameters[name] = map[source_mask, col]
-            
-            projection._convergent_connect(numpy.array([s_index]),t_index, **connection_parameters)
-            num_conns_on_vp[rank] -=1
+        def build_source_masks(mask=None):
+            if mask is None:
+                return [numpy.array(x) for x in connections]
+            else:
+                return [numpy.array(x) for x in numpy.array(connections)[mask]]
+        self._standard_connect(projection, build_source_masks)
