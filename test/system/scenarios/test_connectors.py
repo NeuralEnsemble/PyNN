@@ -141,6 +141,7 @@ def fixed_number_post_no_replacement(sim):
         assert_equal((~numpy.isnan(row)).sum(), 3)
     sim.end()
 
+
 @register()
 def fixed_number_post_with_replacement(sim):
     sim.setup()
@@ -156,6 +157,7 @@ def fixed_number_post_with_replacement(sim):
     for row in weights:
         row[numpy.isnan(row)] = 0
         assert_equal(row.sum(), 4.5)
+
 
 @register()
 def fixed_number_post_with_replacement_heterogeneous_parameters(sim):

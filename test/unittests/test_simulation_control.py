@@ -22,6 +22,7 @@ from .backends.registry import register_class, register
 if MPI:
     mpi_comm = MPI.COMM_WORLD
 
+
 @register_class()
 class TestSimulationControl(unittest.TestCase):
         

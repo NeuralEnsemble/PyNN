@@ -99,7 +99,6 @@ def test_set_synaptic_parameters_fully_connected(sim):
 test_set_synaptic_parameters_fully_connected.__test__ = False
 
 
-
 @register()
 def test_set_synaptic_parameters_partially_connected(sim):
     sim.setup()
@@ -155,7 +154,6 @@ def test_set_synaptic_parameters_partially_connected(sim):
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
         assert_array_equal(actual[ind], expected)
 test_set_synaptic_parameters_partially_connected.__test__ = False
-
 
 
 @register()
@@ -240,7 +238,6 @@ def test_set_synaptic_parameters_multiply_connected(sim):
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
         assert_array_equal(actual[ind], expected)
 test_set_synaptic_parameters_multiply_connected.__test__ = False
-
 
 
 if __name__ == '__main__':

@@ -20,6 +20,7 @@ def test_scenarios():
             else:
                 raise SkipTest
 
+
 def test_recording():
     if not have_moose:
         raise SkipTest

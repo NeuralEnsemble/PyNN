@@ -5,6 +5,7 @@
 import numpy as np
 from network_params import *
 
+
 def get_indegrees():
     '''Get in-degrees for each connection for the full-scale (1 mm^2) model'''
     K = np.zeros([n_layers*n_pops_per_layer, n_layers*n_pops_per_layer])

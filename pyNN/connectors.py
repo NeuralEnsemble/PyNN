@@ -434,6 +434,7 @@ class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
         A displacement based expression function used to determine the connection probability
         and the value of variable connection parameters of a projection
         """
+
         def __init__(self, disp_function):
             """
             `disp_function`: a function that takes a 3xN numpy position matrix and maps each row
@@ -688,6 +689,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
             assert targets.size == n
             for target_index in targets:
                 connections[target_index].append(source_index)
+
         def build_source_masks(mask=None):
             if mask is None:
                 return [numpy.array(x) for x in connections]

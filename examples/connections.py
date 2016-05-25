@@ -75,6 +75,7 @@ def initialize():
     if options.simulator == "neuroml":
         extra["file"] = "connections.xml"
         
+
 def build_connections(connector_type, connector_parameters):
 
     # === Setup ==============================================================
@@ -132,7 +133,6 @@ def build_connections(connector_type, connector_parameters):
     # for prj in connections.keys():
         # connections[prj].saveConnections('Results/VAconnections_%s_%s_np%d.conn'
         # % (prj, options.simulator, np))
-
 
     str_connections = "%d e->e  %d e->i  %d i->e  %d i->i" % (connections['e2e'].size(),
                                                             connections[
@@ -197,6 +197,7 @@ def build_connections(connector_type, connector_parameters):
 # Utility functions
 # ===========================================================================
 
+
 def build_connection_parameters():
     global connection_list
     global path
@@ -217,10 +218,13 @@ def build_connection_parameters():
     array_connections = ones((60, 60), dtype=bool)
     array_connections[15, 15] = False
         
+
 class IndexBasedProbability(IndexBasedExpression):
+
     def __call__(self, i, j):
         return array((i + j) % 3 == 0, dtype=float)        
     
+
 def displacement_expression(d):
     return 0.5 * ((d[0] >= -1) * (d[0] <= 2)) + 0.25 * (d[1] >= 0) * (d[1] <= 1)
 

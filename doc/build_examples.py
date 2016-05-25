@@ -65,6 +65,7 @@ results_dir = os.path.join(tmp_dir, "Results")
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
+
 def run(python_script, simulator, *extra_args):
     files_initial = list_files(".png")
     args = " ".join(extra_args)
@@ -83,6 +84,7 @@ def get_title(python_script):
                 title = fp.readline().strip().strip(".")
                 break
     return title
+
 
 def list_files(filter):
     return set([os.path.join(x[0], filename)

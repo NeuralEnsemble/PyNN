@@ -26,6 +26,7 @@ logger = logging.getLogger("PyNN")
 _projections = []  # if a Projection is created but not assigned to a variable,
                    # the connections will not exist, so we store a reference here
 
+
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator

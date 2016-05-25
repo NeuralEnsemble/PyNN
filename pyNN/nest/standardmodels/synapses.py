@@ -119,6 +119,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         'mu_plus': 1.0,
         'mu_minus': 1.0
     }
+
     def __init__(self, w_min=0.0, w_max=1.0):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")

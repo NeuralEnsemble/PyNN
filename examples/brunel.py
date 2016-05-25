@@ -121,6 +121,8 @@ else:
     print("%d Initialising the simulator with single thread..." % rank)
 
 # Small function to display information only on node 1
+
+
 def nprint(s):
     if rank == 0:
         print(s)

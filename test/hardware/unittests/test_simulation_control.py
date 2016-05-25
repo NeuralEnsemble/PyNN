@@ -22,7 +22,9 @@ if MPI:
 
 extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
        
+
 class TestSimulationControl(unittest.TestCase):
+
     def test_setup(self):
         self.assertRaises(Exception, sim.setup, min_delay=1.0, max_delay=0.9, **extra)
         self.assertRaises(Exception, sim.setup, mindelay=1.0, **extra)  # } common

@@ -22,6 +22,7 @@ try:
 except ImportError:
     have_hardware_brainscales = False
 
+
 class HardwareTest(unittest.TestCase):
 
     def setUp(self):
@@ -61,7 +62,6 @@ class HardwareTest(unittest.TestCase):
             Panel(vm, ylabel="Membrane potential (mV)", data_labels=["excitatory", "excitatory"], line_properties=[{'xticks': True, 'yticks':True}]),
         ).save("result")
 
-        
     #def test_set_parameters(self):
         #p = sim.Population(3, sim.SpikeSourceArray())
         #p2 = sim.Population(3, sim.Hardware_IF_cond_exp())
@@ -125,12 +125,14 @@ def test_restart_loop():
     #sim.run(10.0)
     #sim.end()
 
+
 def test_sim_without_clearing():
     if not have_hardware_brainscales:
         raise SkipTest
     extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)    
     
+
 def test_sim_without_setup():
     if not have_hardware_brainscales:
         raise SkipTest

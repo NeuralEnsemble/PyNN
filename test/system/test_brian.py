@@ -10,6 +10,7 @@ try:
 except ImportError:
     have_brian = False
 
+
 def test_scenarios():
     for scenario in registry:
         if "brian" not in scenario.exclude:

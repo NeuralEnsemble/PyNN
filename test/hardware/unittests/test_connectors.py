@@ -622,7 +622,6 @@ class TestArrayConnector(unittest.TestCase):
                           (2, 2, 4.0, 1.4000000000000001)])  # better to do an "almost-equal" check
 
 
-
 class TestCloneConnector(unittest.TestCase):
 
     def setUp(self):
@@ -644,6 +643,7 @@ class TestCloneConnector(unittest.TestCase):
         # The gather_dict function in recording needs to be temporarily replaced so it can work with
         # a mock version of the function to avoid it throwing an mpi4py import error when setting
         # the rank in pyNN.mock by hand to > 1
+
         def mock_gather_dict(D, all=False):
             return D
         recording.gather_dict = mock_gather_dict
@@ -670,14 +670,17 @@ class TestCloneConnector(unittest.TestCase):
 class TestIndexBasedProbabilityConnector(unittest.TestCase):
 
     class IndexBasedProbability(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array((i + j) % 3 == 0, dtype=float)
 
     class IndexBasedWeights(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i * j + 1, dtype=float)
 
     class IndexBasedDelays(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i + j + 1, dtype=float)
 
@@ -733,6 +736,7 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
 
     def test_connect(self):
         syn = sim.StaticSynapse(weight=1.0, delay=2)
+
         def displacement_expression(d):
             return 0.5 * ((d[0] >= -1) * (d[0] <= 2)) + 0.25 * (d[1] >= 0) * (d[1] <= 1)
         C = connectors.DisplacementDependentProbabilityConnector(displacement_expression,

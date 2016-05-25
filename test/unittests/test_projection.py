@@ -31,13 +31,16 @@ from pyNN.parameters import Sequence
 
 from .backends.registry import register_class, register
 
+
 def _sort_by_column(A, col):
     A = numpy.array(A)
     array_index = numpy.argsort(A[:, col], kind='mergesort')
     return A[array_index]
 
+
 def setUp():
     pass
+
 
 @register_class()
 class ProjectionTest(unittest.TestCase):

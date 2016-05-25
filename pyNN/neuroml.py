@@ -32,6 +32,7 @@ strict = False
 #   Utility classes
 # ==============================================================================
 
+
 class ID(int, common.IDMixin):
     """
     Instead of storing ids as integers, we store them as ID objects,
@@ -48,6 +49,7 @@ class ID(int, common.IDMixin):
 #   Module-specific functions and classes (not part of the common API)
 # ==============================================================================
 
+
 def build_node(name_, text=None, **attributes):
     # we call the node name 'name_' because 'name' is a common attribute name (confused? I am)
     ns, name_ = name_.split(':')
@@ -61,6 +63,7 @@ def build_node(name_, text=None, **attributes):
         node.appendChild(xmldoc.createTextNode(text))
     return node
 
+
 def build_parameter_node(name, value):
         param_node = build_node('bio:parameter', value=value)
         if name:
@@ -68,6 +71,7 @@ def build_parameter_node(name, value):
         group_node = build_node('bio:group', 'all')
         param_node.appendChild(group_node)
         return param_node
+
 
 class IF_base(object):
     """Base class for integrate-and-fire neuron models."""        
@@ -113,7 +117,6 @@ class IF_base(object):
         isyn_node  = build_node('net:potential_syn_loc', synapse_type="InhSyn_"+self.label, synapse_direction="preAndOrPost")
         isyn_node.appendChild(build_node('net:group'))
         
-      
         for node in esyn_node, isyn_node: 
             conn_node.appendChild(node)
         return conn_node
@@ -216,6 +219,7 @@ class IF_curr_exp(cells.IF_curr_exp, NotImplementedModel):
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
 
+
 class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic current."""
@@ -231,6 +235,7 @@ class IF_curr_alpha(cells.IF_curr_alpha, NotImplementedModel):
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
 
+
 class IF_cond_exp(cells.IF_cond_exp, IF_base):
     """Leaky integrate and fire model with fixed threshold and 
     decaying-exponential post-synaptic conductance."""
@@ -245,6 +250,7 @@ class IF_cond_exp(cells.IF_cond_exp, IF_base):
         self.synapse_type = "doub_exp_syn"
         self.__class__.n += 1
         
+
 class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
     """Leaky integrate and fire model with fixed threshold and alpha-function-
     shaped post-synaptic conductance."""
@@ -258,6 +264,7 @@ class IF_cond_alpha(cells.IF_cond_alpha, IF_base):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.synapse_type = "alpha_syn"
         self.__class__.n += 1
+
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, NotImplementedModel):
     """Spike source, generating spikes according to a Poisson process."""
@@ -286,7 +293,6 @@ class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
         self.label = '%s%d' % (self.__class__.__name__, self.__class__.n)
         self.__class__.n += 1
         
-
 
 # ==============================================================================
 #   Functions for simulation set-up and control
@@ -321,6 +327,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False,**extra_params
         neuromlNode.appendChild(node)
     return 0
         
+
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
     global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode
@@ -332,6 +339,7 @@ def end(compatible_output=True):
     xml.dom.ext.PrettyPrint(xmldoc, xmlfile)
     xmlfile.close()
 
+
 def run(simtime):
     """Run the simulation for simtime ms."""
     pass # comment in NeuroML file
@@ -341,9 +349,11 @@ def get_min_delay():
     return 0.0
 common.get_min_delay = get_min_delay
 
+
 def num_processes():
     return 1
 common.num_processes = num_processes
+
 
 def rank():
     return 0
@@ -361,6 +371,7 @@ def create(cellclass, cellparams=None, n=1):
     """
     raise Exception('Not yet implemented')
 
+
 def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None):
     """Connect a source of spikes to a synaptic target. source and target can
     both be individual cells or lists of cells, in which case all possible
@@ -369,6 +380,7 @@ def connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng
     Weights should be in nA or uS."""
     raise Exception('Not yet implemented')
 
+
 def set(cells, cellclass, param, val=None):
     """Set one or more parameters of an individual cell or list of cells.
     param can be a dict, in which case val should not be supplied, or a string
@@ -376,10 +388,12 @@ def set(cells, cellclass, param, val=None):
     cellclass must be supplied for doing translation of parameter names."""
     raise Exception('Not yet implemented')
 
+
 def record(source, filename):
     """Record spikes to a file. source can be an individual cell or a list of
     cells."""
     pass # put a comment in the NeuroML file?
+
 
 def record_v(source, filename):
     """Record membrane potential to a file. source can be an individual cell or
@@ -391,6 +405,7 @@ def record_v(source, filename):
 #   neurons.
 # ==============================================================================
     
+
 class Population(common.Population):
     """
     An array of neurons all of the same type. `Population' is used as a generic
@@ -465,6 +480,7 @@ class Population(common.Population):
     def print_v(self, file, gather=True, compatible_output=True):
         pass
 
+
 class AllToAllConnector(connectors.AllToAllConnector):
     
     def connect(self, projection):
@@ -473,12 +489,14 @@ class AllToAllConnector(connectors.AllToAllConnector):
                                                   allow_self_connections=int(self.allow_self_connections)) )
         return connectivity_node
 
+
 class OneToOneConnector(connectors.OneToOneConnector):
     
     def connect(self, projection):
         connectivity_node = build_node('net:connectivity_pattern')
         connectivity_node.appendChild( build_node('net:one_to_one') )
         return connectivity_node
+
 
 class FixedProbabilityConnector(connectors.FixedProbabilityConnector):
     
@@ -503,6 +521,7 @@ class FixedNumberPreConnector(connectors.FixedNumberPreConnector):
         else:
             raise Exception('Connection with variable connection number not implemented.')
     
+
 class FixedNumberPostConnector(connectors.FixedNumberPostConnector):
     
     def connect(self, projection):

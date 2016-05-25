@@ -67,6 +67,7 @@ class PopulationViewTest(unittest.TestCase):
 # DON'T CHANGE below this line
 # -------------------------------------------------- 
     
+
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
         module_name = TestClass.__module__

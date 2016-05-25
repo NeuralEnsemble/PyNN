@@ -19,6 +19,7 @@ if True:  # mock NEURON
     # mocks are only wanted when building docs, not when running doctests
     # is there any way to use them selectively, like this?
     # also, the matplotlib figures need the real modules.
+
     class MockNeuronModule(mock.Mock):
         nrn_dll_loaded = []
         nhost = lambda self: 1
@@ -29,6 +30,7 @@ if True:  # mock NEURON
 
 if False:  # mock NEST
     import mock
+
     class MockNESTModule(mock.Mock):
         GetKernelStatus = lambda self: {'num_processes': 1}
     sys.modules["nest"] = MockNESTModule()

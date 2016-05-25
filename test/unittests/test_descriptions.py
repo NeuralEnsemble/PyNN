@@ -11,6 +11,7 @@ except ImportError:
     from mock import Mock
 import os.path
 
+
 class MockTemplateEngine(descriptions.TemplateEngine):
     render = Mock(return_value="african swallow")
     get_template = Mock()

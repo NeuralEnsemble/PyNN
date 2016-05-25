@@ -72,7 +72,6 @@ def scenario1(sim):
     sim.end()
 
 
-
 @register(exclude=["brian", "nemo"])
 def scenario1a(sim):
     """

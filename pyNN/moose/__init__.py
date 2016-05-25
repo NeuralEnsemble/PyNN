@@ -29,6 +29,7 @@ logger = logging.getLogger("PyNN")
 #   Functions for simulation set-up and control
 # ==============================================================================
 
+
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
@@ -40,6 +41,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     if not os.path.exists(temporary_directory):
         os.mkdir(temporary_directory)
     return 0
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -67,6 +69,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
+
 
 class Assembly(common.Assembly):
     _simulator = simulator

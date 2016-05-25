@@ -40,6 +40,7 @@ def get_default_template_engine():
     default = DEFAULT_TEMPLATE_ENGINE or list(TEMPLATE_ENGINES.keys())[0]
     return TEMPLATE_ENGINES[default]
 
+
 def render(engine, template, context):
     """
     Render the given template with the given context, using the given engine.

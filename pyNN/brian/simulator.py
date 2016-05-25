@@ -32,6 +32,7 @@ ms = brian.ms
 
 
 class ID(int, common.IDMixin):
+
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
@@ -104,6 +105,7 @@ class State(common.control.BaseState):
             else:
                 self._min_delay = min_delay * self.dt  # Synapses.delay is an integer, the number of time steps
         return self._min_delay
+
     def _set_min_delay(self, delay):
         self._min_delay = delay
     min_delay = property(fget=_get_min_delay, fset=_set_min_delay)

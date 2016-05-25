@@ -21,7 +21,6 @@ class Network:
         script_rng = NumpyRNG(seed=6508015, parallel_safe=parallel_safe)
         distr = RandomDistribution('normal', [V0_mean, V0_sd], rng=script_rng)
 
-        
         # Create cortical populations
         self.pops = {}
         for layer in layers:
@@ -82,7 +81,6 @@ class Network:
             self.w, self.w_ext, self.DC_amp = scaling.adjust_w_and_ext_to_K(K_full, K_scaling, self.w, self.DC_amp)
         else:
             self.w_ext = w_ext
-
 
         if sim.rank() == 0:
             print('w: %g' % self.w)

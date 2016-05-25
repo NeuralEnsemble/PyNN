@@ -10,8 +10,6 @@ from pyNN.moose.cells import StandardIF, SingleCompHH, RandomSpikeSource, Vector
 from pyNN.moose.cells import mV, ms, nA, uS, nF
 
     
-
-
 class IF_cond_exp(cells.IF_cond_exp):
     
     __doc__ = cells.IF_cond_exp.__doc__    
@@ -71,7 +69,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('i_offset',   'inject', 1e-9),
     )
     model = SingleCompHH
-
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):

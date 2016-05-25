@@ -28,6 +28,7 @@ else:
     IF_cond_exp = sim.IF_cond_exp
     EIF_cond_exp_isfa_ista = sim.EIF_cond_exp_isfa_ista
 
+
 class PopulationTest(unittest.TestCase):
 
     def setUp(self):
@@ -447,7 +448,6 @@ class PopulationTest(unittest.TestCase):
         p.record('spikes')
         sim.run(100.0)
         self.assertEqual(p.mean_spike_count(), 2.0)
-
 
     def test_meanSpikeCount(self):
         p = sim.Population(14, EIF_cond_exp_isfa_ista())

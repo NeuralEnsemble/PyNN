@@ -16,6 +16,7 @@ from nose.tools import assert_equal, assert_raises
 from pyNN.utility import assert_arrays_equal
 from math import sqrt
 
+
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
     if a.shape != b.shape:
         raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
@@ -25,6 +26,7 @@ def assert_arrays_almost_equal(a, b, threshold, msg=''):
         if msg:
             err_msg += "\nOther information: %s" % msg
         raise unittest.TestCase.failureException(err_msg)
+
 
 def test_distance():
     cell1 = Mock()
@@ -46,7 +48,6 @@ def test_distance():
     assert_equal(space.distance(cell1, cell2, scale_factor=0.5), 13.0)
     cell2.position = A(-1.7, 8.5, -5.3)
     assert_equal(space.distance(cell1, cell2, periodic_boundaries=A(7.0, 1e12, 1e12)), 13.0)
-
 
 
 class SpaceTest(unittest.TestCase):

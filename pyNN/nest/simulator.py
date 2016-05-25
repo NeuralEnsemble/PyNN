@@ -33,10 +33,13 @@ name = "NEST"  # for use in annotating output data
 
 # --- For implementation of get_time_step() and similar functions --------------
 
+
 def nest_property(name, dtype):
     """Return a property that accesses a NEST kernel parameter"""
+
     def _get(self):
         return nest.GetKernelStatus(name)
+
     def _set(self, val):
         try:
             nest.SetKernelStatus({name: dtype(val)})
@@ -109,6 +112,7 @@ class _State(common.control.BaseState):
     def _get_spike_precision(self):
         ogs = nest.GetKernelStatus('off_grid_spiking')
         return ogs and "off_grid" or "on_grid"
+
     def _set_spike_precision(self, precision):
         if precision == 'off_grid':
             nest.SetKernelStatus({'off_grid_spiking': True})
@@ -241,6 +245,7 @@ class Connection(common.Connection):
 def generate_synapse_property(name):
     def _get(self):
         return nest.GetStatus([self.id()], name)[0]
+
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)

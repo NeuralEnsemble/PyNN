@@ -21,6 +21,7 @@ from ..recording import get_io
 logger = logging.getLogger("PyNN")
 brian.log_level_warn()
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]

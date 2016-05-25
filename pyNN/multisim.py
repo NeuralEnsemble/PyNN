@@ -8,6 +8,7 @@ simulators.
 
 from multiprocessing import Process, Queue
 
+
 def run_simulation(network_model, sim, parameters, input_queue, output_queue):
     """
     Build the model defined in the class `network_model`, with parameters

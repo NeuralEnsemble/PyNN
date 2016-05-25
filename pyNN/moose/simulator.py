@@ -26,6 +26,7 @@ in_ms = 1.0/ms
 
 # --- For implementation of get_time_step() and similar functions --------------
 
+
 class _State(object):
     """Represent the simulator state."""
     
@@ -43,6 +44,7 @@ class _State(object):
     
     def __get_dt(self):
         return self.ctx.getClocks()[0]*in_ms
+
     def __set_dt(self, dt):
         print("setting dt to %g ms" % dt)
         self.ctx.setClock(0, dt*ms, 0) # integration clock
@@ -50,15 +52,18 @@ class _State(object):
         self.ctx.setClock(2, dt*ms, 0) # recording clock
     dt = property(fget=__get_dt, fset=__set_dt)
 
+
 def run(simtime):
     print("simulating for %g ms" % simtime)
     state.ctx.reset()
     state.ctx.step(simtime*ms)
 
+
 def reset():
     state.ctx.reset()
 
 # --- For implementation of access to individual neurons' parameters -----------
+
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__

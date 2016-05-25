@@ -118,6 +118,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(11, sim.IF_cond_exp(), structure=space.Grid2D())
         pv = p[2, 5, 7, 8]
         new_struct = space.Line()
+
         def set_struct(struct):
             pv.structure = struct
         self.assertRaises(AttributeError, set_struct, new_struct)

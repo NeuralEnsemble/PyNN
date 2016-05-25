@@ -22,9 +22,11 @@ from neo.io import get_io
 
 logger = logging.getLogger("PyNN")
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):
@@ -36,6 +38,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
     return rank()
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""

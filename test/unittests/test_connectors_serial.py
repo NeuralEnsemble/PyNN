@@ -31,6 +31,7 @@ def setUp():
 def tearDown():
     random.get_mpi_config = orig_mpi_get_config
         
+
 @register_class()
 class TestOneToOneConnector(unittest.TestCase):
 
@@ -421,6 +422,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                                                [  1.2,   1.4,   nan,   nan,   2.8]]),
                                   9)
 
+
 @register_class()
 class TestDistanceDependentProbabilityConnector(unittest.TestCase):
 
@@ -582,6 +584,7 @@ class TestFromFileConnector(unittest.TestCase):
                           (0, 1, 0.5, 0.14, 140.0, 96.0, 88.8),
                           (2, 2, 0.4, 0.13, 130.0, 97.0, 88.8),
                           (2, 3, 0.3, 0.12, 120.0, 98.0, 88.8)])
+
 
 @register_class()
 class TestFixedNumberPreConnector(unittest.TestCase):
@@ -901,7 +904,6 @@ class TestArrayConnector(unittest.TestCase):
                           (1, 3, 5.0, 1.5)]) 
 
 
-
 @register_class()
 class TestCloneConnector(unittest.TestCase):
 
@@ -923,6 +925,7 @@ class TestCloneConnector(unittest.TestCase):
         # The gather_dict function in recording needs to be temporarily replaced so it can work with
         # a mock version of the function to avoid it throwing an mpi4py import error when setting
         # the rank in pyNN.mock by hand to > 1
+
         def mock_gather_dict(D, all=False):
             return D
         recording.gather_dict = mock_gather_dict
@@ -956,14 +959,17 @@ class TestCloneConnector(unittest.TestCase):
 class TestIndexBasedProbabilityConnector(unittest.TestCase):
 
     class IndexBasedProbability(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array((i + j) % 3 == 0, dtype=float)
 
     class IndexBasedWeights(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i * j + 1, dtype=float)
 
     class IndexBasedDelays(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i + j + 1, dtype=float)
 

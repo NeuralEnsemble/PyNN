@@ -104,8 +104,6 @@ class SingleCompHH(moose.Neutral, RecorderMixin):
     # need to create some properties, so we can update parameter values after creation
 
 
-
-
 class StandardIF(moose.IntFire, RecorderMixin):
     
     def __init__(self, path, syn_shape, Cm=1.0, Em=0.0, Rm=1.0, Vr=0.0, Vt=1.0,
@@ -142,6 +140,7 @@ class StandardIF(moose.IntFire, RecorderMixin):
         
     def _get_tau_e(self):
         return self.esyn.tau1
+
     def _set_tau_e(self, val):
         self.esyn.tau1 = val
         if self.syn_shape == 'alpha':
@@ -150,6 +149,7 @@ class StandardIF(moose.IntFire, RecorderMixin):
     
     def _get_tau_i(self):
         return self.isyn.tau1
+
     def _set_tau_i(self, val):
         self.isyn.tau1 = val
         if self.syn_shape == 'alpha':
@@ -158,17 +158,18 @@ class StandardIF(moose.IntFire, RecorderMixin):
     
     def _get_e_e(self):
         return self.esyn.Ek
+
     def _set_e_e(self, val):
         self.esyn.Ek = val
     e_e = property(fget=_get_e_e, fset=_set_e_e)
     
     def _get_e_i(self):
         return self.isyn.Ek
+
     def _set_e_i(self, val):
         self.isyn.Ek = val
     e_i = property(fget=_get_e_i, fset=_set_e_i)
  
-
 
 class RandomSpikeSource(moose.RandomSpike):
     
@@ -208,6 +209,7 @@ class VectorSpikeSource(moose.TimeTable):
         
     def _get_spike_times(self):
         return self._spike_times
+
     def _set_spike_times(self, spike_times):
         self._save_spikes(spike_times)
     spike_times = property(fget=_get_spike_times, fset=_set_spike_times)

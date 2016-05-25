@@ -5,6 +5,7 @@ import quantities as pq
 
 from .registry import register
 
+
 @register(exclude=['moose', 'nemo'])
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)

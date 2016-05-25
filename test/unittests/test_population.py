@@ -29,12 +29,15 @@ from pyNN.parameters import Sequence
 
 from .backends.registry import register_class, register
  
+
 def setUp():
     pass
+
 
 def tearDown():
     pass
  
+
 @register_class()
 class PopulationTest(unittest.TestCase):
     

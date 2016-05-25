@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import os
 import glob
 
+
 def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
 
     # List of spike arrays, one entry for each population

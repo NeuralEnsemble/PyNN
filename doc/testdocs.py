@@ -11,6 +11,7 @@ from optparse import OptionParser
 optionflags = doctest.IGNORE_EXCEPTION_DETAIL+doctest.NORMALIZE_WHITESPACE
 optionflags = doctest.NORMALIZE_WHITESPACE
 
+
 class MyOutputChecker(doctest.OutputChecker):
     """
     Modification of doctest.OutputChecker to work better with the PyNN
@@ -42,6 +43,7 @@ class MyOutputChecker(doctest.OutputChecker):
                     except ValueError:
                         return doctest.OutputChecker.check_output(self, want, got, optionflags)
 
+
 def mytestfile(filename, globs, optionflags, strict=False):
     parser = doctest.DocTestParser()
     if globs is None:
@@ -58,11 +60,13 @@ def mytestfile(filename, globs, optionflags, strict=False):
     runner.summarize()
     return runner.failures, runner.tries
 
+
 def print_script(filename, simulator):
     parser = doctest.DocTestParser()
     s = open(filename).read()
     script = "".join([ex.source for ex in parser.get_examples(s) if "+SKIP" not in ex.source])
     print("from pyNN.%s import *\nsetup(max_delay=10.0, debug=True)\n%s" % (simulator, script))
+
 
 def remove_data_files():
     import glob

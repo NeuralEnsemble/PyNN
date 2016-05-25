@@ -36,12 +36,15 @@ class MockCellClass(object):
     recordable = ['v', 'spikes', 'gsyn_exc', 'gsyn_inh', 'spam']
     parameters = ['romans', 'judeans']
     injectable = True
+
     @classmethod
     def has_parameter(cls, name):
         return name in cls.parameters
 
+
 class MockCell(object):
     parameter_names = ['romans', 'judeans']
+
     def __init__(self, romans=0, judeans=1):
         self.source_section = h.Section()
         self.source = self.source_section(0.5)._ref_v
@@ -64,12 +67,15 @@ class MockCell(object):
 class MockSynapseType(object):
     model = None
 
+
 class MockPlasticSynapseType(object):
     model = "StdwaSA"
     postsynaptic_variable = "spikes"
 
+
 class MockStepCurrentSource(object):
     parameter_names = ['amplitudes', 'times']
+
     def __init__(self, **parameters):
         self._devices = []
 
@@ -78,8 +84,10 @@ class MockStepCurrentSource(object):
             if cell.local:
                self._devices += [cell]
 
+
 class MockDCSource(object):
     parameter_names = ['amplitude', 'start', 'stop']
+
     def __init__(self, **parameters):
         self._devices = []
 
@@ -90,19 +98,23 @@ class MockDCSource(object):
 
 
 class MockID(int):
+
     def __init__(self, n):
         int.__init__(n)
         self.local = bool(n%2)
         self.celltype = MockCellClass()
         self._cell = MockCell()
 
+
 class MockPopulation(populations.BasePopulation):
     celltype = MockCellClass()
     local_cells = [MockID(44), MockID(33)]
     all_cells = local_cells
     label = "mock population"
+
     def describe(self):
         return "mock population"
+
 
 class MockProjection(object):
     receptor_type = 'excitatory'
@@ -196,7 +208,6 @@ class TestState(unittest.TestCase):
     def test_register_gid(self):
         cell = MockCell()
         simulator.state.register_gid(84568345, cell.source, cell.source_section)
-
 
     def test_dt_property(self):
         simulator.state.dt = 0.01

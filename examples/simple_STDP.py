@@ -138,7 +138,6 @@ weight_recorder = WeightRecorder(sampling_interval=1.0, projection=connections)
 sim.run(t_stop, callbacks=[weight_recorder])
 
 
-
 # === Save the results, optionally plot a figure =============================
 
 filename = normalized_filename("Results", "simple_stdp", "pkl", options.simulator)

@@ -44,6 +44,7 @@ conditions = parameters.flatten()
 results = dict((var, defaultdict(list)) for var in dependent_variables)
 stats = dict((var, {}) for var in dependent_variables)
 
+
 def matches_conditions(record, conditions):
     return all((record[condition] == value) for condition, value in conditions.items())
 

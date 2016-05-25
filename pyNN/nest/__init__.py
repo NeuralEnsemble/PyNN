@@ -51,6 +51,7 @@ if logger.level == logging.NOTSET:
 #   Utility functions
 # ==============================================================================
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType) and obj is not StandardCellType]
@@ -61,6 +62,7 @@ def list_standard_models():
             print("Warning: %s is defined, but produces the following error: %s" % (cell_class.__name__, e))
             standard_cell_types.remove(cell_class)
     return [obj.__name__ for obj in standard_cell_types]
+
 
 def _discrepancy_due_to_rounding(parameters, output_values):
     """NEST rounds delays to the time step."""
@@ -80,6 +82,7 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
+
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):

@@ -95,6 +95,7 @@ def plot_isi_hist(panel, segment, label, hide_axis_labels=False):
 
 def plot_cvisi_hist(panel, segment, label, hide_axis_labels=False):
     print("plotting CV(ISI) histogram (%s)" % label)
+
     def cv_isi(spiketrain):
         isi = np.diff(np.array(spiketrain))
         return np.std(isi)/np.mean(isi)

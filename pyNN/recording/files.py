@@ -31,6 +31,7 @@ from pyNN.core import iteritems
 
 DEFAULT_BUFFER_SIZE = 10000
 
+
 def _savetxt(filename, data, format, delimiter):
     """
     Due to the lack of savetxt in older versions of numpy

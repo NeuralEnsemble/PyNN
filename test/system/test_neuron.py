@@ -78,6 +78,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gl = value
+
     def _get_g_leak(self):
         return self.apical(0.5).pas.g
     g_leak = property(fget=_get_g_leak, fset=_set_g_leak)
@@ -86,6 +87,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gnabar = value
+
     def _get_gnabar(self):
         return self.soma(0.5).hh.gnabar
     gnabar = property(fget=_get_gnabar, fset=_set_gnabar)
@@ -94,6 +96,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gkbar = value
+
     def _get_gkbar(self):
         return self.soma(0.5).hh.gkbar
     gkbar = property(fget=_get_gkbar, fset=_set_gkbar)
@@ -103,6 +106,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon, self.apical, self.basilar):
             for seg in sec:
                 seg.v = self.v_init
+
 
 class SimpleNeuronType(NativeCellType):
     default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}

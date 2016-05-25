@@ -10,7 +10,6 @@ from . import simulator
 from .recording import Recorder
 
 
-
 class Assembly(common.Assembly):
     _simulator = simulator
 

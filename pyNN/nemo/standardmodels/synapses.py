@@ -10,6 +10,7 @@ Synapse Dynamics classes for the nemo module.
 import numpy
 from pyNN.standardmodels import synapses, SynapseDynamics, STDPMechanism
 
+
 class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
     
@@ -20,6 +21,7 @@ class STDPMechanism(STDPMechanism):
                                                  are assumed to be axonal."""
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction)
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     

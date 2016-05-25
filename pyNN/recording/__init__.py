@@ -36,10 +36,12 @@ def get_mpi_comm():
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     return MPI.COMM_WORLD, {'DOUBLE': MPI.DOUBLE, 'SUM': MPI.SUM}
 
+
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logger.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
+
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
@@ -60,7 +62,6 @@ def gather_array(data):
     else:
         num_columns = data.shape[1]
         return gdata.reshape((gdata.size/num_columns, num_columns))
-
 
 
 def gather_dict(D, all=False):
@@ -175,6 +176,7 @@ def remove_duplicate_spiketrains(data):
 
 class DataCache(object):
     # primitive implementation for now, storing in memory - later can consider caching to disk
+
     def __init__(self):
         self._data = []
 

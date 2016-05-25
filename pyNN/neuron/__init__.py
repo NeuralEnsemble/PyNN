@@ -39,6 +39,7 @@ logger = logging.getLogger("PyNN")
 #   Utility functions
 # ==============================================================================
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and 
@@ -48,6 +49,7 @@ def list_standard_models():
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
+
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):
@@ -87,6 +89,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     if 'default_maxstep' in extra_params:
         simulator.state.default_maxstep=float(extra_params['default_maxstep'])
     return rank()
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""

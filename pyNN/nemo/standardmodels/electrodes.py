@@ -20,6 +20,7 @@ from pyNN.common import Population, PopulationView, Assembly
 
 # should really use the StandardModel machinery to allow reverse translations
 
+
 class NemoCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
@@ -42,11 +43,14 @@ class NemoCurrentSource(StandardCurrentSource):
 class DCSource(ModelNotAvailable):
     pass
     
+
 class ACSource(ModelNotAvailable):
     pass
 
+
 class StepCurrentSource(ModelNotAvailable):
     pass
+
 
 class NoisyCurrentSource(ModelNotAvailable):
     pass

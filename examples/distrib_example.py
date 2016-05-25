@@ -45,6 +45,7 @@ comm.Gatherv([data3, data3.size, MPI.DOUBLE], [data3g, (sizes,disp), MPI.DOUBLE]
 if comm.rank == 0:
     print("gathered (3):", data3g)
 
+
 def gather(data):
     assert isinstance(data, numpy.ndarray)
     # first we pass the data size

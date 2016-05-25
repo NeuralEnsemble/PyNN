@@ -43,7 +43,6 @@ class StaticSynapse(synapses.StaticSynapse):
                 self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
 
 
-
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 

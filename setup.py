@@ -4,6 +4,7 @@ from distutils.core import setup
 from distutils.command.build import build as _build
 import os
 
+
 class build(_build):
     """Add nrnivmodl to the end of the build process."""
 

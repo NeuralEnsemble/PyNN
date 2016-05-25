@@ -28,6 +28,7 @@ from copy import deepcopy
 #   Standard cells
 # ==============================================================================
 
+
 def build_translations(*translation_list):
     """
     Build a translation dictionary from a list of translations/transformations.

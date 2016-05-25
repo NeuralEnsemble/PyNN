@@ -2,6 +2,7 @@ import numpy
 from pyNN.nest import *
 import matplotlib.pyplot as plt
 
+
 def test_sim(on_or_off_grid, sim_time):
     setup(timestep=1.0, min_delay=1.0, max_delay=1.0, spike_precision=on_or_off_grid)
     src = Population(1, SpikeSourceArray(spike_times=[0.5]))
@@ -21,6 +22,7 @@ def test_sim(on_or_off_grid, sim_time):
 sim_time = 10.0
 off = test_sim('off_grid', sim_time)
 on  = test_sim('on_grid', sim_time)
+
 
 def plot_data(pos, on, off, ylim, with_legend=False):
     ax = plt.subplot(1, 2, pos)

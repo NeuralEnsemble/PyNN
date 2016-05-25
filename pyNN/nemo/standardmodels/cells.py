@@ -30,7 +30,6 @@ class Izhikevich(cells.Izhikevich):
     initial_indices = {'u' : 0, 'v' : 1}
 
 
-
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     
     __doc__ = cells.SpikeSourcePoisson.__doc__ 
@@ -46,7 +45,6 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     indices = {'rate' : 0}
 
 
-
 class SpikeSourceArray(cells.SpikeSourceArray):
 
     __doc__ = cells.SpikeSourceArray.__doc__    
@@ -55,7 +53,6 @@ class SpikeSourceArray(cells.SpikeSourceArray):
         ('spike_times', 'spike_times'),
     )
     nemo_name = "Input"
-
 
     class spike_player(object):
         
@@ -87,6 +84,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass
+
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     
@@ -227,17 +225,22 @@ class IF_cond_exp(cells.IF_cond_exp):
 class IF_facets_hardware1(ModelNotAvailable):
     pass
 
+
 class EIF_cond_alpha_isfa_ista(ModelNotAvailable):
     pass
+
 
 class EIF_cond_exp_isfa_ista(ModelNotAvailable):
     pass    
 
+
 class HH_cond_exp(ModelNotAvailable):
     pass
 
+
 class SpikeSourceInhGamma(ModelNotAvailable):
     pass
+
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass

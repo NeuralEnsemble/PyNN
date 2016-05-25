@@ -308,7 +308,6 @@ class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
         return source
 
 
-
 class SynapseTypeMixin(object):
     counter = 0
 
@@ -352,6 +351,7 @@ class CurrentSourceMixin(object):
                             definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
                                                          "dynamics"),
                             parameters=build_parameter_set(self.parameters))
+
 
 class DCSource(CurrentSourceMixin, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__

@@ -9,6 +9,7 @@ standard current source models.
 from pyNN.standardmodels import StandardCurrentSource
 from pyNN.parameters import Sequence
 
+
 class DCSource(StandardCurrentSource):
     """Source producing a single pulse of current of constant amplitude.
 
@@ -75,6 +76,7 @@ class StepCurrentSource(StandardCurrentSource):
         'amplitudes': Sequence([]),
         'times'     : Sequence([])
     }
+
 
 class NoisyCurrentSource(StandardCurrentSource):
     """A Gaussian "white" noise current source. The current amplitude changes at fixed

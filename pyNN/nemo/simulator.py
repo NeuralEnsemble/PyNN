@@ -42,6 +42,7 @@ logger = logging.getLogger("PyNN")
 
 # --- For implementation of get_time_step() and similar functions --------------
 
+
 class _State(object):
     """Represent the simulator state."""
     
@@ -108,7 +109,6 @@ class _State(object):
                 if recorder.variable is "gsyn":
                     recorder._add_gsyn(self.t)
 
-            
             self._fired = self.sim.step(spikes, currents)
             self.time  += self.dt
         
@@ -129,6 +129,7 @@ def reset():
     
 # --- For implementation of access to individual neurons' parameters -----------
     
+
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
 

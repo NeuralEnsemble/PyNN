@@ -24,6 +24,7 @@ from pyNN import standardmodels
 
 logger = logging.getLogger("PyNN")
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     standard_cell_types = [obj for obj in globals().values() if isinstance(obj, type) and issubclass(obj, standardmodels.StandardCellType)]
@@ -38,6 +39,7 @@ def list_standard_models():
 # ==============================================================================
 #   Functions for simulation set-up and control
 # ==============================================================================
+
 
 def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     """
@@ -60,6 +62,7 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
         simulator.state.conf.set_cuda_backend(extra_params["cuda_backend"])
     print("The backend used by nemo is: ", simulator.state.conf.backend_description())
     return simulator.state.mpi_rank
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -90,6 +93,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
+
 
 class Assembly(common.Assembly):
     _simulator = simulator

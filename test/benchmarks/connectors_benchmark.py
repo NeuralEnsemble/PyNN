@@ -13,11 +13,13 @@ timer = Timer()
 progress_bar = ProgressBar(mode='fixed', width=20)
 init_logging("connectors_benchmark_%s.log" % simulator_name, debug=True)
 
+
 def draw_rf(cell, positions, connections, color='k'):
     idx     = numpy.where(connections[:,1] == cell)[0]
     sources = connections[idx, 0]
     for src in sources:
         plot([positions[cell, 1], positions[src, 1]], [positions[cell, 2], positions[src, 2]], c=color)
+
 
 def distances(pos_1, pos_2, N):
     dx = abs(pos_1[:,0]-pos_2[:,0])
@@ -37,6 +39,7 @@ structure = RandomStructure(Cuboid(1, 1, 1), origin=(0.5,0.5,0.5), rng=NumpyRNG(
 x       = Population(N**2, IF_curr_exp(), structure=structure)
 mytime = timer.diff()
 print("Time to build the cell population:", mytime, 's')
+
 
 def test(cases=[1]):
 
@@ -94,7 +97,6 @@ def test(cases=[1]):
         elif case is 8:
             conn  = SmallWorldConnector(degree=0.1, rewiring=0., safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "SmallWorld_%s_np_%d.png" %(simulator_name, np)
-
 
         print("Generating data for %s" %fig_name)
         

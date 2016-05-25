@@ -14,6 +14,7 @@ from os import environ, path
 # getters
 # ==============================================================================
  
+
 def get_symap2ic_path(): 
     if 'SYMAP2IC_PATH' not in environ:
         raise ImportError(
@@ -30,6 +31,7 @@ def get_symap2ic_path():
             % symap2ic_path) 
     return symap2ic_path
     
+
 def get_pynn_hw_path(): 
     hardware_path = environ['PYNN_HW_PATH']
     if not path.exists(hardware_path):
@@ -41,6 +43,7 @@ def get_pynn_hw_path():
             % hardware_path)  
     return hardware_path
     
+
 def get_hardware_path(symap2ic_path):
     hardware_path = path.join(symap2ic_path,"components/pynnhw/src/hardware")
     if not path.exists(hardware_path):
@@ -56,6 +59,7 @@ def get_hardware_path(symap2ic_path):
 # Utility functions
 # ==============================================================================
 
+
 def import_module(version="brainscales"):
     __import__("brainscales", globals(), locals(), [], -1)
     
@@ -63,6 +67,7 @@ def import_module(version="brainscales"):
 # Functions called by __init__.py 
 # ==============================================================================
         
+
 def get_path_to_analog_hardware_backend():
     symap2ic_path = get_symap2ic_path()
     if 'PYNN_HW_PATH' in environ:
@@ -72,6 +77,7 @@ def get_path_to_analog_hardware_backend():
         
     return hardware_path
     
+
 def import_all_submodules(module_path):
     for importer, module_name, ispkg in iter_modules(module_path):
         if ispkg == True:

@@ -41,6 +41,7 @@ _MIN_PROJECTION_VARGID = 1000000
 
 # --- Internal NEURON functionality --------------------------------------------
 
+
 def load_mechanisms(path):
     """
     Search for and load NMODL mechanisms from the path given.
@@ -90,8 +91,10 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0,1]):
 
 def h_property(name):
     """Return a property that accesses a global variable in Hoc."""
+
     def _get(self):
         return getattr(h, name)
+
     def _set(self, val):
         setattr(h, name, val)
     return property(fget=_get, fset=_set)
@@ -168,8 +171,10 @@ class _State(common.control.BaseState):
         self.native_rng_baseseed  = 0
 
     t = h_property('t')
+
     def __get_dt(self):
         return h.dt
+
     def __set_dt(self, dt):
         h.steps_per_ms = 1.0/dt
         h.dt = dt
@@ -179,6 +184,7 @@ class _State(common.control.BaseState):
     def __set_min_delay(self, val):     # can interact with the GUI
         if val != 'auto':
             h.min_delay = val
+
     def __get_min_delay(self):
         if h.min_delay < 0:
             return 'auto'
@@ -286,6 +292,7 @@ class _State(common.control.BaseState):
         return (pre_post_vargid, post_pre_vargid)
 
 # --- For implementation of access to individual neurons' parameters -----------
+
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
@@ -483,6 +490,7 @@ class GapJunction(object):
     def as_tuple(self, *attribute_names):
         return tuple(getattr(self, name) for name in attribute_names)
     
+
 class GapJunctionPresynaptic(GapJunction):
     """
     The presynaptic component of a gap junction. Gap junctions in NEURON are actually symmetrical
@@ -506,6 +514,7 @@ class GapJunctionPresynaptic(GapJunction):
 def generate_synapse_property(name):
     def _get(self):
         return getattr(self.weight_adjuster, name)
+
     def _set(self, val):
         setattr(self.weight_adjuster, name, val)
     return property(_get, _set)

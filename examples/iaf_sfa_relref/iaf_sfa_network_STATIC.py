@@ -27,7 +27,6 @@ from pyNN import standardmodels
 import logging
 
 
-
 ###################### CLASSES ###########################
 class LatticeConnector(connectors.Connector):
     """
@@ -144,7 +143,6 @@ class LatticeConnector(connectors.Connector):
             projection._convergent_connect(chosenPresIDs, currentPostID, weights, delaysClipped)
             timer4 += time.time() - myTimer
             
-        
         # Print timings
         if rank==0:
             print("\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m")
@@ -152,7 +150,6 @@ class LatticeConnector(connectors.Connector):
             print("\033[2;46m" + ("Timer 2: %5.4f seconds" % timer2).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 3: %5.4f seconds" % timer3).ljust(60) + "\033[m")
             print("\033[2;46m" + ("Timer 4: %5.4f seconds" % timer4).ljust(60) + "\033[m")
-
 
 
 ###################### FUNCTIONS ###########################
@@ -163,6 +160,7 @@ def printTimer(message):
         string2 = "\033[1;46m" + ("%5.2f" % (time.time() - currentTimer) + " seconds").rjust(30) + "\033[m"
         print(string1 + string2)
         currentTimer = time.time()
+
 
 def printMessage(message):
     global rank
@@ -336,7 +334,6 @@ printTimer("Time for setup part")
 printMessage("Now running without inter-lattice connections.")
 sim.run(int(tinit))
 printTimer("Time for first half of run")
-
 
 
 # Lower the external network "ghost" processes according to how many connections of that

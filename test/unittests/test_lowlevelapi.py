@@ -16,6 +16,7 @@ def test_build_create():
     p = create_function("cell class", "cell params", n=999)
     population_class.assert_called_with(999, "cell class", cellparams="cell params")
 
+
 def test_build_connect():
     projection_class = Mock()
     connector_class = Mock(return_value="connector")
@@ -29,17 +30,20 @@ def test_build_connect():
     projection_class.assert_called_with("source", "target", "connector", synapse_type="syn", receptor_type="receptor_type")
 
     class MockID(common.IDMixin):
+
        def as_view(self):
             return "view"
 
     prj = connect_function(MockID(), MockID(), "weight", "delay", "receptor_type", "p", "rng")
     projection_class.assert_called_with("view", "view", "connector", synapse_type="syn", receptor_type="receptor_type")
 
+
 def test_set():
     cells = BasePopulation()
     cells.set = Mock()
     common.set(cells, param="val")
     cells.set.assert_called_with(param="val")
+
 
 def test_build_record():
     simulator = Mock()
@@ -52,6 +56,7 @@ def test_build_record():
     record_function(('v', 'spikes'), source, "filename")
     source.record.assert_called_with(('v', 'spikes'), to_file="filename", sampling_interval=None)
     assert_equal(simulator.state.write_on_end, [(source, ('v', 'spikes'), "filename")])
+
 
 def test_build_record_with_assembly():
     simulator = Mock()

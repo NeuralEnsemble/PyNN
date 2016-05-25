@@ -3,6 +3,7 @@ import numpy
 from nose.tools import assert_equal
 from .registry import register
 
+
 @register(exclude=["moose", "nemo"])
 def scenario2(sim):
     """

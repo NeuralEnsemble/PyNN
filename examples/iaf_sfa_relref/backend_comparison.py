@@ -5,6 +5,7 @@ import pyNN.nest as nest
 
 pyNN_backends = {'nest':nest,'neuron':neuron}
 
+
 def run(sim):
     """ Run the mcb simulation with known random numbers for the given simulator backend"""
 
@@ -61,7 +62,6 @@ def run(sim):
     #popI.record()
     #popI.record_v()
 
-
     sim.run(tsim)
 
     ## Get spikes ##
@@ -72,7 +72,6 @@ def run(sim):
     v_I = popE.get_v()
     g_I = popI.get_gsyn()
    
-                              
     #print(spikesE)
     # should be about 6.0Hz
     print(float(len(spikesE))/tsim*1000.0)

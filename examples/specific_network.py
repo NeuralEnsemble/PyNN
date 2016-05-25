@@ -43,6 +43,8 @@ cells = Population(n, IF_curr_alpha(**cell_params), initial_values={'v': 0.0}, l
 
 number = int(2*simtime*input_rate/1000.0)
 numpy.random.seed(26278342)
+
+
 def generate_spike_times(i):
     gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
     if hasattr(i, "__len__"):

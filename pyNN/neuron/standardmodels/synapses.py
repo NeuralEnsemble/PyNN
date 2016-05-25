@@ -9,6 +9,7 @@ Synapse Dynamics classes for the neuron module.
 from pyNN.standardmodels import synapses, build_translations
 from pyNN.neuron.simulator import state, Connection, GapJunction, GapJunctionPresynaptic
 
+
 class BaseSynapse(object):
     """
     Base synapse type for all NEURON standard synapses (sets a default 'connection_type')

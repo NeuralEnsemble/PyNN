@@ -33,13 +33,13 @@ from pyNN.nest.cells import NativeCellType
 #recording.simulator = simulator
 
 
-
 logger = logging.getLogger("PyNN")
 
 # TODO: This should go to a evironment variable, like PYNN_9ML_DIR
 # and then a sub-dir for nest, neuron, etc.
 # but default to ~/.pyNN or something to that regard.
 NEST_DIR = "nest_models"
+
 
 class NineMLCellType(NativeCellType):
     
@@ -55,7 +55,6 @@ def nineml_celltype_from_model(name, nineml_model, synapse_components):
     dct = {'nineml_model':nineml_model,
            'synapse_components':synapse_components}
     return _nest_build_nineml_celltype(name, (NineMLCellType,), dct)
-
 
 
 class _nest_build_nineml_celltype(type):
@@ -88,7 +87,6 @@ class _nest_build_nineml_celltype(type):
         # Close any open reduce ports:
         component_modifiers.ComponentModifier.close_all_reduce_ports(component = flat_component)
 
-
         flat_component.short_description = "Auto-generated 9ML neuron model for PyNN.nest"
         flat_component.long_description = "Auto-generated 9ML neuron model for PyNN.nest"
 
@@ -108,7 +106,6 @@ class _nest_build_nineml_celltype(type):
                 raise ValueError("A synapse component has multiple recv ports.  Cannot dis-ambiguate")
             synapse_ports.append(syn.namespace+'_'+recv_event_ports[0].name)
 
-        
         # New:
         dct["combined_model"] = flat_component
         # TODO: Override this with user layer
@@ -122,7 +119,6 @@ class _nest_build_nineml_celltype(type):
         dct["model_name"] = name
         dct["nest_model"] = name
 
-        
         # Recording from bindings:
         dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime']
         # TODO bindings -> alias and support recording of them in nest template

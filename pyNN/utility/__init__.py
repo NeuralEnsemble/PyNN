@@ -303,6 +303,7 @@ class Timer(object):
         min, T['second'] = divmod(s, 60)
         h, T['minute'] = divmod(min, 60)
         T['day'], T['hour'] = divmod(h, 24)
+
         def add_units(val, units):
             return "%d %s" % (int(val), units) + (val>1 and 's' or '')
         return ', '.join([add_units(T[part], part)

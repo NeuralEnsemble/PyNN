@@ -923,7 +923,6 @@ class PopulationView(BasePopulation):
         return descriptions.render(engine, template, context)
 
 
-
 class Assembly(object):
     """
     A group of neurons, may be heterogeneous, in contrast to a Population where
@@ -1209,7 +1208,6 @@ class Assembly(object):
         else:
             assert len(parameter_names) == 1
             return values[0]
-
 
     def set(self, **parameters):
         """

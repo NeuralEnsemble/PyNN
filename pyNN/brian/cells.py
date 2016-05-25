@@ -29,12 +29,14 @@ def _new_property(obj_hierarchy, attr_name, units):
       e = _new_property('b.c', 'd')
     in the class definition of A makes A.e an alias for A.b.c.d
     """
+
     def set(self, value):
         if obj_hierarchy:
             obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
         else:
             obj = self
         setattr(obj, attr_name, value*units)
+
     def get(self):
         if obj_hierarchy:
             obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
@@ -237,6 +239,7 @@ class PoissonGroup(brian.PoissonGroup):
 
     def _get_rate(self):
         return self.firing_rate
+
     def _set_rate(self, value):
         self.firing_rate = value
     rate = property(fset=_set_rate, fget=_get_rate)
@@ -258,6 +261,7 @@ class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
         for i, t in self.spiketimes:
             values[i].append(t)
         return numpy.array([Sequence(times) for times in values], dtype=Sequence)
+
     def _set_spike_times(self, spike_times, mask=None):
         if mask is not None:
             existing_times = self._get_spike_times()

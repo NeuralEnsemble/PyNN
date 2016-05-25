@@ -55,7 +55,8 @@ class MockRNG2(random.WrappedRNG):
 
     def permutation(self, arr):
         return arr[::-1]
-    
+
+
 class MockRNG3(random.WrappedRNG):
     """
     returns [1, 0, 0, 0,..]

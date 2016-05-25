@@ -146,6 +146,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         'E_ex': 0.0
     }
 
+
 class HH_cond_exp(cells.HH_cond_exp):
     
     __doc__ = cells.HH_cond_exp.__doc__    

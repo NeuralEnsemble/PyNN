@@ -10,6 +10,7 @@ from pyNN.moose import simulator
 
 # --- For implementation of record_X()/get_X()/print_X() -----------------------
 
+
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
         

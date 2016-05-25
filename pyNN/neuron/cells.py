@@ -33,9 +33,11 @@ def _new_property(obj_hierarchy, attr_name):
       e = _new_property('b.c', 'd')
     in the class definition of A makes A.e an alias for A.b.c.d
     """
+
     def set(self, value):
         obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
         setattr(obj, attr_name, value)
+
     def get(self):
         obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
         return getattr(obj, attr_name)
@@ -134,24 +136,28 @@ class SingleCompartmentNeuron(BaseSingleCompartmentNeuron):
 
     def _get_tau_e(self):
         return self.esyn.tau
+
     def _set_tau_e(self, value):
         self.esyn.tau = value
     tau_e = property(fget=_get_tau_e, fset=_set_tau_e)
 
     def _get_tau_i(self):
         return self.isyn.tau
+
     def _set_tau_i(self, value):
         self.isyn.tau = value
     tau_i = property(fget=_get_tau_i, fset=_set_tau_i)
 
     def _get_e_e(self):
         return self.esyn.e
+
     def _set_e_e(self, value):
         self.esyn.e = value
     e_e = property(fget=_get_e_e, fset=_set_e_e)
 
     def _get_e_i(self):
         return self.isyn.e
+
     def _set_e_i(self, value):
         self.isyn.e = value
     e_i = property(fget=_get_e_i, fset=_set_e_i)
@@ -169,6 +175,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     def __set_tau_m(self, value):
         #print("setting tau_m to", value, "cm =", self.seg.cm))
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+
     def __get_tau_m(self):
         #print("tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm)
         return 1e-3*self.seg.cm/self.seg.pas.g
@@ -176,6 +183,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     def __get_cm(self):
         #print("cm = ", self.seg.cm)
         return self.seg.cm
+
     def __set_cm(self, value): # when we set cm, need to change g to maintain the same value of tau_m
         #print("setting cm to", value)
         tau_m = self.tau_m
@@ -212,7 +220,6 @@ class StandardIF(LeakySingleCompartmentNeuron):
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
-
 
     v_thresh = _new_property('spike_reset', 'vthresh')
     v_reset  = _new_property('spike_reset', 'vreset')
@@ -256,6 +263,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     def __set_v_spike(self, value):
         self.adexp.vspike = value
         self.adexp.vpeak = value + 10.0
+
     def __get_v_spike(self):
         return self.adexp.vspike
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
@@ -263,12 +271,14 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     def __set_tau_m(self, value):
         self.seg.pas.g = 1e-3*self.seg.cm/value # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
         self.adexp.GL = self.seg.pas.g * self.area() * 1e-2 # S/cm2 to uS
+
     def __get_tau_m(self):
         return 1e-3*self.seg.cm/self.seg.pas.g
 
     def __set_v_rest(self, value):
         self.seg.pas.e = value
         self.adexp.EL = value
+
     def __get_v_rest(self):
         return self.seg.pas.e
     tau_m  = property(fget=__get_tau_m, fset=__set_tau_m)
@@ -397,7 +407,6 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         self.set_parameters(locals())
         self.v_init = e_leak # default value
 
-
     # not sure ena and ek are handled correctly
 
     e_leak   = _new_property('seg.hh_traub', 'el')
@@ -432,6 +441,7 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.interval = value
         self.switch.weight[0] = 1
         self.switch.event(h.t+2e-12, 1)
+
     def _get_interval(self):
         return self.interval
     _interval = property(fget=_get_interval, fset=_set_interval)
