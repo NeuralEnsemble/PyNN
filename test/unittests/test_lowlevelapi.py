@@ -61,6 +61,7 @@ def test_build_record_with_assembly():
 
     p1 = BasePopulation()
     p2 = BasePopulation()
+    common.Assembly._simulator = None
     source = common.Assembly(p1, p2)
     source.record = Mock()
     record_function('foo', source, "filename")

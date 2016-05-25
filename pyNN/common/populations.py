@@ -607,6 +607,11 @@ class Population(BasePopulation):
         """
         Create a population of neurons all of the same type.
         """
+        if not hasattr(self, "_simulator"):
+            errmsg = "`common.Population` should not be instantiated directly. " \
+                     "You should import Population from a PyNN backend module, " \
+                     "e.g. pyNN.nest or pyNN.neuron"
+            raise Exception(errmsg)
         if not isinstance(size, int):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
             # check the things inside are ints
@@ -790,6 +795,11 @@ class PopulationView(BasePopulation):
         Create a view of a subset of neurons within a parent Population or
         PopulationView.
         """
+        if not hasattr(self, "_simulator"):
+            errmsg = "`common.PopulationView` should not be instantiated directly. " \
+                     "You should import PopulationView from a PyNN backend module, " \
+                     "e.g. pyNN.nest or pyNN.neuron"
+            raise Exception(errmsg)
         self.parent = parent
         self.mask = selector # later we can have fancier selectors, for now we just have numpy masks
         # maybe just redefine __getattr__ instead of the following...
@@ -931,6 +941,11 @@ class Assembly(object):
         """
         Create an Assembly of Populations and/or PopulationViews.
         """
+        if not hasattr(self, "_simulator"):
+            errmsg = "`common.Assembly` should not be instantiated directly. " \
+                     "You should import Assembly from a PyNN backend module, " \
+                     "e.g. pyNN.nest or pyNN.neuron"
+            raise Exception(errmsg)
         if kwargs:
             assert list(kwargs.keys()) == ['label']
         self.populations = []

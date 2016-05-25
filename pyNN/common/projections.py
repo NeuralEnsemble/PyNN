@@ -65,6 +65,11 @@ class Projection(object):
         """
         Create a new projection, connecting the pre- and post-synaptic neurons.
         """
+        if not hasattr(self, "_simulator"):
+            errmsg = "`common.Projection` should not be instantiated directly. " \
+                     "You should import Projection from a PyNN backend module, " \
+                     "e.g. pyNN.nest or pyNN.neuron"
+            raise Exception(errmsg)
         for prefix, pop in zip(("pre", "post"),
                                (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
