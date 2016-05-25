@@ -30,7 +30,7 @@ from pyNN.neuron.cells import NativeCellType
 try:
     from . import nineml
 except ImportError:
-    pass
+    pass  # nineml is an optional dependency
 
 import logging
 logger = logging.getLogger("PyNN")

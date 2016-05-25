@@ -93,8 +93,8 @@ class BaseFile(object):
             try:  # wrapping in try...except block for MPI
                 os.makedirs(dir)
             except IOError:
-                pass
-        try: ## Need this because in parallel, file names are changed
+                pass  # we assume that the directory was already created by another MPI node
+        try:  # Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
         except Exception as err:
             self.open_error = err

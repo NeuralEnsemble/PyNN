@@ -74,7 +74,7 @@ class BaseCellType(BaseModelType):
     injectable = True # override for spike sources
     
     def can_record(self, variable):
-        return (variable in self.recordable)
+        return variable in self.recordable
 
 
 class BaseCurrentSource(BaseModelType):

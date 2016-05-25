@@ -125,7 +125,7 @@ class STDPMechanism(synapses.STDPMechanism):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):
-        if (dendritic_delay_fraction != 0):
+        if dendritic_delay_fraction != 0:
             raise ValueError("The pyNN.brian backend does not currently support "
                              "dendritic delays: for the purpose of STDP calculations "
                              "all delays are assumed to be axonal.")

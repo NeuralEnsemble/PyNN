@@ -153,7 +153,7 @@ try:
         
     TEMPLATE_ENGINES['jinja2'] = Jinja2TemplateEngine
 except ImportError:
-    pass
+    pass   # jinja2 is an optional dependency
 
 
 try:
@@ -192,4 +192,4 @@ try:
 
     TEMPLATE_ENGINES['cheetah'] = CheetahTemplateEngine
 except ImportError:
-    pass
+    pass  # cheetah is an optional dependency

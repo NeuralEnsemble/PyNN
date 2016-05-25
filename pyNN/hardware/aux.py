@@ -15,7 +15,7 @@ from os import environ, path
 # ==============================================================================
  
 def get_symap2ic_path(): 
-    if not environ.has_key('SYMAP2IC_PATH'):
+    if 'SYMAP2IC_PATH' not in environ:
         raise ImportError(
             """
             symap2ic software is not available!
@@ -65,7 +65,7 @@ def import_module(version="brainscales"):
         
 def get_path_to_analog_hardware_backend():
     symap2ic_path = get_symap2ic_path()
-    if environ.has_key('PYNN_HW_PATH'): 
+    if 'PYNN_HW_PATH' in environ:
         hardware_path = get_pynn_hw_path()
     else:
         hardware_path = get_hardware_path(symap2ic_path)

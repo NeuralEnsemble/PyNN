@@ -172,7 +172,6 @@ def printMessage(message):
 
 ###################### MAIN BODY ###########################
 ## Rank for MPI ##
-global numberOfNodes, rank
 numberOfNodes = sim.num_processes()
 rank = sim.rank()
 
@@ -186,7 +185,6 @@ if rank==0:
 
 
 ## Timer ##
-global currentTimer, totalTimer
 currentTimer = time.time()
 totalTimer = time.time()
 
@@ -423,8 +421,8 @@ if rank==0:
     
     pylab.xlabel("Time [milliseconds]")
     pylab.ylabel("Neuron (first E, then I)")
-    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$,"+\
-               "$C_{I\\rightarrow E}=%.2f$, $C_{I\\rightarrow I}=%.2f$,") % \
+    pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$,"+
+               "$C_{I\\rightarrow E}=%.2f$, $C_{I\\rightarrow I}=%.2f$,") %
                 (ICFactorE_E, ICFactorE_I, ICFactorI_E, ICFactorI_I))
     pylab.suptitle("Layer 4 model with Connection Factors:")
     #pylab.legend()

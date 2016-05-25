@@ -16,8 +16,8 @@ def get_indegrees():
                     source_index = structure[source_layer][source_pop]
                     n_target = N_full[target_layer][target_pop]
                     n_source = N_full[source_layer][source_pop]
-                    K[target_index][source_index] = round(np.log(1. - \
-                        conn_probs[target_index][source_index])/np.log( \
+                    K[target_index][source_index] = round(np.log(1. -
+                        conn_probs[target_index][source_index])/np.log(
                         (n_target*n_source-1.)/(n_target*n_source)))/n_target
     return K
 

@@ -19,17 +19,11 @@ Constants:
 """
 
 from __future__ import absolute_import
-import subprocess
-import neuron
-from pyNN.models import BaseCellType
 import logging
 import os
-from itertools import chain
 import neuron
 from pyNN.models import BaseCellType
 from pyNN.nineml.cells import build_nineml_celltype
-from pyNN.neuron import simulator
-from pyNN import common, recording
 from nineml2nmodl import write_nmodl, write_nmodldirect, call_nrnivmodl
 
 
@@ -98,7 +92,6 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
     print("Running 'nrnivmodl' from %s" % wdir)
-    import nineml2nmodl
     call_nrnivmodl()
     os.chdir(cwd)
     neuron.load_mechanisms(wdir)

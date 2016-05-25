@@ -76,7 +76,6 @@ sim.run(100.0)
 
 # === Calculate the height of the first EPSP =================================
 
-from quantities import ms
 print("Height of first EPSP:")
 for population in all_neurons.populations:
     # retrieve the recorded data

@@ -51,7 +51,7 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     """
     d = src.position - scale_factor*(tgt.position + offset)
 
-    if not periodic_boundaries == None:
+    if periodic_boundaries is not None:
         d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
     if mask is not None:
         d = d[mask]
@@ -312,7 +312,7 @@ class Grid3D(BaseStructure):
             return numpy.array((x,y,z))
         else:
             raise NotImplementedError
-        generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
+    generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
 class Shape(object):

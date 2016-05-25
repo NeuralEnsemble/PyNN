@@ -201,7 +201,7 @@ class Projection(common.Projection):
             value = getattr(self._brian_synapses[0][0], name).to_matrix(multiple_synapses='sum')
             if name == 'delay':
                 value *= self._simulator.state.dt * ms
-            ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=(value.shape)))  # should really use the translated name
+            ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=value.shape))  # should really use the translated name
             ps.evaluate()
             value = ps[name]
             values.append(value)
@@ -224,7 +224,7 @@ class Projection(common.Projection):
                 else:
                     assert name == 'delay'
                     value = data_obj.data * self._simulator.state.dt * ms
-                ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=(value.shape)))  # should really use the translated name
+                ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=value.shape))  # should really use the translated name
                 # this whole "get attributes" thing needs refactoring in all backends to properly use translation
                 ps.evaluate()
                 value = ps[name]

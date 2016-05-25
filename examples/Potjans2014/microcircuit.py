@@ -69,7 +69,7 @@ if create_raster_plot and sim.rank()==0 :
                 n_rec[i][j] = round(N_full[layer][pop]*N_scaling*frac_record_spikes)
             else:
                 n_rec[i][j] = n_record
-    plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot, \
-        system_params['output_path'] + '/')
+    plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot,
+                              system_params['output_path'] + '/')
 
 sim.end()

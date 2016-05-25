@@ -15,8 +15,7 @@ sim_name = "neuron"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    import pyNN.neuron as sim
     have_sim = True
 except ImportError:
     have_sim = False

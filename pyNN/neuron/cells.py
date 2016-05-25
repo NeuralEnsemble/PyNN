@@ -7,13 +7,15 @@ Definition of cell classes for the neuron module.
 
 """
 
-from pyNN.models import BaseCellType
-from pyNN import errors
-from neuron import h, nrn, hclass
-from .simulator import state
-from math import pi
 import logging
+from math import pi
+from neuron import h, nrn, hclass
+
+from pyNN import errors
+from pyNN.models import BaseCellType
 from .recording import recordable_pattern
+from .simulator import state
+
 try:
     reduce
 except NameError:
@@ -359,6 +361,7 @@ class GsfaGrrIF(StandardIF):
     def __set_v_thresh(self, value):
         self.spike_reset.vthresh = value
         # this can fail on constructor
+        # todo: figure out why it is failing and fix in a way that does not require ignoring an Exception
         try:
             self.gsfa_grr.vthresh = value
         except AttributeError:

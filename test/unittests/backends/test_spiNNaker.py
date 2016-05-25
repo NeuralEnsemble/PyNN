@@ -15,8 +15,7 @@ sim_name = "spiNNaker"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    import pyNN.spiNNaker as sim
     have_sim = True
 except ImportError:
     have_sim = False
@@ -50,4 +49,5 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
                 yield skip
                 
 if __name__ == "__main__":
+    import unittest
     unittest.main()

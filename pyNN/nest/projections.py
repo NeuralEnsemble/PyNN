@@ -107,7 +107,7 @@ class Projection(common.Projection):
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.receptor_type == 'excitatory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
-            tau_syn = nest.GetStatus(targets, (param_name))
+            tau_syn = nest.GetStatus(targets, param_name)
             nest.SetStatus(self.nest_connections, 'tau_psc', tau_syn)
 
     def _connect(self, rule_params, syn_params):

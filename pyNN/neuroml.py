@@ -150,7 +150,7 @@ class IF_base(object):
         rise_time_exc="0"
         rise_time_inh="0"
         
-        if (synapse_type == 'alpha_syn'):
+        if synapse_type == 'alpha_syn':
             rise_time_exc=self.parameters['tau_syn_E']
             rise_time_inh=self.parameters['tau_syn_I']
             

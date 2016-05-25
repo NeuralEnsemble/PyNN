@@ -954,7 +954,7 @@ class ArrayConnector(MapConnector):
     the size of the presynaptic population and n that of the postsynaptic
     population.
     """
-    parameter_names = ('array')
+    parameter_names = ('array',)
 
     def __init__(self, array, safe=True, callback=None):
         """

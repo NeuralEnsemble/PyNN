@@ -364,10 +364,12 @@ class Recorder(object):
             N = gather_dict(N)
         return N
 
-    def store_to_cache(self, annotations={}):
+    def store_to_cache(self, annotations=None):
         # make sure we haven't called get with clear=True since last reset
         # and that we did not do two resets in a row
         if (self._simulator.state.t != 0) and (not self.clear_flag):
+            if annotations is None:
+                annotations = {}
             segment = self._get_current_segment()
             segment.annotate(**annotations)
             self.cache.store(segment)

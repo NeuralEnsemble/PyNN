@@ -3,7 +3,8 @@
 # --------------------------------------------------
 
 from .glob_import import *
-   
+import unittest
+
 # --------------------------------------------------
 # CHANGE the name below for a new simulator backend
 # --------------------------------------------------
@@ -15,17 +16,19 @@ sim_name = "hardware.brainscales"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    import pyNN.hardware.brainscales as sim
     have_sim = True
 except ImportError:
     have_sim = False
 
+
 def setUp():
     pass
-    
+
+
 def tearDown():
     pass
+
 
 extra = {
     'loglevel':0, 

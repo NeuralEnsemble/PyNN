@@ -147,7 +147,7 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
     return logging.getLogger("PyNN")
 
 
-def save_population(population, filename, variables=[]):
+def save_population(population, filename, variables=None):
     """
     Saves the spike_times of a  population and the size, structure, labels such
     that one can load it back into a SpikeSourceArray population using the
@@ -160,8 +160,9 @@ def save_population(population, filename, variables=[]):
     s['size'] = population.size
     s['structure'] = population.structure # should perhaps just save the positions?
     variables_dict = {}
-    for variable in variables:
-        variables_dict[variable] = getattr(population, variable)
+    if variables:
+        for variable in variables:
+            variables_dict[variable] = getattr(population, variable)
     s['variables'] = variables_dict
     s.close()
 

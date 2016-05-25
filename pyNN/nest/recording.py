@@ -456,7 +456,7 @@ class Recorder(recording.Recorder):
         nest.SetStatus(self._spike_detector.device, 'n_events', 0)
         nest.SetStatus(self._multimeter.device, 'n_events', 0)
 
-    def store_to_cache(self, annotations={}):
+    def store_to_cache(self, annotations=None):
         # we over-ride the implementation from the parent class so as to
         # do some reinitialisation.
         recording.Recorder.store_to_cache(self, annotations)

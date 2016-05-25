@@ -52,9 +52,12 @@ class Network:
 
         # Create thalamic population
         if thalamic_input:
-            self.thalamic_population = sim.Population(thal_params['n_thal'], \
-                sim.SpikeSourcePoisson, {'rate': thal_params['rate'], \
-                'start': thal_params['start'], 'duration': thal_params['duration']})
+            self.thalamic_population = sim.Population(
+                    thal_params['n_thal'],
+                    sim.SpikeSourcePoisson,
+                    {'rate': thal_params['rate'],
+                     'start': thal_params['start'],
+                     'duration': thal_params['duration']})
 
         # Compute DC input before scaling
         if input_type == 'DC':
@@ -92,8 +95,9 @@ class Network:
                 if input_type == 'DC' or  K_scaling != 1 :
                     this_pop.set(i_offset=self.DC_amp[target_layer][target_pop])
                 if input_type == 'poisson':
-                    poisson_generator = sim.Population(this_pop.size, \
-                        sim.SpikeSourcePoisson, {'rate': bg_rate*K_ext[target_layer][target_pop]})
+                    poisson_generator = sim.Population(this_pop.size,
+                                                       sim.SpikeSourcePoisson, {
+                                                           'rate': bg_rate * K_ext[target_layer][target_pop]})
                     conn = sim.OneToOneConnector()
                     syn = sim.StaticSynapse(weight=self.w_ext)
                     sim.Projection(poisson_generator, this_pop, conn, syn, receptor_type = 'excitatory')
@@ -103,10 +107,11 @@ class Network:
                         print('creating thalamic connections to %s%s') % (target_layer, target_pop))
                     C_thal = thal_params['C'][target_layer][target_pop]
                     n_target = N_full[target_layer][target_pop]
-                    K_thal = round(np.log(1-C_thal)/np.log((n_target*thal_params['n_thal']-1.)/ \
+                    K_thal = round(np.log(1-C_thal)/np.log((n_target*thal_params['n_thal']-1.)/
                              (n_target*thal_params['n_thal'])))/n_target
-                    FixedTotalNumberConnect(sim, self.thalamic_population, \
-                        this_pop, K_thal, w_ext, w_rel*w_ext, d_mean['E'], d_sd['E'])
+                        FixedTotalNumberConnect(sim, self.thalamic_population,
+                                                this_pop, K_thal, w_ext, w_rel * w_ext,
+                                                d_mean['E'], d_sd['E'])
                 # Recurrent inputs
                 for source_layer in layers :
                     for source_pop in pops :
@@ -118,10 +123,11 @@ class Network:
                             w_sd = weight*w_rel_234
                         else:
                             w_sd = abs(weight*w_rel)
-                        FixedTotalNumberConnect(sim, self.pops[source_layer][source_pop], \
-                            self.pops[target_layer][target_pop], K_full[target_index][source_index]*K_scaling, \
-                            weight, w_sd, d_mean[source_pop], d_sd[source_pop])
-
+                        FixedTotalNumberConnect(sim, self.pops[source_layer][source_pop],
+                                                self.pops[target_layer][target_pop],\
+                                                K_full[target_index][source_index] * K_scaling,
+                                                weight, w_sd,
+                                                d_mean[source_pop], d_sd[source_pop])
 
 
 def create_weight_matrix():
