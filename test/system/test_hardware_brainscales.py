@@ -53,10 +53,10 @@ class HardwareTest(unittest.TestCase):
         p2.record('v')
         sim.run(100.0)
         weights = nan_to_num(con.get('weight', format="array"))
-        print weights
+        print(weights)
         data = p2.get_data().segments[0]
         vm = data.filter(name="v")[0]
-        print vm
+        print(vm)
         Figure(
             Panel(weights, data_labels=["ext->cell"], line_properties=[{'xticks': True, 'yticks': True, 'cmap': 'Greys'}]),
             Panel(vm, ylabel="Membrane potential (mV)", data_labels=["excitatory", "excitatory"], line_properties=[{'xticks': True, 'yticks': True}]),

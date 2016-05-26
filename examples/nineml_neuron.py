@@ -97,7 +97,7 @@ parameters = {
     'inhibitory_vrev': -70.0,
 }
 
-print celltype_cls.default_parameters
+print(celltype_cls.default_parameters)
 
 cells = sim.Population(1, celltype_cls, parameters)
 cells.initialize(iaf_V=parameters['iaf_vrest'])
@@ -133,4 +133,4 @@ if options.plot_figure:
         title=__file__
     ).save(options.plot_figure)
 
-    print data.spiketrains
+    print(data.spiketrains)

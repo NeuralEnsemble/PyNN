@@ -325,5 +325,5 @@ if __name__ == "__main__":
 
     sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
     network = Network(sim, nineml_file)
-    print network.describe()
+    print(network.describe())
     sim.end()
