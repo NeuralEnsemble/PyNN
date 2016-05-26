@@ -20,7 +20,11 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
 from neo import AnalogSignalArray, AnalogSignal, SpikeTrain
-from sys import maxint
+try:
+    from sys import maxint
+except ImportError:  # Py3
+    from sys import maxsize as maxint
+
 
 DEFAULT_FIG_SETTINGS = {
     'lines.linewidth': 0.5,

@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios.registry import registry
+from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
