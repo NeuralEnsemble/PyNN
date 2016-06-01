@@ -111,7 +111,7 @@ BREAKPOINT {
         p_dontspike = exp(-lambda*(dt * (1e-3)))
     }
 
-    irefrac = grefrac*(v-0)
+    irefrac = grefrac*(v-Vr)
     i = irefrac + i_eta
 
 }
@@ -139,7 +139,7 @@ NET_RECEIVE (weight) {
         }
 
     } else if (flag == 2) { : beginning of spike
-        v = 0
+        v = Vr
         grefrac = gon
         net_send(Tref-dt, 3)
         :net_event(t)
