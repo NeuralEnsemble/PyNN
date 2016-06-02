@@ -104,6 +104,7 @@ class Projection(object):
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = u"%s→%s" % (self.pre.label, self.post.label)
+        self.initial_values = {}
         Projection._nProj += 1
 
     def __len__(self):
@@ -176,6 +177,31 @@ class Projection(object):
         if isinstance(self.synapse_type, StandardSynapseType):
             parameter_space = self.synapse_type.translate(parameter_space)
         self._set_attributes(parameter_space)
+
+    def initialize(self, **initial_values):
+        """
+        Set initial values of state variables of synaptic plasticity models.
+
+        Values passed to initialize() may be:
+            (1) single numeric values (all neurons set to the same value)
+            (2) RandomDistribution objects
+            (3) a 2D array with the same dimensions as the connectivity matrix
+                (as returned by `get(format='array')`
+            (4) a mapping function, which accepts a single float argument (the
+                distance between pre- and post-synaptic cells) and returns a single value.
+
+        Values should be expressed in the standard PyNN units (i.e. millivolts,
+        nanoamps, milliseconds, microsiemens, nanofarads, event per second).
+
+        Example::
+
+            prj.initialize(u=-70.0)
+        """
+        for variable, value in initial_values.items():
+            logger.debug("In Projection '%s', initialising %s to %s" % (self.label, variable, value))
+            initial_value = LazyArray(value, shape=(self.size,), dtype=float)
+            self._set_initial_value_array(variable, initial_value)
+            self.initial_values[variable] = initial_value
 
     def _value_list_to_array(self, attributes):
         """Convert a list of connection parameters/attributes to a 2D array."""

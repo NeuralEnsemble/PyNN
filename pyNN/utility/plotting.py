@@ -61,7 +61,7 @@ def plot_signal(ax, signal, index=None, label='', **options):
                                              signal.units._dimensionality.string)
     handle_options(ax, options)
     if index is None:
-        label = "%s (Neuron %d)" % (label, signal.channel_index)
+        label = "%s (Neuron %d)" % (label, signal.channel_index or 0)
     else:
         label = "%s (Neuron %d)" % (label, signal.channel_index[index])
         signal = signal[:, index]
