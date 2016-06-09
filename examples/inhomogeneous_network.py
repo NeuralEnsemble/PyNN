@@ -45,10 +45,12 @@ print(cells.positions)
 for name in ('tau_m', 'v_rest', 'v_thresh'):
     print(name, "=", cells.get(name))
 
-number = int(2*simtime*input_rate/1000.0)
+number = int(2 * simtime * input_rate / 1000.0)
 numpy.random.seed(26278342)
+
+
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:
@@ -78,6 +80,6 @@ filename = normalized_filename("Results", "inhomogeneous_network", "pkl",
                                args.simulator_name)
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print("Mean firing rate: ", cells.mean_spike_count()*1000.0/sim.get_current_time(), "Hz")
+print("Mean firing rate: ", cells.mean_spike_count() * 1000.0 / sim.get_current_time(), "Hz")
 
 sim.end()

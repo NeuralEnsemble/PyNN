@@ -49,7 +49,7 @@ dt          = 0.1     # simulation step length [ms]
 
 # seed for random generator used when building connections
 connectseed = 12345789
-use_RandomArray = True # use Python rng rather than NEST rng
+use_RandomArray = True  # use Python rng rather than NEST rng
 
 # seed for random generator(s) used during simulation
 kernelseed  = 43210987
@@ -73,7 +73,7 @@ Cext = CE               # number of external synapses on neuron
 
 # synaptic weights, scaled for alpha functions, such that
 # for constant membrane potential, charge J would be deposited
-fudge = 0.00041363506632638 # ensures dV = J at V=0
+fudge = 0.00041363506632638  # ensures dV = J at V=0
 
 # excitatory weight: JE = J_eff / tauSyn * fudge
 JE = (J_eff/tauSyn)*fudge
@@ -121,11 +121,13 @@ else:
     print("%d Initialising the simulator with single thread..." % rank)
 
 # Small function to display information only on node 1
+
+
 def nprint(s):
     if rank == 0:
         print(s)
 
-timer.start() # start timer on construction
+timer.start()  # start timer on construction
 
 print("%d Setting up random number generator" % rank)
 rng = NumpyRNG(kernelseed, parallel_safe=True)
@@ -186,7 +188,7 @@ buildCPUTime = timer.elapsedTime()
 # === Run simulation ===========================================================
 
 # run, measure computer time
-timer.start() # start timer on construction
+timer.start()  # start timer on construction
 print("%d Running simulation for %g ms." % (rank, simtime))
 run(simtime)
 simCPUTime = timer.elapsedTime()

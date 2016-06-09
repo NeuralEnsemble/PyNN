@@ -4,6 +4,7 @@ Helper function for drawing current-source plots
 
 import matplotlib.pyplot as plt
 
+
 def plot_current_source(t, i_inj, v, i_range=None, v_range=None,
                         i_ticks=None, v_ticks=None, t_range=None):
     """

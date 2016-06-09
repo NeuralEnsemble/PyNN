@@ -59,9 +59,9 @@ def test_record_native_model():
     nest.run(tstop)
 
     vm = p1.get_data().segments[0].analogsignalarrays[0]
-    n_points = int(tstop/nest.get_time_step()) + 1
+    n_points = int(tstop / nest.get_time_step()) + 1
     assert_equal(vm.shape, (n_points, n_cells))
-    assert vm.max() > 0.0 # should have some spikes
+    assert vm.max() > 0.0  # should have some spikes
 
 
 def test_native_stdp_model():
@@ -92,7 +92,7 @@ def test_ticket240():
     p2 = nest.Population(5, nest.native_cell_type("ht_neuron")(**parameters))
     conn = nest.AllToAllConnector()
     syn = nest.StaticSynapse(weight=1.0)
-    prj = nest.Projection(p1, p2, conn, syn, receptor_type='AMPA') # This should be a nonstandard receptor type but I don't know of one to use.
+    prj = nest.Projection(p1, p2, conn, syn, receptor_type='AMPA')  # This should be a nonstandard receptor type but I don't know of one to use.
     connections = prj.get(('weight',), format='list')
     assert len(connections) > 0
 
@@ -119,9 +119,9 @@ def test_ticket236():
     src = pynnn.DCSource(amplitude=70)
     src.inject_into(p1[:])
     pynnn.run(50)
-    s1 = p1.get_spike_counts() # as expected, {1: 124, 2: 124}
+    s1 = p1.get_spike_counts()  # as expected, {1: 124, 2: 124}
     pynnn.run(50)
-    s2 = p1.get_spike_counts() # unexpectedly, still {1: 124, 2: 124}
+    s2 = p1.get_spike_counts()  # unexpectedly, still {1: 124, 2: 124}
     assert s1[p1[0]] < s2[p1[0]]
 
 
@@ -129,7 +129,7 @@ def test_issue237():
     sim = pyNN.nest
     n_exc = 10
     sim.setup()
-    exc_noise_in_exc = sim.Population(n_exc, sim.SpikeSourcePoisson, {'rate' : 1000.})
+    exc_noise_in_exc = sim.Population(n_exc, sim.SpikeSourcePoisson, {'rate': 1000.})
     exc_cells = sim.Population(n_exc, sim.IF_cond_exp())
     exc_noise_connector = sim.OneToOneConnector()
     noise_ee_prj = sim.Projection(exc_noise_in_exc, exc_cells, exc_noise_connector, receptor_type="excitatory")

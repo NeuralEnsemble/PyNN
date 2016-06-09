@@ -3,7 +3,8 @@
 # --------------------------------------------------
 
 from .glob_import import *
-   
+import unittest
+
 # --------------------------------------------------
 # CHANGE the name below for a new simulator backend
 # --------------------------------------------------
@@ -15,20 +16,22 @@ sim_name = "hardware.brainscales"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    import pyNN.hardware.brainscales as sim
     have_sim = True
 except ImportError:
     have_sim = False
 
+
 def setUp():
     pass
-    
+
+
 def tearDown():
     pass
 
+
 extra = {
-    'loglevel':0, 
+    'loglevel': 0, 
     'ignoreHWParameterRanges': True, 
     'useSystemSim': True, 
     'hardware': sim.hardwareSetup['one-hicann'],
@@ -64,6 +67,7 @@ class PopulationViewTest(unittest.TestCase):
 # DON'T CHANGE below this line
 # -------------------------------------------------- 
     
+
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
         module_name = TestClass.__module__

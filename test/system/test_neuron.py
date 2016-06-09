@@ -45,7 +45,7 @@ def test_ticket168():
     cell[0].rate = 12
     pynn.run(10.)
     assert_almost_equal(pynn.get_current_time(), 10.0, places=11)
-    assert_equal(cell[0]._cell.interval, 1000.0/12.0)
+    assert_equal(cell[0]._cell.interval, 1000.0 / 12.0)
 
 
 class SimpleNeuron(object):
@@ -78,6 +78,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gl = value
+
     def _get_g_leak(self):
         return self.apical(0.5).pas.g
     g_leak = property(fget=_get_g_leak, fset=_set_g_leak)
@@ -86,6 +87,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gnabar = value
+
     def _get_gnabar(self):
         return self.soma(0.5).hh.gnabar
     gnabar = property(fget=_get_gnabar, fset=_set_gnabar)
@@ -94,6 +96,7 @@ class SimpleNeuron(object):
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gkbar = value
+
     def _get_gkbar(self):
         return self.soma(0.5).hh.gkbar
     gkbar = property(fget=_get_gkbar, fset=_set_gkbar)
@@ -104,10 +107,11 @@ class SimpleNeuron(object):
             for seg in sec:
                 seg.v = self.v_init
 
+
 class SimpleNeuronType(NativeCellType):
     default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
     default_initial_values = {'v': -65.0}
-    recordable = ['apical(1.0).v', 'soma(0.5).ina'] # this is not good - over-ride Population.can_record()?
+    recordable = ['apical(1.0).v', 'soma(0.5).ina']  # this is not good - over-ride Population.can_record()?
     units = {'apical(1.0).v': 'mV', 'soma(0.5).ina': 'mA/cm**2'}
     receptor_types = ['apical.ampa']
     model = SimpleNeuron
@@ -136,13 +140,13 @@ def test_electrical_synapse():
     p1_trace = p1.get_data(('v',)).segments[0].analogsignalarrays[0]
     p2_trace = p2.get_data(('v',)).segments[0].analogsignalarrays[0]
     # Check the local forward connection
-    assert p2_trace[:,0].max() - p2_trace[:,0].min() > 50
+    assert p2_trace[:, 0].max() - p2_trace[:, 0].min() > 50
     # Check the remote forward connection
-    assert p2_trace[:,1].max() - p2_trace[:,1].min() > 50
+    assert p2_trace[:, 1].max() - p2_trace[:, 1].min() > 50
     # Check the local backward connection
-    assert p1_trace[:,2].max() - p2_trace[:,2].min() > 50
+    assert p1_trace[:, 2].max() - p2_trace[:, 2].min() > 50
     # Check the remote backward connection
-    assert p1_trace[:,3].max() - p2_trace[:,3].min() > 50
+    assert p1_trace[:, 3].max() - p2_trace[:, 3].min() > 50
 
 
 def test_record_native_model():
@@ -173,14 +177,14 @@ def test_record_native_model():
     nrn.run(250.0)
 
     data = p1.get_data().segments[0].analogsignalarrays
-    assert_equal(len(data), 2) # one array per variable
+    assert_equal(len(data), 2)  # one array per variable
     assert_equal(data[0].name, 'apical(1.0).v')
     assert_equal(data[1].name, 'soma(0.5).ina')
-    assert_equal(data[0].sampling_rate, 10.0*pq.kHz)
+    assert_equal(data[0].sampling_rate, 10.0 * pq.kHz)
     assert_equal(data[0].units, pq.mV)
-    assert_equal(data[1].units, pq.mA/pq.cm**2)
-    assert_equal(data[0].t_start, 0.0*pq.ms)
-    assert_equal(data[0].t_stop, 250.1*pq.ms) # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert_equal(data[1].units, pq.mA / pq.cm**2)
+    assert_equal(data[0].t_start, 0.0 * pq.ms)
+    assert_equal(data[0].t_stop, 250.1 * pq.ms)  # would prefer if it were 250.0, but this is a fundamental Neo issue
     assert_equal(data[0].shape, (2501, 10))
     return data
 

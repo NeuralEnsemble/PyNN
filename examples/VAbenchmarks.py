@@ -116,8 +116,8 @@ if options.benchmark == "COBA":
     w_inh    = Ginh*1e-3
 elif options.benchmark == "CUBA":
     celltype = sim.IF_curr_exp
-    w_exc = 1e-3*Gexc*(Erev_exc - v_mean) # (nA) weight of excitatory synapses
-    w_inh = 1e-3*Ginh*(Erev_inh - v_mean) # (nA)
+    w_exc = 1e-3*Gexc*(Erev_exc - v_mean)  # (nA) weight of excitatory synapses
+    w_inh = 1e-3*Ginh*(Erev_inh - v_mean)  # (nA)
     assert w_exc > 0; assert w_inh < 0
 
 # === Build the network ========================================================
@@ -132,7 +132,7 @@ node_id = sim.setup(timestep=dt, min_delay=delay, max_delay=1.0, **extra)
 np = sim.num_processes()
 
 host_name = socket.gethostname()
-print("Host #%d is on %s" % (node_id+1, host_name))
+print("Host #%d is on %s" % (node_id + 1, host_name))
 
 print("%s Initialising the simulator with %d thread(s)..." % (node_id, extra['threads']))
 
@@ -262,8 +262,8 @@ if node_id == 0:
     print("Number of Synapses     : %s" % connections)
     print("Excitatory conductance : %g nS" % Gexc)
     print("Inhibitory conductance : %g nS" % Ginh)
-    print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
-    print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
+    print("Excitatory rate        : %g Hz" % (E_count * 1000.0 / tstop,))
+    print("Inhibitory rate        : %g Hz" % (I_count * 1000.0 / tstop,))
     print("Build time             : %g s" % buildCPUTime)
     #print("Save connections time  : %g s" % saveCPUTime)
     print("Simulation time        : %g s" % simCPUTime)

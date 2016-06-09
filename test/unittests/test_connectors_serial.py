@@ -1,7 +1,7 @@
 """
 Tests of the Connector classes, using the pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -31,6 +31,7 @@ def setUp():
 def tearDown():
     random.get_mpi_config = orig_mpi_get_config
         
+
 @register_class()
 class TestOneToOneConnector(unittest.TestCase):
 
@@ -362,7 +363,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     def test_connect_weight_function_and_one_post_synaptic_neuron_not_connected(self, sim=sim):  
         C = connectors.FixedProbabilityConnector(p_connect=0.8,
                                                  rng=MockRNG(delta=0.05))
-        syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
+        syn = sim.StaticSynapse(weight=lambda d: 0.1 * d)
         prj = sim.Projection(self.p1, self.p2, C, syn)       
         assert_array_almost_equal(prj.get(["weight", "delay"], format='array'),  
                         numpy.array([
@@ -381,7 +382,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
     def test_connect_with_weight_function(self, sim=sim):
         C = connectors.FixedProbabilityConnector(p_connect=0.85,
                                                  rng=MockRNG(delta=0.1))
-        syn = sim.StaticSynapse(weight=lambda d: 0.1*d)
+        syn = sim.StaticSynapse(weight=lambda d: 0.1 * d)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         
         # 20 possible connections. Due to the mock RNG, only the
@@ -420,6 +421,7 @@ class TestFixedProbabilityConnector(unittest.TestCase):
                                                [  nan,   nan,   nan,   2.2,   nan],
                                                [  1.2,   1.4,   nan,   nan,   2.8]]),
                                   9)
+
 
 @register_class()
 class TestDistanceDependentProbabilityConnector(unittest.TestCase):
@@ -582,6 +584,7 @@ class TestFromFileConnector(unittest.TestCase):
                           (0, 1, 0.5, 0.14, 140.0, 96.0, 88.8),
                           (2, 2, 0.4, 0.13, 130.0, 97.0, 88.8),
                           (2, 3, 0.3, 0.12, 120.0, 98.0, 88.8)])
+
 
 @register_class()
 class TestFixedNumberPreConnector(unittest.TestCase):
@@ -901,7 +904,6 @@ class TestArrayConnector(unittest.TestCase):
                           (1, 3, 5.0, 1.5)]) 
 
 
-
 @register_class()
 class TestCloneConnector(unittest.TestCase):
 
@@ -923,6 +925,7 @@ class TestCloneConnector(unittest.TestCase):
         # The gather_dict function in recording needs to be temporarily replaced so it can work with
         # a mock version of the function to avoid it throwing an mpi4py import error when setting
         # the rank in pyNN.mock by hand to > 1
+
         def mock_gather_dict(D, all=False):
             return D
         recording.gather_dict = mock_gather_dict
@@ -956,14 +959,17 @@ class TestCloneConnector(unittest.TestCase):
 class TestIndexBasedProbabilityConnector(unittest.TestCase):
 
     class IndexBasedProbability(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array((i + j) % 3 == 0, dtype=float)
 
     class IndexBasedWeights(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i * j + 1, dtype=float)
 
     class IndexBasedDelays(connectors.IndexBasedExpression):
+
         def __call__(self, i, j):
             return numpy.array(i + j + 1, dtype=float)
 
@@ -1094,12 +1100,12 @@ class CheckTest(unittest.TestCase):
         assert_array_equal(w, connectors.check_weights(w, 'excitatory', is_conductance=False))
         assert_array_equal(w, connectors.check_weights(w, 'inhibitory', is_conductance=True))
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'inhibitory', is_conductance=False)
-        w = numpy.arange(-10,0)
+        w = numpy.arange(-10, 0)
         assert_array_equal(w, connectors.check_weights(w, 'inhibitory', is_conductance=False))
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'inhibitory', is_conductance=True)
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'excitatory', is_conductance=True)
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'excitatory', is_conductance=False)
-        w = numpy.arange(-5,5)
+        w = numpy.arange(-5, 5)
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'excitatory', is_conductance=True)
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'excitatory', is_conductance=False)
         self.assertRaises(errors.ConnectionError, connectors.check_weights, w, 'inhibitory', is_conductance=True)
@@ -1113,9 +1119,27 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(4.3, connectors.check_weights(4.3, 'excitatory', is_conductance=None))
 
     def test_check_delay(self, sim=sim):
-        self.assertEqual(connectors.check_delays(2*self.MIN_DELAY, self.MIN_DELAY, 1e99), 2*self.MIN_DELAY)
-        self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5*self.MIN_DELAY, self.MIN_DELAY, 1e99)
+        self.assertEqual(connectors.check_delays(2 * self.MIN_DELAY, self.MIN_DELAY, 1e99), 2 * self.MIN_DELAY)
+        self.assertRaises(errors.ConnectionError, connectors.check_delays, 0.5 * self.MIN_DELAY, self.MIN_DELAY, 1e99)
         self.assertRaises(errors.ConnectionError, connectors.check_delays, 3.0, self.MIN_DELAY, 2.0)
+
+
+@register_class()
+class TestFixedTotalNumberConnector(unittest.TestCase):
+
+    def setUp(self, sim=sim):
+        sim.setup(num_processes=1, rank=0, min_delay=0.123)
+        self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
+        self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
+        assert_array_equal(self.p2._mask_local, numpy.array([1, 1, 1, 1, 1], dtype=bool))
+
+    def test_1(self):
+        C = connectors.FixedTotalNumberConnector(n=12, rng=random.NumpyRNG())
+        syn = sim.StaticSynapse(weight="0.5*d")
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        connections = prj.get(["weight", "delay"], format='list', gather=False)
+        self.assertEqual(len(connections), 12)
+
 
 if __name__ == "__main__":
     unittest.main()

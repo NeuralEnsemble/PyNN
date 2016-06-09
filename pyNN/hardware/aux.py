@@ -2,7 +2,7 @@
 """
 auxiliary functions to look for the hardware backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -14,8 +14,9 @@ from os import environ, path
 # getters
 # ==============================================================================
  
+
 def get_symap2ic_path(): 
-    if not environ.has_key('SYMAP2IC_PATH'):
+    if 'SYMAP2IC_PATH' not in environ:
         raise ImportError(
             """
             symap2ic software is not available!
@@ -30,6 +31,7 @@ def get_symap2ic_path():
             % symap2ic_path) 
     return symap2ic_path
     
+
 def get_pynn_hw_path(): 
     hardware_path = environ['PYNN_HW_PATH']
     if not path.exists(hardware_path):
@@ -41,8 +43,9 @@ def get_pynn_hw_path():
             % hardware_path)  
     return hardware_path
     
+
 def get_hardware_path(symap2ic_path):
-    hardware_path = path.join(symap2ic_path,"components/pynnhw/src/hardware")
+    hardware_path = path.join(symap2ic_path, "components/pynnhw/src/hardware")
     if not path.exists(hardware_path):
         raise Exception(
             """
@@ -56,6 +59,7 @@ def get_hardware_path(symap2ic_path):
 # Utility functions
 # ==============================================================================
 
+
 def import_module(version="brainscales"):
     __import__("brainscales", globals(), locals(), [], -1)
     
@@ -63,17 +67,19 @@ def import_module(version="brainscales"):
 # Functions called by __init__.py 
 # ==============================================================================
         
+
 def get_path_to_analog_hardware_backend():
     symap2ic_path = get_symap2ic_path()
-    if environ.has_key('PYNN_HW_PATH'): 
+    if 'PYNN_HW_PATH' in environ:
         hardware_path = get_pynn_hw_path()
     else:
         hardware_path = get_hardware_path(symap2ic_path)
         
     return hardware_path
     
+
 def import_all_submodules(module_path):
     for importer, module_name, ispkg in iter_modules(module_path):
-        if ispkg == True:
+        if ispkg is True:
             import_module(version=module_name)
             print("Linked: submodule hardware.%s" % module_name)

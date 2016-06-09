@@ -11,6 +11,7 @@ except ImportError:
     from mock import Mock
 import os.path
 
+
 class MockTemplateEngine(descriptions.TemplateEngine):
     render = Mock(return_value="african swallow")
     get_template = Mock()
@@ -23,13 +24,13 @@ class DescriptionTest(unittest.TestCase):
         assert issubclass(engine, descriptions.TemplateEngine)
     
     def test_render_with_no_template(self):
-        context = {'a':2, 'b':3}
+        context = {'a': 2, 'b': 3}
         result = descriptions.render(Mock(), None, context)
         self.assertEqual(result, context)
     
     def test_render_with_template(self):
         engine = MockTemplateEngine
-        context = {'a':2, 'b':3}
+        context = {'a': 2, 'b': 3}
         template = "abcdefg"
         result = descriptions.render(engine, template, context)
         engine.render.assert_called_with(template, context)
@@ -45,7 +46,7 @@ class DescriptionTest(unittest.TestCase):
         self.assertNotEqual(result.template, filename)
        
     def test_StringTE_render(self):
-        context = {'a':2, 'b':3}
+        context = {'a': 2, 'b': 3}
         result = descriptions.StringTemplateEngine.render("$a $b c d", context)
         self.assertEqual(result, "2 3 c d")
     
@@ -57,7 +58,7 @@ class DescriptionTest(unittest.TestCase):
     
     @unittest.skipUnless('jinja2' in descriptions.TEMPLATE_ENGINES, "Requires Jinja2")
     def test_Jinja2TE_render(self):
-        context = {'a':2, 'b':3}
+        context = {'a': 2, 'b': 3}
         result = descriptions.Jinja2TemplateEngine.render("{{a}} {{b}} c d", context)
         self.assertEqual(result, "2 3 c d")
     
@@ -69,7 +70,7 @@ class DescriptionTest(unittest.TestCase):
     
     @unittest.skipUnless('cheetah' in descriptions.TEMPLATE_ENGINES, "Requires Cheetah")
     def test_CheetahTE_render(self):
-        context = {'a':2, 'b':3}
+        context = {'a': 2, 'b': 3}
         result = descriptions.CheetahTemplateEngine.render("$a $b c d", context)
         self.assertEqual(result, "2 3 c d")
 

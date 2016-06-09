@@ -2,7 +2,7 @@
 """
 NEST v2 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -66,12 +66,12 @@ class Projection(common.Projection):
             if i < len(self):
                 return simulator.Connection(self, i)
             else:
-                raise IndexError("%d > %d" % (i, len(self)-1))
+                raise IndexError("%d > %d" % (i, len(self) - 1))
         elif isinstance(i, slice):
             if i.stop < len(self):
                 return [simulator.Connection(self, j) for j in range(i.start, i.stop, i.step or 1)]
             else:
-                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+                raise IndexError("%d > %d" % (i.stop, len(self) - 1))
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""
@@ -98,8 +98,10 @@ class Projection(common.Projection):
         return (simulator.Connection(self, i) for i in range(len(self)))
 
     def _set_tsodyks_params(self):
-        if 'tsodyks' in self.nest_synapse_model:  # there should be a better way to do this. In particular, if the synaptic time constant is changed
-                                                  # after creating the Projection, tau_psc ought to be changed as well.
+        if 'tsodyks' in self.nest_synapse_model:
+            # there should be a better way to do this.
+            # In particular, if the synaptic time constant is changed after
+            # creating the Projection, tau_psc ought to be changed as well.
             assert self.receptor_type in ('excitatory', 'inhibitory'), "only basic synapse types support Tsodyks-Markram connections"
             logger.debug("setting tau_psc")
             targets = nest.GetStatus(self.nest_connections, 'target')
@@ -107,7 +109,7 @@ class Projection(common.Projection):
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
             if self.receptor_type == 'excitatory':
                 param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
-            tau_syn = nest.GetStatus(targets, (param_name))
+            tau_syn = nest.GetStatus(targets, param_name)
             nest.SetStatus(self.nest_connections, 'tau_psc', tau_syn)
 
     def _connect(self, rule_params, syn_params):
@@ -161,8 +163,10 @@ class Projection(common.Projection):
                              'all_to_all',
                              syn_dict)
             except nest.NESTError as e:
-                raise errors.ConnectionError("%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                                             e, presynaptic_cells, postsynaptic_cell, weights, delays, self.nest_synapse_model))
+                errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                            e, presynaptic_cells, postsynaptic_cell,
+                            weights, delays, self.nest_synapse_model)
+                raise errors.ConnectionError(errmsg)
         else:
             receptor_type = postsynaptic_cell.celltype.get_receptor_type(self.receptor_type)
             if numpy.isscalar(weights):

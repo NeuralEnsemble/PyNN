@@ -12,7 +12,7 @@ Functions:
     Timer    - a convenience wrapper around the time.time() function from the
                standard library.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -51,8 +51,9 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
     if not (smtphost and address):
         print("SMTP host and/or e-mail address not specified.\nUnable to send notification message.")
     else:
-        import smtplib, datetime
-        msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address,address,subject) + msg
+        import smtplib
+        import datetime
+        msg = ("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n") % (address, address, subject) + msg
         msg += "\nTimestamp: %s" % datetime.datetime.now().strftime("%H:%M:%S, %F")
         server = smtplib.SMTP(smtphost)
         server.sendmail(address, address, msg)
@@ -80,7 +81,7 @@ def get_script_args(n_args, usage=''):
                 script_index = 0
     else:
         script_index = 0
-    args = sys.argv[script_index+1:script_index+1+n_args]
+    args = sys.argv[script_index + 1:script_index + 1 + n_args]
     if len(args) != n_args:
         usage = usage or "Script requires %d arguments, you supplied %d" % (n_args, len(args))
         raise Exception(usage)
@@ -141,13 +142,13 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
         log_level = level
 
     logging.basicConfig(level=log_level,
-                        format=mpi_prefix+'%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
+                        format=mpi_prefix + '%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
                         filename=logfile,
                         filemode='w')
     return logging.getLogger("PyNN")
 
 
-def save_population(population, filename, variables=[]):
+def save_population(population, filename, variables=None):
     """
     Saves the spike_times of a  population and the size, structure, labels such
     that one can load it back into a SpikeSourceArray population using the
@@ -158,10 +159,11 @@ def save_population(population, filename, variables=[]):
     s['spike_times'] = population.getSpikes()
     s['label'] = population.label
     s['size'] = population.size
-    s['structure'] = population.structure # should perhaps just save the positions?
+    s['structure'] = population.structure  # should perhaps just save the positions?
     variables_dict = {}
-    for variable in variables:
-        variables_dict[variable] = getattr(population, variable)
+    if variables:
+        for variable in variables:
+            variables_dict[variable] = getattr(population, variable)
     s['variables'] = variables_dict
     s.close()
 
@@ -180,10 +182,10 @@ def load_population(filename, sim):
     # set the spiketimes
     spikes = s['spike_times']
     for neuron in range(s['size']):
-        spike_times = spikes[spikes[:,0] == neuron][:,1]
-        neuron_in_new_population = neuron+population.first_id
+        spike_times = spikes[spikes[:, 0] == neuron][:, 1]
+        neuron_in_new_population = neuron + population.first_id
         index = population.id_to_index(neuron_in_new_population)
-        population[index].set_parameters(**{'spike_times':spike_times})
+        population[index].set_parameters(**{'spike_times': spike_times})
     # set the variables
     for variable, value in s['variables'].items():
         setattr(population, variable, value)
@@ -268,7 +270,7 @@ class Timer(object):
         """Reset the time to zero, and start the clock."""
         self.start()
 
-    def diff(self, format=None): # I think delta() would be a better name for this method.
+    def diff(self, format=None):  # I think delta() would be a better name for this method.
         """
         Return the time since the last time :meth:`elapsed_time()` or
         :meth:`diff()` was called.
@@ -279,7 +281,7 @@ class Timer(object):
         current_time = time.time()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
-        if format=='long':
+        if format == 'long':
             time_since_last_check = Timer.time_in_words(time_since_last_check)
         return time_since_last_check
 
@@ -302,11 +304,12 @@ class Timer(object):
         min, T['second'] = divmod(s, 60)
         h, T['minute'] = divmod(min, 60)
         T['day'], T['hour'] = divmod(h, 24)
+
         def add_units(val, units):
-            return "%d %s" % (int(val), units) + (val>1 and 's' or '')
+            return "%d %s" % (int(val), units) + (val > 1 and 's' or '')
         return ', '.join([add_units(T[part], part)
                           for part in ('year', 'day', 'hour', 'minute', 'second')
-                          if T[part]>0])
+                          if T[part] > 0])
 
     def mark(self, label):
         """
@@ -325,7 +328,7 @@ class ProgressBar(object):
     def __init__(self, width=77, char="#", mode="fixed"):
         self.char = char
         self.mode = mode
-        if not self.mode in ['fixed', 'dynamic']:
+        if self.mode not in ['fixed', 'dynamic']:
             self.mode = 'fixed'
         self.width = width
 
@@ -351,7 +354,7 @@ class ProgressBar(object):
             # build a progress bar with self.char and spaces (to create a
             # fixed bar (the percent string doesn't move)
             bar = self.char * num_hashes + ' ' * (all_full - num_hashes)
-        bar = u'[ %s ] %3.0f%%' % (bar, 100*level)
+        bar = u'[ %s ] %3.0f%%' % (bar, 100 * level)
         print(bar, end=u' \r')
         sys.stdout.flush()
 
@@ -362,12 +365,12 @@ class ProgressBar(object):
 class SimulationProgressBar(ProgressBar):
 
     def __init__(self, interval, t_stop, char="#", mode="fixed"):
-        super(SimulationProgressBar, self).__init__(width=int(t_stop/interval), char=char, mode=mode)
+        super(SimulationProgressBar, self).__init__(width=int(t_stop / interval), char=char, mode=mode)
         self.interval = interval
         self.t_stop = t_stop
 
     def __call__(self, t):
-        self.set_level(t/self.t_stop)
+        self.set_level(t / self.t_stop)
         return t + self.interval
 
 
@@ -375,21 +378,21 @@ def assert_arrays_equal(a, b):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
     assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a,b)
-    assert (a.flatten()==b.flatten()).all(), "%s != %s" % (a,b)
+    assert a.shape == b.shape, "%s != %s" % (a, b)
+    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a, b)
 
 
 def assert_arrays_almost_equal(a, b, threshold):
     import numpy
     assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
     assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a,b)
+    assert a.shape == b.shape, "%s != %s" % (a, b)
     assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 
 
 def sort_by_column(a, col):
     # see stackoverflow.com/questions/2828059/
-    return a[a[:,col].argsort(),:]
+    return a[a[:, col].argsort(), :]
 
 
 # based on http://wiki.python.org/moin/PythonDecoratorLibrary#Memoize

@@ -2,11 +2,12 @@
 A small framework to make it easier to run the same model on multiple
 simulators.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from multiprocessing import Process, Queue
+
 
 def run_simulation(network_model, sim, parameters, input_queue, output_queue):
     """
@@ -23,7 +24,6 @@ def run_simulation(network_model, sim, parameters, input_queue, output_queue):
         result = getattr(obj, attr)(*args, **kwargs)
         output_queue.put(result)
     print("Simulation with %s complete" % sim.__name__)
-    #sim.end()
 
 
 class MultiSim(object):
@@ -69,14 +69,14 @@ class MultiSim(object):
             return retvals
         return iterate_over_nets
             
-    def run(self, simtime, steps=1): #, *callbacks):
+    def run(self, simtime, steps=1):  # , *callbacks):
         """
         Run the model for a time `simtime` in all simulators.
         
         The run may be broken into a number of steps (each of equal duration).
         #Any functions in `callbacks` will be called after each step.
         """
-        dt = float(simtime)/steps
+        dt = float(simtime) / steps
         for i in range(steps):
             for sim_name in self.processes:
                 self.task_queues[sim_name].put(('sim', 'run', [dt], {}))

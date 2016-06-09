@@ -2,7 +2,7 @@
 Tests of the common implementation of the PopulationView class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -23,7 +23,7 @@ from pyNN.parameters import Sequence
 class PopulationViewTest(unittest.TestCase):
 
     def setUp(self):
-        extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+        extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
         sim.setup(**extra)
         
     def tearDown(self):
@@ -32,7 +32,7 @@ class PopulationViewTest(unittest.TestCase):
     # test create with population parent and mask selector
     def test_create_with_slice_selector(self):
         p = sim.Population(11, sim.IF_cond_exp())
-        mask = slice(3,9,2)
+        mask = slice(3, 9, 2)
         pv = sim.PopulationView(parent=p, selector=mask)
         self.assertEqual(pv.parent, p)
         self.assertEqual(pv.size, 3)
@@ -46,7 +46,7 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_create_with_boolean_array_selector(self):
         p = sim.Population(11, sim.IF_cond_exp())
-        mask = numpy.array([0,0,0,1,0,1,0,1,0,0,0], dtype=bool)
+        mask = numpy.array([0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=bool)
         pv = sim.PopulationView(parent=p, selector=mask)
         assert_array_equal(pv.all_cells, numpy.array([p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         #assert_array_equal(pv.mask, mask)
@@ -61,12 +61,12 @@ class PopulationViewTest(unittest.TestCase):
     # test create with populationview parent and mask selector
     def test_create_with_slice_selector(self):
         p = sim.Population(11, sim.EIF_cond_exp_isfa_ista())
-        mask1 = slice(0,9,1)
+        mask1 = slice(0, 9, 1)
         pv1 = sim.PopulationView(parent=p, selector=mask1)
         assert_array_equal(pv1.all_cells, p.all_cells[0:9])
-        mask2 = slice(3,9,2)
+        mask2 = slice(3, 9, 2)
         pv2 = sim.PopulationView(parent=pv1, selector=mask2)
-        self.assertEqual(pv2.parent, pv1) # or would it be better to resolve the parent chain up to an actual Population?
+        self.assertEqual(pv2.parent, pv1)  # or would it be better to resolve the parent chain up to an actual Population?
         assert_array_equal(pv2.all_cells, numpy.array([p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         #assert_array_equal(pv2._mask_local, numpy.array([1,0,0], dtype=bool))
 
@@ -74,17 +74,17 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_structure_property(self):
         p = sim.Population(11, sim.SpikeSourcePoisson())
-        mask = slice(3,9,2)
+        mask = slice(3, 9, 2)
         pv = sim.PopulationView(parent=p, selector=mask)
         self.assertEqual(pv.structure, p.structure)
 
     # test positions property
     def test_get_positions(self):
         p = sim.Population(11, sim.IF_cond_exp())
-        ppos = numpy.random.uniform(size=(3,11))
+        ppos = numpy.random.uniform(size=(3, 11))
         p._positions = ppos
-        pv = sim.PopulationView(parent=p, selector=slice(3,9,2))
-        assert_array_equal(pv.positions, numpy.array([ppos[:,3], ppos[:,5], ppos[:,7]]).T)
+        pv = sim.PopulationView(parent=p, selector=slice(3, 9, 2))
+        assert_array_equal(pv.positions, numpy.array([ppos[:, 3], ppos[:, 5], ppos[:, 7]]).T)
 
     def test_id_to_index(self):
         p = sim.Population(11, sim.EIF_cond_exp_isfa_ista())
@@ -97,7 +97,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_id_to_index_with_array(self):
         p = sim.Population(121, sim.EIF_cond_exp_isfa_ista())
         pv = p[2, 5, 7, 8, 19, 37, 49, 82, 83, 99]
-        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), numpy.arange(3,9,2))
+        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), numpy.arange(3, 9, 2))
 
     def test_id_to_index_with_invalid_id(self):
         p = sim.Population(11, sim.EIF_cond_exp_isfa_ista())
@@ -118,6 +118,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(11, sim.IF_cond_exp(), structure=space.Grid2D())
         pv = p[2, 5, 7, 8]
         new_struct = space.Line()
+
         def set_struct(struct):
             pv.structure = struct
         self.assertRaises(AttributeError, set_struct, new_struct)
@@ -125,7 +126,7 @@ class PopulationViewTest(unittest.TestCase):
     ## test positions property
     def test_get_positions(self):
         p = sim.Population(11, sim.IF_cond_exp())
-        pos = numpy.arange(33).reshape(3,11)
+        pos = numpy.arange(33).reshape(3, 11)
         p.positions = pos
         pv = p[2, 5, 7, 8]
         assert_array_equal(pv.positions, pos[:, [2, 5, 7, 8]])
@@ -133,10 +134,10 @@ class PopulationViewTest(unittest.TestCase):
     def test_position_generator(self):
         p = sim.Population(11, sim.IF_cond_exp())
         pv = p[2, 5, 7, 8]
-        assert_array_equal(pv.position_generator(0), p.positions[:,2])
-        assert_array_equal(pv.position_generator(3), p.positions[:,8])
-        assert_array_equal(pv.position_generator(-1), p.positions[:,8])
-        assert_array_equal(pv.position_generator(-4), p.positions[:,2])
+        assert_array_equal(pv.position_generator(0), p.positions[:, 2])
+        assert_array_equal(pv.position_generator(3), p.positions[:, 8])
+        assert_array_equal(pv.position_generator(-1), p.positions[:, 8])
+        assert_array_equal(pv.position_generator(-4), p.positions[:, 2])
         self.assertRaises(IndexError, pv.position_generator, 4)
         self.assertRaises(IndexError, pv.position_generator, -5)
 
@@ -166,7 +167,7 @@ class PopulationViewTest(unittest.TestCase):
        p = sim.Population(23, sim.EIF_cond_exp_isfa_ista())
        pv1 = p[1, 5, 6, 8, 11, 12, 15, 16, 19, 20]
 
-       pv2 = pv1[range(3,8)]
+       pv2 = pv1[range(3, 8)]
        self.assertEqual(pv2.parent, pv1)
        assert_array_almost_equal(pv2.all_cells, p.all_cells[[8, 11, 12, 15, 16]])
 
@@ -174,7 +175,7 @@ class PopulationViewTest(unittest.TestCase):
         p = sim.Population(23, sim.EIF_cond_exp_isfa_ista())
         pv1 = p[1, 5, 6, 8, 11, 12, 15, 16, 19, 20]
 
-        pv2 = pv1[(3,5,7)]
+        pv2 = pv1[(3, 5, 7)]
         self.assertEqual(pv2.parent, pv1)
         assert_array_almost_equal(pv2.all_cells, p.all_cells[[8, 12, 16]])
 
@@ -215,7 +216,7 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_nearest(self):
         p = sim.Population(13, sim.IF_cond_exp())
-        p.positions = numpy.arange(39).reshape((13,3)).T
+        p.positions = numpy.arange(39).reshape((13, 3)).T
         pv = p[0, 2, 5, 11]
         self.assertEqual(pv.nearest((0.0, 1.0, 2.0)), pv[0])
         self.assertEqual(pv.nearest((3.0, 4.0, 5.0)), pv[0])
@@ -247,16 +248,16 @@ class PopulationViewTest(unittest.TestCase):
         self.assertEqual(cm, 0.987)
 
     def test_get_multiple_inhomogeneous_params_with_gather(self):
-        p = sim.Population(4, sim.IF_cond_exp(tau_m=[12.1,12.2,12.3,12.4],
+        p = sim.Population(4, sim.IF_cond_exp(tau_m=[12.1, 12.2, 12.3, 12.4],
                                               cm=0.2,
-                                              i_offset=lambda i: 0.*i))
+                                              i_offset=lambda i: 0. * i))
         pv = p[0, 1, 3]
         cm, tau_m, i_offset = pv.get(('cm', 'tau_m', 'i_offset'), gather=True)
         self.assertIsInstance(cm, float)
         self.assertIsInstance(tau_m, numpy.ndarray)
-        assert_array_equal(tau_m, numpy.array([12.1,12.2,12.4]))
+        assert_array_equal(tau_m, numpy.array([12.1, 12.2, 12.4]))
         self.assertEqual(cm, 0.2)
-        assert_array_almost_equal(i_offset, numpy.array([0.,0.,0.]), decimal=12)
+        assert_array_almost_equal(i_offset, numpy.array([0., 0., 0.]), decimal=12)
 
     def test_get_sequence_param(self):
         p = sim.Population(3, sim.SpikeSourceArray,
@@ -274,14 +275,14 @@ class PopulationViewTest(unittest.TestCase):
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
         pv.set(cm=0.2, tau_m=random.RandomDistribution('uniform', (9.8, 12.3), rng=rng))
         tau_m, cm, i_offset = p.get(('tau_m', 'cm', 'i_offset'), gather=True)
-        assert_array_equal(cm, numpy.array([0.2,0.2,0.2,0.2]))
+        assert_array_equal(cm, numpy.array([0.2, 0.2, 0.2, 0.2]))
         assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
-        assert_array_equal(i_offset, 0.*numpy.zeros((4,)))
+        assert_array_equal(i_offset, 0. * numpy.zeros((4,)))
 
         tau_m, cm, i_offset = pv.get(('tau_m', 'cm', 'i_offset'), gather=True)
-        assert_array_equal(cm, numpy.array([0.2,0.2,0.2]))
+        assert_array_equal(cm, numpy.array([0.2, 0.2, 0.2]))
         assert_array_equal(tau_m, numpy.array([9.87, 9.87, 9.87]))
-        assert_array_equal(i_offset, 0.*numpy.ones((3,)))
+        assert_array_equal(i_offset, 0. * numpy.ones((3,)))
 
     def test_set_invalid_name(self):
         p = sim.Population(9, sim.EIF_cond_exp_isfa_ista())
@@ -308,7 +309,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_set_array(self):
         p = sim.Population(5, sim.IF_cond_exp, {'v_thresh': -54.3})
         pv = p[2:]
-        pv.set(v_thresh=-50.0+numpy.arange(3))
+        pv.set(v_thresh=-50.0 + numpy.arange(3))
         assert_array_equal(p.get('v_thresh', gather=True),
                            numpy.array([-54.3, -54.3, -50.0, -49.0, -48.0]))
 
@@ -343,7 +344,7 @@ class PopulationViewTest(unittest.TestCase):
         sim.run(12.3)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(12.3/sim.get_time_step())) + 1
+        n_values = int(round(12.3 / sim.get_time_step())) + 1
         self.assertEqual(data.analogsignalarrays[0].name, 'v')
         self.assertEqual(data.analogsignalarrays[0].shape, (n_values, pv.size))
 
@@ -354,7 +355,7 @@ class PopulationViewTest(unittest.TestCase):
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(10.0/sim.get_time_step())) + 1
+        n_values = int(round(10.0 / sim.get_time_step())) + 1
         names = set(arr.name for arr in data.analogsignalarrays)
         self.assertEqual(names, set(('v')))
         for arr in data.analogsignalarrays:
@@ -375,7 +376,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_record_invalid_variable(self):
         pv = sim.Population(14, sim.EIF_cond_exp_isfa_ista())[::3]
         self.assertRaises(errors.RecordingError,
-                          pv.record, ('v', 'gsyn_exc')) # can't record gsyn_exc from this celltype
+                          pv.record, ('v', 'gsyn_exc'))  # can't record gsyn_exc from this celltype
 
     def test_get_spike_counts(self):
         p = sim.Population(5, sim.EIF_cond_exp_isfa_ista())

@@ -64,9 +64,9 @@ if options.plot_figure:
     from quantities import mV
     figure_filename = filename.replace("pkl", "png")
     Figure(
-        Panel(vm, y_offset=-10*mV, xticks=True, yticks=True,
+        Panel(vm, y_offset=-10 * mV, xticks=True, yticks=True,
               xlabel="Time (ms)", ylabel="Membrane potential (mV)",
               ylim=(-96, -59)),
-        title = "Current injection example",
+        title="Current injection example",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)

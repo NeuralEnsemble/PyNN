@@ -2,7 +2,7 @@
 """
 Standard cells for the Brian module.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -257,7 +257,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'tau_syn_i',  ms),
         ('i_offset',   'i_offset',   nA),
     )
-    eqs= brian.Equations('''
+    eqs = brian.Equations('''
         dv/dt = (g_leak*(e_rev_leak-v) - gbar_Na*(m*m*m)*h*(v-e_rev_Na) - gbar_K*(n*n*n*n)*(v-e_rev_K) + i_syn + i_offset + i_inj)/c_m : mV
         dm/dt  = (alpham*(1-m)-betam*m) : 1
         dn/dt  = (alphan*(1-n)-betan*n) : 1
@@ -288,10 +288,10 @@ class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
 
     translations = build_translations(
-        ('a',          'a',          1/ms),
-        ('b',          'b',          1/ms),
+        ('a',          'a',          1 / ms),
+        ('b',          'b',          1 / ms),
         ('c',          'v_reset',    mV),
-        ('d',          'd',          mV/ms),
+        ('d',          'd',          mV / ms),
         ('i_offset',   'i_offset',   nA)
     )
     eqs = brian.Equations('''
@@ -304,10 +304,10 @@ class Izhikevich(cells.Izhikevich):
         i_offset                                         : nA
         i_inj                                            : nA
         ''')
-    post_synaptic_variables  = {'excitatory': 'v', 'inhibitory': 'v'}
-    state_variable_translations =  build_translations(
+    post_synaptic_variables = {'excitatory': 'v', 'inhibitory': 'v'}
+    state_variable_translations = build_translations(
                 ('v', 'v', mV),
-                ('u', 'u', mV/ms))
+                ('u', 'u', mV / ms))
     brian_model = IzhikevichNeuronGroup
     
 

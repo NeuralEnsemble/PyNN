@@ -4,7 +4,7 @@ Enables creating neuronal network models in PyNN from a 9ML description.
 Classes:
     Network -- container for a network model.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -26,7 +26,7 @@ def scale(quantity):
         'Hz': 1,
         'nF': 1,
         'nA': 1,
-        'Mohm': 1,  ## ??
+        'Mohm': 1,  # ??
         'unknown': 1,
         'unitless': 1,
     }
@@ -163,7 +163,7 @@ class Network(object):
             for target_population in target_populations:
                 if target_population.name in self.psr_map:
                     self.psr_map[target_population.name]['port_connections'].update(projection.port_connections)
-                    self.psr_map[target_population.name]['response_component'] = projection.response   ## hack? what about clashes?
+                    self.psr_map[target_population.name]['response_component'] = projection.response  # hack? what about clashes?
                 else:
                     self.psr_map[target_population.name] = {'port_connections': set(projection.port_connections),
                                                             'response_component': projection.response}
@@ -325,5 +325,5 @@ if __name__ == "__main__":
 
     sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
     network = Network(sim, nineml_file)
-    print network.describe()
+    print(network.describe())
     sim.end()

@@ -21,6 +21,7 @@ class NotifyTests(unittest.TestCase):
     def test_notify(self):
         utility.notify()
         
+
 class GetArgTests(unittest.TestCase):
     
     def test_get_script_args(self):

@@ -2,7 +2,7 @@
 Tests of the common implementation of the Projection class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -31,13 +31,16 @@ from pyNN.parameters import Sequence
 
 from .backends.registry import register_class, register
 
+
 def _sort_by_column(A, col):
     A = numpy.array(A)
     array_index = numpy.argsort(A[:, col], kind='mergesort')
     return A[array_index]
 
+
 def setUp():
     pass
+
 
 @register_class()
 class ProjectionTest(unittest.TestCase):
@@ -160,14 +163,14 @@ class ProjectionTest(unittest.TestCase):
     def test_get_weights_as_list_no_address(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list", with_address=False)[:5]
-        target = 0.012*numpy.ones((5,))
+        target = 0.012 * numpy.ones((5,))
         assert_array_equal(weights, target)
 
     @register()
     def test_get_weights_as_array(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
-        target = 0.012*numpy.ones((self.p1.size, self.p2.size))
+        target = 0.012 * numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     @register()
@@ -186,7 +189,7 @@ class ProjectionTest(unittest.TestCase):
 
     @register()
     def test_synapse_with_lambda_parameter(self, sim=sim):
-        syn = sim.StaticSynapse(weight=lambda d: 0.01+0.001*d)
+        syn = sim.StaticSynapse(weight=lambda d: 0.01 + 0.001 * d)
         prj = sim.Projection(self.p1, self.p2, self.all2all, synapse_type=syn)
 
     @register()
@@ -198,13 +201,13 @@ class ProjectionTest(unittest.TestCase):
     @register()
     def test_parameter_TsodyksMarkramSynapse_random_distribution(self, sim=sim):
         U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
-        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0+d, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0 + d, tau_facil=0.0)
         self.assertEqual(U_distr.next(), 0.5)
         
     @register()
     def test_get_plasticity_attribute_as_list(self, sim=sim):
         U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
-        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0+d, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 80.0 + d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
         U = prj.get("U", format="list")

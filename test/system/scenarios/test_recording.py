@@ -37,7 +37,7 @@ def test_reset_recording(sim):
     assert idx(1) == [4]
     vi = lambda i: data.segments[i].analogsignalarrays[0]
     assert vi(0).shape == vi(1).shape == (101, 1)
-    assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True)*pq.mV # the first value should be the same
+    assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV  # the first value should be the same
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
 test_reset_recording.__test__ = False
 
@@ -46,7 +46,7 @@ test_reset_recording.__test__ = False
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)
-    dt    = 0.1
+    dt = 0.1
     tstop = 100.0
     sim.setup(timestep=dt, min_delay=dt)
     cells = sim.Population(5, sim.IF_cond_exp()) + sim.Population(6, sim.EIF_cond_exp_isfa_ista())
@@ -71,7 +71,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     gsyn_p1 = data1.filter(name='gsyn_exc')[0]
     gsyn_all = data_all.filter(name='gsyn_exc')[0]
 
-    n_points = int(tstop/dt) + 1
+    n_points = int(tstop / dt) + 1
     assert_equal(vm_p0.shape, (n_points, 5))
     assert_equal(vm_p1.shape, (n_points, 6))
     assert_equal(vm_all.shape, (n_points, 11))
@@ -79,12 +79,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_equal(gsyn_p1.shape, (n_points, 4))
     assert_equal(gsyn_all.shape, (n_points, 7))
 
-    assert_arrays_equal(vm_p1[:,3], vm_all[:,8])
+    assert_arrays_equal(vm_p1[:, 3], vm_all[:, 8])
 
     assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
     assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))
     assert_arrays_equal(vm_all.channel_index, numpy.arange(11))
-    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([ 2, 3, 4]))
+    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([2, 3, 4]))
     assert_arrays_equal(gsyn_p1.channel_index, numpy.arange(4))
     assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
 
@@ -111,8 +111,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.075])*pq.ms, 1e-17)
-    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34])*pq.ms, 1e-14)
+    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.075]) * pq.ms, 1e-17)
+    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34]) * pq.ms, 1e-14)
     assert_equal(spiketrains2[0].size, 0)
 
 
@@ -129,9 +129,9 @@ def test_sampling_interval(sim):
     sim.run(10.0)
     d1 = p1.get_data().segments[0].analogsignalarrays[0]
     d2 = p2.get_data().segments[0].analogsignalarrays[0]
-    assert_equal(d1.sampling_period, 1.0*pq.ms)
+    assert_equal(d1.sampling_period, 1.0 * pq.ms)
     assert_equal(d1.shape, (11, 3))
-    assert_equal(d2.sampling_period, 0.5*pq.ms)
+    assert_equal(d2.sampling_period, 0.5 * pq.ms)
     assert_equal(d2.shape, (21, 4))
     sim.end()
 test_sampling_interval.__test__ = False

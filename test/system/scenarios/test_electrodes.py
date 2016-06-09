@@ -12,7 +12,7 @@ def test_changing_electrode(sim):
     Check that changing the values of the electrodes on the fly is taken into account
     """
     repeats = 2
-    dt      = 0.1
+    dt = 0.1
     simtime = 100
     sim.setup(timestep=dt, min_delay=dt)
     p = sim.Population(1, sim.IF_curr_exp())
@@ -30,7 +30,7 @@ def test_changing_electrode(sim):
 
     # check that the value of v just before increasing the current is less than
     # the value at the end of the simulation
-    assert data[int(simtime/dt), 0] < data[-1, 0]
+    assert data[int(simtime / dt), 0] < data[-1, 0]
 test_changing_electrode.__test__ = False
 
 
@@ -51,10 +51,10 @@ def ticket226(sim):
     sim.run(30.0)
     v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
     sim.end()
-    v_10p0 = v[abs(v.times-10.0*pq.ms)<0.01*pq.ms][0]
-    assert abs(v_10p0 - -60.0*pq.mV) < 1e-10
-    v_10p1 = v[abs(v.times-10.1*pq.ms)<0.01*pq.ms][0]
-    assert v_10p1 > -59.99*pq.mV, v_10p1
+    v_10p0 = v[abs(v.times - 10.0 * pq.ms) < 0.01 * pq.ms][0]
+    assert abs(v_10p0 - -60.0 * pq.mV) < 1e-10
+    v_10p1 = v[abs(v.times - 10.1 * pq.ms) < 0.01 * pq.ms][0]
+    assert v_10p1 > -59.99 * pq.mV, v_10p1
 
 
 @register()

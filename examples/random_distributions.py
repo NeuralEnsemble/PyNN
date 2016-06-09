@@ -49,7 +49,7 @@ settings = {
     'savefig.dpi': 150,
 }
 plt.rcParams.update(settings)
-width, height = (2*cols, 2*rows)
+width, height = (2 * cols, 2 * rows)
 fig = plt.figure(1, figsize=(width, height))
 gs = gridspec.GridSpec(rows, cols)
 gs.update(hspace=0.4)
@@ -67,9 +67,9 @@ for i, case in enumerate(cases):
         plt.title("%s.%s%s" % (rng, distribution, parameters.values()))
         if rv is not None:
             pdf = rv.pdf(bins)
-            scaled_pdf = n*pdf/pdf.sum()
+            scaled_pdf = n * pdf / pdf.sum()
             plt.plot(bins, scaled_pdf, 'r-')
-            plt.ylim(0, 1.2*scaled_pdf.max())
+            plt.ylim(0, 1.2 * scaled_pdf.max())
         plt.xlim(xlim)
 
 plt.savefig("Results/random_distributions.png")

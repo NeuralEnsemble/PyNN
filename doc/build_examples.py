@@ -65,6 +65,7 @@ results_dir = os.path.join(tmp_dir, "Results")
 if not os.path.exists(image_dir):
     os.makedirs(image_dir)
 
+
 def run(python_script, simulator, *extra_args):
     files_initial = list_files(".png")
     args = " ".join(extra_args)
@@ -84,6 +85,7 @@ def get_title(python_script):
                 break
     return title
 
+
 def list_files(filter):
     return set([os.path.join(x[0], filename)
                 for x in os.walk(results_dir)
@@ -98,7 +100,7 @@ for example in examples:
     shutil.copy(img_path, image_dir)
     img_file = os.path.basename(img_path)
     title = get_title(example)
-    underline = "="*len(title)
+    underline = "=" * len(title)
     with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
         fp.write(template.format(**locals()))
     example_index += "   examples/{}\n".format(example.replace(".py", ""))
@@ -120,7 +122,7 @@ img_path, = list_files(".png").difference(files_initial)
 shutil.copy(img_path, image_dir)
 img_file = os.path.basename(img_path)
 title = get_title(example)
-underline = "="*len(title)
+underline = "=" * len(title)
 with open(os.path.join("examples", example.replace(".py", ".txt")), "w") as fp:
     fp.write(template.format(**locals()))
 example_index += "   examples/{}\n".format(example.replace(".py", ""))

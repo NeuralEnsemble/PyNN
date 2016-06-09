@@ -15,7 +15,7 @@ def scenario1(sim):
         'v_reset': -60.0, 'v_thresh': -50.0, 'cm': 1.0, 'tau_refrac': 5.0,
         'e_rev_E': 0.0, 'e_rev_I': -80.0
     }
-    stimulation_params = {'rate' : 100.0, 'duration' : 50.0}
+    stimulation_params = {'rate': 100.0, 'duration': 50.0}
     n_exc = 80
     n_inh = 20
     n_input = 20
@@ -26,7 +26,7 @@ def scenario1(sim):
     pconn_input = 0.01
     tstop = 900.0
     delay = 0.2
-    dt    = 0.1
+    dt = 0.1
     weights = {
         'excitatory': 4.0e-3,
         'inhibitory': 51.0e-3,
@@ -34,7 +34,7 @@ def scenario1(sim):
     }
 
     sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
-    all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp(**cell_params), label="All cells")
+    all_cells = sim.Population(n_exc + n_inh, sim.IF_cond_exp(**cell_params), label="All cells")
     cells = {
         'excitatory': all_cells[:n_exc],
         'inhibitory': all_cells[n_exc:],
@@ -51,7 +51,7 @@ def scenario1(sim):
     for name, pconn, receptor_type in (
         ('excitatory', pconn_recurr, 'excitatory'),
         ('inhibitory', pconn_recurr, 'inhibitory'),
-        ('input',      pconn_input,  'excitatory'),
+        ('input', pconn_input, 'excitatory'),
     ):
         connector = sim.FixedProbabilityConnector(pconn, rng=rng)
         syn = sim.StaticSynapse(weight=weights[name], delay=delay)
@@ -67,10 +67,9 @@ def scenario1(sim):
 
     E_count = cells['excitatory'].mean_spike_count()
     I_count = cells['inhibitory'].mean_spike_count()
-    print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
-    print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
+    print("Excitatory rate        : %g Hz" % (E_count * 1000.0 / tstop,))
+    print("Inhibitory rate        : %g Hz" % (I_count * 1000.0 / tstop,))
     sim.end()
-
 
 
 @register(exclude=["brian", "nemo"])
@@ -98,7 +97,7 @@ def scenario1a(sim):
     w_exc = 3.0e-3
     w_inh = 45.0e-3
     w_input = 0.12
-    dt      = 0.1
+    dt = 0.1
 
     sim.setup(timestep=dt, min_delay=dt, threads=n_threads)
     iaf_neuron = sim.IF_cond_alpha(**cell_params)
@@ -121,8 +120,8 @@ def scenario1a(sim):
 
     E_count = excitatory_cells.mean_spike_count()
     I_count = inhibitory_cells.mean_spike_count()
-    print("Excitatory rate        : %g Hz" % (E_count*1000.0/tstop,))
-    print("Inhibitory rate        : %g Hz" % (I_count*1000.0/tstop,))
+    print("Excitatory rate        : %g Hz" % (E_count * 1000.0 / tstop,))
+    print("Inhibitory rate        : %g Hz" % (I_count * 1000.0 / tstop,))
     sim.end()
     for filename in glob.glob("scenario1a_*"):
         os.remove(filename)

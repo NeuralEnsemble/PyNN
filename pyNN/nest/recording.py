@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -12,7 +12,7 @@ from pyNN.nest import simulator
 
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
                 'w': 'w'}
-REVERSE_VARIABLE_MAP = dict((v,k) for k,v in VARIABLE_MAP.items())
+REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
 SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001}
 
 logger = logging.getLogger("PyNN")
@@ -52,12 +52,12 @@ class RecordingDevice(object):
         """
         scale_factor = SCALE_FACTORS.get(variable, 1)
         nest_variable = VARIABLE_MAP.get(variable, variable)
-        events = nest.GetStatus(self.device,'events')[0]
+        events = nest.GetStatus(self.device, 'events')[0]
         ids = events['senders']
-        values = events[nest_variable] * scale_factor # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
+        values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
         for id in desired_ids:
-            data[id] = values[ids==id]
+            data[id] = values[ids == id]
             if variable != 'times':
                 # NEST does not record values at the zeroth time step, so we
                 # add them here.
@@ -88,7 +88,7 @@ class SpikeDetector(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self._all_ids), list(self.device), {'rule':'all_to_all'}, {'model':'static_synapse'})
+        nest.Connect(list(self._all_ids), list(self.device), {'rule': 'all_to_all'}, {'model': 'static_synapse'})
         self._connected = True
 
     def get_spiketimes(self, desired_ids):
@@ -123,7 +123,7 @@ class Multimeter(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self.device), list(self._all_ids), {'rule':'all_to_all'}, {'model':'static_synapse'})
+        nest.Connect(list(self.device), list(self._all_ids), {'rule': 'all_to_all'}, {'model': 'static_synapse'})
         self._connected = True
 
     @property
@@ -360,7 +360,7 @@ class Recorder(recording.Recorder):
     scale_factors = {'spikes': 1,
                      'v': 1,
                      'w': 0.001,
-                     'gsyn': 0.001} # units conversion
+                     'gsyn': 0.001}  # units conversion
 
     def __init__(self, population, file=None):
         __doc__ = recording.Recorder.__doc__
@@ -417,7 +417,7 @@ class Recorder(recording.Recorder):
         self._spike_detector = SpikeDetector()
 
     def _get_spiketimes(self, id):
-        return self._spike_detector.get_spiketimes([id])[id] # hugely inefficient - to be optimized later
+        return self._spike_detector.get_spiketimes([id])[id]  # hugely inefficient - to be optimized later
 
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
@@ -456,7 +456,7 @@ class Recorder(recording.Recorder):
         nest.SetStatus(self._spike_detector.device, 'n_events', 0)
         nest.SetStatus(self._multimeter.device, 'n_events', 0)
 
-    def store_to_cache(self, annotations={}):
+    def store_to_cache(self, annotations=None):
         # we over-ride the implementation from the parent class so as to
         # do some reinitialisation.
         recording.Recorder.store_to_cache(self, annotations)

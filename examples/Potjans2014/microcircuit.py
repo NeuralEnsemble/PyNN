@@ -16,7 +16,7 @@ import plotting
 
 # prepare simulation
 # logging.basicConfig() # TODO! Remove if it runs without this line
-exec('import pyNN.%s as sim' %simulator)
+exec('import pyNN.%s as sim' % simulator)
 sim.setup(**simulator_params[simulator])
 import network
 
@@ -43,13 +43,13 @@ for layer in n.pops :
     for pop in n.pops[layer] :
         io = PyNNTextIO(filename=system_params['output_path'] \
              + "/spikes_" + layer + '_' + pop + '_' + str(sim.rank()) + ".txt")
-        spikes =  n.pops[layer][pop].get_data('spikes', gather=False)
+        spikes = n.pops[layer][pop].get_data('spikes', gather=False)
         for segment in spikes.segments :
             io.write_segment(segment)
         if record_v :
             io = PyNNTextIO(filename=system_params['output_path'] \
                  + "/vm_" + layer + '_' + pop + '_' + str(sim.rank()) + ".txt")
-            vm =  n.pops[layer][pop].get_data('v', gather=False)
+            vm = n.pops[layer][pop].get_data('v', gather=False)
             for segment in vm.segments :
                 try :
                     io.write_segment(segment)
@@ -60,16 +60,16 @@ for layer in n.pops :
 end_writing = time.time()
 print("Writing data took %g s" % (end_writing - start_writing,))
 
-if create_raster_plot and sim.rank()==0 :
+if create_raster_plot and sim.rank() == 0 :
     # Numbers of neurons from which spikes were recorded
-    n_rec = [[0]*n_pops_per_layer]*n_layers
+    n_rec = [[0] * n_pops_per_layer] * n_layers
     for layer, i in layers.items() :
         for pop, j in pops.items() :
             if record_fraction:
-                n_rec[i][j] = round(N_full[layer][pop]*N_scaling*frac_record_spikes)
+                n_rec[i][j] = round(N_full[layer][pop] * N_scaling * frac_record_spikes)
             else:
                 n_rec[i][j] = n_record
-    plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot, \
-        system_params['output_path'] + '/')
+    plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot,
+                              system_params['output_path'] + '/')
 
 sim.end()

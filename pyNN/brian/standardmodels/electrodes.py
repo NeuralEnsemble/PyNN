@@ -7,7 +7,7 @@ Classes:
     ACSource           -- a sine modulated current.
     NoisyCurrentSource -- a Gaussian whitish noise current.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -38,7 +38,7 @@ class BrianCurrentSource(StandardCurrentSource):
         super(StandardCurrentSource, self).__init__(**parameters)
         global current_sources
         self.cell_list = []
-        self.indices   = []
+        self.indices = []
         current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
@@ -56,7 +56,7 @@ class BrianCurrentSource(StandardCurrentSource):
         self._reset()
 
     def _reset(self):
-        self.i       = 0
+        self.i = 0
         self.running = True
         if self._is_computed:
             self._generate()
@@ -71,7 +71,7 @@ class BrianCurrentSource(StandardCurrentSource):
             self.indices.extend([cell.parent.id_to_index(cell)])
 
     def _update_current(self):
-        if self.running and simulator.state.t >= self.times[self.i]*1e3:
+        if self.running and simulator.state.t >= self.times[self.i] * 1e3:
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
                     cell.parent.brian_group.i_inj[idx] = self.amplitudes[self.i] * ampere
@@ -86,8 +86,8 @@ class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
 
     translations = build_translations(
-        ('amplitudes',  'amplitudes', nA),
-        ('times',       'times',      ms)
+        ('amplitudes', 'amplitudes', nA),
+        ('times', 'times', ms)
     )
     _is_computed = False
     _is_playable = False
@@ -97,12 +97,12 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
     __doc__ = electrodes.ACSource.__doc__
 
     translations = build_translations(
-        ('amplitude',  'amplitude', nA),
-        ('start',      'start',     ms),
-        ('stop',       'stop',      ms),
-        ('frequency',  'frequency', Hz),
-        ('offset',     'offset',    nA),
-        ('phase',      'phase',     1)
+        ('amplitude', 'amplitude', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms),
+        ('frequency', 'frequency', Hz),
+        ('offset', 'offset', nA),
+        ('phase', 'phase', 1)
     )
     _is_computed = True
     _is_playable = True
@@ -115,16 +115,16 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
         self.times = numpy.arange(self.start, self.stop, simulator.state.dt)
 
     def _compute(self, time):
-        return self.amplitude * numpy.sin(time*2*numpy.pi*self.frequency/1000. + 2*numpy.pi*self.phase/360)
+        return self.amplitude * numpy.sin(time * 2 * numpy.pi * self.frequency / 1000. + 2 * numpy.pi * self.phase / 360)
 
 
 class DCSource(BrianCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
 
     translations = build_translations(
-        ('amplitude',  'amplitude', nA),
-        ('start',      'start',     ms),
-        ('stop',       'stop',      ms)
+        ('amplitude', 'amplitude', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms)
     )
     _is_computed = True
     _is_playable = False
@@ -135,10 +135,10 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
 
     def _generate(self):
         if self.start == 0:
-            self.times      = [self.start, self.stop]
+            self.times = [self.start, self.stop]
             self.amplitudes = [self.amplitude, 0.0]
         else:
-            self.times      = [0.0, self.start, self.stop]
+            self.times = [0.0, self.start, self.stop]
             self.amplitudes = [0.0, self.amplitude, 0.0]
 
 
@@ -146,11 +146,11 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
     __doc__ = electrodes.NoisyCurrentSource.__doc__
 
     translations = build_translations(
-        ('mean',  'mean',    nA),
-        ('start', 'start',   ms),
-        ('stop',  'stop',    ms),
-        ('stdev', 'stdev',   nA),
-        ('dt',    'dt',      ms)
+        ('mean', 'mean', nA),
+        ('start', 'start', ms),
+        ('stop', 'stop', ms),
+        ('stdev', 'stdev', nA),
+        ('dt', 'dt', ms)
     )
     _is_computed = True
     _is_playable = True
@@ -163,4 +163,4 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
         self.times = numpy.arange(self.start, self.stop, simulator.state.dt)
 
     def _compute(self, time):
-        return self.mean + (self.stdev*self.dt)*numpy.random.randn()
+        return self.mean + (self.stdev * self.dt) * numpy.random.randn()

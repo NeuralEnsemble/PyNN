@@ -1,7 +1,7 @@
 """
 Brian implementation of the PyNN API.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -20,6 +20,7 @@ from ..recording import get_io
 
 logger = logging.getLogger("PyNN")
 brian.log_level_warn()
+
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""

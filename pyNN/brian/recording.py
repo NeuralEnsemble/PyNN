@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -14,8 +14,8 @@ from . import simulator
 mV = brian.mV
 ms = brian.ms
 uS = brian.uS
-pq.uS = pq.UnitQuantity('microsiemens', 1e-6*pq.S, 'uS')
-pq.nS = pq.UnitQuantity('nanosiemens', 1e-9*pq.S, 'nS')
+pq.uS = pq.UnitQuantity('microsiemens', 1e-6 * pq.S, 'uS')
+pq.nS = pq.UnitQuantity('nanosiemens', 1e-9 * pq.S, 'nS')
 
 logger = logging.getLogger("PyNN")
 
@@ -27,7 +27,7 @@ class Recorder(recording.Recorder):
     def __init__(self, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, population, file)
-        self._devices = {} # defer creation until first call of record()
+        self._devices = {}  # defer creation until first call of record()
 
     def _create_device(self, group, variable):
         """Create a Brian recording device."""
@@ -44,7 +44,7 @@ class Recorder(recording.Recorder):
                                                          record=self.recorded,
                                                          clock=clock,
                                                          when='start',
-                                                         timestep=int(round(self.sampling_interval/simulator.state.dt)))
+                                                         timestep=int(round(self.sampling_interval / simulator.state.dt)))
         simulator.state.network.add(self._devices[variable])
 
     def _record(self, variable, new_ids, sampling_interval=None):
@@ -52,12 +52,12 @@ class Recorder(recording.Recorder):
         self.sampling_interval = sampling_interval or self._simulator.state.dt
         if variable not in self._devices:
             self._create_device(self.population.brian_group, variable)
-        #update StateMonitor.record and StateMonitor.recordindex
+        # update StateMonitor.record and StateMonitor.recordindex
         if variable is not 'spikes':
             device = self._devices[variable]
             device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
-            device.recordindex = dict((i,j) for i,j in zip(device.record,
-                                                           range(len(device.record))))
+            device.recordindex = dict((i, j) for i, j in zip(device.record,
+                                                             range(len(device.record))))
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):
@@ -73,15 +73,13 @@ class Recorder(recording.Recorder):
 
     def _get_spiketimes(self, id):
         i = id - self.population.first_id
-        return self._devices['spikes'].spiketimes[i]/ms
+        return self._devices['spikes'].spiketimes[i] / ms
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
         values = numpy.array(device._values)
-        #print(ids)
-        #print(device.record)
         current_values = device.P.state_(device.varname)[device.record]
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
         logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)
@@ -94,7 +92,7 @@ class Recorder(recording.Recorder):
     def _local_count(self, variable, filter_ids=None):
         N = {}
         filtered_ids = self.filter_recorded(variable, filter_ids)
-        padding      = self.population.first_id
+        padding = self.population.first_id
         indices = numpy.fromiter(filtered_ids, dtype=int) - padding
         for i, id in zip(indices, filtered_ids):
             N[id] = len(self._devices['spikes'].spiketimes[i])

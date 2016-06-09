@@ -5,7 +5,7 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -36,10 +36,12 @@ def get_mpi_comm():
         raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     return MPI.COMM_WORLD, {'DOUBLE': MPI.DOUBLE, 'SUM': MPI.SUM}
 
+
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
         logger.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
+
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
@@ -59,8 +61,7 @@ def gather_array(data):
         return gdata
     else:
         num_columns = data.shape[1]
-        return gdata.reshape((gdata.size/num_columns, num_columns))
-
+        return gdata.reshape((gdata.size / num_columns, num_columns))
 
 
 def gather_dict(D, all=False):
@@ -153,7 +154,7 @@ def filter_by_variables(segment, variables):
     if variables == 'all':
         return segment
     else:
-        new_segment = copy(segment) # shallow copy
+        new_segment = copy(segment)  # shallow copy
         if 'spikes' not in variables:
             new_segment.spiketrains = []
         new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
@@ -169,12 +170,13 @@ def remove_duplicate_spiketrains(data):
             spiketrains[index] = spiketrain
         min_index = min(spiketrains.keys())
         max_index = max(spiketrains.keys())
-        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index+1)]
+        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index + 1)]
     return data
 
 
 class DataCache(object):
     # primitive implementation for now, storing in memory - later can consider caching to disk
+
     def __init__(self):
         self._data = []
 
@@ -244,13 +246,13 @@ class Recorder(object):
     def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
-                              rec_datetime=datetime.now()) # would be nice to get the time at the start of the recording, not the end
+                              rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end
         variables_to_include = set(self.recorded.keys())
         if variables is not 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
             if variable == 'spikes':
-                t_stop = self._simulator.state.t * pq.ms # must run on all MPI nodes
+                t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
                 segment.spiketrains = [
                     neo.SpikeTrain(self._get_spiketimes(id),
                                    t_start=self._recording_start_time,
@@ -264,8 +266,8 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
-                sampling_period = self.sampling_interval*pq.ms
-                current_time = self._simulator.state.t*pq.ms
+                sampling_period = self.sampling_interval * pq.ms
+                current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
@@ -283,7 +285,7 @@ class Recorder(object):
                             source_ids=source_ids)
                     )
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, channel_indices)
-                    assert segment.analogsignalarrays[0].t_stop - current_time - 2*sampling_period < 1e-10
+                    assert segment.analogsignalarrays[0].t_stop - current_time - 2 * sampling_period < 1e-10
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
@@ -294,7 +296,7 @@ class Recorder(object):
         data = neo.Block()
         data.segments = [filter_by_variables(segment, variables)
                          for segment in self.cache]
-        if self._simulator.state.running: # reset() has not been called, so current segment is not in cache
+        if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables, clear=clear))
         data.name = self.population.label
         data.description = self.population.describe()
@@ -325,12 +327,12 @@ class Recorder(object):
         if isinstance(file, basestring):
             file = get_io(file)
         io = file or self.file
-        if gather==False and self._simulator.state.num_processes > 1:
+        if gather is False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
                                                variables, io.filename, gather))
         data = self.get(variables, gather, filter_ids, clear, annotations=annotations)
-        if self._simulator.state.mpi_rank == 0 or gather == False:
+        if self._simulator.state.mpi_rank == 0 or gather is False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
             io.write_block(data)
@@ -347,7 +349,7 @@ class Recorder(object):
                 'simulator': self._simulator.name,
             }
         metadata.update(self.population.annotations)
-        metadata['dt'] = self._simulator.state.dt # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = self._simulator.state.dt  # note that this has to run on all nodes (at least for NEST)
         metadata['mpi_processes'] = self._simulator.state.num_processes
         return metadata
 
@@ -364,10 +366,12 @@ class Recorder(object):
             N = gather_dict(N)
         return N
 
-    def store_to_cache(self, annotations={}):
+    def store_to_cache(self, annotations=None):
         # make sure we haven't called get with clear=True since last reset
         # and that we did not do two resets in a row
         if (self._simulator.state.t != 0) and (not self.clear_flag):
+            if annotations is None:
+                annotations = {}
             segment = self._get_current_segment()
             segment.annotate(**annotations)
             self.cache.store(segment)

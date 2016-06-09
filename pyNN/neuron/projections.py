@@ -2,7 +2,7 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -26,6 +26,7 @@ logger = logging.getLogger("PyNN")
 _projections = []  # if a Projection is created but not assigned to a variable,
                    # the connections will not exist, so we store a reference here
 
+
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
@@ -45,7 +46,7 @@ class Projection(common.Projection):
         if self.synapse_type.presynaptic_type:
             self._configure_presynaptic_components()
         _projections.append(self)
-        logger.info("--- Projection[%s].__init__() ---" %self.label)
+        logger.info("--- Projection[%s].__init__() ---" % self.label)
 
     @property
     def connections(self):
@@ -60,12 +61,12 @@ class Projection(common.Projection):
             if i < len(self):
                 return self.connections[i]
             else:
-                raise IndexError("%d > %d" % (i, len(self)-1))
+                raise IndexError("%d > %d" % (i, len(self) - 1))
         elif isinstance(i, slice):
             if i.stop < len(self):
                 return [self.connections[j] for j in range(*i.indices(i.stop))]
             else:
-                raise IndexError("%d > %d" % (i.stop, len(self)-1))
+                raise IndexError("%d > %d" % (i.stop, len(self) - 1))
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""
@@ -109,7 +110,7 @@ class Projection(common.Projection):
                                                gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on 
         # the local node
-        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:,0]), 
+        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:, 0]), 
                                             numpy.nonzero(self.pre._mask_local)[0]), dtype=bool)
         for conn in conn_list[mask_local, :]:
             pre_idx = int(conn[0])

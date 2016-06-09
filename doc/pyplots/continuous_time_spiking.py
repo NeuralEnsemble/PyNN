@@ -2,13 +2,14 @@ import numpy
 from pyNN.nest import *
 import matplotlib.pyplot as plt
 
+
 def test_sim(on_or_off_grid, sim_time):
     setup(timestep=1.0, min_delay=1.0, max_delay=1.0, spike_precision=on_or_off_grid)
     src = Population(1, SpikeSourceArray(spike_times=[0.5]))
-    cm        = 250.0
-    tau_m     =  10.0
-    tau_syn_E =   1.0
-    weight    = cm/tau_m * numpy.power(tau_syn_E/tau_m, -tau_m/(tau_m-tau_syn_E)) * 20.5
+    cm = 250.0
+    tau_m = 10.0
+    tau_syn_E = 1.0
+    weight = cm / tau_m * numpy.power(tau_syn_E / tau_m, -tau_m / (tau_m - tau_syn_E)) * 20.5
     nrn = Population(1, IF_curr_exp(cm=cm, tau_m=tau_m, tau_syn_E=tau_syn_E,
                                     tau_refrac=2.0, v_thresh=20.0, v_rest=0.0,
                                     v_reset=0.0, i_offset=0.0))
@@ -20,7 +21,8 @@ def test_sim(on_or_off_grid, sim_time):
 
 sim_time = 10.0
 off = test_sim('off_grid', sim_time)
-on  = test_sim('on_grid', sim_time)
+on = test_sim('on_grid', sim_time)
+
 
 def plot_data(pos, on, off, ylim, with_legend=False):
     ax = plt.subplot(1, 2, pos)

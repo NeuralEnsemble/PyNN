@@ -18,7 +18,7 @@ from pyNN import descriptions
 descriptions.DEFAULT_TEMPLATE_ENGINE = 'jinja2'
 
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -29,7 +29,7 @@ except NameError:
 import string
 import os.path
 
-DEFAULT_TEMPLATE_ENGINE = None # can be set by user
+DEFAULT_TEMPLATE_ENGINE = None  # can be set by user
 TEMPLATE_ENGINES = {}
 
 
@@ -39,6 +39,7 @@ def get_default_template_engine():
     """
     default = DEFAULT_TEMPLATE_ENGINE or list(TEMPLATE_ENGINES.keys())[0]
     return TEMPLATE_ENGINES[default]
+
 
 def render(engine, template, context):
     """
@@ -132,9 +133,9 @@ try:
             file (relative to pyNN/descriptions/templates/jinja2/)
             """
             assert isinstance(template, basestring)
-            try: # maybe template is a file
+            try:  # maybe template is a file
                 template = cls.env.get_template(template)
-            except Exception: # interpret template as a string
+            except Exception:  # interpret template as a string
                 template = cls.env.from_string(template)
             return template
         
@@ -153,7 +154,7 @@ try:
         
     TEMPLATE_ENGINES['jinja2'] = Jinja2TemplateEngine
 except ImportError:
-    pass
+    pass   # jinja2 is an optional dependency
 
 
 try:
@@ -192,4 +193,4 @@ try:
 
     TEMPLATE_ENGINES['cheetah'] = CheetahTemplateEngine
 except ImportError:
-    pass
+    pass  # cheetah is an optional dependency

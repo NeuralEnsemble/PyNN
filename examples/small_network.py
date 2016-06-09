@@ -55,10 +55,12 @@ cells = sim.Population(n, sim.IF_cond_alpha(**cell_params),
                        initial_values={'v': rnd('uniform', (-60.0, -50.0))},
                        label="cells")
 
-number = int(2*simtime*input_rate/1000.0)
+number = int(2 * simtime * input_rate / 1000.0)
 numpy.random.seed(26278342)
+
+
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:
@@ -71,7 +73,7 @@ spike_source.record('spikes')
 cells.record('spikes')
 cells[0:2].record(('v', 'gsyn_exc'))
 
-syn = sim.StaticSynapse(weight=w,delay=syn_delay)
+syn = sim.StaticSynapse(weight=w, delay=syn_delay)
 input_conns = sim.Projection(spike_source, cells, sim.FixedProbabilityConnector(0.5), syn)
 
 # === Run simulation ===========================================================
@@ -82,7 +84,7 @@ filename = normalized_filename("Results", "small_network", "pkl",
                                options.simulator, sim.num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
+print("Mean firing rate: ", cells.mean_spike_count() * 1000.0 / simtime, "Hz")
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel

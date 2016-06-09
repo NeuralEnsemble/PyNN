@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -42,13 +42,19 @@ class Recorder(recording.Recorder):
             source, var_name = self._resolve_variable(cell, variable)
             hoc_var = getattr(source, "_ref_%s" % var_name)
         cell.traces[variable] = vec = h.Vector()
-        vec.record(hoc_var, self.sampling_interval)
+        if self.sampling_interval == self._simulator.state.dt:
+            vec.record(hoc_var)
+        else:
+            vec.record(hoc_var, self.sampling_interval)
         if not cell.recording_time:
             cell.record_times = h.Vector()
-            cell.record_times.record(h._ref_t, self.sampling_interval)
+            if self.sampling_interval == self._simulator.state.dt:
+                cell.record_times.record(h._ref_t)
+            else:
+                cell.record_times.record(h._ref_t, self.sampling_interval)
             cell.recording_time += 1
 
-    #could be staticmethod
+    # could be staticmethod
     def _resolve_variable(self, cell, variable_path):
         match = recordable_pattern.match(variable_path)
         if match:
@@ -95,7 +101,7 @@ class Recorder(recording.Recorder):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
             signals = numpy.vstack((id._cell.traces[variable] for id in ids)).T
-            expected_length = int(simulator.state.tstop/self.sampling_interval) + 1
+            expected_length = int(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = numpy.vstack((signals, signals[-1, :]))
         else:

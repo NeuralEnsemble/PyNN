@@ -15,7 +15,7 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -32,6 +32,7 @@ ms = brian.ms
 
 
 class ID(int, common.IDMixin):
+
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
@@ -80,7 +81,7 @@ class State(common.control.BaseState):
     def _get_dt(self):
         if self.network.clock is None:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
-        return float(self.network.clock.dt/ms)
+        return float(self.network.clock.dt / ms)
 
     def _set_dt(self, timestep):
         logger.debug("Setting timestep to %s", timestep)
@@ -91,7 +92,7 @@ class State(common.control.BaseState):
 
     @property
     def t(self):
-        return float(self.network.clock.t/ms)
+        return float(self.network.clock.t / ms)
 
     def _get_min_delay(self):
         if self._min_delay == 'auto':
@@ -104,6 +105,7 @@ class State(common.control.BaseState):
             else:
                 self._min_delay = min_delay * self.dt  # Synapses.delay is an integer, the number of time steps
         return self._min_delay
+
     def _set_min_delay(self, delay):
         self._min_delay = delay
     min_delay = property(fget=_get_min_delay, fset=_set_min_delay)

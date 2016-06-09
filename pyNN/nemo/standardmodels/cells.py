@@ -2,7 +2,7 @@
 Standard cells for the nemo module
 
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -26,9 +26,8 @@ class Izhikevich(cells.Izhikevich):
 
     nemo_name = "Izhikevich"
 
-    indices = {'a' : 0, 'b' : 1, 'c' : 2, 'd' : 3}
-    initial_indices = {'u' : 0, 'v' : 1}
-
+    indices = {'a': 0, 'b': 1, 'c': 2, 'd': 3}
+    initial_indices = {'u': 0, 'v': 1}
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
@@ -43,8 +42,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
     nemo_name = "PoissonSource"
 
-    indices = {'rate' : 0}
-
+    indices = {'rate': 0}
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
@@ -56,14 +54,13 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
     nemo_name = "Input"
 
-
     class spike_player(object):
         
         def __init__(self, spike_times=[], precision=1):
-            self.spike_times = precision * numpy.round(spike_times/precision)        
+            self.spike_times = precision * numpy.round(spike_times / precision)        
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
-            self.cursor      = 0
-            self.N           = len(self.spike_times)
+            self.cursor = 0
+            self.N = len(self.spike_times)
 
         @property
         def next_spike(self):
@@ -76,10 +73,10 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             self.cursor += 1
 
         def reset(self, spike_times, precision):
-            self.spike_times = precision * numpy.round(spike_times/precision)
+            self.spike_times = precision * numpy.round(spike_times / precision)
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
-            self.N           = len(self.spike_times)
-            self.cursor      = 0
+            self.N = len(self.spike_times)
+            self.cursor = 0
 
     def __init__(self, parameters):
         cells.SpikeSourceArray.__init__(self, parameters)        
@@ -87,6 +84,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass
+
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     
@@ -105,18 +103,18 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_curr_alpha"
 
 
@@ -137,18 +135,18 @@ class IF_curr_exp(cells.IF_curr_exp):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_curr_exp"
 
 
@@ -171,20 +169,20 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7,
-            'e_rev_E'  : 9,
-            'e_rev_I'  : 10
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7,
+            'e_rev_E': 9,
+            'e_rev_I': 10
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_cond_alpha"
 
 
@@ -207,37 +205,42 @@ class IF_cond_exp(cells.IF_cond_exp):
     )
 
     indices = {
-            'v_rest' : 0,
-            'cm' : 2,
-            'tau_m' : 3,
-            't_refrac' : 4,
-            'tau_syn_E' : 5,
-            'tau_syn_I' : 6,
-            'i_offset' : 8,
-            'v_reset' : 1,
-            'v_thresh' : 7,
-            'e_rev_E'  : 9,
-            'e_rev_I'  : 10
+            'v_rest': 0,
+            'cm': 2,
+            'tau_m': 3,
+            't_refrac': 4,
+            'tau_syn_E': 5,
+            'tau_syn_I': 6,
+            'i_offset': 8,
+            'v_reset': 1,
+            'v_thresh': 7,
+            'e_rev_E': 9,
+            'e_rev_I': 10
         }
 
-    initial_indices = {'v' : 0, 'ie' : 1, 'ii' : 2}
+    initial_indices = {'v': 0, 'ie': 1, 'ii': 2}
     nemo_name = "IF_cond_exp"
 
 
 class IF_facets_hardware1(ModelNotAvailable):
     pass
 
+
 class EIF_cond_alpha_isfa_ista(ModelNotAvailable):
     pass
+
 
 class EIF_cond_exp_isfa_ista(ModelNotAvailable):
     pass    
 
+
 class HH_cond_exp(ModelNotAvailable):
     pass
 
+
 class SpikeSourceInhGamma(ModelNotAvailable):
     pass
+
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
     pass

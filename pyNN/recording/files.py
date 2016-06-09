@@ -9,13 +9,14 @@ Classes:
     NumpyBinaryFile
     HDF5ArrayFile - requires PyTables
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-
-import numpy, os, shutil
+import numpy
+import os
+import shutil
 try:
     import cPickle as pickle
 except ImportError:
@@ -31,6 +32,7 @@ from pyNN.core import iteritems
 
 DEFAULT_BUFFER_SIZE = 10000
 
+
 def _savetxt(filename, data, format, delimiter):
     """
     Due to the lack of savetxt in older versions of numpy
@@ -38,7 +40,7 @@ def _savetxt(filename, data, format, delimiter):
     """
     f = open(filename, 'w')
     for row in data:
-        f.write(delimiter.join([format%val for val in row]) + '\n')
+        f.write(delimiter.join([format % val for val in row]) + '\n')
     f.close()
 
 
@@ -93,8 +95,8 @@ class BaseFile(object):
             try:  # wrapping in try...except block for MPI
                 os.makedirs(dir)
             except IOError:
-                pass
-        try: ## Need this because in parallel, file names are changed
+                pass  # we assume that the directory was already created by another MPI node
+        try:  # Need this because in parallel, file names are changed
             self.fileobj = open(self.name, mode, DEFAULT_BUFFER_SIZE)
         except Exception as err:
             self.open_error = err
@@ -108,7 +110,7 @@ class BaseFile(object):
 
     def rename(self, filename):
         self.close()
-        try: ## Need this because in parallel, only one node will delete the file with NFS
+        try:  # Need this because in parallel, only one node will delete the file with NFS
             os.remove(self.name)
         except Exception:
             pass
@@ -231,7 +233,7 @@ class NumpyBinaryFile(BaseFile):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         D = {}
-        for name,value in numpy.load(self.fileobj)['metadata']:
+        for name, value in numpy.load(self.fileobj)['metadata']:
             try:
                 D[name] = eval(value)
             except Exception:

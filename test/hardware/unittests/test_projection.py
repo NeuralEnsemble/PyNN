@@ -2,7 +2,7 @@
 Tests of the common implementation of the Projection class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -138,13 +138,13 @@ class ProjectionTest(unittest.TestCase):
     def test_get_weights_as_list_no_address(self):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list", with_address=False)[:5]
-        target = 0.456*numpy.ones((5,))
+        target = 0.456 * numpy.ones((5,))
         assert_array_equal(weights, target)
 
     def test_get_weights_as_array(self):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
-        target = 0.456*numpy.ones((self.p1.size, self.p2.size))
+        target = 0.456 * numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     def test_get_weights_as_array_with_multapses(self):
@@ -162,7 +162,7 @@ class ProjectionTest(unittest.TestCase):
 
     def test_get_plasticity_attribute_as_list(self):
         U_distr = random.RandomDistribution('uniform', low=0.4, high=0.6, rng=MockRNG(start=0.5, delta=0.001))
-        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0+d, tau_facil=0.0)
+        depressing = sim.TsodyksMarkramSynapse(U=U_distr, tau_rec=lambda d: 800.0 + d, tau_facil=0.0)
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=depressing)
         U = prj.get("U", format="list")

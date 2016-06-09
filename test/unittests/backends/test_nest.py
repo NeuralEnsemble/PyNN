@@ -15,24 +15,27 @@ sim_name = "nest"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s as sim" % sim_name)
-    import nest
+    import pyNN.nest as sim
     have_sim = True
 except ImportError:
     have_sim = False
 
+
 def setUp():
     pass
-    
+
+
 def tearDown():
     sim.setup(verbosity='error')
+
 
 extra = {}
 
 # --------------------------------------------------
 # DON'T CHANGE below this line
 # -------------------------------------------------- 
-    
+
+
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
         module_name = TestClass.__module__
@@ -50,5 +53,5 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
                 yield skip
                 
 if __name__ == "__main__":
+    import unittest
     unittest.main()
-    
