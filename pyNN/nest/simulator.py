@@ -16,7 +16,7 @@ All other functions and classes are private, and should not be used by other
 modules.
 
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -33,10 +33,13 @@ name = "NEST"  # for use in annotating output data
 
 # --- For implementation of get_time_step() and similar functions --------------
 
+
 def nest_property(name, dtype):
     """Return a property that accesses a NEST kernel parameter"""
+
     def _get(self):
         return nest.GetKernelStatus(name)
+
     def _set(self, val):
         try:
             nest.SetKernelStatus({name: dtype(val)})
@@ -54,13 +57,13 @@ class _State(common.control.BaseState):
         self.optimize = False
         self.spike_precision = "off_grid"
         self.verbosity = "warning"
-        self._cache_num_processes = nest.GetKernelStatus()['num_processes'] # avoids blocking if only some nodes call num_processes
-                                                                            # do the same for rank?
+        self._cache_num_processes = nest.GetKernelStatus()['num_processes']  # avoids blocking if only some nodes call num_processes
+                                                                             # do the same for rank?
         # allow NEST to erase previously written files (defaut with all the other simulators)
-        nest.SetKernelStatus({'overwrite_files' : True})
+        nest.SetKernelStatus({'overwrite_files': True})
         self.tempdirs = []
         self.recording_devices = []
-        self.populations = [] # needed for reset
+        self.populations = []  # needed for reset
 
     @property
     def t(self):
@@ -109,6 +112,7 @@ class _State(common.control.BaseState):
     def _get_spike_precision(self):
         ogs = nest.GetKernelStatus('off_grid_spiking')
         return ogs and "off_grid" or "on_grid"
+
     def _set_spike_precision(self, precision):
         if precision == 'off_grid':
             nest.SetKernelStatus({'off_grid_spiking': True})
@@ -134,7 +138,7 @@ class _State(common.control.BaseState):
                 device.connect_to_cells()
                 device._local_files_merged = False
         if not self.running and simtime > 0:
-            simtime += self.dt # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
         nest.Simulate(simtime)
 
@@ -161,8 +165,8 @@ class _State(common.control.BaseState):
         nest.ResetKernel()
         # set tempdir
         tempdir = tempfile.mkdtemp()
-        self.tempdirs.append(tempdir) # append tempdir to tempdirs list
-        nest.SetKernelStatus({'data_path': tempdir,})
+        self.tempdirs.append(tempdir)  # append tempdir to tempdirs list
+        nest.SetKernelStatus({'data_path': tempdir, })
         self.segment_counter = -1
         self.reset()
 
@@ -218,14 +222,14 @@ class Connection(common.Connection):
     postsynaptic_cell = target
 
     def _set_weight(self, w):
-        nest.SetStatus([self.id()], 'weight', w*1000.0)
+        nest.SetStatus([self.id()], 'weight', w * 1000.0)
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
         w_nA = nest.GetStatus([self.id()], 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
-            w_nA *= -1 # NEST uses negative values for inhibitory weights, even if these are conductances
-        return 0.001*w_nA
+            w_nA *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
+        return 0.001 * w_nA
 
     def _set_delay(self, d):
         nest.SetStatus([self.id()], 'delay', d)
@@ -235,12 +239,13 @@ class Connection(common.Connection):
         return nest.GetStatus([self.id()], 'delay')[0]
 
     weight = property(_get_weight, _set_weight)
-    delay  = property(_get_delay, _set_delay)
+    delay = property(_get_delay, _set_delay)
 
 
 def generate_synapse_property(name):
     def _get(self):
         return nest.GetStatus([self.id()], name)[0]
+
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)

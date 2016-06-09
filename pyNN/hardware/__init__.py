@@ -5,7 +5,7 @@ It includes the submodules that stand on another directory.
 This solution is a clean way to make the submodules (brainscales, etc...) 
 be indeed submodules of hardware, even if they don't stand on the same directory
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """

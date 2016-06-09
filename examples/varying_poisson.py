@@ -53,10 +53,10 @@ class MyProgressBar(object):
     def __init__(self, interval, t_stop):
         self.interval = interval
         self.t_stop = t_stop
-        self.pb = ProgressBar(width=int(t_stop/interval), char=".")
+        self.pb = ProgressBar(width=int(t_stop / interval), char=".")
         
     def __call__(self, t):
-        self.pb(t/self.t_stop)
+        self.pb(t / self.t_stop)
         return t + self.interval
 
     
@@ -83,7 +83,7 @@ data = p.get_data().segments[0]
 all_spikes = np.hstack([st.magnitude for st in data.spiketrains])
 spike_counts = [((all_spikes >= x) & (all_spikes < x + interval)).sum()
                 for x in range(0, 1000, interval)]
-expected_spike_counts = [p.size * rate * interval/1000.0
+expected_spike_counts = [p.size * rate * interval / 1000.0
                          for rate in range(0, 100, rate_increment)]
 
 print("\nActual spike counts: {}".format(spike_counts))

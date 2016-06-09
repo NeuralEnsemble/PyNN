@@ -41,10 +41,12 @@ setup(timestep=dt, max_delay=syn_delay)
 
 cells = Population(n, IF_curr_alpha(**cell_params), initial_values={'v': 0.0}, label="cells")
 
-number = int(2*simtime*input_rate/1000.0)
+number = int(2 * simtime * input_rate / 1000.0)
 numpy.random.seed(26278342)
+
+
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0/input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:
@@ -81,7 +83,7 @@ filename = normalized_filename("Results", "specific_network", "pkl",
                                simulator_name, num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
-print("Mean firing rate: ", cells.mean_spike_count()*1000.0/simtime, "Hz")
+print("Mean firing rate: ", cells.mean_spike_count() * 1000.0 / simtime, "Hz")
 
 # === Clean up and quit ========================================================
 

@@ -2,12 +2,13 @@
 Definition of default parameters (and hence, standard parameter names) for
 standard current source models.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from pyNN.standardmodels import StandardCurrentSource
 from pyNN.parameters import Sequence
+
 
 class DCSource(StandardCurrentSource):
     """Source producing a single pulse of current of constant amplitude.
@@ -22,9 +23,9 @@ class DCSource(StandardCurrentSource):
     """
 
     default_parameters = {
-        'amplitude'     : 1.0,       #
-        'start'         : 0.0,      #
-        'stop'          : 1e12,  #
+        'amplitude': 1.0,
+        'start':     0.0,
+        'stop':      1e12,
     }
 
 
@@ -47,12 +48,12 @@ class ACSource(StandardCurrentSource):
     """
 
     default_parameters = {
-        'amplitude'     : 1.0,      #
-        'start'         : 0.0,     #
-        'stop'          : 1e12, #
-        'frequency'     : 10.,
-        'offset'        : 0.,
-        'phase'         : 0.
+        'amplitude': 1.0,
+        'start':     0.0,
+        'stop':      1e12,
+        'frequency': 10.0,
+        'offset':    0.0,
+        'phase':     0.0
     }
 
 
@@ -73,8 +74,9 @@ class StepCurrentSource(StandardCurrentSource):
 
     default_parameters = {
         'amplitudes': Sequence([]),
-        'times'     : Sequence([])
+        'times': Sequence([])
     }
+
 
 class NoisyCurrentSource(StandardCurrentSource):
     """A Gaussian "white" noise current source. The current amplitude changes at fixed
@@ -105,9 +107,9 @@ class NoisyCurrentSource(StandardCurrentSource):
      """
 
     default_parameters = {
-        'mean'           : 0.,
-        'stdev'          : 1.,
-        'start'          : 0.,
-        'stop'           : 1e12,
-        'dt'             : 0.1
+        'mean':  0.0,
+        'stdev': 1.0,
+        'start': 0.0,
+        'stop':  1e12,
+        'dt':    0.1
     }

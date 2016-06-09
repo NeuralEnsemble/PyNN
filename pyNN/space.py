@@ -17,7 +17,7 @@ Classes:
   Cuboid          - representation of a cuboidal volume, for use with RandomStructure.
   Sphere          - representation of a spherical volume, for use with RandomStructure.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -39,7 +39,7 @@ logger = logging.getLogger("PyNN")
 
 
 def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
-             periodic_boundaries=None): # may need to add an offset parameter
+             periodic_boundaries=None):  # may need to add an offset parameter
     """
     Return the Euclidian distance between two cells.
     `mask` allows only certain dimensions to be considered, e.g.::
@@ -49,10 +49,10 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     `scale_factor` allows for different units in the pre- and post- position
     (the post-synaptic position is multipied by this quantity).
     """
-    d = src.position - scale_factor*(tgt.position + offset)
+    d = src.position - scale_factor * (tgt.position + offset)
 
-    if not periodic_boundaries == None:
-        d = numpy.minimum(abs(d), periodic_boundaries-abs(d))
+    if periodic_boundaries is not None:
+        d = numpy.minimum(abs(d), periodic_boundaries - abs(d))
     if mask is not None:
         d = d[mask]
     return numpy.sqrt(numpy.dot(d, d))
@@ -84,8 +84,8 @@ class Space(object):
 
     """
 
-    AXES = {'x' : [0],    'y': [1],    'z': [2],
-            'xy': [0,1], 'yz': [1,2], 'xz': [0,2], 'xyz': range(3), None: range(3)}
+    AXES = {'x':  [0],     'y': [1],     'z': [2],
+            'xy': [0, 1], 'yz': [1, 2], 'xz': [0, 2], 'xyz': range(3), None: range(3)}
 
     def __init__(self, axes=None, scale_factor=1.0, offset=0.0,
                  periodic_boundaries=None):
@@ -111,7 +111,7 @@ class Space(object):
             A = A.reshape(1, 3)
         if len(B.shape) == 1:
             B = B.reshape(1, 3)
-        B = self.scale_factor*(B + self.offset)
+        B = self.scale_factor * (B + self.offset)
         d = numpy.zeros((len(self.axes), A.shape[0], B.shape[0]), dtype=A.dtype)
         for i, axis in enumerate(self.axes):
             diff2 = A[:, None, axis] - B[:, axis]
@@ -120,7 +120,7 @@ class Space(object):
                 if boundaries is not None:
                     range = boundaries[1] - boundaries[0]
                     ad2 = abs(diff2)
-                    diff2 = numpy.minimum(ad2, range-ad2)
+                    diff2 = numpy.minimum(ad2, range - ad2)
             diff2 **= 2
             d[i] = diff2
         if not expand:
@@ -205,10 +205,10 @@ class Line(BaseStructure):
         self.z = z
 
     def generate_positions(self, n):
-        x = self.dx*numpy.arange(n, dtype=float) + self.x0
+        x = self.dx * numpy.arange(n, dtype=float) + self.x0
         y = numpy.zeros(n) + self.y
         z = numpy.zeros(n) + self.z
-        return numpy.array((x,y,z))
+        return numpy.array((x, y, z))
     generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
@@ -241,22 +241,22 @@ class Grid2D(BaseStructure):
 
     def calculate_size(self, n):
         """docstring goes here"""
-        nx = math.sqrt(n*self.aspect_ratio)
-        if n%nx != 0:
+        nx = math.sqrt(n * self.aspect_ratio)
+        if n % nx != 0:
             raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
-        ny = n/nx
+        ny = n / nx
         return nx, ny
 
     def generate_positions(self, n):
         nx, ny = self.calculate_size(n)
-        x,y,z = numpy.indices((nx,ny,1), dtype=float)
-        x = self.x0 + self.dx*x.flatten()
-        y = self.y0 + self.dy*y.flatten()
+        x, y, z = numpy.indices((nx, ny, 1), dtype=float)
+        x = self.x0 + self.dx * x.flatten()
+        y = self.y0 + self.dy * y.flatten()
         z = self.z + z.flatten()
-        positions = numpy.array((x,y,z)) # use column_stack, if we decide to switch from (3,n) to (n,3)
+        positions = numpy.array((x, y, z))  # use column_stack, if we decide to switch from (3,n) to (n,3)
         if self.fill_order == 'sequential':
             return positions
-        else: # random
+        else:  # random
             if self.rng is None:
                 self.rng = NumpyRNG()
             return self.rng.permutation(positions.T).T
@@ -295,24 +295,24 @@ class Grid3D(BaseStructure):
 
     def calculate_size(self, n):
         """docstring goes here"""
-        a,b = self.aspect_ratios
-        nx = int(round(math.pow(n*a*b, 1/3.0)))
-        ny = int(round(nx/a))
-        nz = int(round(nx/b))
-        assert nx*ny*nz == n, str((nx, ny, nz, nx*ny*nz, n, a, b))
+        a, b = self.aspect_ratios
+        nx = int(round(math.pow(n * a * b, 1 / 3.0)))
+        ny = int(round(nx / a))
+        nz = int(round(nx / b))
+        assert nx * ny * nz == n, str((nx, ny, nz, nx * ny * nz, n, a, b))
         return nx, ny, nz
 
     def generate_positions(self, n):
         nx, ny, nz = self.calculate_size(n)
-        x,y,z = numpy.indices((nx,ny,nz), dtype=float)
-        x = self.x0 + self.dx*x.flatten()
-        y = self.y0 + self.dy*y.flatten()
-        z = self.z0 + self.dz*z.flatten()
+        x, y, z = numpy.indices((nx, ny, nz), dtype=float)
+        x = self.x0 + self.dx * x.flatten()
+        y = self.y0 + self.dy * y.flatten()
+        z = self.z0 + self.dz * z.flatten()
         if self.fill_order == 'sequential':
-            return numpy.array((x,y,z))
+            return numpy.array((x, y, z))
         else:
             raise NotImplementedError
-        generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
+    generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
 class Shape(object):
@@ -342,7 +342,7 @@ class Cuboid(Shape):
 
     def sample(self, n, rng):
         """Return `n` points distributed randomly with uniform density within the cuboid."""
-        return 0.5*rng.uniform(-1, 1, size=(n,3)) * (self.width, self.height, self.depth)
+        return 0.5 * rng.uniform(-1, 1, size=(n, 3)) * (self.width, self.height, self.depth)
 
 
 class Sphere(Shape):
@@ -361,14 +361,14 @@ class Sphere(Shape):
         """Return `n` points distributed randomly with uniform density within the sphere."""
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
-        positions = numpy.empty((n,3))
+        positions = numpy.empty((n, 3))
         i = 0
         while i < n:
-            candidate = rng.uniform(-1, 1, size=(1,3))
+            candidate = rng.uniform(-1, 1, size=(1, 3))
             if (candidate**2).sum() < 1:
                 positions[i] = candidate
                 i += 1
-        return self.radius*positions
+        return self.radius * positions
 
 
 class RandomStructure(BaseStructure):
@@ -382,7 +382,7 @@ class RandomStructure(BaseStructure):
     """
     parameter_names = ('boundary', 'origin', 'rng')
 
-    def __init__(self, boundary, origin=(0.0,0.0,0.0), rng=None):
+    def __init__(self, boundary, origin=(0.0, 0.0, 0.0), rng=None):
         assert isinstance(boundary, Shape)
         assert len(origin) == 3
         self.boundary = boundary

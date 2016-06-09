@@ -9,8 +9,8 @@ exec("import pyNN.%s as sim" % P.simulator)
 
 sim.setup()
 
-dx1 = dy1 = 500.0/sqrt(P.n1)
-dx2 = dy2 = 500.0/sqrt(P.n2)
+dx1 = dy1 = 500.0 / sqrt(P.n1)
+dx2 = dy2 = 500.0 / sqrt(P.n2)
 struct1 = Grid2D(dx=dx1, dy=dy1)
 struct2 = Grid2D(dx=dx2, dy=dy2)
 

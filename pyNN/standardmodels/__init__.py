@@ -13,7 +13,7 @@ Classes:
     STDPWeightDependence
     STDPTimingDependence
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -28,6 +28,7 @@ from copy import deepcopy
 #   Standard cells
 # ==============================================================================
 
+
 def build_translations(*translation_list):
     """
     Build a translation dictionary from a list of translations/transformations.
@@ -37,14 +38,14 @@ def build_translations(*translation_list):
         assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
         pynn_name = item[0]
         sim_name = item[1]
-        if len(item) == 2: # no transformation
+        if len(item) == 2:  # no transformation
             f = pynn_name
             g = sim_name
-        elif len(item) == 3: # simple multiplicative factor
+        elif len(item) == 3:  # simple multiplicative factor
             scale_factor = item[2]
             f = "float(%g)*%s" % (scale_factor, pynn_name)
             g = "%s/float(%g)" % (sim_name, scale_factor)
-        elif len(item) == 4: # more complex transformation
+        elif len(item) == 4:  # more complex transformation
             f = item[2]
             g = item[3]
         translations[pynn_name] = {'translated_name': sim_name,
@@ -73,9 +74,8 @@ class StandardModelType(models.BaseModelType):
         _parameters = deepcopy(parameters)
         cls = self.__class__
         if parameters.schema != self.get_schema():
-            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema())) # should replace this with a PyNN-specific exception type
+            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
         native_parameters = {}
-        #for name in parameters.schema:
         for name in parameters.keys():
             D = self.translations[name]
             pname = D['translated_name']
@@ -85,7 +85,7 @@ class StandardModelType(models.BaseModelType):
                 try:
                     pval = eval(D['forward_transform'], globals(), _parameters)
                 except NameError as errmsg:
-                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
                                     % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
                 except ZeroDivisionError:
                     raise
@@ -97,7 +97,7 @@ class StandardModelType(models.BaseModelType):
         """Translate simulator-specific model parameters to standardized parameters."""
         cls = self.__class__
         standard_parameters = {}
-        for name,D  in self.translations.items():
+        for name, D in self.translations.items():
             tname = D['translated_name']
             if tname in native_parameters.keys():
                 if callable(D['reverse_transform']):
@@ -106,7 +106,7 @@ class StandardModelType(models.BaseModelType):
                     try:
                         standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
                     except NameError as errmsg:
-                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s" \
+                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
                                         % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
 
@@ -140,9 +140,9 @@ class StandardModelType(models.BaseModelType):
 
 class StandardCellType(StandardModelType, models.BaseCellType):
     """Base class for standardized cell model classes."""
-    recordable    = ['spikes', 'v', 'gsyn']
+    recordable = ['spikes', 'v', 'gsyn']
     receptor_types = ('excitatory', 'inhibitory')
-    always_local  = False # override for NEST spike sources
+    always_local = False  # override for NEST spike sources
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
@@ -235,7 +235,7 @@ def check_weights(weights, projection):
     if is_conductance or synapse_sign == 'excitatory':
         if not all_positive:
             raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance == False and synapse_sign == 'inhibitory':
+    elif is_conductance is False and synapse_sign == 'inhibitory':
         if not all_negative:
             raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
     else:  # This should never happen.

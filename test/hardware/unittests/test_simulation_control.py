@@ -2,7 +2,7 @@
 Tests of the common implementation of the simulation control functions, using
 the pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -20,19 +20,21 @@ except ImportError:
 if MPI:
     mpi_comm = MPI.COMM_WORLD
 
-extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
        
+
 class TestSimulationControl(unittest.TestCase):
+
     def test_setup(self):
         self.assertRaises(Exception, sim.setup, min_delay=1.0, max_delay=0.9, **extra)
         self.assertRaises(Exception, sim.setup, mindelay=1.0, **extra)  # } common
-        self.assertRaises(Exception, sim.setup, maxdelay=10.0, **extra) # } misspellings
+        self.assertRaises(Exception, sim.setup, maxdelay=10.0, **extra)  # } misspellings
         self.assertRaises(Exception, sim.setup, dt=0.1, **extra)        # }
         self.assertRaises(Exception, sim.setup, timestep=0.1, min_delay=0.09, **extra)
 
     def test_end(self):
         sim.setup(**extra)
-        sim.end() # need a better test
+        sim.end()  # need a better test
     
     def test_run(self):
         sim.setup(**extra)

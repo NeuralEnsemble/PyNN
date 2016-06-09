@@ -5,7 +5,7 @@ import shutil
 # Creates output folder if it does not exist yet, creates sim_script.sh, 
 # and submits it to the queue
 
-system_params['num_mpi_procs'] = system_params['n_nodes']*system_params['n_procs_per_node']
+system_params['num_mpi_procs'] = system_params['n_nodes'] * system_params['n_procs_per_node']
 
 # Copy simulation scripts to output directory
 try :
@@ -21,7 +21,7 @@ shutil.copy('connectivity.py', system_params['output_path'])
 shutil.copy('scaling.py', system_params['output_path'])
 shutil.copy('plotting.py', system_params['output_path'])
 
-job_scipt_template = """
+job_script_template = """
 #PBS -o %(output_path)s/%(outfile)s
 #PBS -e %(output_path)s/%(errfile)s 
 #PBS -l walltime=%(walltime)s
@@ -32,8 +32,8 @@ job_scipt_template = """
 mpirun -np %(num_mpi_procs)d python %(output_path)s/microcircuit.py
 """
 
-f = open(system_params['output_path']+'/sim_script.sh','w')
-f.write(job_scipt_template % system_params)
+f = open(system_params['output_path'] + '/sim_script.sh', 'w')
+f.write(job_script_template % system_params)
 f.close()
 
 os.system('cd %(output_path)s && %(submit_cmd)s sim_script.sh' % system_params)

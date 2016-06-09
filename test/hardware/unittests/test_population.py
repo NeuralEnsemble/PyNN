@@ -2,7 +2,7 @@
 Tests of the common implementation of the Population class, using the pyNN.mock
 backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -21,18 +21,19 @@ from pyNN.parameters import Sequence
 if True:
     import pyNN.hardware.brainscales as sim
     ParameterValueOutOfRangeError = sim.range_checker.ParameterValueOutOfRangeError
-    IF_cond_exp            = sim.Hardware_IF_cond_exp
+    IF_cond_exp = sim.Hardware_IF_cond_exp
     EIF_cond_exp_isfa_ista = sim.Hardware_EIF_cond_exp_isfa_ista
 else:
     import pyNN.mock as sim
     IF_cond_exp = sim.IF_cond_exp
     EIF_cond_exp_isfa_ista = sim.EIF_cond_exp_isfa_ista
 
+
 class PopulationTest(unittest.TestCase):
 
     def setUp(self):
         if True:
-            extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+            extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
         else:
             extra = {}
         sim.setup(**extra)
@@ -51,7 +52,7 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(p.initial_values.keys(), p.celltype.default_initial_values.keys())
 
     def test_create_with_parameters(self):
-        p = sim.Population(4, IF_cond_exp(**{'tau_m': lambda i: 12.3 + 0.1*i,
+        p = sim.Population(4, IF_cond_exp(**{'tau_m': lambda i: 12.3 + 0.1 * i,
                                                  'cm': 0.2,
                                                  'tau_syn_E': numpy.array([1.0, 2.0, 3.0, 4.0])}))
         cm, tau_m, tau_syn_E = p.get(('cm', 'tau_m', 'tau_syn_E'), gather=True)
@@ -68,13 +69,13 @@ class PopulationTest(unittest.TestCase):
         p = sim.Population((11,), IF_cond_exp())
         self.assertEqual(p.size, 11)
         self.assertIsInstance(p.structure, space.Line)
-        p = sim.Population((5,6), IF_cond_exp())
+        p = sim.Population((5, 6), IF_cond_exp())
         self.assertEqual(p.size, 30)
         self.assertIsInstance(p.structure, space.Grid2D)
-        p = sim.Population((2,3,4), IF_cond_exp())
+        p = sim.Population((2, 3, 4), IF_cond_exp())
         self.assertEqual(p.size, 24)
         self.assertIsInstance(p.structure, space.Grid3D)
-        self.assertRaises(Exception, sim.Population, (2,3,4,5), IF_cond_exp())
+        self.assertRaises(Exception, sim.Population, (2, 3, 4, 5), IF_cond_exp())
 
     #def test_create_with_initial_values():
 
@@ -85,29 +86,29 @@ class PopulationTest(unittest.TestCase):
 
     def test_id_to_index_with_array(self):
         p = sim.Population(11, IF_cond_exp())
-        assert_array_equal(p.id_to_index(p.all_cells[3:9:2]), numpy.arange(3,9,2))
+        assert_array_equal(p.id_to_index(p.all_cells[3:9:2]), numpy.arange(3, 9, 2))
 
     def test_id_to_index_with_populationview(self):
         p = sim.Population(11, IF_cond_exp())
         view = p[3:7]
         self.assertIsInstance(view, sim.PopulationView)
-        assert_array_equal(p.id_to_index(view), numpy.arange(3,7))
+        assert_array_equal(p.id_to_index(view), numpy.arange(3, 7))
 
     def test_id_to_index_with_invalid_id(self):
         p = sim.Population(11, IF_cond_exp())
-        self.assertRaises(ValueError, p.id_to_index, p.last_id+1)
-        self.assertRaises(ValueError, p.id_to_index, p.first_id-1)
+        self.assertRaises(ValueError, p.id_to_index, p.last_id + 1)
+        self.assertRaises(ValueError, p.id_to_index, p.first_id - 1)
 
     def test_id_to_index_with_invalid_ids(self):
         p = sim.Population(11, IF_cond_exp())
-        self.assertRaises(ValueError, p.id_to_index, [p.first_id-1] + p.all_cells[0:3].tolist())
+        self.assertRaises(ValueError, p.id_to_index, [p.first_id - 1] + p.all_cells[0:3].tolist())
 
     #def test_id_to_local_index():
 
     # test structure property
     def test_set_structure(self):
         p = sim.Population(11, IF_cond_exp())
-        p.positions = numpy.arange(33).reshape(3,11)
+        p.positions = numpy.arange(33).reshape(3, 11)
         new_struct = space.Grid2D()
         p.structure = new_struct
         self.assertEqual(p.structure, new_struct)
@@ -116,41 +117,41 @@ class PopulationTest(unittest.TestCase):
     # test positions property
     def test_get_positions(self):
         p = sim.Population(11, IF_cond_exp())
-        pos1 = numpy.arange(33).reshape(3,11)
+        pos1 = numpy.arange(33).reshape(3, 11)
         p._structure = Mock()
         p._structure.generate_positions = Mock(return_value=pos1)
         self.assertEqual(p._positions, None)
         assert_array_equal(p.positions, pos1)
 
-        pos2 = 1+numpy.arange(33).reshape(3,11)
+        pos2 = 1 + numpy.arange(33).reshape(3, 11)
         p.positions = pos2
         assert_array_equal(p.positions, pos2)
 
     def test_set_positions(self):
         p = sim.Population(11, IF_cond_exp())
         assert p._structure != None
-        new_positions = numpy.random.uniform(size=(3,11))
+        new_positions = numpy.random.uniform(size=(3, 11))
         p.positions = new_positions
         self.assertEqual(p.structure, None)
         assert_array_equal(p.positions, new_positions)
-        new_positions[0,0] = 99.9
-        self.assertNotEqual(p.positions[0,0], 99.9)
+        new_positions[0, 0] = 99.9
+        self.assertNotEqual(p.positions[0, 0], 99.9)
 
     def test_position_generator(self):
         p = sim.Population(11, IF_cond_exp())
-        assert_array_equal(p.position_generator(0), p.positions[:,0])
-        assert_array_equal(p.position_generator(10), p.positions[:,10])
-        assert_array_equal(p.position_generator(-1), p.positions[:,10])
-        assert_array_equal(p.position_generator(-11), p.positions[:,0])
+        assert_array_equal(p.position_generator(0), p.positions[:, 0])
+        assert_array_equal(p.position_generator(10), p.positions[:, 10])
+        assert_array_equal(p.position_generator(-1), p.positions[:, 10])
+        assert_array_equal(p.position_generator(-11), p.positions[:, 0])
         self.assertRaises(IndexError, p.position_generator, 11)
         self.assertRaises(IndexError, p.position_generator, -12)
 
     def test__getitem__int(self):
         # Should return the correct ID object
         p = sim.Population(12, IF_cond_exp())
-        self.assertEqual(p[11], 11+p[0])
+        self.assertEqual(p[11], 11 + p[0])
         self.assertRaises(IndexError, p.__getitem__, 12)
-        self.assertEqual(p[-1], 11+p[0])
+        self.assertEqual(p[-1], 11 + p[0])
 
     def test__getitem__slice(self):
         # Should return a PopulationView with the correct parent and value
@@ -162,13 +163,13 @@ class PopulationTest(unittest.TestCase):
 
     def test__getitem__list(self):
        p = sim.Population(23, IF_cond_exp())
-       pv = p[range(3,9)]
+       pv = p[range(3, 9)]
        self.assertEqual(pv.parent, p)
        assert_array_almost_equal(pv.all_cells, p.all_cells[3:9])
 
     def test__getitem__tuple(self):
         p = sim.Population(23, IF_cond_exp())
-        pv = p[(3,5,7)]
+        pv = p[(3, 5, 7)]
         self.assertEqual(pv.parent, p)
         assert_array_almost_equal(pv.all_cells, p.all_cells[[3, 5, 7]])
 
@@ -206,32 +207,32 @@ class PopulationTest(unittest.TestCase):
 
     def test_nearest(self):
         p = sim.Population(13, IF_cond_exp())
-        p.positions = numpy.arange(39).reshape((13,3)).T
+        p.positions = numpy.arange(39).reshape((13, 3)).T
         self.assertEqual(p.nearest((0.0, 1.0, 2.0)), p[0])
         self.assertEqual(p.nearest((3.0, 4.0, 5.0)), p[1])
         self.assertEqual(p.nearest((36.0, 37.0, 38.0)), p[12])
         self.assertEqual(p.nearest((1.49, 2.49, 3.49)), p[0])
         self.assertEqual(p.nearest((1.51, 2.51, 3.51)), p[1])
 
-        x,y,z = 4,5,6
-        p = sim.Population((x,y,z), IF_cond_exp())
-        self.assertEqual(p.nearest((0.0,0.0,0.0)), p[0])
-        self.assertEqual(p.nearest((0.0,0.0,1.0)), p[1])
-        self.assertEqual(p.nearest((0.0,1.0,0.0)), p[z])
-        self.assertEqual(p.nearest((1.0,0.0,0.0)), p[y*z])
-        self.assertEqual(p.nearest((3.0,2.0,1.0)), p[3*y*z+2*z+1])
-        self.assertEqual(p.nearest((3.49,2.49,1.49)), p[3*y*z+2*z+1])
-        self.assertEqual(p.nearest((3.49,2.49,1.51)), p[3*y*z+2*z+2])
+        x, y, z = 4, 5, 6
+        p = sim.Population((x, y, z), IF_cond_exp())
+        self.assertEqual(p.nearest((0.0, 0.0, 0.0)), p[0])
+        self.assertEqual(p.nearest((0.0, 0.0, 1.0)), p[1])
+        self.assertEqual(p.nearest((0.0, 1.0, 0.0)), p[z])
+        self.assertEqual(p.nearest((1.0, 0.0, 0.0)), p[y * z])
+        self.assertEqual(p.nearest((3.0, 2.0, 1.0)), p[3 * y * z + 2 * z + 1])
+        self.assertEqual(p.nearest((3.49, 2.49, 1.49)), p[3 * y * z + 2 * z + 1])
+        self.assertEqual(p.nearest((3.49, 2.49, 1.51)), p[3 * y * z + 2 * z + 2])
         #self.assertEqual(p.nearest((3.49,2.49,1.5)), p[3*y*z+2*z+2]) # known to fail
         #self.assertEqual(p.nearest((2.5,2.5,1.5)), p[3*y*z+3*y+2])
 
     def test_sample(self):
         p = sim.Population(13, IF_cond_exp())
         rng = Mock()
-        rng.permutation = Mock(return_value=numpy.array([7,4,8,12,0,3,9,1,2,11,5,10,6]))
+        rng.permutation = Mock(return_value=numpy.array([7, 4, 8, 12, 0, 3, 9, 1, 2, 11, 5, 10, 6]))
         pv = p.sample(5, rng=rng)
         assert_array_equal(pv.all_cells,
-                           p.all_cells[[7,4,8,12,0]])
+                           p.all_cells[[7, 4, 8, 12, 0]])
 
     def test_get_multiple_homogeneous_params_with_gather(self):
         p = sim.Population(4, IF_cond_exp(**{'tau_m': 12.3, 'cm': 0.2, 'i_offset': 0.0}))
@@ -246,13 +247,13 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(tau_m, 12.3)
 
     def test_get_multiple_inhomogeneous_params_with_gather(self):
-        p = sim.Population(4, IF_cond_exp(tau_m=[12.3,12.4,12.5,12.6],
+        p = sim.Population(4, IF_cond_exp(tau_m=[12.3, 12.4, 12.5, 12.6],
                                               cm=0.2,
-                                              tau_syn_E=lambda i: 1.0+1.0*i))
+                                              tau_syn_E=lambda i: 1.0 + 1.0 * i))
         cm, tau_m, tau_syn_E = p.get(('cm', 'tau_m', 'tau_syn_E'), gather=True)
         self.assertIsInstance(cm, float)
         self.assertIsInstance(tau_m, numpy.ndarray)
-        assert_array_equal(tau_m, numpy.array([12.3,12.4,12.5,12.6]))
+        assert_array_equal(tau_m, numpy.array([12.3, 12.4, 12.5, 12.6]))
         self.assertEqual(cm, 0.2)
         assert_array_almost_equal(tau_syn_E, numpy.array([1.0, 2.0, 3.0, 4.0]), decimal=12)
 
@@ -271,7 +272,7 @@ class PopulationTest(unittest.TestCase):
         tau_m, v_reset, tau_syn_E = p.get(('tau_m', 'v_reset', 'tau_syn_E'), gather=True)
         assert_array_equal(tau_m, numpy.array([12.31, 12.32, 12.33, 12.34]))
         assert_array_equal(v_reset, -60.0**numpy.ones((4,)))
-        assert_array_equal(tau_syn_E, 1.0*numpy.ones((4,)))
+        assert_array_equal(tau_syn_E, 1.0 * numpy.ones((4,)))
 
     def test_set_invalid_name(self):
         p = sim.Population(9, IF_cond_exp())
@@ -293,7 +294,7 @@ class PopulationTest(unittest.TestCase):
 
     def test_set_array(self):
         p = sim.Population(5, IF_cond_exp())
-        p.set(v_thresh=-50.0+numpy.arange(5))
+        p.set(v_thresh=-50.0 + numpy.arange(5))
         assert_array_equal(p.get('v_thresh', gather=True),
                            numpy.array([-50.0, -49.0, -48.0, -47.0, -46.0]))
 
@@ -364,7 +365,7 @@ class PopulationTest(unittest.TestCase):
         sim.run(12.3)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(12.3/sim.get_time_step())) + 1
+        n_values = int(round(12.3 / sim.get_time_step())) + 1
         self.assertEqual(data.analogsignalarrays[0].name, 'v')
         self.assertEqual(data.analogsignalarrays[0].shape, (n_values, p.size))
 
@@ -374,7 +375,7 @@ class PopulationTest(unittest.TestCase):
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
         self.assertEqual(len(data.analogsignalarrays), 1)
-        n_values = int(round(10.0/sim.get_time_step())) + 1
+        n_values = int(round(10.0 / sim.get_time_step())) + 1
         names = set(arr.name for arr in data.analogsignalarrays)
         self.assertEqual(names, set(('v')))
         for arr in data.analogsignalarrays:
@@ -395,7 +396,7 @@ class PopulationTest(unittest.TestCase):
     def test_record_invalid_variable(self):
         p = sim.Population(14, IF_cond_exp())
         self.assertRaises(errors.RecordingError,
-                          p.record, ('v', 'w')) # can't record w from this celltype
+                          p.record, ('v', 'w'))  # can't record w from this celltype
 
     def test_get_data_no_gather(self):
        self.fail()
@@ -447,7 +448,6 @@ class PopulationTest(unittest.TestCase):
         p.record('spikes')
         sim.run(100.0)
         self.assertEqual(p.mean_spike_count(), 2.0)
-
 
     def test_meanSpikeCount(self):
         p = sim.Population(14, EIF_cond_exp_isfa_ista())

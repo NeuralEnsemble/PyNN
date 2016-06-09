@@ -13,23 +13,17 @@ Functions:
 Constants:
     NMODL_DIR        - subdirectory to which NMODL mechanisms will be written
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 from __future__ import absolute_import
-import subprocess
-import neuron
-from pyNN.models import BaseCellType
 import logging
 import os
-from itertools import chain
 import neuron
 from pyNN.models import BaseCellType
 from pyNN.nineml.cells import build_nineml_celltype
-from pyNN.neuron import simulator
-from pyNN import common, recording
 from nineml2nmodl import write_nmodl, write_nmodldirect, call_nrnivmodl
 
 
@@ -76,7 +70,7 @@ class NineMLCellType(BaseCellType):
 
     def __init__(self, **parameters):
         BaseCellType.__init__(self, **parameters)
-        self.extra_parameters = {"type": self}  #self.__class__?
+        self.extra_parameters = {"type": self}  # self.__class__?
 
 
 def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None):  # weight variables should really be within component
@@ -98,7 +92,6 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
     print("Running 'nrnivmodl' from %s" % wdir)
-    import nineml2nmodl
     call_nrnivmodl()
     os.chdir(cwd)
     neuron.load_mechanisms(wdir)

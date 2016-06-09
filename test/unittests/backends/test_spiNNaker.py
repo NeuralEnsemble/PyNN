@@ -15,15 +15,16 @@ sim_name = "spiNNaker"
 # -------------------------------------------------- 
  
 try:
-    exec("import pyNN.%s" % sim_name)
-    exec("sim = pyNN.%s" % sim_name)
+    import pyNN.spiNNaker as sim
     have_sim = True
 except ImportError:
     have_sim = False
 
+
 def setUp():
     pass
     
+
 def tearDown():
     pass
 
@@ -33,6 +34,7 @@ extra = {}
 # DON'T CHANGE below this line
 # -------------------------------------------------- 
     
+
 def test_scenarios(sim_name=sim_name, have_sim=have_sim):
     for TestClass in registry:
         module_name = TestClass.__module__
@@ -50,4 +52,5 @@ def test_scenarios(sim_name=sim_name, have_sim=have_sim):
                 yield skip
                 
 if __name__ == "__main__":
+    import unittest
     unittest.main()

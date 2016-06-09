@@ -332,11 +332,10 @@ post-synaptic neurons. For example:
 
 .. testcode::
 
-    connections = numpy.array([
-                [0, 1, 1, 0],
-                [1, 1, 0, 1],
-                [0, 0, 1, 0],
-            ])
+    connections = numpy.array([[0, 1, 1, 0],
+                               [1, 1, 0, 1],
+                               [0, 0, 1, 0]],
+                              dtype=bool)
     connector = ArrayConnector(connections)
 
 

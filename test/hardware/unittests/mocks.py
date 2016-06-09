@@ -1,7 +1,7 @@
 """
 Mock classes for unit tests
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -23,14 +23,14 @@ class MockRNG(random.WrappedRNG):
         elif distribution == "binomial":
             return self._next_binomial(n, parameters)
         s = self.start
-        self.start += n*self.delta
-        return s + self.delta*numpy.arange(n)
+        self.start += n * self.delta
+        return s + self.delta * numpy.arange(n)
 
     def _next_int(self, n, parameters):
         low, high = parameters["low"], parameters["high"]
         s = int(self.start)
-        self.start += n*self.delta
-        x = s + self.delta*numpy.arange(n)
+        self.start += n * self.delta
+        x = s + self.delta * numpy.arange(n)
         return x % (high - low) + low
 
     def _next_binomial(self, n, parameters):
@@ -49,7 +49,7 @@ class MockRNG2(random.WrappedRNG):
         self.i = 0
 
     def _next(self, distribution, n, parameters):
-        x = self.numbers[self.i:self.i+n]
+        x = self.numbers[self.i:self.i + n]
         self.i += n
         return x
 

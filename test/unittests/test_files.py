@@ -11,11 +11,12 @@ from pyNN.utility import assert_arrays_equal
 
 builtin_open = open
 
+
 def test__savetxt():
     mock_file = Mock()
     files.open = Mock(return_value=mock_file)
     files._savetxt(filename="dummy_file",
-                   data=[(0, 2.3),(1, 3.4),(2, 4.3)],
+                   data=[(0, 2.3), (1, 3.4), (2, 4.3)],
                    format="%f", 
                    delimiter=" ")
     target = [(('0.000000 2.300000\n',), {}),
@@ -24,11 +25,13 @@ def test__savetxt():
     assert_equal(mock_file.write.call_args_list, target)
     files.open = builtin_open  
     
+
 def test_create_BaseFile():
     files.open = Mock()
     bf = files.BaseFile("filename", 'r')
     files.open.assert_called_with("filename", "r", files.DEFAULT_BUFFER_SIZE)
     files.open = builtin_open    
+
 
 def test_del():
     files.open = Mock()
@@ -39,6 +42,7 @@ def test_del():
     close_mock.assert_called_with()
     files.open = builtin_open
     
+
 def test_close():
     files.open = Mock()
     bf = files.BaseFile("filename", 'r')
@@ -60,6 +64,7 @@ def test_close():
 #                 target)
 #    files.open = builtin_open
     
+
 def test_StandardTextFile_read():
     files.open = Mock()
     stf = files.StandardTextFile("filename", "w")
@@ -70,9 +75,10 @@ def test_StandardTextFile_read():
     numpy.loadtxt = orig_loadtxt
     files.open = builtin_open
     
+
 def test_PickleFile():
     pf = files.PickleFile("tmp.pickle", "wb")
-    data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+    data = [(0, 2.3), (1, 3.4), (2, 4.3)]
     metadata = {'a': 1, 'b': 9.99}
     pf.write(data, metadata)
     pf.close()
@@ -98,10 +104,11 @@ def test_PickleFile():
 #
 #    os.remove("tmp.npz")
     
+
 def test_HDF5ArrayFile():
     if files.have_hdf5:
         h5f = files.HDF5ArrayFile("tmp.h5", "w")
-        data=[(0, 2.3),(1, 3.4),(2, 4.3)]
+        data = [(0, 2.3), (1, 3.4), (2, 4.3)]
         metadata = {'a': 1, 'b': 9.99}
         h5f.write(data, metadata)
         h5f.close()

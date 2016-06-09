@@ -43,7 +43,7 @@ cell_parameters = {
     "v_reset": -60.0,    # (mV)
     "v_rest": -60.0,     # (mV)
     "cm": 1.0,           # (nF)
-    "tau_refrac": firing_period/2,  # (ms) long refractory period to prevent bursting
+    "tau_refrac": firing_period / 2,  # (ms) long refractory period to prevent bursting
 }
 n = 60                   # number of synapses / number of presynaptic neurons
 delta_t = 1.0            # (ms) time difference between the firing times of neighbouring neurons
@@ -74,7 +74,7 @@ def build_spike_sequences(period, duration, n, delta_t):
     """
     def spike_time_gen(i):
         """Spike time generator. `i` should be an array of indices."""
-        return [Sequence(numpy.arange(period + j*delta_t, duration, period)) for j in (i - n//2)]
+        return [Sequence(numpy.arange(period + j * delta_t, duration, period)) for j in (i - n // 2)]
     return spike_time_gen
 
 spike_sequence_generator = build_spike_sequences(firing_period, t_stop, n, delta_t)
@@ -127,7 +127,7 @@ class WeightRecorder(object):
         return t + self.interval
 
     def get_weights(self):
-        return neo.AnalogSignalArray(self._weights, units='nA', sampling_period=self.interval*ms,
+        return neo.AnalogSignalArray(self._weights, units='nA', sampling_period=self.interval * ms,
                                      channel_index=numpy.arange(len(self._weights[0])),
                                      name="weight")
 
@@ -136,7 +136,6 @@ weight_recorder = WeightRecorder(sampling_interval=1.0, projection=connections)
 # === Run the simulation =====================================================
 
 sim.run(t_stop, callbacks=[weight_recorder])
-
 
 
 # === Save the results, optionally plot a figure =============================
@@ -150,14 +149,14 @@ print("Post-synaptic spike times: %s" % postsynaptic_data.spiketrains[0])
 
 weights = weight_recorder.get_weights()
 final_weights = numpy.array(weights[-1])
-deltas = delta_t*numpy.arange(n//2, -n//2, -1)
+deltas = delta_t * numpy.arange(n // 2, -n // 2, -1)
 print("Final weights: %s" % final_weights)
 plasticity_data = DataTable(deltas, final_weights)
 
 
 if options.fit_curve:
     def double_exponential(t, t0, w0, wp, wn, tau):
-        return w0 + numpy.where(t >= t0, wp*numpy.exp(-(t - t0)/tau), wn*numpy.exp((t - t0)/tau))
+        return w0 + numpy.where(t >= t0, wp * numpy.exp(-(t - t0) / tau), wn * numpy.exp((t - t0) / tau))
     p0 = (-1.0, 5e-8, 1e-8, -1.2e-8, 20.0)
     popt, pcov = plasticity_data.fit_curve(double_exponential, p0, ftol=1e-10)
     print("Best fit parameters: t0={0}, w0={1}, wp={2}, wn={3}, tau={4}".format(*popt))
@@ -180,8 +179,8 @@ if options.plot_figure:
         # scatterplot of the final weight of each synapse against the relative
         # timing of pre- and postsynaptic spikes for that synapse
         Panel(plasticity_data,
-              xticks=True, yticks=True, xlim=(-n/2*delta_t, n/2*delta_t),
-              ylim=(0.9*final_weights.min(), 1.1*final_weights.max()),
+              xticks=True, yticks=True, xlim=(-n / 2 * delta_t, n / 2 * delta_t),
+              ylim=(0.9 * final_weights.min(), 1.1 * final_weights.max()),
               xlabel="t_post - t_pre (ms)", ylabel="Final weight (nA)",
               show_fit=options.fit_curve),
         title="Simple STDP example",

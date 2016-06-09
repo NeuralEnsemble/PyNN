@@ -1,6 +1,7 @@
 from pyNN import common, errors, standardmodels
 from nose.tools import assert_equal, assert_raises
 
+
 class MockStandardCell(standardmodels.StandardCellType):
     default_parameters = {
         'a': 20.0,
@@ -9,15 +10,20 @@ class MockStandardCell(standardmodels.StandardCellType):
     }
     translations = standardmodels.build_translations(('a', 'A'), ('b', 'B'), ('c', 'C', 'c + a', 'C - A'))
 
+
 class MockNativeCell(object):
+
     @classmethod
     def has_parameter(cls, name):
         return False
+
     @classmethod
     def get_parameter_names(cls):
         return []
 
+
 class MockPopulation(object):
+
     def __init__(self, standard):
         if standard:
             self.celltype = MockStandardCell()
@@ -26,21 +32,29 @@ class MockPopulation(object):
         self._is_local_called = False
         self._positions = {}
         self._initial_values = {}
+
     def id_to_index(self, id):
         return 1234
+
     def is_local(self, id):
         self._is_local_called = True
         return True
+
     def _set_cell_position(self, id, pos):
         self._positions[id] = pos
+
     def _get_cell_position(self, id):
         return (1.2, 3.4, 5.6)
+
     def _get_cell_initial_value(self, id, variable):
         return -65.0
+
     def _set_cell_initial_value(self, id, variable, value):
         self._initial_values[id] = (variable, value)
 
+
 class MockID(common.IDMixin):
+
     def __init__(self, standard_cell):
         self.parent = MockPopulation(standard=standard_cell)
         self.foo = "bar"
@@ -48,10 +62,13 @@ class MockID(common.IDMixin):
 
 
 class MockCurrentSource(object):
+
     def __init__(self):
         self._inject_into = []
+
     def inject_into(self, objs):
         self._inject_into.extend(objs)
+
 
 class Test_IDMixin():
 
@@ -99,8 +116,8 @@ class Test_IDMixin():
     def test_position_property(self):
         for id in (self.id, self.id_ns):
             assert_equal(id.position, (1.2, 3.4, 5.6))
-            id.position = (9,8,7)
-            assert_equal(id.parent._positions[id], (9,8,7))
+            id.position = (9, 8, 7)
+            assert_equal(id.parent._positions[id], (9, 8, 7))
 
     def test_local_property(self):
         for id in (self.id, self.id_ns):

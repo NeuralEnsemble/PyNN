@@ -51,35 +51,35 @@ times['t_import'] = timer.diff()
 
 # === DEFINE PARAMETERS 
 benchmark = "COBA"
-rngseed  = 98765
+rngseed = 98765
 parallel_safe = True
 np = num_processes()
 folder_name = 'Results_PyNN_FixedNumberPost_np%d/' % (np)
-gather = False # gather spikes and membrane potentials on one process
+gather = False  # gather spikes and membrane potentials on one process
 times_fn = 'pynn_times_FixedNumberPost_gather%d_np%d.dat' % (gather, np)
 
-n_cells  = 200 * np 
-r_ei     = 4.0   # number of excitatory cells:number of inhibitory cells
-n_exc = int(round((n_cells*r_ei/(1+r_ei)))) # number of excitatory cells   
+n_cells = 200 * np 
+r_ei = 4.0   # number of excitatory cells:number of inhibitory cells
+n_exc = int(round((n_cells * r_ei / (1 + r_ei))))  # number of excitatory cells   
 n_inh = n_cells - n_exc                     # number of inhibitory cells
 n_cells_to_record = np
-n_conn_out = 1000 # number of outgoing connections per neuron
-weight = 1e-8 # connection weights
+n_conn_out = 1000  # number of outgoing connections per neuron
+weight = 1e-8  # connection weights
 
 f_noise_exc = 3000.
 f_noise_inh = 2000.
 w_noise_exc = 1e-3
 w_noise_inh = 1e-3
-dt       = 0.1   # (ms) simulation timestep
-t_sim    = 1000  # (ms) simulaton duration
-delay    = 1 * dt
+dt = 0.1   # (ms) simulation timestep
+t_sim = 1000  # (ms) simulaton duration
+delay = 1 * dt
 
 # === SETUP 
 node_id = setup(timestep=dt, min_delay=delay, max_delay=delay)
 times['t_setup'] = timer.diff()
 
 host_name = socket.gethostname()
-print("Host #%d is on %s" % (node_id+1, host_name))
+print("Host #%d is on %s" % (node_id + 1, host_name))
 
 
 # === CREATE 
@@ -90,10 +90,10 @@ inh_cells = Population(n_inh, IF_cond_exp(), label="Inhibitory_Cells")
 times['t_create'] = timer.diff()
 
 print("Creating noise sources ...")
-exc_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate' : f_noise_exc})
-inh_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate' : f_noise_inh})
-exc_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate' : f_noise_exc})
-inh_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate' : f_noise_inh})
+exc_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate': f_noise_exc})
+inh_noise_in_exc = Population(n_exc, SpikeSourcePoisson, {'rate': f_noise_inh})
+exc_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate': f_noise_exc})
+inh_noise_in_inh = Population(n_inh, SpikeSourcePoisson, {'rate': f_noise_inh})
 times['t_create_noise'] = timer.diff()
 
 print("%s Initialising membrane potential to random values..." % node_id)
@@ -104,17 +104,17 @@ inh_cells.initialize(v=uniformDistr)
 times['t_vinit'] = timer.diff()
 
 print("%s Connecting populations..." % node_id)
-ee_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
-ei_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
-ie_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
-ii_conn = FixedNumberPostConnector(n_conn_out)#, weights=weight, delays=delay)
+ee_conn = FixedNumberPostConnector(n_conn_out)  # , weights=weight, delays=delay)
+ei_conn = FixedNumberPostConnector(n_conn_out)  # , weights=weight, delays=delay)
+ie_conn = FixedNumberPostConnector(n_conn_out)  # , weights=weight, delays=delay)
+ii_conn = FixedNumberPostConnector(n_conn_out)  # , weights=weight, delays=delay)
 times['t_connector'] = timer.diff()
 
-connections={}
-connections['e2e'] = Projection(exc_cells, exc_cells, ee_conn, receptor_type='excitatory')#, rng=rng)
-connections['e2i'] = Projection(exc_cells, inh_cells, ei_conn, receptor_type='excitatory')#, rng=rng)
-connections['i2e'] = Projection(inh_cells, exc_cells, ie_conn, receptor_type='inhibitory')#, rng=rng)
-connections['i2i'] = Projection(inh_cells, inh_cells, ii_conn, receptor_type='inhibitory')#, rng=rng)
+connections = {}
+connections['e2e'] = Projection(exc_cells, exc_cells, ee_conn, receptor_type='excitatory')  # , rng=rng)
+connections['e2i'] = Projection(exc_cells, inh_cells, ei_conn, receptor_type='excitatory')  # , rng=rng)
+connections['i2e'] = Projection(inh_cells, exc_cells, ie_conn, receptor_type='inhibitory')  # , rng=rng)
+connections['i2i'] = Projection(inh_cells, inh_cells, ii_conn, receptor_type='inhibitory')  # , rng=rng)
 connections['e2e'].set(weight=weight)
 connections['e2i'].set(weight=weight)
 connections['i2e'].set(weight=weight)

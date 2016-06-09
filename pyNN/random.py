@@ -10,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -118,7 +118,7 @@ class WrappedRNG(AbstractRNG):
                 # number of processors (m), we only need generate n/m+1 per node
                 # (assuming round-robin distribution of cells between processors)
                 if mask_local is None:
-                    n = n/self.num_processes + 1
+                    n = n // self.num_processes + 1
                 elif mask_local is not False:
                     n = mask_local.sum()
             rarr = self._next(distribution, n, parameters)
@@ -277,11 +277,11 @@ class GSLRNG(WrappedRNG):
         return values
 
     def uniform_int(self, low, high, size=None):
-        return low + self.rng.uniform_int(high-low, size)
+        return low + self.rng.uniform_int(high - low, size)
 
     def gamma(self, k, theta, size=None):
         """ """
-        return self.rng.gamma(k, 1/theta, size)
+        return self.rng.gamma(k, 1 / theta, size)
 
     def normal(self, mu=0.0, sigma=1.0, size=None):
         """ """

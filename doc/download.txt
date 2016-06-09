@@ -5,7 +5,7 @@ Downloads
 Source distributions
 --------------------
 
-The `latest stable version of PyNN`_ (0.8.0) may be downloaded from the
+The `latest stable version of PyNN`_ (0.8.1) may be downloaded from the
 `Python Package Index`_ or from the `INCF Software Centre`_. This is recommended for
 anyone using PyNN for the first time.
 
@@ -15,6 +15,7 @@ does not yet support the 0.8 API.
 
 Older versions:
 
+    * `0.8.0 <https://pypi.python.org/pypi/PyNN/0.8.0>`_
     * `0.7.5 <https://pypi.python.org/pypi/PyNN/0.7.5>`_
     * `0.7.4 <https://pypi.python.org/pypi/PyNN/0.7.4>`_
     * `0.7.3 <https://pypi.python.org/pypi/PyNN/0.7.3>`_

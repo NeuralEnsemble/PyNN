@@ -12,7 +12,7 @@ connections = sim.Projection(p_in, p_out, random, syn, receptor_type='excitatory
 
 p_in.record('spikes')
 p_out.record('spikes')                    # record spikes from all neurons
-p_out[0:2].record(['v', 'w', 'gsyn_exc']) # record other variables from first two neurons
+p_out[0:2].record(['v', 'w', 'gsyn_exc'])  # record other variables from first two neurons
 
 sim.run(500.0)
 
@@ -27,7 +27,8 @@ fig_settings = {
     'font.size': 8
 }
 plt.rcParams.update(fig_settings)
-plt.figure(1, figsize=(6,8))
+plt.figure(1, figsize=(6, 8))
+
 
 def plot_spiketrains(segment):
     for spiketrain in segment.spiketrains:
@@ -35,6 +36,7 @@ def plot_spiketrains(segment):
         plt.plot(spiketrain, y, '.')
         plt.ylabel(segment.name)
         plt.setp(plt.gca().get_xticklabels(), visible=False)
+
 
 def plot_signal(signal, index, colour='b'):
     label = "Neuron %d" % signal.annotations['source_ids'][index]
@@ -52,7 +54,7 @@ panel = 3
 for array in data_out.segments[0].analogsignalarrays:
     for i in range(array.shape[1]):
         plt.subplot(n_panels, 1, panel)
-        plot_signal(array, i, colour='bg'[panel%2])
+        plot_signal(array, i, colour='bg'[panel % 2])
         panel += 1
 plt.xlabel("time (%s)" % array.times.units._dimensionality.string)
 plt.setp(plt.gca().get_xticklabels(), visible=True)

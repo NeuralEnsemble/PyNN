@@ -8,7 +8,7 @@ This module contains:
     is intended to be reused)
   * function factories for generating backend-specific API functions.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -16,9 +16,7 @@ DEFAULT_MAX_DELAY = 10.0
 DEFAULT_TIMESTEP = 0.1
 DEFAULT_MIN_DELAY = 'auto'
 
-##if not 'simulator' in locals():
-##    simulator = None  # should be set by simulator-specific modules
-assert 'simulator' not in locals() ##
+assert 'simulator' not in locals()
 
 
 class BaseState(object):
@@ -28,7 +26,7 @@ class BaseState(object):
         """Initialize the simulator."""
         self.running = False
         self.t_start = 0
-        self.write_on_end = [] # a list of (population, variable, filename) combinations that should be written to file on end()
+        self.write_on_end = []  # a list of (population, variable, filename) combinations that should be written to file on end()
         self.recorders = set([])
 
 
@@ -72,7 +70,7 @@ def build_run(simulator):
         documentation of the ``run()`` function for further information.
         """
         now = simulator.state.t
-        if time_point - now < -simulator.state.dt/2.0:  # allow for floating point error
+        if time_point - now < -simulator.state.dt / 2.0:  # allow for floating point error
             raise ValueError("Time %g is in the past (current time %g)" % (time_point, now))
         if callbacks:
             callback_events = [(callback(simulator.state.t), callback)

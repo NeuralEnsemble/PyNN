@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -17,13 +17,13 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     translations = build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
+        ('cm',         'C_m',      1000.0),  # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_ref'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
     nest_name = {"on_grid": "iaf_psc_alpha",
                  "off_grid": "iaf_psc_alpha"}
@@ -37,13 +37,13 @@ class IF_curr_exp(cells.IF_curr_exp):
     translations = build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',      1000.0), # C_m is in pF, cm in nF
+        ('cm',         'C_m',      1000.0),  # C_m is in pF, cm in nF
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_ref'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',      1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
     nest_name = {"on_grid": 'iaf_psc_exp',
                  "off_grid": 'iaf_psc_exp_ps'}
@@ -55,15 +55,15 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     __doc__ = cells.IF_cond_alpha.__doc__    
 
     translations = build_translations(
-        ('v_rest',     'E_L')    ,
+        ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('cm',         'C_m',        1000.0),  # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
         ('tau_refrac', 't_ref'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',        1000.0),  # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
@@ -77,15 +77,15 @@ class IF_cond_exp(cells.IF_cond_exp):
     __doc__ = cells.IF_cond_exp.__doc__    
     
     translations = build_translations(
-        ('v_rest',     'E_L')    ,
+        ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('cm',         'C_m',        1000.0),  # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
         ('tau_refrac', 't_ref'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',        1000.0),  # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
@@ -101,13 +101,13 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     translations = build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
-        ('cm',         'C_m',        1000.0), # C_m is in pF, cm in nF
+        ('cm',         'C_m',        1000.0),  # C_m is in pF, cm in nF
         ('tau_m',      'g_L',        "cm/tau_m*1000.0", "C_m/g_L"),
         ('tau_refrac', 't_ref'),
         ('tau_syn_E',  'tau_syn_ex'),
         ('tau_syn_I',  'tau_syn_in'),
         ('v_thresh',   'V_th'),
-        ('i_offset',   'I_e',        1000.0), # I_e is in pA, i_offset in nA
+        ('i_offset',   'I_e',        1000.0),  # I_e is in pA, i_offset in nA
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
         ('tau_sfa',    'tau_sfa'),
@@ -146,6 +146,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
         'E_ex': 0.0
     }
 
+
 class HH_cond_exp(cells.HH_cond_exp):
     
     __doc__ = cells.HH_cond_exp.__doc__    
@@ -175,22 +176,22 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
 
     translations = build_translations(
-        ('cm'        , 'C_m',       1000.0),  # nF -> pF
+        ('cm',         'C_m',       1000.0),  # nF -> pF
         ('tau_refrac', 't_ref'), 
-        ('v_spike'   , 'V_peak'),
-        ('v_reset'   , 'V_reset'),
-        ('v_rest'    , 'E_L'),
-        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
-        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
-        ('a'         , 'a'),       
-        ('b'         , 'b',         1000.0),  # nA -> pA.
-        ('delta_T'   , 'Delta_T'), 
-        ('tau_w'     , 'tau_w'), 
-        ('v_thresh'  , 'V_th'), 
-        ('e_rev_E'   , 'E_ex'),
-        ('tau_syn_E' , 'tau_syn_ex'), 
-        ('e_rev_I'   , 'E_in'), 
-        ('tau_syn_I' , 'tau_syn_in'),
+        ('v_spike',    'V_peak'),
+        ('v_reset',    'V_reset'),
+        ('v_rest',     'E_L'),
+        ('tau_m',      'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset',   'I_e',       1000.0),  # nA -> pA
+        ('a',          'a'),
+        ('b',          'b',         1000.0),  # nA -> pA.
+        ('delta_T',    'Delta_T'),
+        ('tau_w',      'tau_w'),
+        ('v_thresh',   'V_th'),
+        ('e_rev_E',    'E_ex'),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('e_rev_I',    'E_in'),
+        ('tau_syn_I',  'tau_syn_in'),
     )
     nest_name = {"on_grid": "aeif_cond_alpha",
                  "off_grid": "aeif_cond_alpha"}
@@ -273,22 +274,22 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
 
     translations = build_translations(
-        ('cm'        , 'C_m',       1000.0),  # nF -> pF
+        ('cm',         'C_m',       1000.0),  # nF -> pF
         ('tau_refrac', 't_ref'), 
-        ('v_spike'   , 'V_peak'),
-        ('v_reset'   , 'V_reset'),
-        ('v_rest'    , 'E_L'),
-        ('tau_m'     , 'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
-        ('i_offset'  , 'I_e',       1000.0),  # nA -> pA
-        ('a'         , 'a'),       
-        ('b'         , 'b',         1000.0),  # nA -> pA.
-        ('delta_T'   , 'Delta_T'), 
-        ('tau_w'     , 'tau_w'), 
-        ('v_thresh'  , 'V_th'), 
-        ('e_rev_E'   , 'E_ex'),
-        ('tau_syn_E' , 'tau_syn_ex'), 
-        ('e_rev_I'   , 'E_in'), 
-        ('tau_syn_I' , 'tau_syn_in'),
+        ('v_spike',    'V_peak'),
+        ('v_reset',    'V_reset'),
+        ('v_rest',     'E_L'),
+        ('tau_m',      'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset',   'I_e',       1000.0),  # nA -> pA
+        ('a',          'a'),
+        ('b',          'b',         1000.0),  # nA -> pA.
+        ('delta_T',    'Delta_T'),
+        ('tau_w',      'tau_w'),
+        ('v_thresh',   'V_th'),
+        ('e_rev_E',    'E_ex'),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('e_rev_I',    'E_in'),
+        ('tau_syn_I',  'tau_syn_in'),
     )
     nest_name = {"on_grid": "aeif_cond_exp",
                  "off_grid": "aeif_cond_exp"}

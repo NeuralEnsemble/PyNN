@@ -2,12 +2,14 @@ REG_ATTR = ''
 
 registry = []
 
+
 def register(exclude=[]):
     def inner_register(scenario):
         setattr(scenario, REG_ATTR, True)
         scenario.exclude = exclude
         return scenario
     return inner_register
+
 
 def runTest(self):
     pass

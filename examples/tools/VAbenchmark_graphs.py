@@ -31,8 +31,8 @@ def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_
     label = "%s (Neuron %d)" % (label, signal.channel_index[index])
     if fake_aps:  # add fake APs for plotting
         v_thresh = fake_aps
-        spike_indices = signal>=v_thresh-0.05*mV
-        signal[spike_indices] = 0.0*mV
+        spike_indices = signal >= v_thresh - 0.05 * mV
+        signal[spike_indices] = 0.0 * mV
     panel.plot(signal.times, signal[:, index], colour, linewidth=linewidth, label=label)
     #plt.setp(plt.gca().get_xticklabels(), visible=False)
     if not hide_axis_labels:
@@ -44,7 +44,7 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
               label=None, xticks=None, xticklabels=None, xmin=None, ymax=None):
     if xlabel: panel.set_xlabel(xlabel)
     if ylabel: panel.set_ylabel(ylabel)
-    for t,n in zip(bins[:-1], hist):
+    for t, n in zip(bins[:-1], hist):
         panel.bar(t, n, width=width, color=None)
     if xmin: panel.set_xlim(xmin=xmin)
     if ymax: panel.set_ylim(ymax=ymax)
@@ -59,9 +59,9 @@ def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
         for j in range(2):
             i = array.channel_index.tolist().index(j)
             print("plotting '%s' for %s" % (array.name, label))
-            col = 'rbgmck'[j%6]
+            col = 'rbgmck'[j % 6]
             plot_signal(panel, array, i, colour=col, linewidth=1, label=label,
-                        fake_aps=-50*mV, hide_axis_labels=hide_axis_labels)
+                        fake_aps=-50 * mV, hide_axis_labels=hide_axis_labels)
         panel.set_title(label)
 
 
@@ -95,9 +95,10 @@ def plot_isi_hist(panel, segment, label, hide_axis_labels=False):
 
 def plot_cvisi_hist(panel, segment, label, hide_axis_labels=False):
     print("plotting CV(ISI) histogram (%s)" % label)
+
     def cv_isi(spiketrain):
         isi = np.diff(np.array(spiketrain))
-        return np.std(isi)/np.mean(isi)
+        return np.std(isi) / np.mean(isi)
     cvs = np.fromiter((cv_isi(st) for st in segment.spiketrains if st.size > 2),
                       dtype=float)
     bin_width = 0.1
@@ -138,9 +139,9 @@ def plot(datafiles, output_file, sort_by='simulator', annotation=None):
         'savefig.dpi': 200,
     }
     plt.rcParams.update(fig_settings)
-    CM=1/2.54
-    plt.figure(1, figsize=(15*CM*len(blocks), 20*CM))
-    gs = gridspec.GridSpec(4, 2*len(blocks), hspace=0.25, wspace=0.25)
+    CM = 1 / 2.54
+    plt.figure(1, figsize=(15 * CM * len(blocks), 20 * CM))
+    gs = gridspec.GridSpec(4, 2 * len(blocks), hspace=0.25, wspace=0.25)
 
     sorted_blocks = sort_by_annotation(sort_by, blocks)
     hide_axis_labels = False
@@ -152,18 +153,18 @@ def plot(datafiles, output_file, sort_by='simulator', annotation=None):
                     segments[name] = block.segments[0]
                     
         # Plot membrane potential traces
-        plot_vm_traces(plt.subplot(gs[0, 2*k:2*k+2]), segments['exc'], label, hide_axis_labels)
+        plot_vm_traces(plt.subplot(gs[0, 2 * k:2 * k + 2]), segments['exc'], label, hide_axis_labels)
 
         # Plot spike rasters
-        plot_spiketrains(plt.subplot(gs[1, 2*k:2*k+2]), segments['exc'], label, hide_axis_labels)
+        plot_spiketrains(plt.subplot(gs[1, 2 * k:2 * k + 2]), segments['exc'], label, hide_axis_labels)
 
         # Inter-spike-interval histograms
         # Histograms of coefficients of variation of ISI
-        plot_isi_hist(plt.subplot(gs[2, 2*k]), segments['exc'], 'exc', hide_axis_labels)
-        plot_cvisi_hist(plt.subplot(gs[3, 2*k]), segments['exc'], 'exc', hide_axis_labels)
+        plot_isi_hist(plt.subplot(gs[2, 2 * k]), segments['exc'], 'exc', hide_axis_labels)
+        plot_cvisi_hist(plt.subplot(gs[3, 2 * k]), segments['exc'], 'exc', hide_axis_labels)
         hide_axis_labels = True
-        plot_isi_hist(plt.subplot(gs[2, 2*k+1]), segments['inh'], 'inh', hide_axis_labels)
-        plot_cvisi_hist(plt.subplot(gs[3, 2*k+1]), segments['inh'], 'inh', hide_axis_labels)
+        plot_isi_hist(plt.subplot(gs[2, 2 * k + 1]), segments['inh'], 'inh', hide_axis_labels)
+        plot_cvisi_hist(plt.subplot(gs[3, 2 * k + 1]), segments['inh'], 'inh', hide_axis_labels)
 
     plt.savefig(output_file)
 

@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.0.tar.gz
-    $ cd PyNN-0.8.0
+    $ tar xzf PyNN-0.8.1.tar.gz
+    $ cd PyNN-0.8.1
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -54,15 +54,16 @@ With NEURON as the simulator, make sure you install NEURON *before* you install 
 The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::
 
     >>> import pyNN.neuron as sim
-    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
     See http://www.neuron.yale.edu/neuron/credits
 
-    loading membrane mechanisms from /home/andrew/dev/pyNN/neuron/nmodl/i686/.libs/libnrnmech.so
+    loading membrane mechanisms from /home/docker/dev/PyNN/pyNN/neuron/nmodl/x86_64/.libs/libnrnmech.so
     Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gsfa_grr.mod hh_traub.mod izikevich.mod
-     netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod stdwa_songabbott.mod
-     stdwa_symm.mod tmgsyn.mod tmisyn.mod tsodyksmarkram.mod vecstim.mod
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gap.mod gsfa_grr.mod hh_traub.mod
+     izhikevich.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod
+     stdwa_songabbott.mod stdwa_symm.mod stdwa_vogels2011.mod tmgsyn.mod tmisyn.mod
+     tsodyksmarkram.mod vecstim.mod
 
 If you installed PyNN before installing NEURON, or if you update your PyNN installation,
 you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
@@ -84,8 +85,8 @@ Make sure that you add the Interviews and NEURON :file:`bin` directories to your
 Test that the Python support has been enabled by running::
 
     $ nrniv -python
-    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
     See http://www.neuron.yale.edu/neuron/credits
 
     >>> import hoc
@@ -100,8 +101,8 @@ Now test everything worked::
 
     $ python
     >>> import neuron
-    NEURON -- VERSION 7.3 ansi (1078:2b0c984183df) 2014-04-04
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2014
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
     See http://www.neuron.yale.edu/neuron/credits
 
 If you run into problems, check out the `NEURON Forum`_.
@@ -137,7 +138,7 @@ Now try it out::
                   -- N E S T --
 
       Copyright (C) 2004 The NEST Initiative
-      Version 2.6.0 Jan  6 2015 10:31:20
+      Version 2.10.0 Mar 21 2016 21:29:37
     ...
     >>> nest.Models()
     (u'ac_generator', u'aeif_cond_alpha', u'aeif_cond_alpha_RK5', u'aeif_cond_alpha_multisynapse',

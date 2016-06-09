@@ -46,7 +46,6 @@ def connection_access_weight_and_delay(sim):
 connection_access_weight_and_delay.__test__ = False
 
 
-
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()

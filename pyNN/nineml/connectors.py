@@ -1,7 +1,7 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -32,7 +32,7 @@ class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConne
 
 class DistanceDependentProbabilityConnector(ConnectorMixin, connectors.DistanceDependentProbabilityConnector):
     definition_url = "%s/connectionrules/distance_dependent_probability.xml" % catalog_url
-    parameter_names = ('d_expression', 'allow_self_connections') # space
+    parameter_names = ('d_expression', 'allow_self_connections')  # space
 
 
 def list_connectors():

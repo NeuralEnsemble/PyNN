@@ -2,13 +2,14 @@
 Synapse Dynamics classes for the nemo module.
 
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import numpy
 from pyNN.standardmodels import synapses, SynapseDynamics, STDPMechanism
+
 
 class STDPMechanism(STDPMechanism):
     """Specification of STDP models."""
@@ -21,15 +22,16 @@ class STDPMechanism(STDPMechanism):
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction)
 
+
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     
     __doc__ = synapses.AdditiveWeightDependence.__doc__
     
-    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01): # units?
+    def __init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01):  # units?
         parameters = dict(locals())
         parameters.pop('self')
         self.parameters = parameters
-        self.parameters['mu_plus']  = 0.
+        self.parameters['mu_plus'] = 0.
         self.parameters['mu_minus'] = 0.
 
 
@@ -43,8 +45,8 @@ class SpikePairRule(synapses.SpikePairRule):
         self.parameters = parameters
 
     def pre_fire(self, precision=1.):
-        return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_plus'])
+        return numpy.exp(-numpy.arange(0., 30, precision) / self.parameters['tau_plus'])
 
     def post_fire(self, precision=1.):
-        return numpy.exp(-numpy.arange(0., 30, precision)/self.parameters['tau_minus'])
+        return numpy.exp(-numpy.arange(0., 30, precision) / self.parameters['tau_minus'])
 

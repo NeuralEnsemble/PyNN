@@ -44,6 +44,7 @@ conditions = parameters.flatten()
 results = dict((var, defaultdict(list)) for var in dependent_variables)
 stats = dict((var, {}) for var in dependent_variables)
 
+
 def matches_conditions(record, conditions):
     return all((record[condition] == value) for condition, value in conditions.items())
 
@@ -81,7 +82,7 @@ width, height = 6, 10
 fig = plt.figure(1, figsize=(width, height))
 gs = gridspec.GridSpec(1, 1)
 gs.update(bottom=0.6)  # leave space for annotations
-gs.update(top=1 - 0.8/height, hspace=0.1)
+gs.update(top=1 - 0.8 / height, hspace=0.1)
 ax = plt.subplot(gs[0, 0])
 for var in dependent_variables:   
     x = stats[var].keys()
@@ -89,14 +90,14 @@ for var in dependent_variables:
     x, y, yerr = sort_by_first(x, y, yerr)
     ax.errorbar(x, y, yerr=yerr, fmt='o-', label=var)
     ax.set_xlabel(independent_variable)
-    ax.set_xlim([x[0]/1.4, x[-1]*1.4])
+    ax.set_xlim([x[0] / 1.4, x[-1] * 1.4])
     ax.set_ylabel("Time (s)")
     ax.set_xscale("log", basex=2)
     ax.set_yscale("log", basex=2)
 ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
           ncol=3, fancybox=True, shadow=True)
 title = args.parameter_file
-fig.text(0.5, 1 - 0.5/height, title,
+fig.text(0.5, 1 - 0.5 / height, title,
               ha="center", va="top", fontsize="large")
 annotations = parameters.pretty()
 plt.figtext(0.01, 0.01, annotations, fontsize=6, verticalalignment='bottom')

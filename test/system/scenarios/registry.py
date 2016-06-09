@@ -1,6 +1,7 @@
 
 registry = []
 
+
 def register(exclude=[]):
     def inner_register(scenario):
         if scenario not in registry:

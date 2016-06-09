@@ -2,7 +2,7 @@
 Tests of the common implementation of the Assembly class, using the pyNN.mock
 backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -21,7 +21,7 @@ import pyNN.hardware.brainscales as sim
 class AssemblyTest(unittest.TestCase):
 
     def setUp(self):
-        extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
+        extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
         sim.setup(**extra)
         
     def tearDown(self):
@@ -100,7 +100,7 @@ class AssemblyTest(unittest.TestCase):
         a1 = sim.Assembly(p1, p2)
         a2 = sim.Assembly(p2, p3)
         a3 = a1 + a2
-        self.assertEqual(a3.populations, [p1, p2, p3]) # or do we want [p1, p2, p3]?
+        self.assertEqual(a3.populations, [p1, p2, p3])  # or do we want [p1, p2, p3]?
     
     def test_add_inplace_population(self):
         p1 = sim.Population(11, sim.IF_cond_exp())
@@ -188,8 +188,8 @@ class AssemblyTest(unittest.TestCase):
         import os
         p1 = sim.Population(2, sim.IF_cond_exp())
         p2 = sim.Population(2, sim.IF_cond_exp())
-        p1.positions = numpy.arange(0,6).reshape((2,3)).T
-        p2.positions = numpy.arange(6,12).reshape((2,3)).T
+        p1.positions = numpy.arange(0, 6).reshape((2, 3)).T
+        p2.positions = numpy.arange(6, 12).reshape((2, 3)).T
         a = sim.Assembly(p1, p2, label="test")
         output_file = Mock()
         a.save_positions(output_file)
@@ -269,7 +269,7 @@ class AssemblyTest(unittest.TestCase):
         p2 = sim.Population(6, sim.IF_cond_exp())
         p3 = sim.Population(3, sim.EIF_cond_exp_isfa_ista())
         a = sim.Assembly(p3, p1, p2)
-        self.assertRaises(IndexError, a.id_to_index, p3.last_id+1)
+        self.assertRaises(IndexError, a.id_to_index, p3.last_id + 1)
 
     def test_getitem_int(self):
         p1 = sim.Population(11, sim.IF_cond_exp())

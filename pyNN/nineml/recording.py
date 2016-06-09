@@ -9,6 +9,7 @@ import numpy
 from pyNN import recording
 from . import simulator
 
+
 class Recorder(recording.Recorder):
     _simulator = simulator
 

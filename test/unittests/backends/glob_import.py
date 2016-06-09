@@ -19,6 +19,7 @@ from nose.plugins.skip import SkipTest
 from registry import registry
 from sys import modules 
 
+
 def is_included(sim_name, scenario, module_name):
     """
     Checks if the simulator sim_name is included in the test called scenario
@@ -30,6 +31,7 @@ def is_included(sim_name, scenario, module_name):
     elif sim_name not in scenario.exclude:
         included = True
     return included
+
 
 def skip():
     raise SkipTest

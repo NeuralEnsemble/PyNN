@@ -14,6 +14,7 @@ except NameError:
     basestring = str
 import numpy
 
+
 def test_build_translations():
     t = build_translations(
             ('a', 'A'),
@@ -41,10 +42,12 @@ def test_has_parameter():
     assert M.has_parameter('b')
     assert not M.has_parameter('z')
 
+
 def test_get_parameter_names():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3}
     assert_equal(set(M.get_parameter_names()), set(['a', 'b']))
+
 
 def test_instantiate():
     """
@@ -58,10 +61,12 @@ def test_instantiate():
     assert_equal(m.parameter_space._parameters, ParameterSpace(P1, None, None)._parameters)
     M.default_parameters = {}
 
+
 def _parameter_space_to_dict(parameter_space, size):
     parameter_space.shape = (size,)
     parameter_space.evaluate(simplify=True)
     return parameter_space.as_dict()
+
 
 def test_translate():
     M = StandardModelType
@@ -76,6 +81,7 @@ def test_translate():
     assert_equal(_parameter_space_to_dict(native_parameters, 77),
                  {'A': 23.4, 'B': 34500.0, 'C': 69.0})
 
+
 def test_translate_with_invalid_transformation():
     M = StandardModelType
     M.translations = build_translations(
@@ -88,6 +94,7 @@ def test_translate_with_invalid_transformation():
     assert_raises(NameError,
                   m.translate,
                   ParameterSpace({'a': 23.4, 'b': 34.5}, m.get_schema(), None))
+
 
 def test_translate_with_divide_by_zero_error():
     M = StandardModelType
@@ -102,6 +109,7 @@ def test_translate_with_divide_by_zero_error():
                   native_parameters.evaluate,
                   simplify=True)
 
+
 def test_reverse_translate():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': 44.4}
@@ -112,6 +120,7 @@ def test_reverse_translate():
         )
     assert_equal(_parameter_space_to_dict(M().reverse_translate(ParameterSpace({'A': 23.4, 'B': 34500.0, 'C': 69.0})), 88),
                  {'a': 23.4, 'b': 34.5, 'c': 45.6})
+
 
 def test_reverse_translate_with_invalid_transformation():
     M = StandardModelType
@@ -125,6 +134,7 @@ def test_reverse_translate_with_invalid_transformation():
                   M().reverse_translate,
                   {'A': 23.4, 'B': 34.5})
 
+
 def test_simple_parameters():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': 44.4}
@@ -134,6 +144,7 @@ def test_simple_parameters():
             ('c', 'C', 'c + a', 'C - A'),
         )
     assert_equal(M().simple_parameters(), ['a'])
+
 
 def test_scaled_parameters():
     M = StandardModelType
@@ -145,6 +156,7 @@ def test_scaled_parameters():
         )
     assert_equal(M().scaled_parameters(), ['b'])
 
+
 def test_computed_parameters():
     M = StandardModelType
     M.default_parameters = {'a': 22.2, 'b': 33.3, 'c': 44.4}
@@ -154,6 +166,7 @@ def test_computed_parameters():
             ('c', 'C', 'c + a', 'C - A'),
         )
     assert_equal(M().computed_parameters(), ['c'])
+
 
 def test_describe():
     M = StandardModelType
@@ -171,12 +184,14 @@ def test_describe():
 
 # test create
 
+
 def test_describe_synapse_type():
     StaticSynapse._get_minimum_delay = lambda self: 0.1
     sd = StaticSynapse()
     assert isinstance(sd.describe(), basestring)
     assert isinstance(sd.describe(template=None), dict)
     del StaticSynapse._get_minimum_delay
+
 
 def test_STDPMechanism_create():
     STDPMechanism._get_minimum_delay = lambda self: 0.1
@@ -193,15 +208,16 @@ def test_STDPMechanism_create():
     del STDPMechanism._get_minimum_delay
     del STDPMechanism.base_translations
 
+
 def test_STDPMechanism_create_invalid_types():
-    assert_raises(AssertionError, # probably want a more informative error
+    assert_raises(AssertionError,  # probably want a more informative error
                   STDPMechanism, timing_dependence="abc")
-    assert_raises(AssertionError, # probably want a more informative error
+    assert_raises(AssertionError,  # probably want a more informative error
                   STDPMechanism, weight_dependence="abc")
-    assert_raises(AssertionError, # probably want a more informative error
-                  STDPMechanism, dendritic_delay_fraction = "abc")
-    assert_raises(AssertionError, # probably want a more informative error
-                  STDPMechanism, dendritic_delay_fraction = "1.1")
+    assert_raises(AssertionError,  # probably want a more informative error
+                  STDPMechanism, dendritic_delay_fraction="abc")
+    assert_raises(AssertionError,  # probably want a more informative error
+                  STDPMechanism, dendritic_delay_fraction="1.1")
 
 
 ## test STDPWeightDependence

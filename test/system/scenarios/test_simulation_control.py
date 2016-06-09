@@ -11,7 +11,7 @@ def test_reset(sim):
     and check the results are the same each time.
     """
     repeats = 3
-    dt      = 1
+    dt = 1
     sim.setup(timestep=dt, min_delay=dt)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
@@ -36,7 +36,7 @@ def test_reset_with_clear(sim):
     and check the results are the same each time.
     """
     repeats = 3
-    dt      = 1
+    dt = 1
     sim.setup(timestep=dt, min_delay=dt)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
@@ -64,7 +64,7 @@ def test_setup(sim):
     """
     n = 3
     data = []
-    dt   = 1
+    dt = 1
 
     for i in range(n):
         sim.setup(timestep=dt, min_delay=dt)

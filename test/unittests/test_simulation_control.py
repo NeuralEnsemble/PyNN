@@ -2,7 +2,7 @@
 Tests of the common implementation of the simulation control functions, using
 the pyNN.mock backend.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -22,6 +22,7 @@ from .backends.registry import register_class, register
 if MPI:
     mpi_comm = MPI.COMM_WORLD
 
+
 @register_class()
 class TestSimulationControl(unittest.TestCase):
         
@@ -39,7 +40,7 @@ class TestSimulationControl(unittest.TestCase):
         sim.end()
         self.assertRaises(Exception, sim.setup, mindelay=1.0, **self.extra)  # } common
         sim.end()
-        self.assertRaises(Exception, sim.setup, maxdelay=10.0, **self.extra) # } misspellings
+        self.assertRaises(Exception, sim.setup, maxdelay=10.0, **self.extra)  # } misspellings
         sim.end()
         self.assertRaises(Exception, sim.setup, dt=0.1, **self.extra)        # }
         sim.end()
@@ -49,7 +50,7 @@ class TestSimulationControl(unittest.TestCase):
     @register()
     def test_end(self, sim=sim):
         sim.setup(**self.extra)
-        sim.end() # need a better test
+        sim.end()  # need a better test
     
     @register()
     def test_run(self, sim=sim):

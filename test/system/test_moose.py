@@ -1,5 +1,5 @@
 from nose.plugins.skip import SkipTest
-from scenarios.registry import registry
+from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
@@ -20,6 +20,7 @@ def test_scenarios():
             else:
                 raise SkipTest
 
+
 def test_recording():
     if not have_moose:
         raise SkipTest
@@ -34,7 +35,7 @@ def test_recording():
     sim.run(100.0)
 
     id, t, v = p.get_v().T
-    assert v.max() > 0 # at least one spike
+    assert v.max() > 0  # at least one spike
     sim.end()
 
     return id, t, v

@@ -84,6 +84,7 @@ class Population(BasePopulation, common.Population):
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
+
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)

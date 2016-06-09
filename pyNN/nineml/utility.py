@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -38,7 +38,7 @@ def reverse_map(D):
     Return a dict having D.values() as its keys and D.keys() as its values.
     """
     E = {}
-    for k,v in D.items():
+    for k, v in D.items():
         if v in E:
             raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
         E[v] = k
@@ -78,7 +78,7 @@ def build_random_distribution(random_distribution_component):
     rd_params = [rd.property(rdp_name).value for rdp_name in rd_param_names]
     if rd_name == 'exponential':
         # temporary hack - need to implement a proper translation mechanism
-        rd_params[0] = 1000.0/rd_params[0]   # UncertML uses rate in Hz, PyNN uses beta (1/rate) in ms
+        rd_params[0] = 1000.0 / rd_params[0]   # UncertML uses rate in Hz, PyNN uses beta (1/rate) in ms
     rand_distr = random.RandomDistribution(rd_name, rd_params)
     return rand_distr
 
@@ -120,6 +120,6 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
 def map_random_distribution_parameters(name, parameters):
     parameter_map = random_distribution_parameter_map
     P = {}
-    for name,val in zip(parameter_map[name], parameters):
+    for name, val in zip(parameter_map[name], parameters):
         P[name] = val
     return P

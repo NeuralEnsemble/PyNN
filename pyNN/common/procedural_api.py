@@ -2,7 +2,7 @@
 """
 Alternative, procedural API for creating, connecting and recording from individual neurons
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -57,7 +57,11 @@ def set(cells, **parameters):
     PyNN units (i.e. millivolts, nanoamps, milliseconds, microsiemens,
     nanofarads, event per second).
     """
-    assert isinstance(cells, (BasePopulation, Assembly))
+    if not isinstance(cells, (BasePopulation, Assembly)):
+        errmsg = "For individual cells, set values using the parameter name directly, " \
+                 "e.g. population[0].tau_m = 20.0, or use 'set' on a population view, " \
+                 "e.g. set(population[0:1], tau_m=20.0)"
+        raise AttributeError(errmsg)
     cells.set(**parameters)
 
 

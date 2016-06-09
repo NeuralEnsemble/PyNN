@@ -21,8 +21,8 @@ init_logging(None, debug=True)
 
 seed = 764756387
 rng = NumpyRNG(seed=seed, parallel_safe=True)
-tstop = 1000.0 # ms
-input_rate = 100.0 # Hz
+tstop = 1000.0  # ms
+input_rate = 100.0  # Hz
 cell_params = {'tau_refrac': 2.0,  # ms
                'v_thresh':  -50.0, # mV
                'tau_syn_E':  2.0,  # ms
@@ -35,11 +35,11 @@ node = sim.setup(timestep=0.025, min_delay=1.0, max_delay=1.0, debug=True, quit_
 print("Process with rank %d running on %s" % (node, socket.gethostname()))
 
 print("[%d] Creating populations" % node)
-n_spikes = int(2*tstop*input_rate/1000.0)
+n_spikes = int(2 * tstop * input_rate / 1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            {'beta': 1000.0/input_rate}, mask_local=False))
+                                            {'beta': 1000.0 / input_rate}, mask_local=False))
 
-input_population  = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
+input_population = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = sim.Population(20, sim.IF_curr_exp(**cell_params), label="output")
 print("[%d] input_population cells: %s" % (node, input_population.local_cells))
 print("[%d] output_population cells: %s" % (node, output_population.local_cells))

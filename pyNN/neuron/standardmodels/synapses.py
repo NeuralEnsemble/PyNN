@@ -1,13 +1,14 @@
 """
 Synapse Dynamics classes for the neuron module.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 from pyNN.standardmodels import synapses, build_translations
 from pyNN.neuron.simulator import state, Connection, GapJunction, GapJunctionPresynaptic
+
 
 class BaseSynapse(object):
     """
@@ -108,7 +109,7 @@ class MultiplicativeWeightDependence(BaseSynapse, synapses.MultiplicativeWeightD
         ('w_max',     'wmax'),
         ('w_min',     'wmin'),
     )
-    possible_models = set(['StdwaSoft',])
+    possible_models = set(['StdwaSoft'])
 
 
 class AdditivePotentiationMultiplicativeDepression(BaseSynapse, synapses.AdditivePotentiationMultiplicativeDepression):

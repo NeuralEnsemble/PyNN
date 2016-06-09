@@ -6,7 +6,6 @@ from . import simulator
 from .recording import Recorder
 
 
-
 class Assembly(common.Assembly):
     _simulator = simulator
 
@@ -25,23 +24,18 @@ class PopulationView(common.PopulationView):
             if isinstance(value, numpy.ndarray):
                 value = value[self.mask]
             parameter_dict[name] = simplify(value)
-        return ParameterSpace(parameter_dict, shape=(self.size,)) # or local size?
+        return ParameterSpace(parameter_dict, shape=(self.size,))  # or local size?
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self.parent._get_parameters(*self.celltype.get_native_names())
         for name, value in parameter_space.items():
             self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
-            #ps[name][self.mask] = value.evaluate(simplify=True)
-        #ps.evaluate(simplify=True)
-        #self.parent._parameters = ps.as_dict()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
-
 
 
 class Population(common.Population):
@@ -55,6 +49,7 @@ class Population(common.Population):
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
+
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
@@ -88,10 +83,6 @@ class Population(common.Population):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        #ps = self._get_parameters(*self.celltype.get_native_names())
-        #ps.update(**parameter_space)
-        #ps.evaluate(simplify=True)
-        #self._parameters = ps.as_dict()
         parameter_space.evaluate(simplify=False, mask=self._mask_local)
         for name, value in parameter_space.items():
             self._parameters[name] = value

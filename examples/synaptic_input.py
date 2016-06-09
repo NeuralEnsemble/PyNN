@@ -76,13 +76,12 @@ sim.run(100.0)
 
 # === Calculate the height of the first EPSP =================================
 
-from quantities import ms
 print("Height of first EPSP:")
 for population in all_neurons.populations:
     # retrieve the recorded data
     vm = population.get_data().segments[0].filter(name='v')[0]
     # take the data between the first and second incoming spikes
-    vm12 = vm.time_slice(spike_times[0]*ms, spike_times[1]*ms)
+    vm12 = vm.time_slice(spike_times[0] * ms, spike_times[1] * ms)
     # calculate and print the EPSP height
     for channel in (0, 1):
         v_init = vm12[:, channel][0]

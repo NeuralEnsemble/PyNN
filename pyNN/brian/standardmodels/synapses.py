@@ -2,7 +2,7 @@
 """
 Standard cells for the Brian module.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -41,7 +41,6 @@ class StaticSynapse(synapses.StaticSynapse):
         for key, value in self.translations.items():
             for direction in ("forward_transform", "reverse_transform"):
                 self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
-
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
@@ -88,7 +87,8 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():
             for direction in ("forward_transform", "reverse_transform"):
-                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
+                self.translations[key][direction] = value[direction].replace("weight_units",
+                                                                             str(float(weight_units)))
 
 
 class STDPMechanism(synapses.STDPMechanism):
@@ -125,7 +125,7 @@ class STDPMechanism(synapses.STDPMechanism):
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):
-        if (dendritic_delay_fraction != 0):
+        if dendritic_delay_fraction != 0:
             raise ValueError("The pyNN.brian backend does not currently support "
                              "dendritic delays: for the purpose of STDP calculations "
                              "all delays are assumed to be axonal.")

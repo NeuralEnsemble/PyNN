@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -10,8 +10,6 @@ from pyNN.moose.cells import StandardIF, SingleCompHH, RandomSpikeSource, Vector
 from pyNN.moose.cells import mV, ms, nA, uS, nF
 
     
-
-
 class IF_cond_exp(cells.IF_cond_exp):
     
     __doc__ = cells.IF_cond_exp.__doc__    
@@ -32,8 +30,8 @@ class IF_cond_exp(cells.IF_cond_exp):
     model = StandardIF
 
     def __init__(self, parameters):
-        cells.IF_cond_exp.__init__(self, parameters) # checks supplied parameters and adds default
-                                                     # values for not-specified parameters.
+        cells.IF_cond_exp.__init__(self, parameters)  # checks supplied parameters and adds default
+                                                      # values for not-specified parameters.
         self.parameters['syn_shape'] = 'exp'
 
 
@@ -71,7 +69,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('i_offset',   'inject', 1e-9),
     )
     model = SingleCompHH
-
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):

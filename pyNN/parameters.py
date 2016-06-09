@@ -1,7 +1,7 @@
 """
 Parameter set handling
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -90,7 +90,7 @@ class LazyArray(larray):
                                                  (slice(None), j))
             else:
                 column_indices = numpy.arange(self.ncols)
-                for j,local in zip(column_indices, mask):
+                for j, local in zip(column_indices, mask):
                     col = self.base_value.next(self.nrows, mask_local=False)
                     if local:
                         yield self._apply_operations(col, (slice(None), j))
@@ -124,8 +124,8 @@ class Sequence(object):
         else:
             self.value = numpy.array(value, float)
 
-    #def __len__(self):
-    #    This must not be defined, otherwise Sequence is insufficiently different from NumPy array
+    # def __len__(self):
+    #     This must not be defined, otherwise Sequence is insufficiently different from NumPy array
 
     def max(self):
         """Return the maximum value from the sequence."""
@@ -141,7 +141,7 @@ class Sequence(object):
         element `i` of val.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([Sequence(self.value + x) for x in val], dtype=Sequence) # reshape if necessary?
+            return numpy.array([Sequence(self.value + x) for x in val], dtype=Sequence)  # reshape if necessary?
         else:
             return Sequence(self.value + val)
 
@@ -155,7 +155,7 @@ class Sequence(object):
         element `i` of val subtracted from it.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([Sequence(self.value - x) for x in val], dtype=Sequence) # reshape if necessary?
+            return numpy.array([Sequence(self.value - x) for x in val], dtype=Sequence)  # reshape if necessary?
         else:
             return Sequence(self.value - val)
 
@@ -169,7 +169,7 @@ class Sequence(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([Sequence(self.value * x) for x in val], dtype=Sequence) # reshape if necessary?
+            return numpy.array([Sequence(self.value * x) for x in val], dtype=Sequence)  # reshape if necessary?
         else:
             return Sequence(self.value * val)
 
@@ -185,9 +185,9 @@ class Sequence(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([Sequence(self.value/x) for x in val], dtype=Sequence) # reshape if necessary?
+            return numpy.array([Sequence(self.value / x) for x in val], dtype=Sequence)  # reshape if necessary?
         else:
-            return Sequence(self.value/val)
+            return Sequence(self.value / val)
 
     def __eq__(self, other):
         if isinstance(other, Sequence):
@@ -300,7 +300,7 @@ class ParameterSpace(object):
                 except (TypeError, errors.InvalidParameterValueError):
                     raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
                 except ValueError as err:
-                    raise errors.InvalidDimensionsError(err) # maybe put the more specific error classes into lazyarray
+                    raise errors.InvalidDimensionsError(err)  # maybe put the more specific error classes into lazyarray
         else:
             for name, value in parameters.items():
                 self._parameters[name] = LazyArray(value, shape=self._shape)
@@ -360,7 +360,7 @@ class ParameterSpace(object):
         D = {}
         for name, value in self._parameters.items():
             D[name] = value
-            assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
+            assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
         return D
 
     def __iter__(self):
@@ -393,7 +393,7 @@ class ParameterSpace(object):
                     D[name] = value[i]
                 else:
                     D[name] = value
-                assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
+                assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
             yield D
 
     def columns(self):
@@ -413,11 +413,11 @@ class ParameterSpace(object):
                         D[name] = value[:, j]
                     else:
                         D[name] = value
-                    assert not isinstance(D[name], LazyArray) # should all have been evaluated by now
+                    assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
                 yield D
 
     def __eq__(self, other):
-        return (all(a==b for a,b in zip(self._parameters.items(), other._parameters.items()))
+        return (all(a == b for a, b in zip(self._parameters.items(), other._parameters.items()))
                 and self.schema == other.schema
                 and self._shape == other._shape)
 
@@ -448,7 +448,7 @@ def simplify(value):
     share. Otherwise, pass the value through.
     """
     if isinstance(value, numpy.ndarray):
-        if (value==value[0]).all():
+        if (value == value[0]).all():
             return value[0]
         else:
             return value

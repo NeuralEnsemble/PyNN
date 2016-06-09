@@ -33,7 +33,7 @@ synaptic_parameters = {
     'excitatory': {
         'timing_dependence': {'tau_plus': 20.0, 'tau_minus': 20.0,
                               'A_plus': 0.01, 'A_minus': 0.012},
-        'weight_dependence': {'w_min':0, 'w_max': 0.04},
+        'weight_dependence': {'w_min': 0, 'w_max': 0.04},
         'weight': 0.01,
         'delay': '0.1+0.001*d'},
     'inhibitory': {'weight': 0.05, 'delay': '0.1+0.001*d'},
@@ -42,7 +42,7 @@ synaptic_parameters = {
 
 sim.setup()
 
-all_cells = sim.Population(n_exc+n_inh, sim.IF_cond_exp(**cell_parameters),
+all_cells = sim.Population(n_exc + n_inh, sim.IF_cond_exp(**cell_parameters),
                            structure=space.Grid2D(**grid_parameters),
                            label="All Cells")
 exc_cells = all_cells[:n_exc]; exc_cells.label = "Excitatory cells"

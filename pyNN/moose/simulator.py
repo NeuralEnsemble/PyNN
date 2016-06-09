@@ -10,7 +10,7 @@ Functions and classes useable by the common implementation:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -22,9 +22,10 @@ from pyNN import common, core
 recorder_list = []
 
 ms = 1e-3
-in_ms = 1.0/ms
+in_ms = 1.0 / ms
 
 # --- For implementation of get_time_step() and similar functions --------------
+
 
 class _State(object):
     """Represent the simulator state."""
@@ -32,33 +33,37 @@ class _State(object):
     def __init__(self):
         self.ctx = moose.PyMooseBase.getContext()
         self.gid_counter = 0
-        self.num_processes = 1 # we're not supporting MPI
+        self.num_processes = 1  # we're not supporting MPI
         self.mpi_rank = 0      # for now
         self.min_delay = 0.0
         self.max_delay = 1e12
 
     @property
     def t(self):
-        return self.ctx.getCurrentTime()*in_ms
+        return self.ctx.getCurrentTime() * in_ms
     
     def __get_dt(self):
-        return self.ctx.getClocks()[0]*in_ms
+        return self.ctx.getClocks()[0] * in_ms
+
     def __set_dt(self, dt):
         print("setting dt to %g ms" % dt)
-        self.ctx.setClock(0, dt*ms, 0) # integration clock
-        self.ctx.setClock(1, dt*ms, 1) # ?
-        self.ctx.setClock(2, dt*ms, 0) # recording clock
+        self.ctx.setClock(0, dt * ms, 0)  # integration clock
+        self.ctx.setClock(1, dt * ms, 1)  # ?
+        self.ctx.setClock(2, dt * ms, 0)  # recording clock
     dt = property(fget=__get_dt, fset=__set_dt)
+
 
 def run(simtime):
     print("simulating for %g ms" % simtime)
     state.ctx.reset()
-    state.ctx.step(simtime*ms)
+    state.ctx.step(simtime * ms)
+
 
 def reset():
     state.ctx.reset()
 
 # --- For implementation of access to individual neurons' parameters -----------
+
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__

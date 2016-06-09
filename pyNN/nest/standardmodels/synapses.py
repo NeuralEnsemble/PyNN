@@ -1,7 +1,7 @@
 """
 Synapse Dynamics classes for nest
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -92,10 +92,10 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 0.0,
         'mu_minus': 0.0
@@ -111,14 +111,15 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 1.0,
         'mu_minus': 1.0
     }
+
     def __init__(self, w_min=0.0, w_max=1.0):
         if w_min != 0:
             raise Exception("Non-zero minimum weight is not supported by NEST.")
@@ -129,7 +130,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
@@ -148,7 +149,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'Wmax',  1000.0), # unit conversion
+        ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
         ('mu_plus',   'mu_plus'),
         ('mu_minus',  'mu_minus'),

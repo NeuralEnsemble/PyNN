@@ -4,7 +4,7 @@ MOOSE implementation of the PyNN API
 
 Authors: Subhasis Ray and Andrew Davison
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -29,6 +29,7 @@ logger = logging.getLogger("PyNN")
 #   Functions for simulation set-up and control
 # ==============================================================================
 
+
 def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     """
     Should be called at the very beginning of a script.
@@ -40,6 +41,7 @@ def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
     if not os.path.exists(temporary_directory):
         os.mkdir(temporary_directory)
     return 0
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -67,6 +69,7 @@ get_current_time, get_time_step, get_min_delay, get_max_delay, \
 #   High-level API for creating, connecting and recording from populations of
 #   neurons.
 # ==============================================================================
+
 
 class Assembly(common.Assembly):
     _simulator = simulator
@@ -109,10 +112,13 @@ class Population(common.Population):
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + n - 1
         self.all_cells = numpy.array([simulator.ID(id)
-                                      for id in range(self.first_id, self.last_id+1)],
+                                      for id in range(self.first_id, self.last_id + 1)],
                                      dtype=simulator.ID)
+
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
-        self._mask_local = self.all_cells%simulator.state.num_processes == simulator.state.mpi_rank # round-robin distribution of cells between nodes
+        # round-robin distribution of cells between nodes
+        self._mask_local = self.all_cells % simulator.state.num_processes == simulator.state.mpi_rank
+
         for id in self.all_cells:
             id.parent = self
             id._build_cell(celltype.model, celltype.parameters)
@@ -177,7 +183,7 @@ class Projection(common.Projection):
         if not core.is_listlike(targets):
             targets = [targets]
             
-        weights = weights*1000.0 # scale units
+        weights = weights * 1000.0  # scale units
         if isinstance(weights, float):
             weights = [weights]
         if isinstance(delays, float):

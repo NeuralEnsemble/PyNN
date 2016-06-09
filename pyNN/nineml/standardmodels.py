@@ -144,7 +144,7 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
             regimes=[
                 al.Regime(
                     name="subthreshold_regime",
-                    time_derivatives=["dv/dt = (v_rest - v)/tau_m + (i_offset + i_syn)/cm",],
+                    time_derivatives=["dv/dt = (v_rest - v)/tau_m + (i_offset + i_syn)/cm"],
                     transitions=al.On("v > v_thresh",
                                       do=["t_spike = t",
                                           "v = v_reset",
@@ -184,7 +184,7 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
                 )
             ],
             state_variables=[al.StateVariable('g_syn')],  #, dimension='[G]'  # alias [M]^-1[L]^-2[T]^3[I]^2
-            analog_ports=[al.AnalogReceivePort("v"), al.AnalogSendPort("i_syn"), al.AnalogReceivePort('q') ],
+            analog_ports=[al.AnalogReceivePort("v"), al.AnalogSendPort("i_syn"), al.AnalogReceivePort('q')],
             parameters=['tau_syn', 'e_rev']
         )
         return coba
@@ -308,7 +308,6 @@ class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
         return source
 
 
-
 class SynapseTypeMixin(object):
     counter = 0
 
@@ -352,6 +351,7 @@ class CurrentSourceMixin(object):
                             definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
                                                          "dynamics"),
                             parameters=build_parameter_set(self.parameters))
+
 
 class DCSource(CurrentSourceMixin, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
