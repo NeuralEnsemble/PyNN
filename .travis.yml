@@ -29,8 +29,8 @@ install:
   - source ci/install_neuron.sh
   - pip install .
 script:  bash ci/test_script.sh
-after_success:
-  - coveralls
+#after_success:
+#  - coveralls
 cache:
   directories:
     - $HOME/nest-2.6.0
