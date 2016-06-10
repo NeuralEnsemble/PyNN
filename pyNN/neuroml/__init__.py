@@ -23,6 +23,7 @@ import neuroml
 
 logger = logging.getLogger("PyNN_NeuroML")
 
+save_format = 'xml'
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
@@ -40,7 +41,10 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
 
 
     logger.debug("Creating network in NeuroML document to store structure")
-    nml_doc = simulator.get_nml_doc()
+    nml_doc = simulator.get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"))
+    global save_format
+    save_format = extra_params.get('save_format', "xml")
+    
     # Create network
     net = neuroml.Network(id="network")
     nml_doc.networks.append(net)
@@ -59,10 +63,15 @@ def end(compatible_output=True):
     
     nml_doc = simulator.get_nml_doc()
 
-    nml_file = '%s.nml'%nml_doc.id
     
     import neuroml.writers as writers
-    writers.NeuroMLWriter.write(nml_doc, nml_file)
+    if save_format == 'xml':
+        nml_file = '%s.nml'%nml_doc.id
+        writers.NeuroMLWriter.write(nml_doc, nml_file)
+    elif save_format == 'hdf5':
+        nml_file = '%s.nml.h5'%nml_doc.id
+        writers.NeuroMLHdf5Writer.write(nml_doc, nml_file)
+        
     logger.debug("Written NeuroML 2 file out to: "+nml_file)
     
     

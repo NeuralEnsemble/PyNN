@@ -23,7 +23,7 @@ class Connection(common.Connection):
     """
 
     def __init__(self, pre, post, projection, conn_id, pre_pop_comp, post_pop_comp, **attributes):
-        logger.debug("Creating Connection: %s -> %s" % (pre, post))
+        #logger.debug("Creating Connection: %s -> %s" % (pre, post))
         
         self.presynaptic_index = pre
         self.postsynaptic_index = post

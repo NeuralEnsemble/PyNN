@@ -7,21 +7,28 @@ name = "NeuroML2Converter"
 import neuroml
 from pyneuroml.lems.LEMSSimulation import LEMSSimulation
 
-ref = "PyNN_NeuroML2_Export"
-nml_doc = neuroml.NeuroMLDocument(id=ref)
-
-# Note: values will be over written
-lems_sim = LEMSSimulation("Sim_%s"%ref, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN")
+nml_doc = None
+lems_sim = None
 
 logger = logging.getLogger("PyNN_NeuroML")
 
-def get_nml_doc():
+def get_nml_doc(reference="PyNN_NeuroML2_Export"):
+    global nml_doc
+    if nml_doc == None:
+        nml_doc = neuroml.NeuroMLDocument(id=reference)
+        
     return nml_doc
 
 def get_main_network():
     return get_nml_doc().networks[0]
 
-def get_lems_sim():
+def get_lems_sim(reference=None):
+    global lems_sim
+    if reference == None:
+        reference = get_nml_doc().id
+    if lems_sim == None:
+        # Note: values will be over written
+        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN")
     return lems_sim
 
 class ID(int, common.IDMixin):
