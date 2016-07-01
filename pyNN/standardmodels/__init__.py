@@ -158,6 +158,11 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         raise NotImplementedError("Should be redefined in the local simulator electrodes")
 
     def __getattr__(self, name):
+        if name == "set":
+            errmsg = "For current sources, set values using the parameter name directly, " \
+                     "e.g. source.amplitude = 0.5, or use 'set_parameters()' " \
+                     "e.g. source.set_parameters(amplitude=0.5)"
+            raise AttributeError(errmsg)
         try:
             val = self.__getattribute__(name)
         except AttributeError:
