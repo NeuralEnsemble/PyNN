@@ -105,6 +105,7 @@ class STDPMechanism(StandardSynapseType):
         weight-dependence, a timing-dependence, and, optionally, a voltage-
         dependence.
         """
+
         if timing_dependence:
             assert isinstance(timing_dependence, STDPTimingDependence)
         if weight_dependence:
@@ -147,19 +148,33 @@ class STDPMechanism(StandardSynapseType):
 
     def get_parameter_names(self):
         assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
-        return ['weight', 'delay'] + self.timing_dependence.get_parameter_names() + self.weight_dependence.get_parameter_names()
+        return ['weight', 'delay', 'dendritic_delay_fraction'] + \
+                 self.timing_dependence.get_parameter_names() + \
+                   self.weight_dependence.get_parameter_names()
 
     def get_schema(self):
         """
         Returns the model schema: i.e. a mapping of parameter names to allowed
         parameter types.
         """
-        base_schema = {'weight': float, 'delay': float}
+        base_schema = {'weight': float, 'delay': float, 'dendritic_delay_fraction': float}
         for component in (self.timing_dependence, self.weight_dependence, self.voltage_dependence):
             if component:
                 base_schema.update((name, type(value))
                                    for name, value in component.default_parameters.items())
         return base_schema
+
+    @property
+    def parameter_space(self):
+        timing_parameters = self.timing_dependence.parameter_space
+        weight_parameters = self.weight_dependence.parameter_space
+        parameters = ParameterSpace({'weight': self.weight,
+                                     'delay': self.delay,
+                                     'dendritic_delay_fraction': self.dendritic_delay_fraction},
+                                    self.get_schema())
+        parameters.update(**timing_parameters)
+        parameters.update(**weight_parameters)
+        return parameters
 
     @property
     def native_parameters(self):
@@ -171,12 +186,13 @@ class STDPMechanism(StandardSynapseType):
         weight_parameters = self.weight_dependence.native_parameters
         parameters = self.translate(
                         ParameterSpace({'weight': self.weight,
-                                        'delay': self.delay}, self.get_schema()))
+                                        'delay': self.delay,
+                                        'dendritic_delay_fraction': self.dendritic_delay_fraction},
+                                       self.get_schema()))
         parameters.update(**timing_parameters)
         parameters.update(**weight_parameters)
         parameters.update(**self.timing_dependence.extra_parameters)
         parameters.update(**self.weight_dependence.extra_parameters)
-        parameters.update(dendritic_delay_fraction=self.dendritic_delay_fraction)
         return parameters
 
     def describe(self, template='stdpmechanism_default.txt', engine='default'):

@@ -402,6 +402,24 @@ class TestFromListConnector(unittest.TestCase):
                          [(0, 1, 0.5, 0.14, 88.8, 800.0, 104.0),
                           (2, 3, 0.3, 0.12, 88.8, 600.0, 102.0)])
 
+    @register()
+    def test_with_stdp_synapse(self, sim=sim):
+        connection_list = [
+            (0, 0, 0.1, 0.1, 10.0, 0.4),
+            (3, 0, 0.2, 0.11, 10.1, 0.5),
+            (2, 3, 0.3, 0.12, 10.2, 0.6),  # local
+            (2, 2, 0.4, 0.13, 10.3, 0.7),
+            (0, 1, 0.5, 0.14, 10.4, 0.8),  # local
+            ]
+        C = connectors.FromListConnector(connection_list, column_names=["weight", "delay", "tau_plus", "w_max"])
+        syn = sim.STDPMechanism(timing_dependence=sim.SpikePairRule(tau_plus=12.3, tau_minus=33.3),
+                                weight_dependence=sim.MultiplicativeWeightDependence(w_max=1.11),
+                                weight=0.321, delay=0.2)
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay", "tau_plus", "tau_minus", "w_max"], format='list', gather=False),  # use gather False because we are faking the MPI
+                         [(0, 1, 0.5, 0.14, 10.4, 33.3, 0.8),
+                          (2, 3, 0.3, 0.12, 10.2, 33.3, 0.6)])
+
 
 @register_class()
 class TestFromFileConnector(unittest.TestCase):

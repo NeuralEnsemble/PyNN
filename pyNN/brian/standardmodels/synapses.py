@@ -97,6 +97,7 @@ class STDPMechanism(synapses.STDPMechanism):
     base_translations = build_translations(
                             ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
                             ('delay', 'delay', ms),
+                            ('dendritic_delay_fraction', 'dendritic_delay_fraction', 1)
                         )
     eqs = """weight : %(weight_units)s
              tau_plus : ms
