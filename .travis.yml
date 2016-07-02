@@ -4,7 +4,8 @@ python:
   - 3.3
   - 3.5
   - "2.7_with_system_site_packages"
-sudo: false
+sudo: required
+dist: trusty
 addons:
   apt:
     packages:
