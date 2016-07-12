@@ -18,7 +18,7 @@ noise._record()
 sim.run(500.0)
 
 t, i_inj = noise._get_data()
-v = population.get_data().segments[0].analogsignalarrays[0]
+v = population.get_data().segments[0].analogsignals[0]
 
 plot_current_source(t, i_inj, v,
                     v_range=(-66, -48),

@@ -270,22 +270,20 @@ class Recorder(object):
                 current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
-                    channel_indices = numpy.array([self.population.id_to_index(id) for id in ids])
                     units = self.population.find_units(variable)
                     source_ids = numpy.fromiter(ids, dtype=int)
-                    segment.analogsignalarrays.append(
-                        neo.AnalogSignalArray(
-                            signal_array,
-                            units=units,
-                            t_start=t_start,
-                            sampling_period=sampling_period,
-                            name=variable,
-                            source_population=self.population.label,
-                            channel_index=channel_indices,
-                            source_ids=source_ids)
-                    )
-                    logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, channel_indices)
-                    assert segment.analogsignalarrays[0].t_stop - current_time - 2 * sampling_period < 1e-10
+                    signal = neo.AnalogSignal(
+                                    signal_array,
+                                    units=units,
+                                    t_start=t_start,
+                                    sampling_period=sampling_period,
+                                    name=variable,
+                                    source_population=self.population.label,
+                                    source_ids=source_ids)
+                    signal.channel_index = neo.ChannelIndex(numpy.array([self.population.id_to_index(id) for id in ids]))
+                    segment.analogsignals.append(signal)
+                    logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, signal.channel_index)
+                    assert segment.analogsignals[0].t_stop - current_time - 2 * sampling_period < 1e-10
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
@@ -298,6 +296,10 @@ class Recorder(object):
                          for segment in self.cache]
         if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=variables, clear=clear))
+        # collect channel indexes
+        for segment in data.segments:
+            for signal in segment.analogsignals:
+                data.channel_indexes.append(signal.channel_index)
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime

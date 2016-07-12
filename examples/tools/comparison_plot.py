@@ -19,7 +19,7 @@ from pyNN.utility.plotting import comparison_plot
 
 
 def variable_names(segment):
-    return set(signal.name for signal in segment.analogsignalarrays)
+    return set(signal.name for signal in segment.analogsignals)
 
 
 def plot_signal(panel, signal, index, colour='b', linewidth='1', label=''):

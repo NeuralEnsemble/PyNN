@@ -1310,14 +1310,14 @@ class Assembly(object):
             for segment in block.segments:
                 #segment.name = name
                 #segment.description = description
-                for signal_array in segment.analogsignalarrays:
-                    signal_array.channel_index = numpy.array(signal_array.channel_index) + offset  # hack
+                for signal_array in segment.analogsignals:
+                    signal_array.channel_index.index += offset  # hack
             offset += p.size
         for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
             for j, segment in enumerate(block.segments):
                 logger.debug("  %d: %s", j, segment.name)
-                for arr in segment.analogsignalarrays:
+                for arr in segment.analogsignals:
                     logger.debug("    %s %s", arr.shape, arr.name)
         merged_block = blocks[0]
         for block in blocks[1:]:

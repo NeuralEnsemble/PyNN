@@ -17,7 +17,7 @@ def test_sim(on_or_off_grid, sim_time):
     prj = Projection(src, nrn, OneToOneConnector(), StaticSynapse(weight=weight))
     nrn.record('v')
     run(sim_time)
-    return nrn.get_data().segments[0].analogsignalarrays[0]
+    return nrn.get_data().segments[0].analogsignals[0]
 
 sim_time = 10.0
 off = test_sim('off_grid', sim_time)

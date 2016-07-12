@@ -32,7 +32,7 @@ def test_changing_electrode(sim):
         sim.run(simtime)
         c.amplitude += 0.1
 
-    data = p.get_data().segments[0].analogsignalarrays[0]
+    data = p.get_data().segments[0].analogsignals[0]
 
     sim.end()
 
@@ -59,10 +59,10 @@ def ticket226(sim):
     sim.run(30.0)
     v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
     sim.end()
-    v_10p0 = v[abs(v.times - 10.0 * pq.ms) < 0.01 * pq.ms][0]
-    assert abs(v_10p0 - -60.0 * pq.mV) < 1e-10
-    v_10p1 = v[abs(v.times - 10.1 * pq.ms) < 0.01 * pq.ms][0]
-    assert v_10p1 > -59.99 * pq.mV, v_10p1
+    v_10p0 = v.magnitude[abs(v.times - 10.0 * pq.ms) < 0.01 * pq.ms, 0][0]
+    assert abs(v_10p0 - -60.0) < 1e-10
+    v_10p1 = v.magnitude[abs(v.times - 10.1 * pq.ms) < 0.01 * pq.ms, 0][0]
+    assert v_10p1 > -59.99, v_10p1
 
 
 @register()

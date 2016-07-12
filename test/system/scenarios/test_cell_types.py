@@ -8,7 +8,7 @@ try:
 except ImportError:
     have_scipy = False
 import quantities as pq
-from nose.tools import assert_less
+from nose.tools import assert_greater, assert_less
 
 from .registry import register
 
@@ -25,7 +25,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67, 113.13, 142.69, 174.79]) * pq.ms
     if plot_figure:
         import matplotlib.pyplot as plt
-        vm = data.analogsignalarrays[0] 
+        vm = data.analogsignals[0]
         plt.plot(vm.times, vm)
         plt.plot(expected_spike_times, -40 * numpy.ones_like(expected_spike_times), "ro")
         plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
@@ -80,7 +80,7 @@ def issue367(sim, plot_figure=False):
     # we take the average membrane potential 0.1 ms before the spike and
     # compare it to the spike threshold
     spike_times = data.spiketrains[0]
-    vm = data.analogsignalarrays[0]
+    vm = data.analogsignals[0]
     spike_bins = ((spike_times - 0.1 * pq.ms) / vm.sampling_period).magnitude.astype(int)
     vm_before_spike = vm.magnitude[spike_bins]
     if plot_figure:
