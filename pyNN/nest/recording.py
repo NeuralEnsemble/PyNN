@@ -76,7 +76,6 @@ class RecordingDevice(object):
 
 class SpikeDetector(RecordingDevice):
     """A wrapper around the NEST spike_detector device"""
-    _nest_connect = lambda device, ids: nest.ConvergentConnect()
 
     def __init__(self, to_memory=True):
         self.device = nest.Create('spike_detector')
@@ -111,7 +110,6 @@ class SpikeDetector(RecordingDevice):
 
 class Multimeter(RecordingDevice):
     """A wrapper around the NEST multimeter device"""
-    _nest_connect = nest.ConvergentConnect
 
     def __init__(self, to_memory=True):
         self.device = nest.Create('multimeter')
