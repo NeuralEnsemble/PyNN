@@ -171,7 +171,7 @@ class TestInitializer(unittest.TestCase):
         orig_initialize = init._initialize
         init._initialize = Mock()
         h.finitialize(-65)
-        init._initialize.assert_called()
+        self.assertTrue(init._initialize.called)
         init._initialize = orig_initialize
 
     def test_register(self):
@@ -189,9 +189,9 @@ class TestInitializer(unittest.TestCase):
         pop = MockPopulation()
         init.register(cell, pop)
         init._initialize()
-        cell._cell.memb_init.assert_called()
+        self.assertTrue(cell._cell.memb_init.called)
         for pcell in pop.local_cells:
-            pcell._cell.memb_init.assert_called()
+            self.assertTrue(pcell._cell.memb_init.called)
 
     def test_clear(self):
         init = simulator.initializer
@@ -226,7 +226,6 @@ class TestState(unittest.TestCase):
     #    self.assertEqual(simulator.state.running, False)
     #    self.assertEqual(simulator.state.t, 0.0)
     #    self.assertEqual(simulator.state.tstop, 0.0)
-    #    init._initialize.assert_called()
     #    init._initialize = orig_initialize
 
     #def test_run(self):
@@ -240,8 +239,8 @@ class TestState(unittest.TestCase):
         orig_pc = simulator.state.parallel_context
         simulator.state.parallel_context = Mock()
         simulator.state.finalize()
-        simulator.state.parallel_context.runworker.assert_called()
-        simulator.state.parallel_context.done.assert_called()
+        self.assertTrue(simulator.state.parallel_context.runworker.called)
+        self.assertTrue(simulator.state.parallel_context.done.called)
         simulator.state.parallel_context = orig_pc
 
 
