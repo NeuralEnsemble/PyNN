@@ -213,6 +213,7 @@ class _State(common.control.BaseState):
         self.parallel_context.gid_clear()
         self.gid_sources = []
         self.recorders = set([])
+        self.current_sources = []
         self.gid_counter = 0
         self.vargid_offsets = dict()  # Contains the start of the available "variable"-GID range for each projection (as opposed to "cell"-GIDs)
         h.plastic_connections = []
@@ -246,11 +247,17 @@ class _State(common.control.BaseState):
                     assert local_minimum_delay >= self.min_delay, \
                        "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
 
+    def _update_current_sources(self):
+        for source in self.current_sources:
+            for iclamp in source._devices:
+                source._update_iclamp(iclamp)
+
     def run(self, simtime):
         """Advance the simulation for a certain time."""
         self.run_until(self.tstop + simtime)
 
     def run_until(self, tstop):
+        self._update_current_sources()
         self._pre_run()
         self.tstop = tstop
         #logger.info("Running the simulation until %g ms" % tstop)

@@ -52,7 +52,8 @@ class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
 
     base_translations = build_translations(
         ('weight', 'weight'),
-        ('delay', 'delay')
+        ('delay', 'delay'),
+        ('dendritic_delay_fraction', 'dendritic_delay_fraction')
     )  # will be extended by translations from timing_dependence, etc.
 
     def __init__(self, timing_dependence=None, weight_dependence=None,

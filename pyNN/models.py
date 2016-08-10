@@ -37,7 +37,7 @@ class BaseModelType(object):
     @classmethod
     def get_parameter_names(cls):
         """Return the names of the parameters of this model."""
-        return cls.default_parameters.keys()
+        return list(cls.default_parameters.keys())
 
     def get_schema(self):
         """

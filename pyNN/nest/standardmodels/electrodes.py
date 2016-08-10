@@ -43,7 +43,7 @@ class NestCurrentSource(StandardCurrentSource):
             self.cell_list = [cell for cell in cells]
         else:
             self.cell_list = cells
-        nest.DivergentConnect(self._device, self.cell_list)
+        nest.Connect(self._device, self.cell_list)
 
     def _delay_correction(self, value):
         return value - state.min_delay
