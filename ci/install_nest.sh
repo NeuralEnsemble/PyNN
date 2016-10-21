@@ -2,8 +2,8 @@
 
 set -e  # stop execution in case of errors
 
-if [[ "$TRAVIS_PYTHON_VERSION" == "2.7_with_system_site_packages" ]]; then
-
+if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
+    echo -e "\n========== Installing NEST ==========\n"
     export NEST_VERSION="2.10.0"
     export NEST="nest-$NEST_VERSION"
     pip install cython
@@ -18,7 +18,7 @@ if [[ "$TRAVIS_PYTHON_VERSION" == "2.7_with_system_site_packages" ]]; then
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
     if [ ! -f "$HOME/build/$NEST/config.log" ]; then
-        export VENV=`python -c "import sys; print sys.prefix"`;
+        export VENV=`python -c "import sys; print(sys.prefix)"`;
         $HOME/$NEST/configure --with-mpi --prefix=$VENV;
         make;
     else
