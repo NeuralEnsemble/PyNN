@@ -4,30 +4,21 @@ set -e  # stop execution in case of errors
 
 if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
     echo -e "\n========== Installing NEST ==========\n"
-    export NEST_VERSION="2.10.0"
+    export NEST_VERSION="master"
     export NEST="nest-$NEST_VERSION"
     pip install cython
-    if [ ! -f "$HOME/$NEST_VERSION/configure" ]; then
-        wget https://github.com/nest/nest-simulator/releases/download/v$NEST_VERSION/$NEST.tar.gz -O $HOME/$NEST.tar.gz;
-        pushd $HOME;
-        tar xzf $NEST.tar.gz;
-        popd;
-    else
-        echo 'Using cached version of NEST sources.';
-    fi
+    wget https://github.com/nest/nest-simulator/archive/$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz;
+    pushd $HOME;
+    tar xzf $NEST.tar.gz;
+    popd;
+
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
-    if [ ! -f "$HOME/build/$NEST/config.log" ]; then
-        export VENV=`python -c "import sys; print(sys.prefix)"`;
-        $HOME/$NEST/configure --with-mpi --prefix=$VENV;
-        make;
-    else
-        echo 'Using cached NEST build directory.';
-        echo "$HOME/$NEST";
-        ls $HOME/$NEST;
-        echo "$HOME/build/$NEST";
-        ls $HOME/build/$NEST;
-    fi
+    export VENV=`python -c "import sys; print(sys.prefix)"`;
+    echo $VENV
+    echo $PWD
+    cmake -DCMAKE_INSTALL_PREFIX=$VENV -Dwith-mpi=ON $HOME/$NEST;
+    make;
     make install
     popd
 
