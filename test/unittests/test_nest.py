@@ -181,5 +181,19 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight_array)
         self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
+    def test_stdp_set_tau_minus(self):
+        """cf https://github.com/NeuralEnsemble/PyNN/issues/423"""
+        intended_tau_minus = 18.9
+        stdp_model = sim.STDPMechanism(
+            timing_dependence=sim.SpikePairRule(tau_plus=16.7, tau_minus=intended_tau_minus,
+                                                A_plus=0.005, A_minus=0.005),
+            weight_dependence=sim.AdditiveWeightDependence(w_min=0.0, w_max=1.0),
+            weight=0.5, delay=1.0, dendritic_delay_fraction=1.0)
+        prj = sim.Projection(self.p1, self.p2, self.all2all,
+                             synapse_type=stdp_model)
+        actual_tau_minus = nest.GetStatus([prj.post[0]], "tau_minus")[0]
+        self.assertEqual(intended_tau_minus, actual_tau_minus)
+
+
 if __name__ == '__main__':
     unittest.main()
