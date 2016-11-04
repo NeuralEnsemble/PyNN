@@ -25,8 +25,8 @@ def test_reset(sim):
 
     assert len(data.segments) == repeats
     for segment in data.segments[1:]:
-        assert_array_equal(segment.analogsignals[0],
-                           data.segments[0].analogsignals[0])
+        assert_array_almost_equal(segment.analogsignals[0],
+                                  data.segments[0].analogsignals[0], 10)
 test_reset.__test__ = False
 
 

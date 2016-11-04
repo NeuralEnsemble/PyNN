@@ -1305,13 +1305,12 @@ class Assembly(object):
         name = self.label
         description = self.describe()
         blocks = [p.get_data(variables, gather, clear) for p in self.populations]
+        # adjust channel_ids to match assembly channel indices
         offset = 0
         for block, p in zip(blocks, self.populations):
             for segment in block.segments:
-                #segment.name = name
-                #segment.description = description
                 for signal_array in segment.analogsignals:
-                    signal_array.channel_index.index += offset  # hack
+                    signal_array.channel_index.channel_ids += offset
             offset += p.size
         for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
