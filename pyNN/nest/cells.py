@@ -26,7 +26,7 @@ def get_defaults(model_name):
               'recordables', 'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
               'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
-              'thread_local_id']
+              'thread_local_id', 'node_uses_wfr', 'supports_precise_spikes']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():
