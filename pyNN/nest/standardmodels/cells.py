@@ -310,6 +310,8 @@ class Izhikevich(cells.Izhikevich):
                  "off_grid": "izhikevich"}
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
+
+
 class GIF_cond_exp(cells.GIF_cond_exp):
 
     translations = build_translations(
@@ -323,9 +325,9 @@ class GIF_cond_exp(cells.GIF_cond_exp):
         ('e_rev_I',    'E_in'),
         ('v_reset',    'V_reset'),
         ('i_offset',   'I_e',       1000.0),  # nA -> pA
-        ('delta_v',    'delta_u'),
-        ('v_t_star',   'v_t_star'),
-        ('lambda0',    'lambda0'),
+        ('delta_v',    'Delta_V'),
+        ('v_t_star',   'V_T_star'),
+        ('lambda0',    'lambda_0'),
         ('tau_eta1',   'tau_stc1'),
         ('tau_eta2',   'tau_stc2'),
         ('tau_eta3',   'tau_stc3'),

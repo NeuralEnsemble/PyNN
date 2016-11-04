@@ -439,36 +439,24 @@ class GIF_cond_exp(StandardCellType):
         'a_eta2':       1.0,  # } Post-spike increments for spike-triggered current in nA
         'a_eta3':       1.0,  # }
         'a_gamma1':     1.0,  # }
-        'a_gamma2':     1.0,  # } Post-spike increments for spike-frequency adaptation in mV
+        'a_gamma2':     1.0,  # } Post-spike increments for moving threshold in mV
         'a_gamma3':     1.0,  # }
     }
 
-    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta',
-                  'eta1', 'eta2', 'eta3', 'gamma1', 'gamma2', 'gamma3',
-                  'rand']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
     default_initial_values = {
         'v': -65.0,
+        'v_t': -48.0,
+        'i_eta': 0.0,
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
-        'eta1': 0.0,
-        'eta2': 0.0,
-        'eta3': 0.0,
-        'gamma1': 0.0,
-        'gamma2': 0.0,
-        'gamma3': 0.0
     }
     units = {
         'v': 'mV',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
-        'eta1': 'nA',
-        'eta2': 'nA',
-        'eta3': 'nA',
         'i_eta': 'nA',
-        'gamma1': 'mV',
-        'gamma2': 'mV',
-        'gamma3': 'mV',
-        'rand': 'dimensionless'
+        'v_t': 'mV',
     }
 
 

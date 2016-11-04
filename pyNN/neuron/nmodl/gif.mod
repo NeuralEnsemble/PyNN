@@ -10,7 +10,7 @@ NEURON {
     RANGE DV, lambda0
     RANGE tau_eta1, tau_eta2, tau_eta3, a_eta1, a_eta2, a_eta3
     RANGE tau_gamma1, tau_gamma2, tau_gamma3, a_gamma1, a_gamma2, a_gamma3
-    RANGE i_eta, gamma_sum, verboseLevel, p_dontspike, rand
+    RANGE i_eta, gamma_sum, v_t, verboseLevel, p_dontspike, rand
     RANGE e_spike, isrefrac
     POINTER rng
     NONSPECIFIC_CURRENT i
@@ -69,6 +69,7 @@ ASSIGNED {
     rand (1)
     grefrac (uS)
     gamma_sum (mV)
+    v_t (mV)
     verboseLevel (1)
     dt (ms)
     rng
@@ -104,7 +105,8 @@ BREAKPOINT {
     i_eta = eta1 + eta2 + eta3
 
     gamma_sum = gamma1 + gamma2 + gamma3
-    lambda = lambda0*exp( (v-Vt_star-gamma_sum)/DV )
+    v_t = Vt_star + gamma_sum
+    lambda = lambda0*exp( (v-v_t)/DV )
     if (isrefrac > 0) {
         p_dontspike = 2   : is in refractory period, make it impossible to trigger a spike
     } else {
@@ -144,6 +146,14 @@ NET_RECEIVE (weight) {
         net_send(Tref-dt, 3)
         :net_event(t)
 
+        : increase filters after spike
+        eta1 = eta1 + a_eta1
+        eta2 = eta2 + a_eta2
+        eta3 = eta3 + a_eta3
+        gamma1 = gamma1 + a_gamma1
+        gamma2 = gamma2 + a_gamma2
+        gamma3 = gamma3 + a_gamma3
+
         if( verboseLevel > 0 ) {
             printf("Start spike, at time %g: rand=%g, p_dontspike=%g\n", t, rand, p_dontspike)
         }
@@ -152,14 +162,6 @@ NET_RECEIVE (weight) {
         v = Vr
         isrefrac = 0
         grefrac = 0
-
-        : increase filters after refractory period
-        eta1 = eta1 + a_eta1
-        eta2 = eta2 + a_eta2
-        eta3 = eta3 + a_eta3
-        gamma1 = gamma1 + a_gamma1
-        gamma2 = gamma2 + a_gamma2
-        gamma3 = gamma3 + a_gamma3
 
         if( verboseLevel > 0 ) {
             printf("End refrac, at time %g: rand=%g, p_dontspike=%g\n", t, rand, p_dontspike)

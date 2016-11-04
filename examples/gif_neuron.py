@@ -1,13 +1,24 @@
 """
-todo: write docstring
+Demonstration of the Generalized Integrate-and-Fire model described by Pozzorini et al. (2015)
 
+We simulate four neurons with different parameters:
+    1. spike-triggered current, fixed threshold, deterministic spiking
+    2. no spike-triggered current, dynamic threshold, deterministic spiking
+    3 & 4. no spike-triggered current, fixed threshold, stochastic spiking
 
+Since neurons 1 and 2 have deterministic spiking, they should produce the same spike times with
+different simulators. Neurons 3 and 4, being stochastic, should spike at different times.
+
+Reference:
+
+Pozzorini, Christian, Skander Mensi, Olivier Hagens, Richard Naud, Christof Koch, and Wulfram Gerstner (2015)
+"Automated High-Throughput Characterization of Single Neurons by Means of Simplified Spiking Models."
+PLOS Comput Biol 11 (6): e1004275. doi:10.1371/journal.pcbi.1004275.
 
 """
 
 import matplotlib
 matplotlib.use('Agg')
-from numpy import arange
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 
 
@@ -67,22 +78,17 @@ neurons = sim.Population(4, sim.GIF_cond_exp(**parameters['neurons']))
 electrode = sim.DCSource(**parameters['stimulus'])
 electrode.inject_into(neurons)
 
-neurons.record(['v'])  #, 'E_sfa'])
-#neurons.initialize(v=-70.0)
+neurons.record(['v', 'i_eta', 'v_t'])
 
 
 # === Run the simulation =====================================================
 
 sim.run(t_stop)
 
-#import nest
-#print(nest.GetStatus(neurons.all_cells.tolist()))
-
 # === Save the results, optionally plot a figure =============================
 
 filename = normalized_filename("Results", "gif_neuron", "pkl",
                                options.simulator, sim.num_processes())
-#filename = "Results/gif_neuron.pkl"
 neurons.write_data(filename, annotations={'script_name': __file__})
 
 if options.plot_figure:
@@ -90,11 +96,15 @@ if options.plot_figure:
     figure_filename = filename.replace("pkl", "png")
     data = neurons.get_data().segments[0]
     v = data.filter(name="v")[0]
-    #u = data.filter(name="u")[0]
+    v_t = data.filter(name="v_t")[0]
+    i_eta = data.filter(name="i_eta")[0]
     Figure(
-        Panel(v, ylabel="Membrane potential (mV)", xticks=True,
+        Panel(v, ylabel="Membrane potential (mV)",
+              yticks=True, ylim=[-66, -52]),
+        Panel(v_t, ylabel="Threshold (mV)",
+              yticks=True),
+        Panel(i_eta, ylabel="i_eta (nA)", xticks=True,
               xlabel="Time (ms)", yticks=True),
-        #Panel(u, ylabel="u variable (units?)"),
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
     print(figure_filename)

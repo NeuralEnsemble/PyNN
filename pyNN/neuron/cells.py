@@ -485,8 +485,7 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
     lambda0 = _new_property('gif_fun', 'lambda0')
 
     def memb_init(self):
-        for state_var in ('v', 'eta1', 'eta2', 'eta3',
-                          'gamma1', 'gamma2', 'gamma3'):
+        for state_var in ('v', 'v_t', 'i_eta'):
             initial_value = getattr(self, '{0}_init'.format(state_var))
             assert initial_value is not None
             if state_var == 'v':
