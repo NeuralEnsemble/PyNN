@@ -555,15 +555,13 @@ class BasePopulation(object):
     # name should be consistent with saving/writing data, i.e. save_data() and save_positions() or write_data() and write_positions()
     def save_positions(self, file):
         """
-        Save positions to file. The output format is ``id x y z``
+        Save positions to file. The output format is ``index x y z``
         """
-        # first column should probably be indices, not ids. This would make it
-        # simulator independent.
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:, 0] = cells
+        result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'population': self.label})
@@ -1267,12 +1265,11 @@ class Assembly(object):
         """
         Save positions to file. The output format is id x y z
         """
-        # this should be rewritten to use self.positions and recording.files
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:, 0] = cells
+        result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'assembly': self.label})
