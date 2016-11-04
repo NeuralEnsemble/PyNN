@@ -47,6 +47,8 @@ logger = logging.getLogger("PyNN")
 if logger.level == logging.NOTSET:
     logger.setLevel(logging.ERROR)
 
+nest.Install('mymodule')
+
 # ==============================================================================
 #   Utility functions
 # ==============================================================================
