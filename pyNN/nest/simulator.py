@@ -131,7 +131,8 @@ class _State(common.control.BaseState):
         if not self.running and simtime > 0:
             simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
-        nest.Simulate(simtime)
+        if simtime > 0:
+            nest.Simulate(simtime)
 
     def run_until(self, tstop):
         self.run(tstop - self.t)
