@@ -216,6 +216,33 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     }
 
 
+def unsupported(parameter_name, valid_value):
+    def error_if_invalid(**parameters):
+        if parameters[parameter_name].base_value != valid_value:
+            raise NotImplementedError("The `{}` parameter is not supported in NEST".format(parameter_name))
+        return valid_value
+    return error_if_invalid
+
+
+class SpikeSourceGamma(cells.SpikeSourceGamma):
+
+    __doc__ = cells.SpikeSourceGamma.__doc__
+
+    translations = build_translations(
+        ('alpha',    'gamma_shape'),
+        ('beta',     'rate',        'beta/alpha',   'gamma_shape * rate'),
+        ('start',    'UNSUPPORTED', unsupported('start', 0.0), None),
+        ('duration', 'UNSUPPORTED', unsupported('duration', 1e10), None),
+    )
+    nest_name = {"on_grid": 'gamma_sup_generator',
+                 "off_grid": 'gamma_sup_generator'}
+    always_local = True
+    uses_parrot = True
+    extra_parameters = {
+        'n_proc': 1
+    }
+
+
 class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     
     __doc__ = cells.SpikeSourceInhGamma.__doc__ 
