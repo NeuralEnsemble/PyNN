@@ -1,4 +1,5 @@
 from pyNN import common
+from pyNN import __version__
 
 import logging
 
@@ -28,7 +29,7 @@ def get_lems_sim(reference=None):
         reference = get_nml_doc().id
     if lems_sim == None:
         # Note: values will be over written
-        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN")
+        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN v%s"%__version__)
     return lems_sim
 
 class ID(int, common.IDMixin):

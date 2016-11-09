@@ -56,3 +56,6 @@ examples/*.svg
 *.btr
 *.log
 /examples/LEMS_Sim_PyNN_NeuroML2_Export.xml
+/pynnpg.sh
+/cleanpynn.sh
+/examples/Potjans2014/PyNN_NeuroML2_Export.svg
