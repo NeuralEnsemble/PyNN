@@ -24,7 +24,7 @@ if "JENKINS_SKIP_TESTS" in os.environ:
 def test_scenarios():
     for scenario in registry:
         if "neuron" not in scenario.exclude:
-            scenario.description = scenario.__name__
+            scenario.description = "{}(neuron)".format(scenario.__name__)
             if have_neuron:
                 yield scenario, pyNN.neuron
             else:
@@ -36,6 +36,8 @@ def test_ticket168():
     Error setting firing rate of `SpikeSourcePoisson` after `reset()` in NEURON
     http://neuralensemble.org/trac/PyNN/ticket/168
     """
+    if not have_neuron:
+        raise SkipTest
     pynn = pyNN.neuron
     pynn.setup()
     cell = pynn.Population(1, pynn.SpikeSourcePoisson(), label="cell")
@@ -108,13 +110,14 @@ class SimpleNeuron(object):
                 seg.v = self.v_init
 
 
-class SimpleNeuronType(NativeCellType):
-    default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
-    default_initial_values = {'v': -65.0}
-    recordable = ['apical(1.0).v', 'soma(0.5).ina']  # this is not good - over-ride Population.can_record()?
-    units = {'apical(1.0).v': 'mV', 'soma(0.5).ina': 'mA/cm**2'}
-    receptor_types = ['apical.ampa']
-    model = SimpleNeuron
+if have_neuron:
+    class SimpleNeuronType(NativeCellType):
+        default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
+        default_initial_values = {'v': -65.0}
+        recordable = ['apical(1.0).v', 'soma(0.5).ina']  # this is not good - over-ride Population.can_record()?
+        units = {'apical(1.0).v': 'mV', 'soma(0.5).ina': 'mA/cm**2'}
+        receptor_types = ['apical.ampa']
+        model = SimpleNeuron
 
 
 def test_electrical_synapse():
@@ -150,6 +153,8 @@ def test_electrical_synapse():
 
 
 def test_record_native_model():
+    if not have_neuron:
+        raise SkipTest
     nrn = pyNN.neuron
 
     init_logging(logfile=None, debug=True)
@@ -190,6 +195,8 @@ def test_record_native_model():
 
 
 def test_tsodyks_markram_synapse():
+    if not have_neuron:
+        raise SkipTest
     sim = pyNN.neuron
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))

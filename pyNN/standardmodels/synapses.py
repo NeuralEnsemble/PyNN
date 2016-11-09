@@ -152,6 +152,10 @@ class STDPMechanism(StandardSynapseType):
                  self.timing_dependence.get_parameter_names() + \
                    self.weight_dependence.get_parameter_names()
 
+    def has_parameter(self, name):
+        """Does this model have a parameter with the given name?"""
+        return name in self.get_parameter_names()
+
     def get_schema(self):
         """
         Returns the model schema: i.e. a mapping of parameter names to allowed

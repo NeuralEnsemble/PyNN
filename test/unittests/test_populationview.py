@@ -597,6 +597,19 @@ class PopulationViewTest(unittest.TestCase):
         assert_array_equal(pv1.index_in_grandparent([2, 4, 6]), numpy.array([3, 6, 9]))
         assert_array_equal(pv2.index_in_grandparent([0, 1, 3]), numpy.array([3, 4, 9]))
 
+    @register()
+    def test_save_positions(self, sim=sim):
+        import os
+        p = sim.Population(7, sim.IF_cond_exp())
+        p.positions = numpy.arange(15, 36).reshape((7, 3)).T
+        pv = p[2, 4, 5]
+        output_file = Mock()
+        pv.save_positions(output_file)
+        assert_array_equal(output_file.write.call_args[0][0],
+                            numpy.array([[0, 21, 22, 23],
+                                         [1, 27, 28, 29],
+                                         [2, 30, 31, 32]]))
+        self.assertEqual(output_file.write.call_args[0][1], {'population': pv.label})
 
 if __name__ == "__main__":
     unittest.main()

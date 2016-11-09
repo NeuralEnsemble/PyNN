@@ -659,5 +659,20 @@ class PopulationTest(unittest.TestCase):
         self.assertIsInstance(p.describe(), basestring)
         self.assertIsInstance(p.describe(template=None), dict)
 
+    @register()
+    def test_save_positions(self, sim=sim):
+        import os
+        p = sim.Population(4, sim.IF_cond_exp(), )
+        p.positions = numpy.arange(15, 27).reshape((4, 3)).T
+        output_file = Mock()
+        p.save_positions(output_file)
+        assert_array_equal(output_file.write.call_args[0][0],
+                            numpy.array([[0, 15, 16, 17],
+                                         [1, 18, 19, 20],
+                                         [2, 21, 22, 23],
+                                         [3, 24, 25, 26]]))
+        self.assertEqual(output_file.write.call_args[0][1], {'population': p.label})
+
+
 if __name__ == "__main__":
     unittest.main()

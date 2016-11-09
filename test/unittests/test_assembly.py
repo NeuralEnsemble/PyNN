@@ -235,12 +235,11 @@ class AssemblyTest(unittest.TestCase):
         output_file = Mock()
         a.save_positions(output_file)
         assert_array_equal(output_file.write.call_args[0][0],
-                            numpy.array([[int(p1[0]), 0, 1, 2],
-                                         [int(p1[1]), 3, 4, 5],
-                                         [int(p2[0]), 6, 7, 8],
-                                         [int(p2[1]), 9, 10, 11]]))
+                            numpy.array([[0, 0, 1, 2],
+                                         [1, 3, 4, 5],
+                                         [2, 6, 7, 8],
+                                         [3, 9, 10, 11]]))
         self.assertEqual(output_file.write.call_args[0][1], {'assembly': a.label})
-        # arguably, the first column should contain indices, not ids.
 
     @register()
     def test_repr(self, sim=sim):

@@ -54,7 +54,6 @@ Old documents
    :maxdepth: 1
 
    standardmodels
-   fileformats
 
 
 Indices and tables
