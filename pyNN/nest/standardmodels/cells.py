@@ -224,6 +224,26 @@ def unsupported(parameter_name, valid_value):
     return error_if_invalid
 
 
+class SpikeSourcePoissonRefractory(cells.SpikeSourcePoissonRefractory):
+
+    __doc__ = cells.SpikeSourcePoissonRefractory.__doc__
+
+    translations = build_translations(
+        ('rate',       'rate'),
+        ('tau_refrac', 'dead_time'),
+        ('start',    'UNSUPPORTED', unsupported('start', 0.0), None),
+        ('duration', 'UNSUPPORTED', unsupported('duration', 1e10), None),
+    )
+    nest_name = {"on_grid": 'ppd_sup_generator',
+                 "off_grid": 'ppd_sup_generator'}
+    always_local = True
+    uses_parrot = True
+    extra_parameters = {
+        'n_proc': 1,
+        'frequency': 0.0,
+    }
+
+
 class SpikeSourceGamma(cells.SpikeSourceGamma):
 
     __doc__ = cells.SpikeSourceGamma.__doc__
