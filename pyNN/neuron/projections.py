@@ -85,7 +85,7 @@ class Projection(common.Projection):
         """
         #logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
         postsynaptic_cell = self.post[postsynaptic_index]
-        if not isinstance(postsynaptic_cell, int) or postsynaptic_cell > simulator.state.gid_counter or postsynaptic_cell < 0:
+        if not isinstance(postsynaptic_cell, int) or not (0 <= postsynaptic_cell <= simulator.state.gid_counter):
             errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (postsynaptic_cell, simulator.state.gid_counter)
             raise errors.ConnectionError(errmsg)
         for name, value in connection_parameters.items():

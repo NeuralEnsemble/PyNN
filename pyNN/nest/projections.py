@@ -309,7 +309,7 @@ class Projection(common.Projection):
     #        file.write(lines, {'pre' : self.pre.label, 'post' : self.post.label})
     #        file.close()
 
-    def _get_attributes_as_list(self, *names):
+    def _get_attributes_as_list(self, names):
         nest_names = []
         for name in names:
             if name == 'presynaptic_index':
@@ -339,7 +339,8 @@ class Projection(common.Projection):
             values[i] = tuple(values[i])
         return values
 
-    def _get_attributes_as_arrays(self, *names):
+    def _get_attributes_as_arrays(self, names, multiple_synapses='sum'):
+        multi_synapse_operation = Projection.MULTI_SYNAPSE_OPERATIONS[multiple_synapses]
         all_values = []
         for attribute_name in names:
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
@@ -354,7 +355,7 @@ class Projection(common.Projection):
                 if numpy.isnan(value_arr[addr]):
                     value_arr[addr] = value
                 else:
-                    value_arr[addr] += value
+                    value_arr[addr] = multi_synapse_operation(value_arr[addr], value)
             if attribute_name == 'weight':
                 value_arr *= 0.001
                 if self.receptor_type == 'inhibitory' and self.post.conductance_based:
