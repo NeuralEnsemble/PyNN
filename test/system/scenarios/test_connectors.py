@@ -158,6 +158,12 @@ def fixed_number_post_with_replacement(sim):
         row[numpy.isnan(row)] = 0
         assert_equal(row.sum(), 4.5)
 
+    weights2 = prj1.get('weight', format='array', gather=False, multiple_synapses='min')
+    for row in weights2:
+        n_nan = numpy.isnan(row).sum()
+        row[numpy.isnan(row)] = 0
+        assert_equal(row.sum(), (row.size - n_nan)*0.5)
+
 
 @register()
 def fixed_number_post_with_replacement_heterogeneous_parameters(sim):
