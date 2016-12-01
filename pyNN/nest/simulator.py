@@ -90,7 +90,7 @@ class _State(common.control.BaseState):
 
     @property
     def max_delay(self):
-        return nest.GetDefaults('static_synapse')['max_delay']
+        return nest.GetKernelStatus('max_delay')
 
     @property
     def num_processes(self):

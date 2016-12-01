@@ -419,6 +419,82 @@ class SingleCompartmentTraub(SingleCompartmentNeuron):
         return 10.0
 
 
+class GIFNeuron(LeakySingleCompartmentNeuron):
+    """
+    to write...
+
+    References:
+      [1] Mensi, S., Naud, R., Pozzorini, C., Avermann, M., Petersen, C. C., &
+      Gerstner, W. (2012). Parameter
+      extraction and classification of three cortical neuron types reveals two
+      distinct adaptation mechanisms.
+      Journal of Neurophysiology, 107(6), 1756-1775.
+      [2] Pozzorini, C., Mensi, S., Hagens, O., Naud, R., Koch, C., & Gerstner, W.
+      (2015). Automated
+      High-Throughput Characterization of Single Neurons by Means of Simplified
+      Spiking Models. PLoS Comput Biol, 11(6), e1004275.
+    """
+
+    def __init__(self, syn_type, syn_shape,
+                 tau_m=20, c_m=1.0, v_rest=-65,
+                 t_refrac=2, i_offset=0,
+                 v_reset=-55.0,
+                 tau_e=5, tau_i=5, e_e=0, e_i=-70,
+                 vt_star=-48.0, dV=0.5, lambda0=1.0,
+                 tau_eta1=10.0, tau_eta2=50.0, tau_eta3=250.0,
+                 a_eta1=0.2, a_eta2=0.05, a_eta3=0.025,
+                 tau_gamma1=5.0, tau_gamma2=200.0, tau_gamma3=250.0,
+                 a_gamma1=15.0, a_gamma2=3.0, a_gamma3=1.0):
+
+        LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m,
+                                              c_m, v_rest, i_offset,
+                                              tau_e, tau_i, e_e, e_i)
+
+        self.gif_fun = h.GifCurrent(0.5, sec=self)
+        self.source = self.gif_fun
+        self.rec = h.NetCon(self.source, None)
+
+        self.parameter_names = ['c_m', 'tau_m', 'v_rest', 't_refrac',
+                                'i_offset', 'v_reset', 'tau_e', 'tau_i',
+                                'vt_star', 'dV', 'lambda0',
+                                'tau_eta1', 'tau_eta2', 'tau_eta3',
+                                'a_eta1', 'a_eta2', 'a_eta3',
+                                'tau_gamma1', 'tau_gamma2', 'tau_gamma3',
+                                'a_gamma1', 'a_gamma2', 'a_gamma3']
+        if syn_type == 'conductance':
+            self.parameter_names.extend(['e_e', 'e_i'])
+        self.set_parameters(locals())
+
+    tau_eta1 = _new_property('gif_fun', 'tau_eta1')
+    tau_eta2 = _new_property('gif_fun', 'tau_eta2')
+    tau_eta3 = _new_property('gif_fun', 'tau_eta3')
+    a_eta1 = _new_property('gif_fun', 'a_eta1')
+    a_eta2 = _new_property('gif_fun', 'a_eta2')
+    a_eta3 = _new_property('gif_fun', 'a_eta3')
+    tau_gamma1 = _new_property('gif_fun', 'tau_gamma1')
+    tau_gamma2 = _new_property('gif_fun', 'tau_gamma2')
+    tau_gamma3 = _new_property('gif_fun', 'tau_gamma3')
+    a_gamma1 = _new_property('gif_fun', 'a_gamma1')
+    a_gamma2 = _new_property('gif_fun', 'a_gamma2')
+    a_gamma3 = _new_property('gif_fun', 'a_gamma3')
+
+    v_reset = _new_property('gif_fun', 'Vr')
+    t_refrac = _new_property('gif_fun', 'Tref')
+    vt_star = _new_property('gif_fun', 'Vt_star')
+    dV = _new_property('gif_fun', 'DV')
+    lambda0 = _new_property('gif_fun', 'lambda0')
+
+    def memb_init(self):
+        for state_var in ('v', 'v_t', 'i_eta'):
+            initial_value = getattr(self, '{0}_init'.format(state_var))
+            assert initial_value is not None
+            if state_var == 'v':
+                for seg in self:
+                    seg.v = initial_value
+            else:
+                setattr(self.gif_fun, state_var, initial_value)
+
+
 class RandomSpikeSource(hclass(h.NetStimFD)):
 
     parameter_names = ('start', '_interval', 'duration')
