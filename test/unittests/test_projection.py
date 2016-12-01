@@ -52,7 +52,7 @@ class ProjectionTest(unittest.TestCase):
         self.p3 = sim.Population(5, sim.IF_curr_alpha())
         self.syn1 = sim.StaticSynapse(weight=0.006, delay=0.5)
         self.random_connect = sim.FixedNumberPostConnector(n=2)
-        self.syn2 = sim.StaticSynapse(weight=0.012, delay=0.4)
+        self.syn2 = sim.StaticSynapse(weight=0.007, delay=0.4)
         self.all2all = sim.AllToAllConnector()
         self.syn3 = sim.TsodyksMarkramSynapse(weight=0.012, delay=0.6, U=0.2, tau_rec=50)
 
@@ -152,25 +152,25 @@ class ProjectionTest(unittest.TestCase):
         weights = prj.get("weight", format="list")
         weights = _sort_by_column(weights, 1)[:5]
         target = numpy.array(
-            [(0, 0, 0.012),
-             (1, 0, 0.012),
-             (2, 0, 0.012),
-             (3, 0, 0.012),
-             (4, 0, 0.012),])
+            [(0, 0, 0.007),
+             (1, 0, 0.007),
+             (2, 0, 0.007),
+             (3, 0, 0.007),
+             (4, 0, 0.007),])
         assert_array_equal(weights, target)
 
     @register()
     def test_get_weights_as_list_no_address(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list", with_address=False)[:5]
-        target = 0.012 * numpy.ones((5,))
+        target = 0.007 * numpy.ones((5,))
         assert_array_equal(weights, target)
 
     @register()
     def test_get_weights_as_array(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
-        target = 0.012 * numpy.ones((self.p1.size, self.p2.size))
+        target = 0.007 * numpy.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     @register()
@@ -185,6 +185,20 @@ class ProjectionTest(unittest.TestCase):
             [0.012, 0.012, 0.012, 0.012, 0.012],
             ])
         weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
+        assert_array_equal(weights, target)
+
+    @register()
+    def test_get_weights_as_array_with_multapses_min(self, sim=sim):
+        C = sim.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
+        prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
+        target = numpy.array([
+            [0.006, 0.006, 0.006, 0.006, 0.006],
+            [0.006, 0.006, 0.006, 0.006, 0.006],
+            [0.006, 0.006, 0.006, 0.006, 0.006],
+            [0.006, 0.006, 0.006, 0.006, 0.006],
+            ])
+        # use gather False because we are faking the MPI
+        weights = prj.get("weight", format="array", gather=False, multiple_synapses='min')
         assert_array_equal(weights, target)
 
     @register()
@@ -286,4 +300,4 @@ class ProjectionTest(unittest.TestCase):
                              synapse_type=self.syn2)
         n, bins = prj.weightHistogram(min=0.0, max=0.05)
         assert_array_equal(bins, numpy.linspace(0, 0.05, num=11))
-        assert_array_equal(n, numpy.array([0, 0, prj.size(), 0, 0, 0, 0, 0, 0, 0]))
+        assert_array_equal(n, numpy.array([0, prj.size(), 0, 0, 0, 0, 0, 0, 0, 0]))

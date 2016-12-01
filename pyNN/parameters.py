@@ -441,6 +441,20 @@ class ParameterSpace(object):
         """
         return (value for value in self._parameters.values() if isinstance(value.base_value, RandomDistribution))
 
+    def expand(self, new_shape, mask):
+        """
+        Increase the size of the ParameterSpace.
+
+        Existing array values are mapped to the indices given in mask.
+        New array values are set to NaN.
+        """
+        for name, value in self._parameters.items():
+            if isinstance(value.base_value, numpy.ndarray):
+                new_base_value = numpy.ones(new_shape) * numpy.nan
+                new_base_value[mask] = value.base_value
+                self._parameters[name].base_value = new_base_value
+        self.shape = new_shape
+
 
 def simplify(value):
     """

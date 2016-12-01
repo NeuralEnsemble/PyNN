@@ -523,6 +523,23 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
     _interval = property(fget=_get_interval, fset=_set_interval)
 
 
+class RandomGammaSpikeSource(hclass(h.GammaStim)):
+
+    parameter_names = ('alpha', 'beta', 'start', 'duration')
+
+    def __init__(self, alpha=1, beta=0.1, start=0, duration=0):
+        self.alpha = alpha
+        self.beta = beta
+        self.start = start
+        self.duration = duration
+        self.spike_times = h.Vector(0)
+        self.source = self
+        self.rec = h.NetCon(self, None)
+        self.switch = h.NetCon(None, self)
+        self.source_section = None
+        self.seed(state.mpi_rank + state.native_rng_baseseed)
+
+
 class VectorSpikeSource(hclass(h.VecStim)):
 
     parameter_names = ('spike_times',)

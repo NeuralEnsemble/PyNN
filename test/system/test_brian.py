@@ -14,7 +14,7 @@ except ImportError:
 def test_scenarios():
     for scenario in registry:
         if "brian" not in scenario.exclude:
-            scenario.description = scenario.__name__
+            scenario.description = "{}(brian)".format(scenario.__name__)
             if have_brian:
                 yield scenario, pyNN.brian
             else:

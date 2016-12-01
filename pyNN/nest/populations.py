@@ -68,6 +68,8 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
     Return either a single parameter dict or a list of dicts, suitable for use
     in Create or SetStatus.
     """
+    if "UNSUPPORTED" in parameter_space.keys():
+        parameter_space.pop("UNSUPPORTED")
     if size:
         parameter_space.shape = (size,)
     if parameter_space.is_homogeneous:

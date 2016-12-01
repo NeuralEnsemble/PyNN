@@ -287,22 +287,24 @@ class BasePopulation(object):
         else:
             parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
         parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
-
+                                                     # this also causes problems if the population size matches the number of MPI nodes
         parameters = dict(parameter_space.items())
         if gather == True and self._simulator.state.num_processes > 1:
             # seems inefficient to do it in a loop - should do as single operation
             for name in parameter_names:
-                values = parameter_space[name]
-                all_values = {self._simulator.state.mpi_rank: values.tolist()}
-                all_indices = {self._simulator.state.mpi_rank: self.local_cells.tolist()}
-                all_values = recording.gather_dict(all_values)
-                all_indices = recording.gather_dict(all_indices)
-                if self._simulator.state.mpi_rank == 0:
-                    values = reduce(operator.add, all_values.values())
-                    indices = reduce(operator.add, all_indices.values())
-                idx = numpy.argsort(indices)
-                values = numpy.array(values)[idx]
-            parameters[name] = values
+                values = parameters[name]
+                if isinstance(values, numpy.ndarray):
+                    all_values = {self._simulator.state.mpi_rank: values.tolist()}
+                    local_indices = numpy.arange(self.size)[self._mask_local].tolist()
+                    all_indices = {self._simulator.state.mpi_rank: local_indices}
+                    all_values = recording.gather_dict(all_values)
+                    all_indices = recording.gather_dict(all_indices)
+                    if self._simulator.state.mpi_rank == 0:
+                        values = reduce(operator.add, all_values.values())
+                        indices = reduce(operator.add, all_indices.values())
+                        idx = numpy.argsort(indices)
+                        values = numpy.array(values)[idx]
+                parameters[name] = values
         try:
             values = [parameters[name] for name in parameter_names]
         except KeyError as err:
@@ -342,6 +344,8 @@ class BasePopulation(object):
             # need to get existing parameter space of models so we can perform calculations
             native_names = self.celltype.get_native_names()
             parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
+            if self.local_size != self.size:
+                parameter_space.expand((self.size,), self._mask_local)
             parameter_space.update(**parameters)
         else:
             parameter_space = ParameterSpace(parameters,
@@ -350,7 +354,7 @@ class BasePopulation(object):
                                              self.celltype.__class__)
         if isinstance(self.celltype, standardmodels.StandardCellType):
             parameter_space = self.celltype.translate(parameter_space)
-        assert parameter_space.shape == (self.size,)
+        assert parameter_space.shape == (self.size,), "{} != {}".format(parameter_space.shape, self.size)
         self._set_parameters(parameter_space)
 
     @deprecated("set(parametername=value_array)")
@@ -555,15 +559,13 @@ class BasePopulation(object):
     # name should be consistent with saving/writing data, i.e. save_data() and save_positions() or write_data() and write_positions()
     def save_positions(self, file):
         """
-        Save positions to file. The output format is ``id x y z``
+        Save positions to file. The output format is ``index x y z``
         """
-        # first column should probably be indices, not ids. This would make it
-        # simulator independent.
         if isinstance(file, basestring):
             file = recording.files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:, 0] = cells
+        result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'population': self.label})
@@ -1267,12 +1269,11 @@ class Assembly(object):
         """
         Save positions to file. The output format is id x y z
         """
-        # this should be rewritten to use self.positions and recording.files
         if isinstance(file, basestring):
             file = files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
-        result[:, 0] = cells
+        result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])
         result[:, 1:4] = self.positions.T
         if self._simulator.state.mpi_rank == 0:
             file.write(result, {'assembly': self.label})

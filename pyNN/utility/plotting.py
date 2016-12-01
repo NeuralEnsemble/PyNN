@@ -143,6 +143,16 @@ def scatterplot(ax, data_table, label='', **options):
                  bbox=dict(facecolor='white', alpha=1.0))
 
 
+def plot_hist(ax, histogram, label='', **options):
+    handle_options(ax, options)
+    for t, n in histogram:
+        ax.bar(t, n, width=histogram.bin_width, color=None)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+
+
 def variable_names(segment):
     """
     List the names of all the AnalogSignalArrays (used for the variable name by
@@ -240,6 +250,8 @@ class Panel(object):
             properties.update(self.options)
             if isinstance(datum, DataTable):
                 scatterplot(axes, datum, label=label, **properties)
+            elif isinstance(datum, Histogram):
+                plot_hist(axes, datum, label=label, **properties)
             elif isinstance(datum, AnalogSignal):
                 plot_signal(axes, datum, label=label, **properties)
             elif isinstance(datum, AnalogSignalArray):
@@ -315,3 +327,29 @@ class DataTable(object):
     @property
     def y_fit(self):
         return self._f(self.x, *self._popt)
+
+
+class Histogram(object):
+    """A lightweight encapsulation of histogram data."""
+
+    def __init__(self, data):
+        self.data = data
+        self.evaluated = False
+
+    def evaluate(self):
+        if not self.evaluated:
+            n_bins = int(np.sqrt(len(self.data)))
+            self.values, self.bins = np.histogram(self.data, bins=n_bins)
+            self.bin_width = self.bins[1] - self.bins[0]
+            self.evaluated = True
+
+    def __iter__(self):
+        """Iterate over the bars of the histogram"""
+        self.evaluate()
+        for x, y in zip(self.bins[:-1], self.values):
+            yield (x, y)
+
+
+def isi_histogram(segment):
+    all_isis = np.concatenate([np.diff(np.array(st)) for st in segment.spiketrains])
+    return Histogram(all_isis)

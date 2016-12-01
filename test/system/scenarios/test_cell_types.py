@@ -1,7 +1,13 @@
 
 from __future__ import division
 import numpy
+try:
+    import scipy
+    have_scipy = True
+except ImportError:
+    have_scipy = False
 import quantities as pq
+from nose.tools import assert_less
 
 from .registry import register
 
@@ -89,6 +95,113 @@ def issue367(sim, plot_figure=False):
 issue367.__test__ = False
 
 
+@register()
+def test_SpikeSourcePoisson(sim, plot_figure=False):
+    try:
+        from scipy.stats import kstest
+    except ImportError:
+        raise SkipTest("scipy not available")
+    sim.setup()
+    params = {
+        "rate": [100, 200, 1000.0],
+    }
+    t_stop = 100000.0
+    sources = sim.Population(3, sim.SpikeSourcePoisson(**params))
+    sources.record('spikes')
+    sim.run(t_stop)
+    data = sources.get_data().segments[0]
+    sim.end()
+
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        for i, (st, rate) in enumerate(zip(data.spiketrains, params["rate"])):
+            plt.subplot(3, 1, i + 1)
+            isi = st[1:] - st [:-1]
+            k = rate/1000.0
+            n_bins = int(numpy.sqrt(k * t_stop))
+            values, bins, patches = plt.hist(isi, bins=n_bins,
+                                             label="{} Hz".format(rate),
+                                             histtype='step')
+            expected = t_stop * k * (numpy.exp(-k * bins[:-1]) - numpy.exp(-k * bins[1:]))
+            plt.plot((bins[1:] + bins[:-1])/2.0, expected, 'r-')
+            plt.xlabel("Inter-spike interval (ms)")
+            plt.legend()
+        plt.savefig("test_SpikeSourcePoisson_%s.png" % sim.__name__)
+
+
+    # Kolmogorov-Smirnov test
+    for st, expected_rate in zip(data.spiketrains,
+                                 params['rate']):
+        expected_mean_isi = 1000.0/expected_rate  # ms
+        isi = st[1:] - st[:-1]
+        D, p = kstest(isi.magnitude,
+                      "expon",
+                      args=(0, expected_mean_isi),  # args are (loc, scale)
+                      alternative='two-sided')
+        print(expected_rate, expected_mean_isi, isi.mean(), p, D)
+        assert_less(D, 0.1)
+
+    return data
+test_SpikeSourcePoisson.__test__ = False
+
+
+@register(exclude=['brian'])
+def test_SpikeSourceGamma(sim, plot_figure=False):
+    try:
+        from scipy.stats import kstest
+    except ImportError:
+        raise SkipTest("scipy not available")
+    sim.setup()
+    params = {
+        "beta": [100.0, 200.0, 1000.0],
+        "alpha": [6, 4, 2]
+    }
+    t_stop = 10000.0
+    sources = sim.Population(3, sim.SpikeSourceGamma(**params))
+    sources.record('spikes')
+    sim.run(t_stop)
+    data = sources.get_data().segments[0]
+    sim.end()
+
+    if plot_figure and have_scipy:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        for i, (st, alpha, beta) in enumerate(zip(data.spiketrains, params["alpha"], params["beta"])):
+            plt.subplot(3, 1, i + 1)
+            isi = st[1:] - st [:-1]
+            n_bins = int(numpy.sqrt(beta * t_stop/1000.0))
+            values, bins, patches = plt.hist(isi, bins=n_bins,
+                                             label="alpha={}, beta={} Hz".format(alpha, beta),
+                                             histtype='step',
+                                             normed=False)
+            print("isi count: ", isi.size, t_stop/1000.0 * beta/alpha)
+            bin_width = bins[1] - bins[0]
+            expected = (t_stop * beta * bin_width ) / (1000.0 * alpha) * scipy.stats.gamma.pdf(bins, a=alpha, scale=1000.0/beta)
+            plt.plot(bins, expected, 'r-')
+            plt.xlabel("Inter-spike interval (ms)")
+            plt.legend()
+        plt.savefig("test_SpikeSourceGamma_%s.png" % sim.__name__)
+
+    # Kolmogorov-Smirnov test
+    print("alpha beta expected-isi actual-isi, p, D")
+    for st, alpha, beta in zip(data.spiketrains,
+                               params['alpha'],
+                               params['beta']):
+        expected_mean_isi = 1000*alpha/beta  # ms
+        isi = st[1:] - st[:-1]
+        # Kolmogorov-Smirnov test
+        D, p = kstest(isi.magnitude,
+                      "gamma",
+                      args=(alpha, 0, 1000.0/beta),  # args are (a, loc, scale)
+                      alternative='two-sided')
+        print(alpha, beta, expected_mean_isi, isi.mean(), p, D)
+        assert_less(D, 0.1)
+
+    return data
+test_SpikeSourceGamma.__test__ = False
+
+
 # todo: add test of Izhikevich model
 
 
@@ -100,3 +213,5 @@ if __name__ == '__main__':
     test_EIF_cond_alpha_isfa_ista(sim, plot_figure=args.plot_figure)
     test_HH_cond_exp(sim, plot_figure=args.plot_figure)
     issue367(sim, plot_figure=args.plot_figure)
+    test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
+    test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)

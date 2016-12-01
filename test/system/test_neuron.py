@@ -24,7 +24,7 @@ if "JENKINS_SKIP_TESTS" in os.environ:
 def test_scenarios():
     for scenario in registry:
         if "neuron" not in scenario.exclude:
-            scenario.description = scenario.__name__
+            scenario.description = "{}(neuron)".format(scenario.__name__)
             if have_neuron:
                 yield scenario, pyNN.neuron
             else:

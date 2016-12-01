@@ -10,6 +10,7 @@ Standard base_cells for the neuron module.
 from pyNN.standardmodels import cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
+                               RandomGammaSpikeSource,
                                BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
                                GIFNeuron)
 import logging
@@ -185,6 +186,18 @@ class SpikeSourcePoisson(base_cells.SpikeSourcePoisson):
         ('duration', 'duration'),
     )
     model = RandomSpikeSource
+
+
+class SpikeSourceGamma(base_cells.SpikeSourceGamma):
+    __doc__ = base_cells.SpikeSourceGamma.__doc__
+
+    translations = build_translations(
+        ('alpha',    'alpha'),
+        ('beta',     'beta',    0.001),
+        ('start',    'start'),
+        ('duration', 'duration'),
+    )
+    model = RandomGammaSpikeSource
 
 
 class SpikeSourceArray(base_cells.SpikeSourceArray):
