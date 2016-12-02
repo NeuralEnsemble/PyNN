@@ -15,8 +15,8 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" 
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
     export VENV=`python -c "import sys; print(sys.prefix)"`;
-    ln -s /opt/python/2.7.10/lib/libpython2.7.so $VENV/lib/libpython2.7.so;
-    ln -s /opt/python/3.5.0/lib/libpython3.5m.so $VENV/lib/libpython3.5.so;
+    ln -s /opt/python/2.7.12/lib/libpython2.7.so $VENV/lib/libpython2.7.so;
+    ln -s /opt/python/3.5.2/lib/libpython3.5m.so $VENV/lib/libpython3.5.so;
     export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}
     if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
         export PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}m;
