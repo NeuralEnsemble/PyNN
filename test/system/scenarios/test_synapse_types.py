@@ -1,8 +1,5 @@
 from __future__ import division
 
-import matplotlib
-matplotlib.use('Agg')
-
 import numpy as np
 try:
     import scipy

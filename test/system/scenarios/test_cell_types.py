@@ -8,6 +8,7 @@ except ImportError:
     have_scipy = False
 import quantities as pq
 from nose.tools import assert_less
+from nose.plugins.skip import SkipTest
 
 from .registry import register
 
