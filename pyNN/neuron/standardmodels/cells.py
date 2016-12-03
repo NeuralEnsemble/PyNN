@@ -11,6 +11,7 @@ from pyNN.standardmodels import cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
                                RandomGammaSpikeSource,
+                               RandomPoissonRefractorySpikeSource,
                                BretteGerstnerIF, GsfaGrrIF, Izhikevich_)
 import logging
 
@@ -185,6 +186,19 @@ class SpikeSourcePoisson(base_cells.SpikeSourcePoisson):
         ('duration', 'duration'),
     )
     model = RandomSpikeSource
+
+
+class SpikeSourcePoissonRefractory(base_cells.SpikeSourcePoissonRefractory):
+
+    __doc__ = base_cells.SpikeSourcePoissonRefractory.__doc__
+
+    translations = build_translations(
+        ('start',      'start'),
+        ('rate',       'rate'),
+        ('tau_refrac', 'tau_refrac'),
+        ('duration',   'duration'),
+    )
+    model = RandomPoissonRefractorySpikeSource
 
 
 class SpikeSourceGamma(base_cells.SpikeSourceGamma):

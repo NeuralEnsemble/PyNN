@@ -413,6 +413,20 @@ class SpikeSourcePoisson(StandardCellType):
     receptor_types = ()
 
 
+class SpikeSourcePoissonRefractory(StandardCellType):
+    """Spike source, generating spikes according to a Poisson process with dead time"""
+
+    default_parameters = {
+        'rate':       1.0,  # Mean spike frequency (Hz)
+        'tau_refrac': 0.0,  # Minimum time between spikes (ms)
+        'start':      0.0,  # Start time (ms)
+        'duration':   1e10  # Duration of spike sequence (ms)
+    }
+    recordable = ['spikes']
+    injectable = False
+    receptor_types = ()
+
+
 class SpikeSourceGamma(StandardCellType):
     """Spike source, generating spikes according to a gamma process.
 
