@@ -9,8 +9,13 @@ logger = logging.getLogger("PyNN_NeuroML")
 class Recorder(recording.Recorder):
     _simulator = simulator
     
-    displays = []
-    output_files = []
+    
+    
+    def __init__(self, population, file=None):
+        super(Recorder, self).__init__(population, file=file)
+        self.event_output_files = []
+        self.displays = []
+        self.output_files = []
 
     def _record(self, variable, new_ids, sampling_interval=None):
         
@@ -18,7 +23,7 @@ class Recorder(recording.Recorder):
         
         for id in new_ids:
             if variable == 'v':
-                logger.debug("Recording: %s; %s; %s"%(variable, id, id.parent))
+                logger.debug("Recording var: %s; %s; %s"%(variable, id, id.parent))
                 pop_id = id.parent.label
                 celltype = id.parent.celltype.__class__.__name__
                 disp_id = '%s_%s'%(pop_id,variable)
@@ -37,6 +42,21 @@ class Recorder(recording.Recorder):
                 quantity = "%s/%i/%s_%s/%s"%(pop_id,index,celltype,pop_id,variable)
                 lems_sim.add_line_to_display(disp_id, '%s %s: cell %s'%(pop_id,variable,id), quantity, "1mV")
                 lems_sim.add_column_to_output_file(of_id, quantity.replace('/','_'), quantity)
+                
+            elif variable == 'spikes':
+                logger.debug("Recording spike: %s; %s; %s"%(variable, id, id.parent))
+                pop_id = id.parent.label
+                celltype = id.parent.celltype.__class__.__name__
+                index = id.parent.id_to_index(id)
+                
+                eof0 = 'Spikes_file_%s'%pop_id
+                
+                if not eof0 in self.event_output_files:
+                    lems_sim.create_event_output_file(eof0, "%s.spikes"%pop_id, format='TIME_ID')
+                    self.event_output_files.append(eof0)
+                    
+                lems_sim.add_selection_to_event_output_file(eof0, index, "%s/%i/%s_%s"%(pop_id,index,celltype,pop_id), 'spike')
+                    
             
 
     def _get_spiketimes(self, id):
@@ -60,4 +80,6 @@ class Recorder(recording.Recorder):
         pass
 
     def _reset(self):
-        pass
+        self.displays = []
+        self.output_files = []
+        self.event_output_files = []

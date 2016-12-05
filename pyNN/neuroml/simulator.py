@@ -13,9 +13,9 @@ lems_sim = None
 
 logger = logging.getLogger("PyNN_NeuroML")
 
-def get_nml_doc(reference="PyNN_NeuroML2_Export"):
+def get_nml_doc(reference="PyNN_NeuroML2_Export",reset=False):
     global nml_doc
-    if nml_doc == None:
+    if nml_doc == None or reset:
         nml_doc = neuroml.NeuroMLDocument(id=reference)
         
     return nml_doc
@@ -23,11 +23,11 @@ def get_nml_doc(reference="PyNN_NeuroML2_Export"):
 def get_main_network():
     return get_nml_doc().networks[0]
 
-def get_lems_sim(reference=None):
+def get_lems_sim(reference=None,reset=False):
     global lems_sim
     if reference == None:
         reference = get_nml_doc().id
-    if lems_sim == None:
+    if lems_sim == None or reset:
         # Note: values will be over written
         lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN v%s"%__version__)
     return lems_sim

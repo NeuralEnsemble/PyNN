@@ -41,7 +41,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
 
 
     logger.debug("Creating network in NeuroML document to store structure")
-    nml_doc = simulator.get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"))
+    nml_doc = simulator.get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"),reset=True)
     global save_format
     save_format = extra_params.get('save_format', "xml")
     
@@ -49,7 +49,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     net = neuroml.Network(id="network")
     nml_doc.networks.append(net)
     
-    lems_sim = simulator.get_lems_sim()
+    lems_sim = simulator.get_lems_sim(reset=True)
     lems_sim.dt = '%s'%timestep
 
     return rank()
