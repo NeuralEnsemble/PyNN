@@ -30,10 +30,16 @@ Built-in connectors
 
 .. autoclass:: FixedNumberPostConnector
 
+.. autoclass:: FixedTotalNumberConnector
+
 .. autoclass:: DistanceDependentProbabilityConnector
 
 .. autoclass:: IndexBasedProbabilityConnector
 
+.. autoclass:: DisplacementDependentProbabilityConnector
+
 .. autoclass:: SmallWorldConnector
 
 .. autoclass:: CSAConnector
+
+.. autoclass:: CloneConnector

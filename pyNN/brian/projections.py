@@ -193,12 +193,12 @@ class Projection(common.Projection):
             filtered_value = value[syn_obj.postsynaptic, syn_obj.presynaptic]
             setattr(syn_obj, name, filtered_value)
     
-    def _get_attributes_as_arrays(self, *attribute_names):
+    def _get_attributes_as_arrays(self, attribute_names, multiple_synapses='sum'):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         values = []
         for name in attribute_names:
-            value = getattr(self._brian_synapses[0][0], name).to_matrix(multiple_synapses='sum')
+            value = getattr(self._brian_synapses[0][0], name).to_matrix(multiple_synapses=multiple_synapses)
             if name == 'delay':
                 value *= self._simulator.state.dt * ms
             ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=value.shape))  # should really use the translated name
@@ -208,7 +208,7 @@ class Projection(common.Projection):
         # todo: implement parameter translation
         return values  # should put NaN where there is no connection?
 
-    def _get_attributes_as_list(self, *attribute_names):
+    def _get_attributes_as_list(self, attribute_names):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         values = []
