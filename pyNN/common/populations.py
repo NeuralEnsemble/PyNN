@@ -339,23 +339,24 @@ class BasePopulation(object):
             p.set(cm=rand_distr, tau_m=lambda i: 10 + i/10.0)
         """
         # TODO: add example using of function of (x,y,z) and Population.position_generator
-        if (isinstance(self.celltype, standardmodels.StandardCellType)
-            and any(name in self.celltype.computed_parameters() for name in parameters)):
-            # need to get existing parameter space of models so we can perform calculations
-            native_names = self.celltype.get_native_names()
-            parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
-            if self.local_size != self.size:
-                parameter_space.expand((self.size,), self._mask_local)
-            parameter_space.update(**parameters)
-        else:
-            parameter_space = ParameterSpace(parameters,
-                                             self.celltype.get_schema(),
-                                             (self.size,),
-                                             self.celltype.__class__)
-        if isinstance(self.celltype, standardmodels.StandardCellType):
-            parameter_space = self.celltype.translate(parameter_space)
-        assert parameter_space.shape == (self.size,), "{} != {}".format(parameter_space.shape, self.size)
-        self._set_parameters(parameter_space)
+        if self.local_size > 0:
+            if (isinstance(self.celltype, standardmodels.StandardCellType)
+                and any(name in self.celltype.computed_parameters() for name in parameters)):
+                # need to get existing parameter space of models so we can perform calculations
+                native_names = self.celltype.get_native_names()
+                parameter_space = self.celltype.reverse_translate(self._get_parameters(*native_names))
+                if self.local_size != self.size:
+                    parameter_space.expand((self.size,), self._mask_local)
+                parameter_space.update(**parameters)
+            else:
+                parameter_space = ParameterSpace(parameters,
+                                                 self.celltype.get_schema(),
+                                                 (self.size,),
+                                                 self.celltype.__class__)
+            if isinstance(self.celltype, standardmodels.StandardCellType):
+                parameter_space = self.celltype.translate(parameter_space)
+            assert parameter_space.shape == (self.size,), "{} != {}".format(parameter_space.shape, self.size)
+            self._set_parameters(parameter_space)
 
     @deprecated("set(parametername=value_array)")
     def tset(self, parametername, value_array):
