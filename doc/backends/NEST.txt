@@ -100,6 +100,8 @@ these neurons as from standard cells:
     >>> p1.get('Tau_theta')
     2.0
     >>> p1.get('C_m')
+    Traceback (most recent call last):
+    ...
     NonExistentParameterError: C_m (valid parameters for ht_neuron are:
       AMPA_E_rev, AMPA_Tau_1, AMPA_Tau_2, AMPA_g_peak, E_K, E_Na, GABA_A_E_rev,
       GABA_A_Tau_1, GABA_A_Tau_2, GABA_A_g_peak, GABA_B_E_rev, GABA_B_Tau_1,
@@ -119,7 +121,7 @@ synaptic receptor types:
 .. doctest::
 
     >>> ht_neuron.receptor_types
-    [u'GABA_B', u'AMPA', u'GABA_A', u'NMDA']
+    ['NMDA', 'AMPA', 'GABA_A', 'GABA_B']
     >>> from pyNN.nest import Projection, AllToAllConnector
     >>> connector = AllToAllConnector()
     >>> prj_ampa = Projection(p2, p1, connector, receptor_type='AMPA')

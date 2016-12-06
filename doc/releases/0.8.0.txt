@@ -371,7 +371,7 @@ now possible to specify a call-back function that should be called at
 intervals during a run, e.g.::
 
     >>> def report_time(t):
-    ...     print "The time is %g" % t
+    ...     print("The time is %g" % t)
     ...     return t + 100.0
     >>> run_until(300.0, callbacks=[report_time])
     The time is 0
