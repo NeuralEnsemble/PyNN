@@ -106,7 +106,7 @@ class WrappedRNG(AbstractRNG):
         if distribution is None:
             distribution = 'uniform'
             if parameters is None:
-                parameters = (0.0, 1.0)
+                parameters = {"low": 0.0, "high": 1.0}
         if n == 0:
             rarr = numpy.random.rand(0)  # We return an empty array
         elif n is None:
