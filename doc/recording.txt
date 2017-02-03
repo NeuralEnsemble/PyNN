@@ -55,5 +55,11 @@ By default, variables are recorded at every time step. It is possible to record 
 You should ensure that the sampling interval is an integer multiple of the simulation time step. Other values may
 work, but have not been tested.
 
+An alternative syntax is available, using the top-level :func:`record()` function:
 
-.. todo:: document the low-level :func:`record` function
+.. doctest::
+
+    >>> record(['v', 'spikes'], population, filename="output_data.pkl", sampling_interval=1.0)
+
+This avoids having to call :func:`population.write_data()` at the end of the simulation; the data
+will be automatically written to the specified filename.
