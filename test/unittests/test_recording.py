@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
+from numpy.testing import assert_array_equal
 
 #def test_rename_existing():
     

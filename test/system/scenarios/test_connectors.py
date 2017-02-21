@@ -2,7 +2,8 @@
 import numpy
 from nose.tools import assert_equal, assert_almost_equal
 from pyNN.random import NumpyRNG, RandomDistribution
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, connection_plot, init_logging
+from pyNN.utility import connection_plot, init_logging
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .registry import register
 
 #init_logging(None, debug=True)
@@ -21,7 +22,7 @@ def all_to_all_static_no_self(sim):
     print(weights)
     delays = prj.get('delay', format='list', gather=False)
     i, j, d = numpy.array(delays).T
-    assert_arrays_almost_equal(d, 0.2 + 0.3 * abs(i - j), 1e-9)
+    assert_array_almost_equal(d, 0.2 + 0.3 * abs(i - j), 1e-9)
     assert_equal(d.size, p.size * (p.size - 1))
     sim.end()
 
@@ -34,9 +35,9 @@ def all_to_all_tsodyksmarkram(sim):
     synapse_type = sim.TsodyksMarkramSynapse(weight=lambda d: d, delay=0.5, U=lambda d: 0.02 * d + 0.1)
     prj = sim.Projection(p1, p2, sim.AllToAllConnector(), synapse_type)
     i, j, w, d, u = numpy.array(prj.get(['weight', 'delay', 'U'], format='list', gather=False)).T
-    assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5 * numpy.ones(p2.size * p1.size))
-    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
+    assert_array_equal(w, abs(i - j))
+    assert_array_equal(d, 0.5 * numpy.ones(p2.size * p1.size))
+    assert_array_equal(u, 0.02 * abs(i - j) + 0.1)
     weights, delays, U = prj.get(['weight', 'delay', 'U'], format='array', gather=False)
     print(weights)
     print(delays)  # should all be 0.5
@@ -106,9 +107,9 @@ def fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     from pprint import pprint
     pprint(x)
     i, j, w, d, u = numpy.array(x).T
-    assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5 * numpy.ones(p2.size * connector1.n))
-    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
+    assert_array_equal(w, abs(i - j))
+    assert_array_equal(d, 0.5 * numpy.ones(p2.size * connector1.n))
+    assert_array_equal(u, 0.02 * abs(i - j) + 0.1)
     sim.end()
 
 
@@ -179,9 +180,9 @@ def fixed_number_post_with_replacement_heterogeneous_parameters(sim):
     from pprint import pprint
     pprint(x)
     i, j, w, d, u = numpy.array(x).T
-    assert_arrays_equal(w, abs(i - j))
-    assert_arrays_equal(d, 0.5 * numpy.ones(p1.size * connector1.n))
-    assert_arrays_equal(u, 0.02 * abs(i - j) + 0.1)
+    assert_array_equal(w, abs(i - j))
+    assert_array_equal(d, 0.5 * numpy.ones(p1.size * connector1.n))
+    assert_array_equal(u, 0.02 * abs(i - j) + 0.1)
     sim.end()
 
 

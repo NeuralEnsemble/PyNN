@@ -8,6 +8,7 @@ from nose.tools import assert_equal
 import numpy
 import os
 from pyNN.utility import assert_arrays_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 builtin_open = open
 
@@ -99,7 +100,7 @@ def test_PickleFile():
 #    
 #    nbf = files.NumpyBinaryFile("tmp.npz", "r")
 #    assert_equal(nbf.get_metadata(), metadata)
-#    assert_arrays_equal(nbf.read().flatten(), numpy.array(data).flatten())
+#    assert_array_equal(nbf.read().flatten(), numpy.array(data).flatten())
 #    nbf.close()
 #
 #    os.remove("tmp.npz")
@@ -115,7 +116,7 @@ def test_HDF5ArrayFile():
         
         h5f = files.HDF5ArrayFile("tmp.h5", "r")
         assert_equal(h5f.get_metadata(), metadata)
-        assert_arrays_equal(numpy.array(h5f.read()).flatten(),
+        assert_array_equal(numpy.array(h5f.read()).flatten(),
                             numpy.array(data).flatten())
         h5f.close()
     
