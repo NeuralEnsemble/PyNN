@@ -30,13 +30,14 @@ logger = logging.getLogger("PyNN")
 # ==============================================================================
 
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    max_delay = extra_params.get('max_delay', 10.0)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.dt = timestep
     if not os.path.exists(temporary_directory):
         os.mkdir(temporary_directory)

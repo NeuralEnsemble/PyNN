@@ -41,7 +41,7 @@ def list_standard_models():
 # ==============================================================================
 
 
-def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
+def setup(timestep=1, min_delay=1, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
@@ -52,7 +52,8 @@ def setup(timestep=1, min_delay=1, max_delay=10.0, **extra_params):
     if (min_delay < 1):
         raise Exception("It is not currently possible to have a min_delay less than 1ms with this simulator")
 
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    max_delay = extra_params.get('max_delay', 10.0)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state = simulator._State(timestep, min_delay, max_delay)
     simulator.spikes_array_list = []
     simulator.recorder_list = []
