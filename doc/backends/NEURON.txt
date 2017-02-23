@@ -123,7 +123,7 @@ It is now straightforward to use this cell type in PyNN:
 
 .. testcode:: nativemodel
 
-    from pyNN.neuron import setup, run, Population, Projection, AllToAllConnector
+    from pyNN.neuron import setup, run, Population, Projection, AllToAllConnector, StaticSynapse
     setup()
     p1 = Population(10, SimpleNeuronType(g_leak=0.0003))
     p1.record('soma(0.5).ina')

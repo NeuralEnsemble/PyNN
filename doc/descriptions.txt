@@ -54,7 +54,7 @@ intro to mention finding bugs, literate programming
 
 ::
 
-    >>> print p1.describe()
+    >>> print(p1.describe())
     Population "excitatory neurons"
     Structure   : Grid2D
       fill_order: sequential
@@ -90,7 +90,7 @@ intro to mention finding bugs, literate programming
       ID: 1
       {'tau_refrac': 0.10000000000000001, 'tau_m': 20.0, 'e_rev_E': 0.0, 'i_offset': 0.0, 'cm': 1.0, 'e_rev_I': -70.0, 'v_thresh': -50.0, 'tau_syn_E': 5.0, 'v_rest': -65.0, 'tau_syn_I': 5.0, 'v_reset': -65.0}
     
-    >>> print p1.describe('Population "{{label}}" consists of {{size}} {{celltype.name}} neurons, arranged in a {{structure.name}} structure with grid spacing ({{structure.parameters.dx}},{{structure.parameters.dy}})', engine='jinja2') )
-    Population "excitatory neurons" consists of 100 IF_cond_exp neurons, arranged in a Grid2D structure with grid spacing (50.0,50.0)', engine='jinja2')
+    >>> print(p1.describe('Population "{{label}}" consists of {{size}} {{celltype.name}} neurons, arranged in a {{structure.name}} structure with grid spacing ({{structure.parameters.dx}},{{structure.parameters.dy}})', engine='jinja2') )
+    Population "excitatory neurons" consists of 100 IF_cond_exp neurons, arranged in a Grid2D structure with grid spacing (50.0,50.0)', engine='jinja2'))
 
-    >>> print p1.describe('Population "$label" consists of $size $celltype.name neurons, arranged in a $structure.name structure with grid spacing ($structure.parameters.dx,$structure.parameters.dy)', engine='cheetah')
+    >>> print(p1.describe('Population "$label" consists of $size $celltype.name neurons, arranged in a $structure.name structure with grid spacing ($structure.parameters.dx,$structure.parameters.dy)', engine='cheetah'))

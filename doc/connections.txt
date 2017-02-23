@@ -485,7 +485,7 @@ either a list of tuples or a tuple of arrays:
     >>> connection_data = inhibitory_connections.get(['weight', 'delay'], format='list')
     >>> for connection in connection_data[:5]:
     ...    src, tgt, w, d = connection
-    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    ...    print("weight = %.4f  delay = %4.2f" % (w, d))
     weight = 0.0094  delay = 0.12
     weight = 0.0113  delay = 0.15
     weight = 0.0102  delay = 0.17
@@ -494,7 +494,7 @@ either a list of tuples or a tuple of arrays:
     >>> weights, delays = inhibitory_connections.get(['weight', 'delay'], format='array')
     >>> exists = ~numpy.isnan(weights)
     >>> for w, d in zip(weights[exists].flat, delays[exists].flat)[:5]:
-    ...    print "weight = %.4f  delay = %4.2f" % (w, d)
+    ...    print("weight = %.4f  delay = %4.2f" % (w, d))
     weight = 0.0097  delay = 0.14
     weight = 0.0127  delay = 0.12
     weight = 0.0097  delay = 0.13
