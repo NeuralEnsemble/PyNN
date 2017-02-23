@@ -72,13 +72,14 @@ def end(compatible_output=True):
         nml_file = '%s.nml.h5'%nml_doc.id
         writers.NeuroMLHdf5Writer.write(nml_doc, nml_file)
         
-    logger.debug("Written NeuroML 2 file out to: "+nml_file)
+    logger.info("Written NeuroML 2 file out to: "+nml_file)
     
     
     lems_sim = simulator.get_lems_sim()
     lems_sim.include_neuroml2_file("PyNN.xml", include_included=False)
     lems_sim.include_neuroml2_file(nml_file)
-    lems_sim.save_to_file()
+    lems_file = lems_sim.save_to_file()
+    logger.info("Written LEMS file (to simulate NeuroML file) to: "+lems_file)
     
     # should have common implementation of end()
 
