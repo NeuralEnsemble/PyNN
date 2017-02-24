@@ -58,4 +58,16 @@ examples/*.svg
 /examples/LEMS_Sim_PyNN_NeuroML2_Export.xml
 /pynnpg.sh
 /cleanpynn.sh
-/examples/Potjans2014/PyNN_NeuroML2_Export.svg
+/examples/Potjans2014/*.svg
+/examples/Potjans2014/*.mod
+/examples/Potjans2014/*.png
+/examples/Potjans2014/results/*
+/examples/Potjans2014/*.nml
+/examples/Potjans2014/LEMS*.xml
+/examples/Potjans2014/*netpyne.py
+/examples/Potjans2014/*.ini
+/examples/Potjans2014/*.h5
+/examples/Potjans2014/*.pov
+/examples/Potjans2014/*main.json
+/examples/Potjans2014/*.so
+
