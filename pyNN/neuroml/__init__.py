@@ -13,10 +13,11 @@ from pyNN import common
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.connectors import *
 from pyNN.recording import *
-from . import simulator
-from .standardmodels import *
-from .populations import Population, PopulationView, Assembly
-from .projections import Projection
+from pyNN.neuroml import simulator
+from pyNN.neuroml.standardmodels import *
+from pyNN.neuroml.populations import Population, PopulationView, Assembly
+from pyNN.neuroml.projections import Projection
+
 from neo.io import get_io
 
 import neuroml
@@ -68,10 +69,10 @@ def end(compatible_output=True):
 
     import neuroml.writers as writers
     if save_format == 'xml':
-        nml_file = '%s.nml'%nml_doc.id
+        nml_file = '%s.net.nml'%nml_doc.id
         writers.NeuroMLWriter.write(nml_doc, nml_file)
     elif save_format == 'hdf5':
-        nml_file = '%s.nml.h5'%nml_doc.id
+        nml_file = '%s.net.nml.h5'%nml_doc.id
         writers.NeuroMLHdf5Writer.write(nml_doc, nml_file)
         
     logger.info("Written NeuroML 2 file out to: "+nml_file)
