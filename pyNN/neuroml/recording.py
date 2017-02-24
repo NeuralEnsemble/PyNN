@@ -1,3 +1,13 @@
+"""
+
+Export of PyNN models to NeuroML 2
+
+Contact Padraig Gleeson for more details
+
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 import numpy
 from pyNN import recording
 from . import simulator
@@ -19,7 +29,7 @@ class Recorder(recording.Recorder):
 
     def _record(self, variable, new_ids, sampling_interval=None):
         
-        lems_sim = simulator.get_lems_sim()
+        lems_sim = simulator._get_lems_sim()
         
         for id in new_ids:
             if variable == 'v':

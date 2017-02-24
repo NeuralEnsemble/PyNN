@@ -1,3 +1,13 @@
+"""
+
+Export of PyNN models to NeuroML 2
+
+Contact Padraig Gleeson for more details
+
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 from pyNN import common
 from pyNN import __version__
 
@@ -6,6 +16,7 @@ import logging
 name = "NeuroML2Converter"
 
 import neuroml
+import pyneuroml
 from pyneuroml.lems.LEMSSimulation import LEMSSimulation
 
 nml_doc = None
@@ -13,23 +24,36 @@ lems_sim = None
 
 logger = logging.getLogger("PyNN_NeuroML")
 
-def get_nml_doc(reference="PyNN_NeuroML2_Export",reset=False):
+comment = "\n    This %s file has been generated from: \n" + \
+          "        PyNN v%s\n"%__version__ + \
+          "        libNeuroML v%s\n"%neuroml.__version__ + \
+          "        pyNeuroML v%s\n    "%pyneuroml.__version__
+
+
+def _get_nml_doc(reference="PyNN_NeuroML2_Export",reset=False):
+    """Return the main NeuroMLDocument object being created"""
     global nml_doc
+    global comment
     if nml_doc == None or reset:
         nml_doc = neuroml.NeuroMLDocument(id=reference)
+        nml_doc.notes = comment%'NeuroML 2'
         
     return nml_doc
 
-def get_main_network():
-    return get_nml_doc().networks[0]
 
-def get_lems_sim(reference=None,reset=False):
+def _get_main_network():
+    """Return the main NeuroML network object being created"""
+    return _get_nml_doc().networks[0]
+
+def _get_lems_sim(reference=None,reset=False):
+    """Return the main LEMSSimulation object being created"""
     global lems_sim
+    global comment
     if reference == None:
-        reference = get_nml_doc().id
+        reference = _get_nml_doc().id
     if lems_sim == None or reset:
         # Note: values will be over written
-        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment="This LEMS file has been generated from PyNN v%s"%__version__)
+        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment=comment%'LEMS')
     return lems_sim
 
 class ID(int, common.IDMixin):
@@ -51,7 +75,7 @@ class State(common.control.BaseState):
         self.running = True
     def run_until(self, tstop):
         logger.debug("run_until() called with %s"%tstop)
-        lems_sim = get_lems_sim()
+        lems_sim = _get_lems_sim()
         lems_sim.duration = float(tstop)
         
         self.t = tstop

@@ -1,3 +1,13 @@
+"""
+
+Export of PyNN models to NeuroML 2
+
+Contact Padraig Gleeson for more details
+
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 from itertools import repeat
 try:
     from itertools import izip
@@ -49,7 +59,7 @@ class Projection(common.Projection):
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
                                    
-        nml_doc = simulator.get_nml_doc()
+        nml_doc = simulator._get_nml_doc()
         net = nml_doc.networks[0]
         
         nml_proj_id = self.label.replace(u'\u2192','__TO__')

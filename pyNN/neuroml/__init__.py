@@ -1,10 +1,10 @@
 """
 
-Initial implementation of export of PyNN models to NeuroML 2
+Export of PyNN models to NeuroML 2
 
 Contact Padraig Gleeson for more details
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -25,12 +25,15 @@ logger = logging.getLogger("PyNN_NeuroML")
 
 save_format = 'xml'
 
+
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
+
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
           max_delay=DEFAULT_MAX_DELAY, **extra_params):
+    """ Set up for saving cell models and network structure to NeuroML """
     common.setup(timestep, min_delay, max_delay, **extra_params)
     simulator.state.clear()
     simulator.state.dt = timestep  # move to common.setup?
@@ -39,9 +42,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
 
-
     logger.debug("Creating network in NeuroML document to store structure")
-    nml_doc = simulator.get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"),reset=True)
+    nml_doc = simulator._get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"),reset=True)
     global save_format
     save_format = extra_params.get('save_format', "xml")
     
@@ -49,10 +51,11 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     net = neuroml.Network(id="network")
     nml_doc.networks.append(net)
     
-    lems_sim = simulator.get_lems_sim(reset=True)
+    lems_sim = simulator._get_lems_sim(reset=True)
     lems_sim.dt = '%s'%timestep
 
     return rank()
+
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""
@@ -61,9 +64,8 @@ def end(compatible_output=True):
         population.write_data(io, variables)
     simulator.state.write_on_end = []
     
-    nml_doc = simulator.get_nml_doc()
+    nml_doc = simulator._get_nml_doc()
 
-    
     import neuroml.writers as writers
     if save_format == 'xml':
         nml_file = '%s.nml'%nml_doc.id
@@ -74,14 +76,14 @@ def end(compatible_output=True):
         
     logger.info("Written NeuroML 2 file out to: "+nml_file)
     
-    
-    lems_sim = simulator.get_lems_sim()
+    lems_sim = simulator._get_lems_sim()
     lems_sim.include_neuroml2_file("PyNN.xml", include_included=False)
     lems_sim.include_neuroml2_file(nml_file)
     lems_file = lems_sim.save_to_file()
     logger.info("Written LEMS file (to simulate NeuroML file) to: "+lems_file)
     
     # should have common implementation of end()
+
 
 run, run_until = common.build_run(simulator)
 run_for = run

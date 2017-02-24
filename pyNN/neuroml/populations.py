@@ -1,3 +1,13 @@
+"""
+
+Export of PyNN models to NeuroML 2
+
+Contact Padraig Gleeson for more details
+
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+"""
+
 import numpy
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
@@ -72,9 +82,10 @@ class Population(common.Population):
         
 
     def _create_cells(self):
+        """Create the cells in the population"""
         
-        nml_doc = simulator.get_nml_doc()
-        net = simulator.get_main_network()
+        nml_doc = simulator._get_nml_doc()
+        net = simulator._get_main_network()
         
         cell_pynn = self.celltype.__class__.__name__
         logger.debug("Creating Cell instance: %s" % (cell_pynn))

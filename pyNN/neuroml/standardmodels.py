@@ -2,12 +2,12 @@
 """
 Standard cells for the NeuroML module.
 
-:copyright: Copyright 2006-2015 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
-from .simulator import state, get_nml_doc, get_main_network
+from .simulator import state, _get_nml_doc, _get_main_network
 import logging
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.random import RandomDistribution
@@ -19,6 +19,7 @@ logger = logging.getLogger("PyNN_NeuroML")
 current_sources = []
 
 def add_params(pynn_cell, nml_cell, set_v_init=True):
+    """Copy the parameters set in PyNN to the NeuroML equivalent"""
     for param in pynn_cell.simple_parameters():
         value_generator = pynn_cell.parameter_space[param].base_value
         #print(value_generator)
@@ -33,6 +34,7 @@ def add_params(pynn_cell, nml_cell, set_v_init=True):
         nml_cell.__setattr__(nml_param, value)
     if set_v_init:
         nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
+        logger.debug("Adding param: %s = %s as %s for cell %s"%('v_init', pynn_cell.default_initial_values['v'], 'v_init', nml_cell.id))
     
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -286,8 +288,8 @@ class NeuroMLCurrentSource(StandardCurrentSource):
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)
         
-        self.nml_doc = get_nml_doc()
-        self.network = get_main_network()
+        self.nml_doc = _get_nml_doc()
+        self.network = _get_main_network()
         
 
     def set_native_parameters(self, parameters):
