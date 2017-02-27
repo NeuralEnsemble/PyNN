@@ -14,8 +14,8 @@ matrix:
 install:
     - source ci/install.sh
 script:  bash ci/test_script.sh
-after_success:
-  - coveralls
+#after_success:
+#  - coveralls
 cache:
   directories:
     - $HOME/nest-2.10.0
