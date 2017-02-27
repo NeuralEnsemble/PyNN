@@ -6,7 +6,7 @@ Standard electrodes for the NeuroML module.
 """
 
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from .simulator import _get_nml_doc, _get_main_network
+from pyNN.neuroml.simulator import _get_nml_doc, _get_main_network
 import logging
 from pyNN.parameters import ParameterSpace, Sequence
 

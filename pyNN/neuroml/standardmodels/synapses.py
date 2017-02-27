@@ -6,7 +6,7 @@ Standard synapses for the NeuroML module.
 """
 
 from pyNN.standardmodels import synapses, build_translations
-from .simulator import state
+from pyNN.neuroml.simulator import state
 import logging
 
 import neuroml

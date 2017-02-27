@@ -15,6 +15,9 @@ from pyNN.connectors import *
 from pyNN.recording import *
 from pyNN.neuroml import simulator
 from pyNN.neuroml.standardmodels import *
+from pyNN.neuroml.standardmodels.synapses import *
+from pyNN.neuroml.standardmodels.cells import *
+from pyNN.neuroml.standardmodels.electrodes import *
 from pyNN.neuroml.populations import Population, PopulationView, Assembly
 from pyNN.neuroml.projections import Projection
 
