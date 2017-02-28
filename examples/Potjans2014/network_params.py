@@ -10,7 +10,7 @@ params_dict = {
     # Whether to make random numbers independent of the number of processes
     'parallel_safe' : True,
     # Fraction of neurons to simulate
-    'N_scaling' : 0.1,
+    'N_scaling' : 1.,
     # Fraction of in-degrees to simulate. Upon downscaling, synaptic weights are 
     # taken proportional to 1/sqrt(in-degree) and external drive is adjusted 
     # to preserve mean and variances of activity in the diffusion approximation.
@@ -38,45 +38,11 @@ params_dict = {
     # Fraction of neurons from which to record membrane potentials when 
     # record_v=True and record_fraction = True
     'frac_record_v' : 0.02,
-  },
-  'neuroml' :
-  { 
-    # Whether to make random numbers independent of the number of processes
-    'parallel_safe' : True,
-    # Fraction of neurons to simulate
-    'N_scaling' : 0.01,
-    # Fraction of in-degrees to simulate. Upon downscaling, synaptic weights are 
-    # taken proportional to 1/sqrt(in-degree) and external drive is adjusted 
-    # to preserve mean and variances of activity in the diffusion approximation.
-    # In-degrees and weights of both intrinsic and extrinsic inputs are adjusted.
-    # This scaling was not part of the original study, but this option is included
-    # here to enable simulations on small systems that give results similar to
-    # full-scale simulations.
-    'K_scaling' : 0.5,
-    # Type of background input. Possible values: 'poisson' or 'DC'
-    # If 'DC' is chosen, a constant external current is provided, equal to the mean 
-    # current due to the Poisson input used in the default version of the model.
-    'input_type' : 'poisson',
-    # Whether to record from a fixed fraction of neurons in each population. 
-    # If False, a fixed number of neurons is recorded.
-    'record_fraction' : False,
-    # Number of neurons from which to record spikes when record_fraction = False
-    'n_record' : 10,  # TODO: check if each population has at least this nr of neurons; PyNN otherwise just records fewer neurons & calculated rates may be wrong
-    # Fraction of neurons from which to record spikes when record_fraction = True
-    'frac_record_spikes' : 0.01,
-    # Whether to record membrane potentials
-    'record_v' : False,
-    # Fixed number of neurons from which to record membrane potentials when 
-    # record_v=True and record_fraction = False
-    'n_record_v' : 10,
-    # Fraction of neurons from which to record membrane potentials when 
-    # record_v=True and record_fraction = True
-    'frac_record_v' : 0.01,
   }
 }
 
 # Simulator back-end
-simulator = 'neuroml'
+simulator = 'nest'
 
 # Load params from params_dict into global namespace
 globals().update(params_dict[simulator])
@@ -111,18 +77,6 @@ N_full = {
   'L4' : {'E': 21915, 'I': 5479},
   'L5' : {'E': 4850, 'I': 1065},
   'L6' : {'E': 14395, 'I': 2948}
-}
-
-x_dimension = 1000
-z_dimension = 1000
-thalamus_offset = -300
-
-layer_thicknesses = {
-  'L23': 300,
-  'L4' : 300,
-  'L5' : 300,
-  'L6' : 300,
-  'thalamus' : 100
 }
 
 establish_connections = True

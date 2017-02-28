@@ -6,18 +6,9 @@ simulator_params = {
     'nest' :
     {
       'timestep'        : 0.1,    # ms
-      'threads'         : 1,
+      'threads'         : 10,
       'sim_duration'    : 1000.,  # ms
       'min_delay'       : 0.1     # ms
-    },
-    'neuroml' :
-    {
-      'timestep'        : 0.1,    # ms
-      'threads'         : 1,
-      'sim_duration'    : 1000.,  # ms
-      'min_delay'       : 0.1,     # ms
-      'reference'       : 'TestExport',
-      'save_format'     : 'hdf5'
     }
 }
 

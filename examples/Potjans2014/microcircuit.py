@@ -18,15 +18,11 @@ import plotting
 # logging.basicConfig() # TODO! Remove if it runs without this line
 exec('import pyNN.%s as sim' % simulator)
 sim.setup(**simulator_params[simulator])
-print('Starting microcircuit model in %s' % simulator)
 import network
-print establish_connections
-#establish_connections = False
 
 # create network
 start_netw = time.time()
 n = network.Network(sim)
-
 n.setup(sim)
 end_netw = time.time()
 if sim.rank() == 0 :
@@ -73,8 +69,7 @@ if create_raster_plot and sim.rank() == 0 :
                 n_rec[i][j] = round(N_full[layer][pop] * N_scaling * frac_record_spikes)
             else:
                 n_rec[i][j] = n_record
-    if n_rec > 0:
-        plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot,
+    plotting.show_raster_bars(raster_t_min, raster_t_max, n_rec, frac_to_plot,
                               system_params['output_path'] + '/')
 
 sim.end()

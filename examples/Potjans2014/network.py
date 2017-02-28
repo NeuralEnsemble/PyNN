@@ -6,7 +6,6 @@ from network_params import *
 import scaling
 from connectivity import FixedTotalNumberConnect
 from pyNN.random import NumpyRNG, RandomDistribution
-from pyNN.space import RandomStructure, Cuboid
 import numpy as np
 
 
@@ -24,26 +23,15 @@ class Network:
 
         # Create cortical populations
         self.pops = {}
-        layer_structures = {}
         for layer in layers:
             self.pops[layer] = {}
             for pop in pops:
-                y_offset = 0
-                if layer == 'L5': y_offset = layer_thicknesses['L6']
-                if layer == 'L4': y_offset = layer_thicknesses['L6']+layer_thicknesses['L5']
-                if layer == 'L23': y_offset = layer_thicknesses['L6']+layer_thicknesses['L5']+layer_thicknesses['L23']
-                layer_volume = Cuboid(x_dimension,layer_thicknesses[layer],z_dimension)
-                layer_structures[layer] = RandomStructure(layer_volume, origin=(0,y_offset,0))
-                
                 self.pops[layer][pop] = sim.Population(int(N_full[layer][pop] * \
-                    N_scaling), model, cellparams=neuron_params,structure=layer_structures[layer],label='%s_%s'%(layer,pop))
-                    
-                    
+                    N_scaling), model, cellparams=neuron_params)
                 self.pops[layer][pop].initialize(v=distr)
                 # Store whether population is inhibitory or excitatory
                 self.pops[layer][pop].annotate(type=pop)
                 this_pop = self.pops[layer][pop]
-                print("Created population %s with %i cells"%(this_pop.label,this_pop.size))
 
                 # Spike recording
                 if record_fraction:
@@ -63,17 +51,12 @@ class Network:
 
         # Create thalamic population
         if thalamic_input:
-            
-            layer_volume = Cuboid(x_dimension,layer_thicknesses['thalamus'],z_dimension)
-            layer_structure = RandomStructure(layer_volume, origin=(0,thalamus_offset,0))
             self.thalamic_population = sim.Population(
                     thal_params['n_thal'],
                     sim.SpikeSourcePoisson,
                     {'rate': thal_params['rate'],
                      'start': thal_params['start'],
-                     'duration': thal_params['duration']},
-                     structure=layer_structure,
-                     label='thalamic_input')
+                     'duration': thal_params['duration']})
 
         # Compute DC input before scaling
         if input_type == 'DC':
@@ -101,7 +84,7 @@ class Network:
 
         if sim.rank() == 0:
             print('w: %s' % self.w)
-        
+
         for target_layer in layers :
             for target_pop in pops :
                 target_index = structure[target_layer][target_pop]
@@ -111,17 +94,15 @@ class Network:
                     this_pop.set(i_offset=self.DC_amp[target_layer][target_pop])
                 if input_type == 'poisson':
                     poisson_generator = sim.Population(this_pop.size,
-                                                       sim.SpikeSourcePoisson, 
-                                                       {'rate': bg_rate * self.K_ext[target_layer][target_pop]},
-                                                       structure=layer_structures[target_layer],
-                                                       label='input_%s_%s'%(target_layer,target_pop))
+                                                       sim.SpikeSourcePoisson, {
+                                                           'rate': bg_rate * self.K_ext[target_layer][target_pop]})
                     conn = sim.OneToOneConnector()
                     syn = sim.StaticSynapse(weight=self.w_ext)
                     sim.Projection(poisson_generator, this_pop, conn, syn, receptor_type='excitatory')
                 if thalamic_input:
                     # Thalamic inputs
                     if sim.rank() == 0 :
-                        print('Creating thalamic connections to %s%s' % (target_layer, target_pop))
+                        print('creating thalamic connections to %s%s' % (target_layer, target_pop))
                     C_thal=thal_params['C'][target_layer][target_pop]
                     n_target=N_full[target_layer][target_pop]
                     K_thal=round(np.log(1 - C_thal) / np.log((n_target * thal_params['n_thal'] - 1.) /
@@ -134,7 +115,7 @@ class Network:
                     for source_pop in pops :
                         source_index=structure[source_layer][source_pop]
                         if sim.rank() == 0:
-                            print('Creating connections from %s%s to %s%s' % (source_layer, source_pop, target_layer, target_pop))
+                            print('creating connections from %s%s to %s%s' % (source_layer, source_pop, target_layer, target_pop))
                         weight=self.w[target_index][source_index]
                         if source_pop == 'E' and source_layer == 'L4' and target_layer == 'L23' and target_pop == 'E':
                             w_sd=weight * w_rel_234
