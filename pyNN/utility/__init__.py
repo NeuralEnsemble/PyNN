@@ -373,6 +373,7 @@ class SimulationProgressBar(ProgressBar):
         self.set_level(t / self.t_stop)
         return t + self.interval
 
+
 #deprecated
 def assert_arrays_equal(a, b):
     import numpy
