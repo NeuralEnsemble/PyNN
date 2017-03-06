@@ -191,7 +191,7 @@ class Grid2D_Test(object):
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
                 ]).T,
-            1e-15)
+            decimal=15)
         assert_array_almost_equal(
             self.grid2.generate_positions(12),
             numpy.array([
@@ -202,7 +202,7 @@ class Grid2D_Test(object):
                 [123 + 44.4, 456, 789], [123 + 44.4, 465.9, 789],
                 [123 + 55.5, 456, 789], [123 + 55.5, 465.9, 789],
             ]).T,
-            1e-15)
+            decimal=15)
 
 
 class Grid3D_Test(object):
@@ -233,7 +233,7 @@ class Grid3D_Test(object):
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
                 [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
                 ]).T,
-            1e-15)
+            decimal=15)
 
 
 class TestSphere(object):

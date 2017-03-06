@@ -25,7 +25,7 @@ def test_reset(sim):
     assert len(data.segments) == repeats
     for segment in data.segments[1:]:
         assert_array_almost_equal(segment.analogsignalarrays[0],
-                                   data.segments[0].analogsignalarrays[0], 1e-11)
+                                   data.segments[0].analogsignalarrays[0], decimal=11)
 test_reset.__test__ = False
 
 
@@ -52,7 +52,7 @@ def test_reset_with_clear(sim):
     for rec in data:
         assert len(rec.segments) == 1
         assert_array_almost_equal(rec.segments[0].analogsignalarrays[0],
-                                   data[0].segments[0].analogsignalarrays[0], 1e-11)
+                                   data[0].segments[0].analogsignalarrays[0], decimal=11)
 test_reset_with_clear.__test__ = False
 
 

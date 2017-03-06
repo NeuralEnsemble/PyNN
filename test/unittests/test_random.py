@@ -131,7 +131,7 @@ class ParallelTests(unittest.TestCase):
         A = range(10)
         perm0 = rng0.permutation(A)
         perm1 = rng1.permutation(A)
-        assert_array_almost_equal(perm0, perm1, 1e-99)
+        assert_array_almost_equal(perm0, perm1, decimal=99)
 
 
 class NativeRNGTests(unittest.TestCase):

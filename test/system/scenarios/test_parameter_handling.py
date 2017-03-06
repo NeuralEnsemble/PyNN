@@ -57,7 +57,7 @@ def test_set_synaptic_parameters_fully_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_array_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=float)
     prj.set(weight=positional_weights)
@@ -117,7 +117,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_array_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -175,7 +175,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_array_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -190,7 +190,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get('weight', format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_array_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     # postponing implementation of this functionality until after 0.8.0
     # u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4]
@@ -221,7 +221,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get('delay', format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_array_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     # final sanity check
     expected = numpy.array([

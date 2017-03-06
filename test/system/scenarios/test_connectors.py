@@ -22,7 +22,7 @@ def all_to_all_static_no_self(sim):
     print(weights)
     delays = prj.get('delay', format='list', gather=False)
     i, j, d = numpy.array(delays).T
-    assert_array_almost_equal(d, 0.2 + 0.3 * abs(i - j), 1e-9)
+    assert_array_almost_equal(d, 0.2 + 0.3 * abs(i - j), decimal=9)  # 1e-9)
     assert_equal(d.size, p.size * (p.size - 1))
     sim.end()
 

@@ -112,8 +112,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_array_almost_equal(spiketrains0[0], numpy.array([0.075]) * pq.ms, 1e-17)
-    assert_array_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34]) * pq.ms, 1e-14)
+    assert_array_almost_equal(spiketrains0[0], numpy.array([0.075]) * pq.ms, decimal=17)
+    assert_array_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34]) * pq.ms, decimal=14)
     assert_equal(spiketrains2[0].size, 0)
 
 
