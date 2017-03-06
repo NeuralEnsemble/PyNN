@@ -1,0 +1,44 @@
+====
+PyNN
+====
+
+PyNN (pronounced 'pine') is a is a simulator-independent language for building neuronal network models.
+
+The PyNN homepage is  http://neuralensemble.org/PyNN/
+
+Development has now moved to `GitHub <https://github.com/NeuralEnsemble/PyNN/>`_ . All Trac tickets have been migrated to GitHub, although they do not in general have the same numbers. `Map from Trac tickets to GitHub issues <http://neuralensemble.org/trac/PyNN/wiki/Trac2GitHub>`_.
+
+
+
+=============
+Documentation
+=============
+
+Version 0.7
+
+.. toctree::
+   :maxdepth: 2
+
+  
+   installation
+   highlevelapi
+   standardmodels
+   standardsources
+   dynamicsynapses
+   nonstandardmodels
+   nativemodels
+   space
+   parallel
+   fileformats
+   lowlevelapi
+   examples
+   simulatorspecificoptions
+   simulatorspecificoptimizations
+   neuromorphichardware
+   api
+
+.. add 'logging' after 'units' once configure_logging() implemented.
+
+.. add 'descriptions' after logging
+
+

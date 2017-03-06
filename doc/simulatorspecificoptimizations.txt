@@ -1,0 +1,124 @@
+================================
+Simulator-specific optimizations
+================================
+
+This page explains how to optimize your code, in pyNN, for particular simulators. Those are specific options/code instructions that will make your pyNN code tuned to a particular backend, sometimes breaking compatibility with the others. However, if you would like to speed up your code and if at a particular time, here are some tricks you should know
+
+General observations
+====================
+
+Assemblies
+----------
+
+When recording an Assembly object, i.e the concatenation of several populations, you should notice that saving the recorded data to file is taking some time. In fact, even if the user is allowed to do that, this is something you could maybe avoid, in order to speed up the writing times of large data files. Merging all the indices and the recorded data from the populations within the Assembly involves sorting large arrays, and this is not optimal. So instead of doing::
+
+   >>> exc = Population(10000, IF_curr_exp)
+   >>> inh = Population(2500, IF_curr_exp)
+   >>> all_cells = exc + inh
+   >>> all_cells.record()
+   >>> run(simtime)
+   >>> all_cells.printSpikes(file)
+
+You should do::
+
+   >>> exc = Population(10000, IF_curr_exp)
+   >>> inh = Population(2500, IF_curr_exp)
+   >>> all_cells = exc + inh
+   >>> all_cells.record()
+   >>> run(simtime)
+   >>> exc.printSpikes(file_exc)
+   >>> inh.printSpikes(file_inh)
+
+This is more convenient in a sense that data will be sorted by populations in two files at the end, and it will be faster.
+
+Recording to memory
+-------------------
+
+If your simulations are short enough, and if you know that the size of the recorded data will fit in the memory, you should better record data to memory, instead of a file. This is not the default option, but then, at the end of the simulations, accessing the raw recorded data will be faster, because they won't have to be read from the disk. This is only tru for pyNN.nest, because NEST is the only one able to record to file while running. To so do, you should do::
+
+   >>> population.record(to_file=False)
+
+
+Projections
+-----------
+
+If you want to speed up the building times of your networks, you have to be sure that you are using all the options in the Connector object. Basically, you should avoid as much as possible the use of the function setDelays() or setWeights(). Those functions will loop again over all the synapses that have been created to set their weights/delays, but except if you have a good reason to do so, you should provide those values when synapses are created, during the projection. Instead of doing::
+
+   >>> prj = Projection(population, population, AllToAllConnector())
+   >>> prj.setDelays(0.1)
+   >>> prj.setWeights(0.3)
+   
+You should do::
+
+   >>> prj = Projection(population, population, AllToAllConnector(weights=0.3, delays=0.1))
+
+
+Optimizations for NEST
+======================
+
+Fast Connectors
+---------------
+
+In NEST, the pyNN.connectors objects are not taking advantages of the mpirun command, because they are based on the function nest.ConvergentConnect which does not scale well with the number of nodes. Therefore, if you want to reduce the building times of your network according to the number of nodes used by your parallel simulations, you should use the following Connectors:
+
+   - FastFixedProbabilityConnector
+   - FastDistanceDependentProbabilityConnector
+   - FastAllToAllConnector
+   - FastSmallWorldConnector
+   - FastFromListConnector
+   - FixedNumberPreConnector
+
+However, note that those connectors (based on nest.DivergentConnect function) will not lead to the same networks.
+
+SpikeSourcePoisson
+------------------
+
+The SpikeSourcePoisson in pyNN is meant to be an object that can be connected to various targets, and send the same spike train realisation to all its targets. However, quite often, you may end up by building a large network of cells that you would like to be able to bombard with external noise. Creating as many SpikeSourcePoisson as cells in your network is very inefficient in NEST, because those Stimulating Devices are not meant to be numerous. Moreover, in NEST, a single poisson_generator object is able to send independent realizations of the spike trains to all its targets. So instead of doing::
+
+   >>> population = Population(10000, IF_curr_exp)
+   >>> noise      = Population(10000, SpikeSourcePoisson, {'rate' : 1000.})
+   >>> prj        = Projection(noise, population, OneToOneConnector(weights=w))
+
+You should use the native cell type poisson_generator from NEST and write::
+
+   >>> population = Population(10000, IF_curr_exp)
+   >>> noise      = Population(1, native_cell_type("poisson_generator"), {'rate' : 1000.})
+   >>> prj        = Projection(noise, population, AllToAllConnector(weights=w))
+
+This will be much more efficient. However, you won't be able anymore to record the noise population, because those devices can not be recorded
+
+
+Optimizations for BRIAN
+=======================
+
+setup
+-----
+
+If you are launching Brian from a machine with a gcc compiler installed (i.e tested with Linux, should also work from windows, see Brian website for that), you could take advantage of the fact that Brian can pre-compile parts of the code in C++ and speed up the resolution of the differential equations governing the dynamics. To do that, you just have to pass extra arguments in the setup() function::
+
+   >>> setup(timestep=0.1, min_delay=0.1, extra={'useweave':True, 'usecodegen':True}
+
+
+Fast Connectors
+---------------
+
+In BRIAN, the pyNN.connectors objects are not taking advantages of the homogeneous delays, because they are made such that a user is always able to change the delays, even after connections have been created. However, BRIAN is much more efficient when using homogeneous delays in a projection. Building and simulations times are faster, and memory usage more efficient. Therefore, if you know in advance that you're creating a projection with homogeneous delay that will not be changed afterwards, then you should use the following connectors::
+
+   - FastFixedProbabilityConnector
+   - FastDistanceDependentProbabilityConnector
+   - FastAllToAllConnector
+   - FastSmallWorldConnector
+   - FastOneToOneConnector
+
+So instead of doing, if your delay d is a constant::
+
+   >>> population = Population(10000, IF_curr_exp)
+   >>> prj        = Projection(population, population, OneToOneConnector(weights=w, delays=d))
+
+You should use the FastConnectors and write::
+
+   >>> population = Population(10000, IF_curr_exp)
+   >>> prj        = Projection(population, population, FastOneToOneConnector(weights=w, delays=d))
+
+This will be much more efficient. However, you won't be able anymore to change the delays of this projection.
+

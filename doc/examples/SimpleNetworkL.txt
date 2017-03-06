@@ -1,0 +1,7 @@
+Simple network with a Poisson spike source projecting to a pair of IF_curr_alpha neurons (alternative implementation).
+======================================================================================================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+.. literalinclude:: examples/simpleNetworkL.py
+.. image:: ../images/simpleNetworkL.png

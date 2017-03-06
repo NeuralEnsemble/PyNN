@@ -1,0 +1,12 @@
+IF network based on the CUBA and COBA models of Vogels & Abbott (2005) J Neurosci 25:10786-95
+=============================================================================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+Based on:
+
+- Vogels & Abbott (2005) J Neurosci 25:10786-95 [ `PubMed <https://www.ncbi.nlm.nih.gov/pubmed/16291952?dopt=Abstract>`_]
+
+- Brette et al (2007) J Comput Neurosci 23: 349-398 [ `PubMed <https://www.ncbi.nlm.nih.gov/pubmed?cmd=Retrieve&dopt=AbstractPlus&list_uids=17629781>`_]
+
+.. literalinclude:: examples/VogelsAbbott.py

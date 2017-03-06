@@ -1,0 +1,6 @@
+A single-compartment Hodgkin-Huxley neuron with exponential, conductance-based synapses, fed by two spike sources.
+==================================================================================================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+.. literalinclude:: examples/HH_cond_exp.py

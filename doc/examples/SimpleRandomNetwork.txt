@@ -1,0 +1,7 @@
+Simple random network with a 1D population of Poisson spike sources projecting to a 2D population of IF_curr_alpha neurons.
+===========================================================================================================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+.. literalinclude:: examples/simpleRandomNetwork.py
+.. image:: ../images/simpleRandomNetwork_np1.png

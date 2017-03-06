@@ -147,4 +147,3 @@ It is now straightforward to use this cell type in PyNN:
 
 
 .. _nrnutils: http://pypi.python.org/pypi/nrnutils/
-

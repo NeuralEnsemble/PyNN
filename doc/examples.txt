@@ -1,0 +1,17 @@
+========
+Examples
+========
+
+.. toctree::
+   :maxdepth: 1
+
+   examples/IF_cond_exp
+   examples/StepCurrentSource
+   examples/HH_cond_exp 
+   examples/SimpleNetwork
+   examples/SimpleNetworkL
+   examples/SimpleRandomNetwork
+   examples/TsodyksMarkram
+   examples/Brunel 
+   examples/VogelsAbbott
+   
