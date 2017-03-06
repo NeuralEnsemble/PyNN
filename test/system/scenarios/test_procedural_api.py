@@ -21,7 +21,7 @@ def ticket195(sim):
     #prj = sim.Projection(pre, post, sim.FromListConnector([(0, 0, 0.01, 0.1)]))
     post.record(['spikes', 'v'])
     sim.run(100.0)
-    assert_array_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4]) * pq.ms, 0.5)
+    assert_array_almost_equal(post.get_data().segments[0].spiketrains[0], numpy.array([13.4]) * pq.ms, decimal=1)
     sim.end()
 
 if __name__ == '__main__':
