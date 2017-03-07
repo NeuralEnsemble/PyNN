@@ -1,6 +1,6 @@
-===============
-Standard models
-===============
+==========================
+Standardised neuron models
+==========================
 
 Standard models are neuron models that are available in at least two of the simulation engines supported by PyNN.
 PyNN performs automatic translation of parameter names, types and units.

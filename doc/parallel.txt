@@ -88,4 +88,3 @@ This means that, for example, you should prefer ``SpikeSourceArray`` (for which
 you can generate Poisson spike times using a parallel-safe RNG) to
 ``SpikeSourcePoisson``, which uses the simulator's internal RNG, if you care about
 being independent of the number of processors.
-

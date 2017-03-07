@@ -1,0 +1,7 @@
+Injecting time-varying current into a cell.
+===========================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+.. literalinclude:: examples/StepCurrentSource.py
+.. image:: ../images/StepCurrentSource.png

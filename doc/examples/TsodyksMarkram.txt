@@ -1,0 +1,8 @@
+Example of depressing and facilitating synapses.
+=====================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+.. literalinclude:: examples/tsodyksmarkram.py
+.. image:: ../images/tsodyksmarkram_depressing_gsyn.png
+.. image:: ../images/tsodyksmarkram_facilitating_gsyn.png

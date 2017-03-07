@@ -1,0 +1,20 @@
+=======================================================
+Using the neuromorphic hardware (ESS) : Install and FAQ
+=======================================================
+
+Neuromorphic Hardware
+---------------------
+
+   - `Install the neuromorphic hardware (PyNN 0.7, ESS) </home/elodie/Doc_Sphinx/o/_build/doc/ESSPyNN07.html>`_
+   - `Install the neuromorphic hardware (PyNN 0.8, ESS) </home/elodie/Doc_Sphinx/o/_build/doc/ESSPyNN08.html>`_
+   - `FAQ about the neuromorphic hardware <http://neuralensemble.org/trac/PyNN/wiki/NeuromorphicHardwareFAQ>`_
+
+Mailing List
+------------
+
+If you run into problems during the installation of the ESS or have any issues / questions that are not covered by the FAQ, please consider the Mailing List for BrainScaleS/HBP wafers-scale hardware and ESS users:  <http://listserv.uni-heidelberg.de/cgi-bin/wa?A0=KIP-NMPM-USERS>
+
+Attachments
+-----------
+
+`working_tests.patch <http://neuralensemble.org/trac/PyNN/attachment/wiki/NeuromorphicHardware/working_tests.patch>`_ (5.1 KB) - added by jchavas `2 years <http://neuralensemble.org/trac/PyNN/timeline?from=2014-09-24T17%3A11%3A09%2B0200&precision=second>`_ ago.

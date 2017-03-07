@@ -1,0 +1,16 @@
+=================
+API documentation
+=================
+
+Current version
+---------------
+
+- `Version 0.7 <http://neuralensemble.org/trac/PyNN/wiki/API-0.7>`_
+
+Older versions
+--------------
+
+- `Version 0.6 <http://neuralensemble.org/trac/PyNN/wiki/API-0.6>`_
+- `Version 0.5 <http://neuralensemble.org/trac/PyNN/wiki/API-0.5>`_
+- `Version 0.4 <http://neuralensemble.org/trac/PyNN/wiki/API-0.4>`_
+- `Version 0.3 <http://neuralensemble.org/trac/PyNN/wiki/API-0.3>`_

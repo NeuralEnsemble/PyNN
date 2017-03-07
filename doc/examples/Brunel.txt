@@ -1,0 +1,10 @@
+Balanced random network based on Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208.
+===================================================================================================================================================================
+
+[`List of examples </home/elodie/Doc_Sphinx/o/_build/examples.html>`_]
+
+Based on:
+
+Brunel N (2000) Dynamics of sparsely connected networks of excitatory and inhibitory spiking neurons. J Comput Neurosci 8:183-208 [ `PubMed <https://www.ncbi.nlm.nih.gov/pubmed/10809012?dopt=Abstract>`_]
+
+.. literalinclude:: examples/brunel.py

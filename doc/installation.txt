@@ -1,6 +1,6 @@
-============
-Installation
-============
+====================
+Download and Install
+====================
 
 Use of PyNN_ requires that you have Python (version 2.5, 2.6 or 2.7) and a recent version of the numpy_ package installed, plus at least one of the supported simulators: NEURON, NEST, PCSIM or Brian.
 

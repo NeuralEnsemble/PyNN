@@ -1,0 +1,23 @@
+==========================
+Simulator-specific options
+==========================
+
+This page explains the setup() options that are specific to individual simulators.
+
+TO BE COMPLETED.
+
+NEST
+====
+
+Solver options
+==============
+
+PyNN is a simulator independent language for the specification of neuronal network simulations. The language primarily specifies the network model and leaves the task of choosing an appropriate integration method to the simulator backends.
+
+For certain model it is however useful to provide the backend with an instruction of how to integrate the dynamics. For example, the researcher may require a certain accuracy of the membrane potential or requires a solver where spikes times are represented in continuous time and are not constrained to the temporal grid spanned by the computation step size.
+
+At present pyNN.nest accepts the following solver options:
+
+* `Continuous time spike interaction </home/elodie/Doc_Sphinx/o/_build/doc/timespikeinteraction.html>`_
+
+

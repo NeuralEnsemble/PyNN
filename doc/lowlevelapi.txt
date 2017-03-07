@@ -144,4 +144,3 @@ Examples
 ========
 
 There are several example scripts in the ``examples`` directory of the source distribution.
-    

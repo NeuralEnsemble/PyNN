@@ -1,0 +1,75 @@
+============================
+Standardised current sources
+============================
+
+Standard current sources are current sources models that are available in at least two of the simulation engines supported by PyNN. PyNN performs automatic translation of parameter names, types and units. Only a handful of models are currently available, but the list will be expanded in future releases.
+
+Current Sources
+===============
+
+DCSource
+--------
+
+Source producing a single pulse of current of constant amplitude.
+
+Availability: NEST, NEURON, Brian
+
+==============  =============  =====  =========================
+Name            Default value  Units  Description
+==============  =============  =====  =========================
+amplitude	1.0	       nA     pulse amplitude in nA
+start		0	       ms     onset time of pulse in ms
+stop		1000000.0      ms     end of pulse in ms
+==============  =============  =====  =========================
+
+StepCurrentSource
+-----------------
+
+A step-wise time-varying current source.
+
+Availability: NEST, NEURON, Brian
+
+==============  =============  =====  ==========================================================
+Name            Default value  Units  Description
+==============  =============  =====  ==========================================================
+amplitudes	[]	       nA     list/array of times at which the injected current changes.
+times		[]	       ms     list/array of times at which the injected current changes.
+==============  =============  =====  ==========================================================
+
+ACSource
+--------
+
+A sine wave modulated current source
+
+Availability: NEST, NEURON, Brian
+
+==============  =============  =====  ================================
+Name            Default value  Units  Description
+==============  =============  =====  ================================
+amplitude	1.0	       nA     pulse amplitude in nA
+start		0	       ms     onset time of pulse in ms
+stop		1000000.0      ms     end of pulse in ms
+frequency	10.0	       Hz     frequency of the oscillation
+phase		0              deg    phase in degree
+offset		0	       nA     offset of the oscillation in nA
+==============  =============  =====  ================================
+
+NoisyCurrentSource
+------------------
+
+A Gaussian "white" noise current source. The current amplitude changes at fixed
+intervals, with the new value drawn from a Gaussian distribution.
+
+Availability: NEST, NEURON, Brian
+
+==============  =============  =====  =======================================
+Name            Default value  Units  Description
+==============  =============  =====  =======================================
+mean		0.0		nA    mean value of the noise
+stdev		1.0		nA    standard deviation of the noise
+start		0		ms    onset time of pulse in ms
+stop		1000000.0	ms    end of pulse in ms
+dt		0.1		ms    interval between updates of the current
+==============  =============  =====  ========================================
+
+

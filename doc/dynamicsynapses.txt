@@ -1,6 +1,6 @@
-================
-Dynamic synapses
-================
+===================
+Synaptic plasticity
+===================
 
 The default type of synaptic connection in PyNN is static, with fixed synaptic
 weights. To model dynamic synapses, for which the synaptic weight (and possibly
@@ -79,3 +79,4 @@ dynamic synapses can be obtained and set with the ``getSynapseDynamics()``,
     [-0.056605932509016577, 0.063197908706714212, 0.034940801886916589, 0.010755581262934901, 0.011700727992415299]
 
 There are a number of examples of networks using synaptic plasticity in the ``examples`` directory of the source distribution.
+
