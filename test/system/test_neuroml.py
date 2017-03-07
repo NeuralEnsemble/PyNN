@@ -10,6 +10,7 @@ except ImportError:
     have_neuroml = False
 
 '''
+###  Need to go through each of these and check which tests are appropriate
 def test_scenarios():
     for scenario in registry:
         if "neuroml" not in scenario.exclude:
