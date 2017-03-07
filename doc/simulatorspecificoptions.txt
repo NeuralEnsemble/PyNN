@@ -18,6 +18,6 @@ For certain model it is however useful to provide the backend with an instructio
 
 At present pyNN.nest accepts the following solver options:
 
-* `Continuous time spike interaction </home/elodie/Doc_Sphinx/o/_build/doc/timespikeinteraction.html>`_
+* :doc:`timespikeinteraction`
 
 
