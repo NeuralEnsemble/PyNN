@@ -65,7 +65,7 @@ the operation at the end of each step, e.g.::
 
     >>> for i in range(4):
     ...    run_until(100.0*i)
-    ...    print "The time is %g" % (100*i,)
+    ...    print("The time is %g" % (100*i,))
     The time is 0
     The time is 100
     The time is 200
@@ -77,13 +77,14 @@ functions. Each callback should accept the current time as an argument, and
 return the next time it wishes to be called.
 
     >>> def report_time(t):
-    ...     print "The time is %g" % t
+    ...     print("The time is %g" % t)
     ...     return t + 100.0
     >>> run_until(300.0, callbacks=[report_time])
     The time is 0
     The time is 100
     The time is 200
     The time is 300
+    300.0
 
 For simple cases, this requires a bit more code, but it is potentially much more
 powerful, especially if you have complex or multiple callbacks.   

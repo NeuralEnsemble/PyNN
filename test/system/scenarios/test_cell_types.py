@@ -1,6 +1,7 @@
 
 from __future__ import division
 import numpy
+from nose.plugins.skip import SkipTest
 try:
     import scipy
     have_scipy = True
@@ -202,6 +203,64 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
 test_SpikeSourceGamma.__test__ = False
 
 
+@register(exclude=['brian'])
+def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
+    try:
+        from scipy.stats import kstest
+    except ImportError:
+        raise SkipTest("scipy not available")
+    sim.setup()
+    params = {
+        "rate": [100, 100, 50.0],
+        "tau_refrac": [0.0, 5.0, 5.0]
+    }
+    t_stop = 100000.0
+    sources = sim.Population(3, sim.SpikeSourcePoissonRefractory(**params))
+    sources.record('spikes')
+    sim.run(t_stop)
+    data = sources.get_data().segments[0]
+    sim.end()
+
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        for i, (st, rate, tau_refrac) in enumerate(zip(data.spiketrains,
+                                                       params["rate"],
+                                                       params["tau_refrac"])):
+            plt.subplot(3, 1, i + 1)
+            isi = st[1:] - st [:-1]
+            expected_mean_isi = 1000.0/rate
+            poisson_mean_isi = expected_mean_isi - tau_refrac
+            k = 1/poisson_mean_isi
+
+            n_bins = int(numpy.sqrt(k * t_stop))
+            values, bins, patches = plt.hist(isi, bins=n_bins,
+                                             label="{} Hz".format(rate),
+                                             histtype='step')
+            expected = t_stop/expected_mean_isi * (numpy.exp(-(k * (bins[:-1] - tau_refrac))) - numpy.exp(-(k * (bins[1:] - tau_refrac))))
+            plt.plot((bins[1:] + bins[:-1])/2.0, expected, 'r-')
+            plt.legend()
+        plt.xlabel("Inter-spike interval (ms)")
+        plt.savefig("test_SpikeSourcePoissonRefractory_%s.png" % sim.__name__)
+
+
+    # Kolmogorov-Smirnov test
+    for st, expected_rate, tau_refrac in zip(data.spiketrains,
+                                 params['rate'],
+                                 params['tau_refrac']):
+        poisson_mean_isi = 1000.0/expected_rate - tau_refrac # ms
+        corrected_isi = (st[1:] - st[:-1]).magnitude - tau_refrac
+        D, p = kstest(corrected_isi,
+                      "expon",
+                      args=(0, poisson_mean_isi),  # args are (loc, scale)
+                      alternative='two-sided')
+        print(expected_rate, poisson_mean_isi, corrected_isi.mean(), p, D)
+        assert_less(D, 0.1)
+
+    return data
+test_SpikeSourcePoissonRefractory.__test__ = False
+
+
 # todo: add test of Izhikevich model
 
 
@@ -215,3 +274,4 @@ if __name__ == '__main__':
     issue367(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
+    test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)

@@ -3,5 +3,5 @@ docutils>=0.10
 mock>1.0
 numpy>=1.5
 quantities>=0.10
-lazyarray>=0.2.6
+lazyarray>=0.2.9
 neo>=0.3
