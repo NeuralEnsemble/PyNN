@@ -3,13 +3,11 @@ PyNN API version 0.7
 ====================
 
 
-----
-
 Simulation setup and control
 ============================
 
-setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params)
-------------------------------------------------------------------
+setup(timestep=0.1, min_delay=0.1, max_delay=10.0, \*\*extra_params)
+--------------------------------------------------------------------
 
 Should be called at the very beginning of a script.
 extra_params contains any keyword arguments that are required by a given
@@ -87,42 +85,39 @@ num_processes()
 Return the number of MPI processes.
 
 
-----
 
 
 
-----
 
 Object-oriented interface for creating and recording networks
 =============================================================
 
-----
 
 Population
 ----------
 
-An array of neurons all of the same type. `Population' is used as a generic
+An array of neurons all of the same type. 'Population' is used as a generic
 term intended to include layers, columns, nuclei, etc., of cells.
 
 **__add__(self, other)**
 
-A Population/!PopulationView can be added to another Population,
-!PopulationView or Assembly, returning an Assembly.
+A Population/PopulationView can be added to another Population,
+PopulationView or Assembly, returning an Assembly.
 
 
 **__getitem__(self, index)**
 
 Return either a single cell (ID object) from the Population, if index
-is an integer, or a subset of the cells (!PopulationView object), if
+is an integer, or a subset of the cells (PopulationView object), if
 index is a slice or array.
 
-Note that !__getitem!__ is called when using [] access, e.g.
+Note that __getitem__ is called when using [] access, e.g.
 
     p = Population(...)
 
-    p[2] is equivalent to p.!__getitem!__(2).
+    p[2] is equivalent to p.__getitem__(2).
 
-    p[3:6] is equivalent to p.!__getitem!__(slice(3, 6))
+    p[3:6] is equivalent to p.__getitem__(slice(3, 6))
 
 
 **__init__(self, size, cellclass, cellparams=None, structure=None, label=None)**
@@ -132,7 +127,7 @@ size - number of cells in the Population. For backwards-compatibility,
        n may also be a tuple giving the dimensions of a grid,
        e.g. n=(10,10) is equivalent to n=100 with structure=Grid2D()
 cellclass should either be a standardized cell class (a class inheriting
-from common.standardmodels.!StandardCellType) or a string giving the
+from common.standardmodels.StandardCellType) or a string giving the
 name of the simulator-specific model that makes up the population.
 cellparams should be a dict which is passed to the neuron model
   constructor
@@ -140,12 +135,12 @@ structure should be a Structure instance.
 label is an optional name for the population.
 
 
-**__iter!__(self)**
+**__iter__(self)**
 
 Iterator over cell ids on the local node.
 
 
-**__len!__(self)**
+**__len__(self)**
 
 Return the total number of cells in the population (all nodes).
 
@@ -218,7 +213,7 @@ Set the initial value of one of the state variables of the neurons in
 this population.
 
 `value` may either be a numeric value (all neurons set to the same
-        value) or a `!RandomDistribution` object (each neuron gets a
+        value) or a `RandomDistribution` object (each neuron gets a
         different value)
 
 
@@ -249,7 +244,7 @@ file should be either a filename or a PyNN File object.
 If compatible_output is True, the format is "spiketime cell_id",
 where cell_id is the index of the cell counting along rows and down
 columns (and the extension of that for 3-D).
-This allows easy plotting of a `raster' plot of spiketimes, with one
+This allows easy plotting of a 'raster' plot of spiketimes, with one
 line for each cell.
 The timestep, first id, last id, and number of data points per cell are
 written in a header, indicated by a '#' at the beginning of the line.
@@ -318,12 +313,12 @@ Record the membrane potential for all cells in the Population.
 **rset(self, parametername, rand_distr)**
 
 'Random' set. Set the value of parametername to a value taken from
-rand_distr, which should be a !RandomDistribution object.
+rand_distr, which should be a RandomDistribution object.
 
 
 **sample(self, n, rng=None)**
 
-Randomly sample n cells from the Population, and return a !PopulationView
+Randomly sample n cells from the Population, and return a PopulationView
 object.
 
 
@@ -350,7 +345,6 @@ e.g. p.set("tau_m",20.0).
 value_array, which must have the same dimensions as the Population.
 
 
-----
 
 
 PopulationView
@@ -358,48 +352,48 @@ PopulationView
 
 A view of a subset of neurons within a Population.
 
-In most ways, Populations and !PopulationViews have the same behaviour, i.e.
+In most ways, Populations and PopulationViews have the same behaviour, i.e.
 they can be recorded, connected with Projections, etc. It should be noted
-that any changes to neurons in a !PopulationView will be reflected in the
+that any changes to neurons in a PopulationView will be reflected in the
 parent Population and vice versa.
 
 It is possible to have views of views.
 
 **__add__(self, other)**
 
-A Population/!PopulationView can be added to another Population,
-!PopulationView or Assembly, returning an Assembly.
+A Population/PopulationView can be added to another Population,
+PopulationView or Assembly, returning an Assembly.
 
 
 **__getitem__(self, index)**
 
 Return either a single cell (ID object) from the Population, if index
-is an integer, or a subset of the cells (!PopulationView object), if
+is an integer, or a subset of the cells (PopulationView object), if
 index is a slice or array.
 
-Note that !__getitem!__ is called when using [] access, e.g.
+Note that __getitem__ is called when using [] access, e.g.
 
     p = Population(...)
 
-    p[2] is equivalent to p.!__getitem!__(2).
+    p[2] is equivalent to p.__getitem__(2).
 
-    p[3:6] is equivalent to p.!__getitem!__(slice(3, 6))
+    p[3:6] is equivalent to p.__getitem__(slice(3, 6))
 
 
 **__init__(self, parent, selector, label=None)**
 
 Create a view of a subset of neurons within a parent Population or
-!PopulationView.
+PopulationView.
 
 selector - a slice or numpy mask array. The mask array should either be
            a boolean array of the same size as the parent, or an
            integer array containing cell indices, i.e. if p.size == 5,
 
-             !PopulationView(p, array([False, False, True, False, True]))
+             PopulationView(p, array([False, False, True, False, True]))
 
-             !PopulationView(p, array([2,4]))
+             PopulationView(p, array([2,4]))
 
-             !PopulationView(p, slice(2,5,2))
+             PopulationView(p, slice(2,5,2))
 
            will all create the same view.
 
@@ -464,8 +458,8 @@ recorded cells.
 
 **id_to_index(self, id)**
 
-Given the ID(s) of cell(s) in the !PopulationView, return its/their
-index/indices (order in the !PopulationView).
+Given the ID(s) of cell(s) in the PopulationView, return its/their
+index/indices (order in the PopulationView).
 
 >>> assert id_to_index(p.index(5)) == 5
 >>> assert id_to_index(p.index([1,2,3])) == [1,2,3]
@@ -475,7 +469,7 @@ index/indices (order in the !PopulationView).
 
 Set initial values of state variables, e.g. the membrane potential.
 `value` may either be a numeric value (all neurons set to the same 
-        value) or a `!RandomDistribution` object (each neuron gets a
+        value) or a `RandomDistribution` object (each neuron gets a
         different value)
 
 
@@ -506,7 +500,7 @@ file should be either a filename or a PyNN File object.
 If compatible_output is True, the format is "spiketime cell_id",
 where cell_id is the index of the cell counting along rows and down
 columns (and the extension of that for 3-D).
-This allows easy plotting of a `raster' plot of spiketimes, with one
+This allows easy plotting of a 'raster' plot of spiketimes, with one
 line for each cell.
 The timestep, first id, last id, and number of data points per cell are
 written in a header, indicated by a '#' at the beginning of the line.
@@ -575,12 +569,12 @@ Record the membrane potential for all cells in the Population.
 **rset(self, parametername, rand_distr)**
 
 'Random' set. Set the value of parametername to a value taken from
-rand_distr, which should be a !RandomDistribution object.
+rand_distr, which should be a RandomDistribution object.
 
 
 **sample(self, n, rng=None)**
 
-Randomly sample n cells from the Population, and return a !PopulationView
+Randomly sample n cells from the Population, and return a PopulationView
 object.
 
 
@@ -607,9 +601,6 @@ e.g. p.set("tau_m",20.0).
 value_array, which must have the same dimensions as the Population.
 
 
-----
-
-
 Assembly
 --------
 
@@ -618,7 +609,7 @@ all the neurons are of the same type.
 
 **__add__(self, other)**
 
-An Assembly may be added to a Population, !PopulationView or Assembly
+An Assembly may be added to a Population, PopulationView or Assembly
 with the '+' operator, returning a new Assembly, e.g.:
 
     a2 = a1 + p
@@ -634,7 +625,7 @@ Where index is a slice, list or numpy array, return a new Assembly
 
 **__iadd__(self, other)**
 
-A Population, !PopulationView or Assembly may be added to an existing
+A Population, PopulationView or Assembly may be added to an existing
 Assembly using the '+=' operator, e.g.:
 
     a += p
@@ -642,7 +633,7 @@ Assembly using the '+=' operator, e.g.:
 
 **__init__(self, *populations, **kwargs)**
 
-Create an Assembly of Populations and/or !PopulationViews.
+Create an Assembly of Populations and/or PopulationViews.
 
 kwargs may contain a keyword argument 'label'.
 
@@ -675,8 +666,8 @@ conductances for recorded cells.
 
 **get_population(self, label)**
 
-Return the Population/!PopulationView from within the Assembly that has
-the given label. If no such Population exists, raise !KeyError.
+Return the Population/PopulationView from within the Assembly that has
+the given label. If no such Population exists, raise KeyError.
 
 
 **get_spike_counts(self, gather=True)**
@@ -725,7 +716,7 @@ file should be either a filename or a PyNN File object.
 If compatible_output is True, the format is "spiketime cell_id",
 where cell_id is the index of the cell counting along rows and down
 columns (and the extension of that for 3-D).
-This allows easy plotting of a `raster' plot of spiketimes, with one
+This allows easy plotting of a 'raster' plot of spiketimes, with one
 line for each cell.
 The timestep, first id, last id, and number of data points per cell are
 written in a header, indicated by a '#' at the beginning of the line.
@@ -790,16 +781,16 @@ Record the membrane potential from all cells in the Assembly.
 Save positions to file. The output format is id x y z
 
 
-----
 
 
 
-----
+
+
 
 Classes for defining spatial structure
 ======================================
 
-----
+
 
 Space
 -----
@@ -836,7 +827,7 @@ the topology of the current space.
 From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
 
 
-----
+
 
 
 Line
@@ -863,7 +854,7 @@ will be returned.
 
 **get_parameters(self)**
 
-----
+
 
 
 Grid2D
@@ -896,7 +887,7 @@ will be returned.
 
 **get_parameters(self)**
 
-----
+
 
 
 Grid3D
@@ -930,7 +921,7 @@ will be returned.
 
 **get_parameters(self)**
 
-----
+
 
 
 RandomStructure
@@ -962,7 +953,7 @@ will be returned.
 
 **get_parameters(self)**
 
-----
+
 
 
 Cuboid
@@ -979,7 +970,7 @@ depth: extent in z direction
 
 **sample(self, n, rng)**
 
-----
+
 
 
 Sphere
@@ -991,16 +982,16 @@ Represents a spherical volume within which neurons may be distributed.
 
 **sample(self, n, rng)**
 
-----
 
 
 
-----
+
+
 
 Object-oriented interface for connecting populations of neurons
 ===============================================================
 
-----
+
 
 Projection
 ----------
@@ -1028,7 +1019,7 @@ If source and/or target are not given, default values are used.
 method - a Connector object, encapsulating the algorithm to use for
          connecting the neurons.
 
-synapse_dynamics - a `!SynapseDynamics` object specifying which
+synapse_dynamics - a `SynapseDynamics` object specifying which
 synaptic plasticity mechanisms to use.
 
 rng - specify an RNG object to be used by the Connector.
@@ -1095,7 +1086,7 @@ Set weights to random values taken from rand_distr.
 **saveConnections(self, file, gather=True, compatible_output=True)**
 
 Save connections to file in a format suitable for reading in with a
-!FromFileConnector.
+FromFileConnector.
 
 
 **setDelays(self, d)**
@@ -1136,7 +1127,7 @@ If min and max are not given, the minimum and maximum weights are
 calculated automatically.
 
 
-----
+
 
 
 AllToAllConnector
@@ -1153,7 +1144,7 @@ Create a new connector.
     Population to itself, this flag determines whether a neuron is
     allowed to connect to itself, or only to other neurons in the
     Population.
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
              created. Units nA.
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
@@ -1162,7 +1153,7 @@ Create a new connector.
            dependent weights or delays
 
 
-----
+
 
 
 OneToOneConnector
@@ -1176,14 +1167,14 @@ population for all i.
 
 Create a new connector.
 
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
              created. Units nA.
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
              to the global minimum delay.
 
 
-----
+
 
 
 FixedProbabilityConnector
@@ -1201,7 +1192,7 @@ Create a new connector.
     Population to itself, this flag determines whether a neuron is
     allowed to connect to itself, or only to other neurons in the
     Population.
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
              created. Units nA.
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
@@ -1210,7 +1201,7 @@ Create a new connector.
            dependent weights or delays
 
 
-----
+
 
 
 DistanceDependentProbabilityConnector
@@ -1229,15 +1220,15 @@ Create a new connector.
 
 `space` -- a Space object.
 
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
-             created, or a !DistanceDependence object. Units nA.
+             created, or a DistanceDependence object. Units nA.
 
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
              to the global minimum delay.
 
 
-----
+
 
 
 FixedNumberPreConnector
@@ -1256,22 +1247,22 @@ duplicate connections.
 
 Create a new connector.
 
-`n` -- either a positive integer, or a `!RandomDistribution` that produces
-       positive integers. If `n` is a `!RandomDistribution`, then the
+`n` -- either a positive integer, or a `RandomDistribution` that produces
+       positive integers. If `n` is a `RandomDistribution`, then the
        number of pre-synaptic neurons is drawn from this distribution
        for each post-synaptic neuron.
 `allow_self_connections` -- if the connector is used to connect a
     Population to itself, this flag determines whether a neuron is
     allowed to connect to itself, or only to other neurons in the
     Population.
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
              created. Units nA.
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
              to the global minimum delay.
 
 
-----
+
 
 
 FixedNumberPostConnector
@@ -1290,22 +1281,22 @@ duplicate connections.
 
 Create a new connector.
 
-`n` -- either a positive integer, or a `!RandomDistribution` that produces
-       positive integers. If `n` is a `!RandomDistribution`, then the
+`n` -- either a positive integer, or a `RandomDistribution` that produces
+       positive integers. If `n` is a `RandomDistribution`, then the
        number of post-synaptic neurons is drawn from this distribution
        for each pre-synaptic neuron.
 `allow_self_connections` -- if the connector is used to connect a
        Population to itself, this flag determines whether a neuron is
        allowed to connect to itself, or only to other neurons in the
        Population.
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
              created. Units nA.
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
              to the global minimum delay.
 
 
-----
+
 
 
 FromListConnector
@@ -1325,7 +1316,7 @@ Create a new connector.
                the index of the postsynaptic neuron.
 
 
-----
+
 
 
 FromFileConnector
@@ -1338,14 +1329,14 @@ Make connections according to a list read from a file.
 Create a new connector.
 
 `file`        -- file object containing a list of connections, in
-                 the format required by `!FromListConnector`.
+                 the format required by `FromListConnector`.
 `distributed` -- if this is True, then each node will read connections
                  from a file called `filename.x`, where `x` is the MPI
                  rank. This speeds up loading connections for
                  distributed simulations.
 
 
-----
+
 
 
 SmallWorldConnector
@@ -1368,19 +1359,19 @@ Create a new connector.
     allowed to connect to itself, or only to other neurons in the
     Population.
 
-`weights` -- may either be a float, a !RandomDistribution object, a list/
+`weights` -- may either be a float, a RandomDistribution object, a list/
              1D array with at least as many items as connections to be
-             created, or a !DistanceDependence object. Units nA.
+             created, or a DistanceDependence object. Units nA.
 
 `delays`  -- as `weights`. If `None`, all synaptic delays will be set
              to the global minimum delay.
 
 
-----
 
 
 
-----
+
+
 
 Procedural interface for creating, connecting and recording networks
 ====================================================================
@@ -1422,7 +1413,7 @@ record(source, filename)
 ------------------------
 
 Record spikes to a file. source can be an individual cell, a Population,
-!PopulationView or Assembly.
+PopulationView or Assembly.
 
 
 
@@ -1430,7 +1421,7 @@ record(source, filename)
 ------------------------
 
 Record membrane potential to a file. source can be an individual
-cell, a Population, !PopulationView or Assembly.
+cell, a Population, PopulationView or Assembly.
 
 
 
@@ -1438,19 +1429,19 @@ record(source, filename)
 ------------------------
 
 Record synaptic conductances to a file. source can be an individual
-cell, a Population, !PopulationView or Assembly.
-
-
-----
+cell, a Population, PopulationView or Assembly.
 
 
 
-----
+
+
+
+
 
 Standard neuron models
 ======================
 
-----
+
 
 IF_curr_exp
 -----------
@@ -1479,7 +1470,7 @@ excitatory and inhibitory synapses.
 
 }
 
-----
+
 
 
 IF_curr_alpha
@@ -1508,7 +1499,7 @@ shaped post-synaptic current.
 
 }
 
-----
+
 
 
 IF_cond_exp
@@ -1539,7 +1530,7 @@ exponentially-decaying post-synaptic conductance.
 
 }
 
-----
+
 
 
 IF_cond_alpha
@@ -1570,7 +1561,7 @@ shaped post-synaptic conductance.
 
 }
 
-----
+
 
 
 EIF_cond_exp_isfa_ista
@@ -1610,7 +1601,7 @@ See also: IF_cond_exp_gsfa_grr
 
 }
 
-----
+
 
 
 EIF_cond_alpha_isfa_ista
@@ -1650,7 +1641,7 @@ See also: IF_cond_exp_gsfa_grr
 
 }
 
-----
+
 
 
 IF_facets_hardware1
@@ -1679,7 +1670,7 @@ https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
 
 }
 
-----
+
 
 
 HH_cond_exp
@@ -1687,7 +1678,7 @@ HH_cond_exp
 
 Single-compartment Hodgkin-Huxley model.
 
-**__init!__(self, parameters)**
+**__init__(self, parameters)**
 
 
 **default_parameters** = {
@@ -1711,7 +1702,7 @@ Single-compartment Hodgkin-Huxley model.
 
 }
 
-----
+
 
 
 SpikeSourcePoisson
@@ -1733,7 +1724,7 @@ Spike source, generating spikes according to a Poisson process.
 
 }
 
-----
+
 
 
 SpikeSourceArray
@@ -1746,30 +1737,30 @@ Spike source generating spikes at the times given in the spike_times array.
 
 **default_parameters** = {
 
-=============   ===============
-=============   ===============
+==============  ===============
+==============  ===============
 'spike_times':  [] 
-=============   ===============
+==============  ===============
 
 }
 
-----
 
 
 
-----
+
+
 
 Specification of synaptic plasticity
 ====================================
 
-----
+
 
 SynapseDynamics
 ---------------
 
 For specifying synapse short-term (faciliation, depression) and long-term
 (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
-`Projection.!__init!__()` or `connect()`.
+`Projection.__init__()` or `connect()`.
 
 **__init__(self, fast=None, slow=None)**
 
@@ -1789,7 +1780,7 @@ If template is None, then a dictionary containing the template context
 will be returned.
 
 
-----
+
 
 
 STDPMechanism
@@ -1810,7 +1801,7 @@ If template is None, then a dictionary containing the template context
 will be returned.
 
 
-----
+
 
 
 TsodyksMarkramMechanism
@@ -1818,7 +1809,7 @@ TsodyksMarkramMechanism
 
 **__init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0)**
 
-----
+
 
 
 AdditiveWeightDependence
@@ -1831,7 +1822,7 @@ be greater than `w_max` it is set to `w_max`.
 
 **__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01)**
 
-----
+
 
 
 MultiplicativeWeightDependence
@@ -1843,7 +1834,7 @@ For potentiation, Dw propto w_max-w
 
 **__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01)**
 
-----
+
 
 
 AdditivePotentiationMultiplicativeDepression
@@ -1854,7 +1845,7 @@ depression (Dw propto w-w_min) and is fixed for potentiation.
 
 **__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01)**
 
-----
+
 
 
 GutigWeightDependence
@@ -1864,9 +1855,9 @@ The amplitude of the weight change depends on the current weight.
 For depression, Dw propto w-w_min
 For potentiation, Dw propto w_max-w
 
-**__init!__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5)**
+**__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01, mu_plus=0.5, mu_minus=0.5)**
 
-----
+
 
 
 SpikePairRule
@@ -1874,16 +1865,16 @@ SpikePairRule
 
 **__init__(self, tau_plus=20.0, tau_minus=20.0)**
 
-----
 
 
 
-----
+
+
 
 Current injection
 =================
 
-----
+
 
 DCSource
 --------
@@ -1908,7 +1899,7 @@ Construct the current source.
 Inject this current source into some cells.
 
 
-----
+
 
 
 StepCurrentSource
@@ -1937,7 +1928,7 @@ Construct the current source.
 Inject this current source into some cells.
 
 
-----
+
 
 
 ACSource
@@ -1969,7 +1960,7 @@ Construct the current source.
 Inject this current source into some cells.
 
 
-----
+
 
 
 NoisyCurrentSource
@@ -2012,16 +2003,16 @@ Construct the current source.
 Inject this current source into some cells.
 
 
-----
 
 
 
-----
+
+
 
 File formats
 ============
 
-----
+
 
 BaseFile
 --------
@@ -2045,18 +2036,18 @@ Read metadata from the file and return a dict.
 
 **read(self)**
 
-Read data from the file and return a !NumPy array.
+Read data from the file and return a NumPy array.
 
 
 **rename(self, filename)**
 
 **write(self, data, metadata)**
 
-Write data and metadata to file. `data` should be a !NumPy array,
+Write data and metadata to file. `data` should be a NumPy array,
 `metadata` should be a dictionary.
 
 
-----
+
 
 
 StandardTextFile
@@ -2065,7 +2056,7 @@ StandardTextFile
 Data and metadata is written as text. Metadata is written at the top of the
 file, with each line preceded by "#". Data is written with one data point per line.
 
-----
+
 
 
 PickleFile
@@ -2073,7 +2064,7 @@ PickleFile
 
 Data and metadata are pickled and saved to file.
 
-----
+
 
 
 NumpyBinaryFile
@@ -2082,7 +2073,7 @@ NumpyBinaryFile
 Data and metadata are saved in .npz format, which is a zipped archive of
 arrays.
 
-----
+
 
 
 HDF5ArrayFile
@@ -2091,23 +2082,23 @@ HDF5ArrayFile
 Data are saved as an array within a node named "data". Metadata are
 saved as attributes of this node.
 
-----
 
 
 
-----
+
+
 
 Exceptions
 ==========
 
-----
+
 
 InvalidParameterValueError
 --------------------------
 
 Inappropriate parameter value
 
-----
+
 
 
 NonExistentParameterError
@@ -2115,7 +2106,7 @@ NonExistentParameterError
 
 Model parameter does not exist.
 
-----
+
 
 
 InvalidDimensionsError
@@ -2123,7 +2114,7 @@ InvalidDimensionsError
 
 Argument has inappropriate shape/dimensions.
 
-----
+
 
 
 ConnectionError
@@ -2131,7 +2122,7 @@ ConnectionError
 
 Attempt to create an invalid connection or access a non-existent connection.
 
-----
+
 
 
 InvalidModelError
@@ -2139,7 +2130,7 @@ InvalidModelError
 
 Attempt to use a non-existent model type.
 
-----
+
 
 
 RoundingWarning
@@ -2147,7 +2138,7 @@ RoundingWarning
 
 The argument has been rounded to a lower level of precision by the simulator.
 
-----
+
 
 
 NothingToWriteError
@@ -2155,7 +2146,7 @@ NothingToWriteError
 
 There is no data available to write.
 
-----
+
 
 
 InvalidWeightError
@@ -2163,7 +2154,7 @@ InvalidWeightError
 
 Invalid value for the synaptic weight.
 
-----
+
 
 
 NotLocalError
@@ -2171,7 +2162,7 @@ NotLocalError
 
 Attempt to access a cell or connection that does not exist on this node (but exists elsewhere).
 
-----
+
 
 
 RecordingError
@@ -2179,26 +2170,26 @@ RecordingError
 
 Attempt to record a variable that does not exist for this cell type.
 
-----
 
 
 
-----
+
+
 
 The random module
 =================
 
-----
+
 
 NumpyRNG
 --------
 
-Wrapper for the numpy.random.!RandomState class (Mersenne Twister PRNG).
+Wrapper for the numpy.random.RandomState class (Mersenne Twister PRNG).
 
 **__getattr__(self, name)**
 
 This is to give the PyNN RNGs the same methods as the wrapped RNGs
-(numpy.random.!RandomState or the GSL RNGs.)
+(numpy.random.RandomState or the GSL RNGs.)
 
 
 **__init__(self, seed=None, parallel_safe=True)**
@@ -2213,7 +2204,7 @@ Return n random numbers from the distribution.
         if n < 0, raise an Exception.
 
 
-----
+
 
 
 GSLRNG
@@ -2237,7 +2228,7 @@ Return n random numbers from the distribution.
         if n < 0, raise an Exception.
 
 
-----
+
 
 
 NativeRNG
@@ -2258,7 +2249,7 @@ Return n random numbers from the distribution.
         if n <= 0, raise an Exception.
 
 
-----
+
 
 
 RandomDistribution
@@ -2296,11 +2287,11 @@ Note that NumpyRNG and GSLRNG distributions may not have the same names,
 Return n random numbers from the distribution.
 
 
-----
 
 
 
-----
+
+
 
 The utility module
 ==================
@@ -2331,7 +2322,7 @@ with nrniv or mpirun.
 init_logging(logfile, debug=False, num_processes=1, rank=0, level=None)
 -----------------------------------------------------------------------
 
-----
+
 
 Timer
 -----
@@ -2372,7 +2363,7 @@ Reset the time to zero, and start the clock.
 Start timing.
 
 
-----
+
 
 
 ProgressBar
@@ -2400,4 +2391,4 @@ Update self.amount with 'new_amount', and then rebuild the bar
 string.
 
 
-----
+

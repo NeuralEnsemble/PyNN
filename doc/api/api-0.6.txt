@@ -816,6 +816,7 @@ Create a new connector.
 
 
 ----
+
 Standard neuron models
 ======================
 
