@@ -47,6 +47,7 @@ logger = logging.getLogger("PyNN")
 if logger.level == logging.NOTSET:
     logger.setLevel(logging.ERROR)
 
+
 # ==============================================================================
 #   Utility functions
 # ==============================================================================

@@ -10,10 +10,11 @@ import nest
 from pyNN import recording
 from pyNN.nest import simulator
 
+# todo: this information should come from the cell type classes
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
-                'w': 'w'}
+                'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
 REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
-SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001}
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
 
 logger = logging.getLogger("PyNN")
 
