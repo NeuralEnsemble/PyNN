@@ -1,112 +1,172 @@
-= PyNN API version 0.4 =
+====================
+PyNN API version 0.4
+====================
 
-[[PageOutline(1-4,Contents,pullout)]]
 
-----
+Functions
+=========
 
-= Functions =
+**connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None)**
 
-=== connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None) ===
 Connect a source of spikes to a synaptic target. source and target can
 both be individual cells or lists of cells, in which case all possible
 connections are made with probability p, using either the random number
 generator supplied, or the default rng otherwise.
 Weights should be in nA or µS.
-=== create(cellclass, param_dict=None, n=1) ===
+
+**create(cellclass, param_dict=None, n=1)**
+
 Create n cells all of the same type.
+
 If n > 1, return a list of cell ids/references.
+
 If n==1, return just the single id.
-=== distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0, periodic_boundaries=None) ===
+
+**distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0, periodic_boundaries=None)**
+
 Return the Euclidian distance between two cells.
 `mask` allows only certain dimensions to be considered, e.g.::
+
  * to ignore the z-dimension, use `mask=array([0,1])`
+
  * to ignore y, `mask=array([0,2])`
+
  * to just consider z-distance, `mask=array([2])`
+
 `scale_factor` allows for different units in the pre- and post- position
 (the post-synaptic position is multipied by this quantity).
-=== distances(pre, post, mask=None, scale_factor=1.0, offset=0.0, periodic_boundaries=None) ===
+
+**distances(pre, post, mask=None, scale_factor=1.0, offset=0.0, periodic_boundaries=None)**
+
 Calculate the entire distance matrix at once.
 From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
-=== end(compatible_output=True) ===
+
+**end(compatible_output=True)**
+
 Do any necessary cleaning up before exiting.
-=== get_current_time() ===
+
+**get_current_time()**
+
 Return the current time in the simulation.
-=== get_max_delay() ===
 
-=== get_min_delay() ===
+**get_max_delay()**
 
-=== get_time_step() ===
+**get_min_delay()**
 
-=== num_processes() ===
+**get_time_step()**
 
-=== rank() ===
+**num_processes()**
+
+**rank()**
+
 Return the MPI rank.
-=== record(source, filename) ===
+
+**record(source, filename)**
+
 Record spikes to a file. source can be an individual cell or a list of
 cells.
-=== record_v(source, filename) ===
+
+**record_v(source, filename)**
+
 Record membrane potential to a file. source can be an individual cell or
 a list of cells.
-=== run(simtime) ===
+
+**run(simtime)**
+
 Run the simulation for simtime ms.
-=== set(cells, param, val=None) ===
+
+**set(cells, param, val=None)**
+
 Set one or more parameters of an individual cell or list of cells.
 param can be a dict, in which case val should not be supplied, or a string
 giving the parameter name, in which case val is the parameter value.
-=== setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params) ===
+
+**setup(timestep=0.1, min_delay=0.1, max_delay=10.0, debug=False, **extra_params)**
+
 Should be called at the very beginning of a script.
 extra_params contains any keyword arguments that are required by a given
 simulator but not by others.
 
 ----
 
-= Core classes =
+Core classes
+============
 
-== Population ==
-An array of neurons all of the same type. `Population' is used as a generic
+Population
+----------
+
+An array of neurons all of the same type. 'Population' is used as a generic
 term intended to include layers, columns, nuclei, etc., of cells.
-=== !__getitem!__(self, addr) ===
+
+**__getitem__(self, addr)**
+
 Return a representation of the cell with coordinates given by addr,
 suitable for being passed to other methods that require a cell id.
 Note that !__getitem!__ is called when using [] access, e.g.
+
 p = Population(...)
-p[2,3] is equivalent to p.!__getitem!__((2,3)).
-=== !__init!__(self, dims, cellclass, cellparams=None, label=None) ===
+
+p[2,3] is equivalent to p.__getitem__((2,3)).
+
+
+**__init__(self, dims, cellclass, cellparams=None, label=None)**
+
 dims should be a tuple containing the population dimensions, or a single
 integer, for a one-dimensional population.
 e.g., (10,10) will create a two-dimensional population of size 10x10.
 cellclass should either be a standardized cell class (a class inheriting
 from common.!StandardCellType) or a string giving the name of the
 simulator-specific model that makes up the population.
-cellparams should be a dict which is passed to the neuron model
-constructor
-label is an optional name for the population.
-=== !__iter!__(self) ===
+cellparams should be a dict which is passed to the neuron model constructor label is an optional name for the population.
+
+**__iter__(self)**
+
 Iterator over cell ids.
-=== !__len!__(self) ===
+
+**__len__(self)**
+
 Return the total number of cells in the population.
-=== addresses(self) ===
+
+**addresses(self)**
+
 Iterator over cell addresses.
-=== describe(self) ===
+
+**describe(self)**
+
 Returns a human readable description of the population
-=== getSpikes(self, gather=True) ===
+
+**getSpikes(self, gather=True)**
+
 Return a 2-column numpy array containing cell ids and spike times for
 recorded cells.
 
 Useful for small populations, for example for single neuron Monte-Carlo.
-=== ids(self) ===
+
+**ids(self)**
+
 Iterator over cell ids.
-=== index(self, n) ===
+
+**index(self, n)**
+
 Return the nth cell in the population (Indexing starts at 0).
-=== locate(self, id) ===
+
+**locate(self, id)**
+
 Given an element id in a Population, return the coordinates.
+
 e.g. for  4 6  , element 2 has coordinates (1,0) and value 7
 7 9
-=== meanSpikeCount(self, gather=True) ===
+
+**meanSpikeCount(self, gather=True)**
+
 Returns the mean number of spikes per neuron.
-=== nearest(self, position) ===
+
+**nearest(self, position)**
+
 Return the neuron closest to the specified position.
-=== printSpikes(self, filename, gather=True, compatible_output=True) ===
+
+**printSpikes(self, filename, gather=True, compatible_output=True)**
+
 Write spike times to file.
 
 If compatible_output is True, the format is "spiketime cell_id",
@@ -125,7 +185,9 @@ For parallel simulators, if gather is True, all data will be gathered
 to the master node and a single output file created there. Otherwise, a
 file will be written on each node, containing only the cells simulated
 on that node.
-=== print_v(self, filename, gather=True, compatible_output=True) ===
+
+**print_v(self, filename, gather=True, compatible_output=True)**
+
 Write membrane potential traces to file.
 
 If compatible_output is True, the format is "v cell_id",
@@ -142,42 +204,61 @@ For parallel simulators, if gather is True, all data will be gathered
 to the master node and a single output file created there. Otherwise, a
 file will be written on each node, containing only the cells simulated
 on that node.
-=== randomInit(self, rand_distr) ===
+
+**randomInit(self, rand_distr)**
+
 Set initial membrane potentials for all the cells in the population to
 random values.
-=== record(self, record_from=None, rng=None) ===
+
+**record(self, record_from=None, rng=None)**
+
 If record_from is not given, record spikes from all cells in the Population.
 record_from can be an integer - the number of cells to record from, chosen
 at random (in this case a random number generator can also be supplied)
 - or a list containing the ids of the cells to record.
-=== record_v(self, record_from=None, rng=None) ===
+
+**record_v(self, record_from=None, rng=None)**
+
 If record_from is not given, record the membrane potential for all cells in
 the Population.
 record_from can be an integer - the number of cells to record from, chosen
 at random (in this case a random number generator can also be supplied)
 - or a list containing the ids of the cells to record.
-=== rset(self, parametername, rand_distr) ===
+
+**rset(self, parametername, rand_distr)**
+
 'Random' set. Set the value of parametername to a value taken from
 rand_distr, which should be a !RandomDistribution object.
-=== set(self, param, val=None) ===
+
+**set(self, param, val=None)**
+
 Set one or more parameters for every cell in the population. param
 can be a dict, in which case val should not be supplied, or a string
 giving the parameter name, in which case val is the parameter value.
 val can be a numeric value, or list of such (e.g. for setting spike times).
+
 e.g. p.set("tau_m",20.0).
+
 p.set({'tau_m':20,'v_rest':-65})
-=== tset(self, parametername, value_array) ===
+
+**tset(self, parametername, value_array)**
+
 'Topographic' set. Set the value of parametername to the values in
 value_array, which must have the same dimensions as the Population.
-'''positions''' = <property object at 0xb6db861c>
+
+**positions** = <property object at 0xb6db861c>
 
 
 
-== Projection ==
+Projection
+----------
+
 A container for all the connections of a given type (same synapse type and
 plasticity mechanisms) between two populations, together with methods to set
 parameters of those connections, including of plasticity mechanisms.
-=== !__init!__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None) ===
+
+**__init__(self, presynaptic_population, postsynaptic_population, method='allToAll', method_parameters=None, source=None, target=None, synapse_dynamics=None, label=None, rng=None)**
+
 presynaptic_population and postsynaptic_population - Population objects.
 
 source - string specifying which attribute of the presynaptic cell
@@ -198,62 +279,94 @@ method_parameters - dict containing parameters needed by the connection
 method, although we should allow this to be a number or string if there
 is only one parameter.
 
-synapse_dynamics - a `!SynapseDynamics` object specifying which
+synapse_dynamics - a `SynapseDynamics` object specifying which
 synaptic plasticity mechanisms to use.
 
 rng - since most of the connection methods need uniform random numbers,
 it is probably more convenient to specify a RNG object here rather
 than within method_parameters, particularly since some methods also use
 random numbers to give variability in the number of connections per cell.
-=== !__len!__(self) ===
+
+**__len__(self)**
+
 Return the total number of connections.
-=== describe(self) ===
+
+**describe(self)**
+
 Returns a human readable description of the projection
-=== getDelays(self, format='list', gather=True) ===
+
+**getDelays(self, format='list', gather=True)**
+
 Possible formats are: a list of length equal to the number of connections
 in the projection, a 2D delay array (with None or 1e12 for non-existent
 connections).
-=== getWeights(self, format='list', gather=True) ===
+
+**getWeights(self, format='list', gather=True)**
+
 Possible formats are: a list of length equal to the number of connections
 in the projection, a 2D weight array (with zero or None for non-existent
 connections).
-=== printWeights(self, filename, format='list', gather=True) ===
+
+**printWeights(self, filename, format='list', gather=True)**
+
 Print synaptic weights to file.
-=== randomizeDelays(self, rand_distr) ===
+
+**randomizeDelays(self, rand_distr)**
+
 Set delays to random values taken from rand_distr.
-=== randomizeSynapseDynamics(self, param, rand_distr) ===
+
+**randomizeSynapseDynamics(self, param, rand_distr)**
+
 Set parameters of the synapse dynamics to values taken from rand_distr
-=== randomizeWeights(self, rand_distr) ===
+
+**randomizeWeights(self, rand_distr)**
+
 Set weights to random values taken from rand_distr.
-=== saveConnections(self, filename, gather=False) ===
+
+**saveConnections(self, filename, gather=False)**
+
 Save connections to file in a format suitable for reading in with the
 'fromFile' method.
-=== setDelays(self, d) ===
+
+**setDelays(self, d)**
+
 d can be a single number, in which case all delays are set to this
 value, or a list/1D array of length equal to the number of connections
 in the population.
-=== setSynapseDynamics(self, param, value) ===
+
+**setSynapseDynamics(self, param, value)**
+
 Set parameters of the synapse dynamics linked with the projection
-=== setWeights(self, w) ===
+
+**setWeights(self, w)**
+
 w can be a single number, in which case all weights are set to this
 value, or a list/1D array of length equal to the number of connections
 in the population.
 Weights should be in nA for current-based and µS for conductance-based
 synapses.
-=== weightHistogram(self, min=None, max=None, nbins=10) ===
+
+**weightHistogram(self, min=None, max=None, nbins=10)**
+
 Return a histogram of synaptic weights.
 If min and max are not given, the minimum and maximum weights are
 calculated automatically.
+
 ----
 
-= Standard cell classes =
+Standard cell classes
+=====================
 
 
-== !StandardModelType ==
+StandardModelType
+-----------------
+
 Base class for standardized cell model and synapse model classes.
-=== !__init!__(self, parameters) ===
 
-=== checkParameters(cls, supplied_parameters, with_defaults=False) ===
+**__init__(self, parameters)**
+
+**checkParameters(cls, supplied_parameters, with_defaults=False)**
+
 Returns a parameter dictionary, checking that each
 supplied_parameter is in the default_parameters and
 converts to the type of the latter.
@@ -261,38 +374,51 @@ converts to the type of the latter.
 If with_defaults==True, parameters not in
 supplied_parameters are in the returned dictionary
 as in default_parameters.
-=== computed_parameters(cls) ===
+
+**computed_parameters(cls)**
+
 Return a list of parameters whose values must be computed from
 more than one other parameter.
-=== reverse_translate(cls, native_parameters) ===
+
+**reverse_translate(cls, native_parameters)**
+
 Translate simulator-specific model parameters to standardized parameters.
-=== scaled_parameters(cls) ===
+
+**scaled_parameters(cls)**
+
 Return a list of parameters for which there is a unit change between
 standard and native parameter values.
-=== simple_parameters(cls) ===
+
+**simple_parameters(cls)**
+
 Return a list of parameters for which there is a one-to-one
 correspondance between standard and native parameter values.
-=== translate(cls, parameters) ===
+
+**translate(cls, parameters)**
+
 Translate standardized model parameters to simulator-specific parameters.
-=== update_parameters(self, parameters) ===
+
+**update_parameters(self, parameters)**
+
 update self.parameters with those in parameters
 
-'''default_parameters''' = {
+**default_parameters** = {
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 
 
-== !StandardCellType(!StandardModelType) ==
+StandardCellType(StandardModelType)
+------------------------------------
+
 Base class for standardized cell model classes.
 
 
+EIF_cond_alpha_isfa_ista(StandardCellType)
+-------------------------------------------
 
-
-== EIF_cond_alpha_isfa_ista(!StandardCellType) ==
 Exponential integrate and fire neuron with spike triggered and
 sub-threshold adaptation currents (isfa, ista reps.) according to:
 
@@ -301,101 +427,122 @@ as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
 See also: IF_cond_exp_gsfa_grr
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'a' ||: 4.0 ||
-|| 'tau_m' ||: 9.3667 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 0.281 ||
-|| 'delta_T' ||: 2.0 ||
-|| 'v_init' ||: -70.6 ||
-|| 'v_thresh' ||: -50.4 ||
-|| 'b' ||: 0.0805 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_reset' ||: -70.6 ||
-|| 'v_spike' ||: 0.0 ||
-|| 'e_rev_I' ||: -80.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'tau_w' ||: 144.0 ||
-|| 'w_init' ||: 0.0 ||
-|| 'v_rest' ||: -70.6 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'a'             : 4.0 
+'tau_m'         : 9.3667 
+'e_rev_E'       : 0.0 
+'i_offset'      : 0.0 
+'cm'            : 0.281 
+'delta_T'       : 2.0 
+'v_init'        : -70.6 
+'v_thresh'      : -50.4 
+'b'             : 0.0805 
+'tau_syn_E'     : 5.0 
+'v_reset'       : -70.6 
+'v_spike'       : 0.0 
+'e_rev_I'       : -80.0 
+'tau_syn_I'     : 5.0 
+'tau_w'         : 144.0 
+'w_init'        : 0.0 
+'v_rest'        : -70.6 
+=============   ==========
+
 
 }
 
 
 
-== HH_cond_exp(!StandardCellType) ==
+HH_cond_exp(StandardCellType)
+------------------------------
+
 docstring needed here.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'gbar_K' ||: 6000.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'gbar_Na' ||: 20000.0 ||
-|| 'cm' ||: 0.2 ||
-|| 'e_rev_leak' ||: -65.0 ||
-|| 'e_rev_I' ||: -80.0 ||
-|| 'e_rev_K' ||: -90.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'e_rev_Na' ||: 50.0 ||
-|| 'tau_syn_E' ||: 0.2 ||
-|| 'tau_syn_I' ||: 2.0 ||
-|| 'v_offset' ||: -63.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'g_leak' ||: 10.0 ||
+=============   ==========
+=============   ==========
+'gbar_K'        : 6000.0 
+'e_rev_E'       : 0.0 
+'gbar_Na'       : 20000.0 
+'cm'            : 0.2 
+'e_rev_leak'    : -65.0 
+'e_rev_I'       : -80.0 
+'e_rev_K'       : -90.0 
+'v_init'        : -65.0 
+'e_rev_Na'      : 50.0 
+'tau_syn_E'     : 0.2 
+'tau_syn_I'     : 2.0 
+'v_offset'      : -63.0 
+'i_offset'      : 0.0 
+'g_leak'        : 10.0 
+=============   ==========
 
 }
 
 
 
-== IF_cond_alpha(!StandardCellType) ==
+IF_cond_alpha(StandardCellType)
+--------------------------------
+
 Leaky integrate and fire model with fixed threshold and alpha-function-
 shaped post-synaptic conductance.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'e_rev_I' ||: -70.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 0.3 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 0.5 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'e_rev_E'       : 0.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'e_rev_I'       : -70.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 0.3 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 0.5 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
 
-== IF_cond_exp(!StandardCellType) ==
+IF_cond_exp(StandardCellType)
+------------------------------
+
 Leaky integrate and fire model with fixed threshold and
 exponentially-decaying post-synaptic conductance.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'e_rev_I' ||: -70.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0
+'e_rev_E'       : 0.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'e_rev_I'       : -70.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 5.0 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 5.0 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
-== IF_cond_exp_gsfa_grr(!StandardCellType) ==
+IF_cond_exp_gsfa_grr(StandardCellType) 
+---------------------------------------
+
 Linear leaky integrate and fire model with fixed threshold,
 decaying-exponential post-synaptic conductance, conductance based spike-frequency adaptation,
 and a conductance-based relative refractory mechanism.
@@ -405,137 +552,171 @@ and renewal theories. Neural Computation 19: 2958-3010.
 
 See also: EIF_cond_alpha_isfa_ista
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'e_rev_rr' ||: -75.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'e_rev_I' ||: -70.0 ||
-|| 'tau_sfa' ||: 100.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'q_sfa' ||: 15.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'q_rr' ||: 3000.0 ||
-|| 'tau_rr' ||: 2.0 ||
-|| 'e_rev_sfa' ||: -75.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'e_rev_rr'      : -75.0 
+'tau_m'         : 20.0 
+'e_rev_E'       : 0.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'e_rev_I'       : -70.0 
+'tau_sfa'       : 100.0 
+'v_init'        : -65.0 
+'q_sfa'         : 15.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 5.0 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 5.0 
+'q_rr'          : 3000.0 
+'tau_rr'        : 2.0 
+'e_rev_sfa'     : -75.0 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
 
-== IF_curr_alpha(!StandardCellType) ==
+IF_curr_alpha(StandardCellType)
+--------------------------------
+
 Leaky integrate and fire model with fixed threshold and alpha-function-
 shaped post-synaptic current.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 0.5 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 0.5 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 0.5 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 0.5 
+ 'v_reset'      : -65.0 
+=============   ==========
 
 }
 
 
 
-== IF_curr_exp(!StandardCellType) ==
+IF_curr_exp(StandardCellType) 
+------------------------------
+
 Leaky integrate and fire model with fixed threshold and
 decaying-exponential post-synaptic current. (Separate synaptic currents for
 excitatory and inhibitory synapses
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 5.0 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 5.0 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
 
 
-== IF_facets_hardware1(!StandardCellType) ==
+IF_facets_hardware1(StandardCellType)
+--------------------------------------
+
 Leaky integrate and fire model with conductance-based synapses and fixed
 threshold as it is resembled by the FACETS Hardware Stage 1. For further
 details regarding the hardware model see the FACETS-internal Wiki:
 https://facets.kip.uni-heidelberg.de/private/wiki/index.php/WP7_NNM
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 1.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'g_leak' ||: 20.0 ||
-|| 'cm' ||: 0.2 ||
-|| 'e_rev_I' ||: -75.0 ||
-|| 'v_thresh' ||: -57.0 ||
-|| 'tau_syn_E' ||: 20.0 ||
-|| 'v_reset' ||: -80.0 ||
-|| 'tau_syn_I' ||: 20.0 ||
-|| 'v_rest' ||: -70.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 1.0 
+'e_rev_E'       : 0.0 
+'g_leak'        : 20.0 
+'cm'            : 0.2 
+'e_rev_I'       : -75.0 
+'v_thresh'      : -57.0 
+'tau_syn_E'     : 20.0 
+'v_reset'       : -80.0 
+'tau_syn_I'     : 20.0 
+'v_rest'        : -70.0 
+=============   ==========
 
 }
 
 
 
-== !SpikeSourceArray(!StandardCellType) ==
+SpikeSourceArray(StandardCellType)
+-----------------------------------
+
 Spike source generating spikes at the times given in the spike_times array.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'spike_times' ||: [] ||
+=============   ==========
+=============   ==========
+'spike_times'   : [] 
+=============   ==========
 
 }
 
 
 
-== !SpikeSourceInhGamma(!StandardCellType) ==
+
+SpikeSourceInhGamma(!StandardCellType)
+--------------------------------------
+
 Spike source, generating realizations of an inhomogeneous gamma process,
 employing the thinning method.
 
 See: Muller et al (2007) Spike-frequency adapting neural ensembles: Beyond
 mean-adaptation and renewal theories. Neural Computation 19: 2958-3010.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'a' ||: [ 1.] ||
-|| 'b' ||: [ 1.] ||
-|| 'rmax' ||: 1.0 ||
-|| 'start' ||: 0.0 ||
-|| 'tbins' ||: [0] ||
-|| 'duration' ||: 1000000.0 ||
+=============   =============
+=============   =============
+'a'             : [ 1.] 
+'b'             : [ 1.] 
+'rmax'          : 1.0 
+'start'         : 0.0 
+'tbins'         : [0] 
+'duration'      : 1000000.0 
+=============   =============
 
 }
 
 
 
-== !SpikeSourcePoisson(!StandardCellType) ==
+SpikeSourcePoisson(!StandardCellType)
+-------------------------------------
+
 Spike source, generating spikes according to a Poisson process.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'duration' ||: 1000000.0 ||
-|| 'start' ||: 0.0 ||
-|| 'rate' ||: 1.0 ||
+=============   =============
+=============   =============
+'duration'      : 1000000.0 
+'start'         : 0.0 
+'rate'          : 1.0 
+=============   =============
 
 }
 
@@ -543,28 +724,42 @@ Spike source, generating spikes according to a Poisson process.
 
 ----
 
-= Connector classes =
+Connector classes
+=================
 
-== Connector ==
+Connector 
+---------
+
 Base class for Connector classes.
-=== !__init!__(self, weights=0.0, delays=None) ===
 
-=== connect(self, projection) ===
+**__init__(self, weights=0.0, delays=None)**
+
+**connect(self, projection)**
+
 Connect all neurons in ``projection``
-=== getDelays(self, N, start=0) ===
+
+**getDelays(self, N, start=0)**
+
 Returns the next N delay values
-=== getWeights(self, N) ===
+
+**getWeights(self, N)**
+
 Returns the next N weight values
 
 
-== !AllToAllConnector(Connector) ==
+AllToAllConnector(Connector)
+----------------------------
+
 Connects all cells in the presynaptic population to all cells in the
 postsynaptic population.
-=== !__init!__(self, allow_self_connections=True, weights=0.0, delays=None) ===
+
+**__init!__(self, allow_self_connections=True, weights=0.0, delays=None)**
 
 
 
-== !DistanceDependentProbabilityConnector(Connector) ==
+DistanceDependentProbabilityConnector(Connector)
+------------------------------------------------
+
 For each pair of pre-post cells, the connection probability depends on distance.
 d_expression should be the right-hand side of a valid python expression
 for probability, involving 'd', e.g. "exp(-abs(d))", or "float(d<3)"
@@ -574,55 +769,76 @@ axes='xyz' is the same as axes=None.
 It may be that the pre and post populations use different units for position, e.g.
 degrees and µm. In this case, `scale_factor` can be specified, which is applied
 to the positions in the post-synaptic population. An offset can also be included.
-=== !__init!__(self, d_expression, axes=None, scale_factor=1.0, offset=0.0, periodic_boundaries=False, allow_self_connections=True, weights=0.0, delays=None) ===
 
-'''AXES''' = {
+**__init!__(self, d_expression, axes=None, scale_factor=1.0, offset=0.0, periodic_boundaries=False, allow_self_connections=True, weights=0.0, delays=None)**
 
-|| 'xy' ||: [0, 1] ||
-|| 'xyz' ||: None ||
-|| 'xz' ||: [0, 2] ||
-|| 'None' ||: None ||
-|| 'yz' ||: [1, 2] ||
-|| 'y' ||: [1] ||
-|| 'x' ||: [0] ||
-|| 'z' ||: [2] ||
+**AXES** = {
+
+=============   =============
+=============   =============
+'xy'            : [0, 1]
+'xyz'           : None 
+'xz'            : [0, 2] 
+'None'          : None 
+'yz'            : [1, 2] 
+'y'             : [1] 
+'x'             : [0] 
+'z'             : [2] 
+=============   =============
 
 }
 
 
 
-== !FixedNumberPostConnector(Connector) ==
+FixedNumberPostConnector(Connector)
+-----------------------------------
+
 Each pre-synaptic neuron is connected to exactly n post-synaptic neurons
     chosen at random.
-=== !__init!__(self, n, allow_self_connections=True, weights=0.0, delays=None) ===
+
+**__init__(self, n, allow_self_connections=True, weights=0.0, delays=None)**
 
 
 
 
-== !FixedNumberPreConnector(Connector) ==
+FixedNumberPreConnector(Connector)
+----------------------------------
+
 Each post-synaptic neuron is connected to exactly n pre-synaptic neurons
     chosen at random.
-=== !__init!__(self, n, allow_self_connections=True, weights=0.0, delays=None) ===
+
+**__init__(self, n, allow_self_connections=True, weights=0.0, delays=None)**
 
 
 
-== !FixedProbabilityConnector(Connector) ==
+FixedProbabilityConnector(Connector)
+------------------------------------
+
 For each pair of pre-post cells, the connection probability is constant.
-=== !__init!__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None) ===
+
+**__init__(self, p_connect, allow_self_connections=True, weights=0.0, delays=None)**
 
 
 
-== !FromFileConnector(Connector) ==
+FromFileConnector(Connector)
+----------------------------
+
 Make connections according to a list read from a file.
-=== !__init!__(self, filename, distributed=False) ===
+
+**__init__(self, filename, distributed=False)**
 
 
-== !FromListConnector(Connector) ==
+FromListConnector(Connector)
+----------------------------
+
 Make connections according to a list.
-=== !__init!__(self, conn_list) ===
+
+**__init__(self, conn_list)**
 
 
-== !OneToOneConnector(Connector) ==
+OneToOneConnector(Connector)
+----------------------------
+
 Where the pre- and postsynaptic populations have the same size, connect
 cell i in the presynaptic population to cell i in the postsynaptic
 population for all i.
@@ -630,146 +846,201 @@ In fact, despite the name, this should probably be generalised to the
 case where the pre and post populations have different dimensions, e.g.,
 cell i in a 1D pre population of size n should connect to all cells
 in row i of a 2D post population of size (n,m).
-=== !__init!__(self, weights=0.0, delays=None) ===
+
+**__init__(self, weights=0.0, delays=None)**
 
 ----
 
 
 
-= Dynamic synapse classes =
+Dynamic synapse classes
+=======================
 
-== !SynapseDynamics ==
+SynapseDynamics
+---------------
+
 For specifying synapse short-term (faciliation, depression) and long-term
 (STDP) plasticity. To be passed as the `synapse_dynamics` argument to
 `Projection.!__init!__()` or `connect()`.
-=== !__init!__(self, fast=None, slow=None) ===
+
+**__init__(self, fast=None, slow=None)**
 
 
 
-== STDPMechanism ==
+STDPMechanism
+-------------
+
 Specification of STDP models.
-=== !__init!__(self, timing_dependence=None, weight_dependence=None, voltage_dependence=None, dendritic_delay_fraction=1.0) ===
+
+**__init__(self, timing_dependence=None, weight_dependence=None, voltage_dependence=None, dendritic_delay_fraction=1.0)**
 
 
 
-== STDPWeightDependence(!StandardModelType) ==
+STDPWeightDependence(!StandardModelType)
+----------------------------------------
+
 Abstract base class for models of STDP weight dependence.
 
 
 
-== !AdditivePotentiationMultiplicativeDepression(STDPWeightDependence) ==
+AdditivePotentiationMultiplicativeDepression(STDPWeightDependence)
+------------------------------------------------------------------
+
 For depression, Dw propto w-w_min
 For potentiation, Dw constant
 (van Rossum rule?)
-=== !__init!__(self, w_min=0.0, A_plus=0.01, A_minus=0.01) ===
 
-'''default_parameters''' = {
+**__init__(self, w_min=0.0, A_plus=0.01, A_minus=0.01)**
+
+**default_parameters** = {
 }
 
 
 
 
-== !AdditiveWeightDependence(STDPWeightDependence) ==
+AdditiveWeightDependence(STDPWeightDependence)
+----------------------------------------------
+
 The amplitude of the weight change is fixed for depression (`A_minus`)
 and for potentiation (`A_plus`).
 If the new weight would be less than `w_min` it is set to `w_min`. If it would
 be greater than `w_max` it is set to `w_max`.
-=== !__init!__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01) ===
 
-'''default_parameters''' = {
+**__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01)**
 
-|| 'A_minus' ||: 0.01 ||
-|| 'A_plus' ||: 0.01 ||
-|| 'w_min' ||: 0.0 ||
-|| 'w_max' ||: 1.0 ||
+**default_parameters** = {
+
+=============   =============
+=============   =============
+'A_minus'       : 0.01 
+'A_plus'        : 0.01 
+'w_min'         : 0.0 
+'w_max'         : 1.0 
+=============   =============
 
 }
 
 
 
-== !MultiplicativeWeightDependence(STDPWeightDependence) ==
+MultiplicativeWeightDependence(STDPWeightDependence)
+----------------------------------------------------
+
 The amplitude of the weight change depends on the current weight.
+
 For depression, Dw propto w-w_min
+
 For potentiation, Dw propto w_max-w
-=== !__init!__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01) ===
 
-'''default_parameters''' = {
+**__init__(self, w_min=0.0, w_max=1.0, A_plus=0.01, A_minus=0.01)**
 
-|| 'A_minus' ||: 0.01 ||
-|| 'A_plus' ||: 0.01 ||
-|| 'w_min' ||: 20.0 ||
-|| 'w_max' ||: 20.0 ||
+**default_parameters** = {
+
+=============   =============
+=============   =============
+'A_minus'       : 0.01 
+'A_plus'        : 0.01 
+'w_min'         : 20.0 
+'w_max'         : 20.0 
+=============   =============
 
 }
 
 
 
-== !GutigWeightDependence(STDPWeightDependence) ==
+GutigWeightDependence(STDPWeightDependence)
+-------------------------------------------
 
-=== !__init!__(self) ===
+**__init__(self)**
 
-'''default_parameters''' = {
+**default_parameters** = {
 }
 
 
 
 
 
-== STDPTimingDependence(!StandardModelType) ==
+STDPTimingDependence(!StandardModelType)
+----------------------------------------
+
 Abstract base class for models of STDP timing dependence (triplets, etc)
 
 
-== !SpikePairRule(!STDPTimingDependence) ==
+**SpikePairRule(!STDPTimingDependence)**
 
-=== !__init!__(self, tau_plus=20.0, tau_minus=20.0) ===
+**__init__(self, tau_plus=20.0, tau_minus=20.0)**
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_minus' ||: 20.0 ||
-|| 'tau_plus' ||: 20.0 ||
+=============   =============
+=============   =============
+'tau_minus'     : 20.0 
+'tau_plus'      : 20.0 
+=============   =============
 
 }
 
 
 
-== !ShortTermPlasticityMechanism(!StandardModelType) ==
+ShortTermPlasticityMechanism(!StandardModelType)
+------------------------------------------------
+
 Abstract base class for models of short-term synaptic dynamics.
 
 
 
 
-== !TsodyksMarkramMechanism(!ShortTermPlasticityMechanism) ==
+TsodyksMarkramMechanism(!ShortTermPlasticityMechanism)
+------------------------------------------------------
 
-=== !__init!__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0) ===
+**__init__(self, U=0.5, tau_rec=100.0, tau_facil=0.0, u0=0.0, x0=1.0, y0=0.0)**
 
-'''default_parameters''' = {
+default_parameters** = {
 
-|| 'tau_facil' ||: 0.0 ||
-|| 'u0' ||: 0.0 ||
-|| 'tau_rec' ||: 100.0 ||
-|| 'U' ||: 0.5 ||
-|| 'y0' ||: 0.0 ||
-|| 'x0' ||: 1.0 ||
+=============   =============
+=============   =============
+'tau_facil'     : 0.0 
+'u0'            : 0.0 
+'tau_rec'       : 100.0 
+'U'             : 0.5 
+'y0'            : 0.0 
+'x0'            : 1.0 
+=============   =============
 
 }
 
 ----
 
-= Utility classes =
+Utility classes
+===============
 
-== Timer ==
+Timer
+-----
+
 For timing script execution.
-=== !__init!__(self) ===
 
-=== elapsedTime(self, format=None) ===
+**__init__(self)**
+
+elapsedTime(self, format=None)
+------------------------------
+
 Return the elapsed time in seconds but keep the clock running.
-=== reset(self) ===
+
+reset(self)
+-----------
+
 Reset the time to zero, and start the clock.
-=== start(self) ===
+
+start(self)
+-----------
+
 Start timing.
-=== time_in_words(s) ===
+
+time_in_words(s)
+----------------
+
 Formats a time in seconds as a string containing the time in days,
 hours, minutes, seconds. Examples::
+
   >>> time_in_words(1)
   1 second
   >>> time_in_words(123)
@@ -780,65 +1051,85 @@ hours, minutes, seconds. Examples::
 
 
 
-== IDMixin ==
+IDMixin
+-------
+
 Instead of storing ids as integers, we store them as ID objects,
 which allows a syntax like:
+
 p[3,4].tau_m = 20.0
+
 where p is a Population object.
-=== !__getattr!__(self, name) ===
 
-=== !__init!__(self) ===
+**__getattr__(self, name)**
 
-=== get_parameters(self) ===
+**__init__(self)**
+
+**get_parameters(self)**
+
 Return a dict of all cell parameters.
-=== is_standard_cell(self) ===
 
-=== set_parameters(self, **parameters) ===
+**is_standard_cell(self)**
+
+**set_parameters(self, **parameters)**
+
 Set cell parameters, given as a sequence of parameter=value arguments.
-'''cellclass''' = <property object at 0xb711061c>
 
-'''non_parameter_attributes''' = ('parent', '_cellclass', 'cellclass', '_position', 'position', 'hocname')
+**cellclass** = <property object at 0xb711061c>
 
-'''position''' = <property object at 0xb71140f4>
+**non_parameter_attributes** = ('parent', '_cellclass', 'cellclass', '_position', 'position', 'hocname')
+
+**position** = <property object at 0xb71140f4>
 
 ----
 
 
 
-= Exception classes =
+Exception classes
+=================
 
 
 
-== !ConnectionError ==
+ConnectionError
+---------------
 
 
 
 
-== !InvalidDimensionsError ==
+InvalidDimensionsError
+----------------------
 
 
 
-== !InvalidModelError ==
+InvalidModelError
+-----------------
 
 
 
-== !InvalidParameterValueError ==
+InvalidParameterValueError
+--------------------------
 
 
 
-== !NonExistentParameterError ==
+NonExistentParameterError
+-------------------------
+
 Raised when an attempt is made to access a model parameter that does not
 exist.
-=== !__init!__(self, parameter_name, standard_model) ===
+
+**__init__(self, parameter_name, standard_model)**
 
 
 
-== !RoundingWarning ==
+**RoundingWarning**
 
 
 
-== !ModelNotAvailable ==
+**ModelNotAvailable**
+
 Not available for this simulator.
-=== !__init!__(self, *args, **kwargs) ===
 
-----
+**__init__(self, *args, **kwargs)**
+
+
+

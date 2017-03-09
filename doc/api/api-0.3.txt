@@ -1,255 +1,334 @@
-= PyNN API version 0.3 =
+====================
+PyNN API version 0.3
+====================
 
-[[PageOutline(1-4,Contents,pullout)]]
+Data
+====
 
-== Data ==
+**__name__** = pyNN.common
 
-'''!__name!__''' = pyNN.common
+**__version__** = $Revision: 77 $
 
-'''!__version!__''' = $Revision: 77 $
+**dt** = 0.1
 
-'''dt''' = 0.1
+Functions
+=========
 
-== Functions ==
-
-==== connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None) ====
+**connect(source, target, weight=None, delay=None, synapse_type=None, p=1, rng=None)**
+   
 Connect a source of spikes to a synaptic target. source and target can
 both be individual cells or lists of cells, in which case all possible
 connections are made with probability p, using either the random number
 generator supplied, or the default rng otherwise.
 Weights should be in nA or uS.
-==== create(cellclass, paramDict=None, n=1) ====
+   
+**create(cellclass, paramDict=None, n=1)**
+   
 Create n cells all of the same type.
+
 If n > 1, return a list of cell ids/references.
+
 If n==1, return just the single id.
-==== end(compatible_output=True) ====
+
+**end(compatible_output=True)**
+  
 Do any necessary cleaning up before exiting.
-==== record(source, filename) ====
+
+**record(source, filename)**
+  
 Record spikes to a file. source can be an individual cell or a list of
 cells.
-==== record_v(source, filename) ====
+
+**record_v(source, filename)**
+   
 Record membrane potential to a file. source can be an individual cell or
 a list of cells.
-==== run(simtime) ====
+
+**run(simtime)**
+   
 Run the simulation for simtime ms.
-==== set(cells, cellclass, param, val=None) ====
+
+**set(cells, cellclass, param, val=None)**
+   
 Set one or more parameters of an individual cell or list of cells.
 param can be a dict, in which case val should not be supplied, or a string
 giving the parameter name, in which case val is the parameter value.
 cellclass must be supplied for doing translation of parameter names.
-==== setRNGseeds(seedList) ====
+
+**setRNGseeds(seedList)**
+   
 Globally set rng seeds.
-==== setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params) ====
+
+**setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params)**
+   
 Should be called at the very beginning of a script.
 extra_params contains any keyword arguments that are required by a given
 simulator but not by others.
-== Classes ==
 
-=== IF_cond_alpha ===
+
+Classes
+=======
+
+IF_cond_alpha
+-------------
+
 Leaky integrate and fire model with fixed threshold and alpha-function-
 shaped post-synaptic conductance.
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+   
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+   
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+   
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'e_rev_E' ||: 0.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'e_rev_I' ||: -70.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'e_rev_E'       : 0.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'e_rev_I'       : -70.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 5.0 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 5.0 
+'v_reset'       : -65.0 
+=============   ========== 
 
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== IF_curr_alpha ===
+IF_curr_alpha
+-------------
+
 Leaky integrate and fire model with fixed threshold and alpha-function-
 shaped post-synaptic current.
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn' ||: 5.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'v_rest'        : -65.0 
+'tau_syn'       : 5.0 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== IF_curr_exp ===
+IF_curr_exp 
+-----------
+
 Leaky integrate and fire model with fixed threshold and
 decaying-exponential post-synaptic current. (Separate synaptic currents for
 excitatory and inhibitory synapses
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'tau_refrac' ||: 0.0 ||
-|| 'tau_m' ||: 20.0 ||
-|| 'i_offset' ||: 0.0 ||
-|| 'cm' ||: 1.0 ||
-|| 'v_init' ||: -65.0 ||
-|| 'v_thresh' ||: -50.0 ||
-|| 'tau_syn_E' ||: 5.0 ||
-|| 'v_rest' ||: -65.0 ||
-|| 'tau_syn_I' ||: 5.0 ||
-|| 'v_reset' ||: -65.0 ||
+=============   ==========
+=============   ==========
+'tau_refrac'    : 0.0 
+'tau_m'         : 20.0 
+'i_offset'      : 0.0 
+'cm'            : 1.0 
+'v_init'        : -65.0 
+'v_thresh'      : -50.0 
+'tau_syn_E'     : 5.0 
+'v_rest'        : -65.0 
+'tau_syn_I'     : 5.0 
+'v_reset'       : -65.0 
+=============   ==========
 
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== !SpikeSourceArray ===
+SpikeSourceArray
+----------------
+
 Spike source generating spikes at the times given in the spike_times array.
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'spike_times' ||: [] ||
+=============   ==========
+=============   ==========
+'spike_times'   : [] 
+=============   ==========
 
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== !SpikeSourcePoisson ===
+SpikeSourcePoisson
+------------------
+
 Spike source, generating spikes according to a Poisson process.
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
+**default_parameters** = {
 
-|| 'duration' ||: 1000000000.0 ||
-|| 'start' ||: 0.0 ||
-|| 'rate' ||: 0.0 ||
+===============   ===================
+===============   ===================
+'duration'        : 1000000000.0 
+'start'           : 0.0
+'rate'            : 0.0 
+===============   ===================
 
 }
 
 
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== !StandardCellType ===
+StandardCellType
+----------------
+
 Base class for standardized cell model classes.
-==== !__init!__(self, parameters) ====
 
-==== checkParameters(self, supplied_parameters, with_defaults=False) ====
+**__init__(self, parameters)**
+
+**checkParameters(self, supplied_parameters, with_defaults=False)**
+
 Checks that the parameters exist and have values of the correct type.
-==== translate(self, parameters) ====
+
+**translate(self, parameters)**
+
 Translate standardized model names to simulator specific names.
 
-'''default_parameters''' = {
-}
+**default_parameters = {}**
 
-
-'''translations''' = {
-}
+**translations** = {}
 
 ----
 
-=== ID ===
+ID
+--
+
 This class is experimental. The idea is that instead of storing ids as
 integers, we store them as ID objects, which allows a syntax like:
 p[3,4].set('tau_m',20.0)
 where p is a Population object. The question is, how big a memory/performance
 hit is it to replace integers with ID objects?
-==== !__init!__(self, n) ====
 
-==== get(self, param) ====
+**__init__(self, n)**
 
-==== getPosition(self) ====
+**get(self, param)**
 
-==== set(self, param, val=None) ====
+**getPosition(self)**
+  
+**set(self, param, val=None)**
+ 
+**setCellClass(self, cellclass)**
 
-==== setCellClass(self, cellclass) ====
-
-==== setPosition(self, pos) ====
+**setPosition(self, pos)**
 
 ----
 
-=== Population ===
-An array of neurons all of the same type. `Population' is used as a generic
+Population 
+----------
+
+An array of neurons all of the same type. 'Population' is used as a generic 
 term intended to include layers, columns, nuclei, etc., of cells.
-==== !__getitem!__(self, addr) ====
+
+**__getitem__(self, addr)**
+
 Returns a representation of the cell with coordinates given by addr,
 suitable for being passed to other methods that require a cell id.
 Note that !__getitem!__ is called when using [] access, e.g.
+
 p = Population(...)
+
 p[2,3] is equivalent to p.!__getitem!__((2,3)).
-==== !__init!__(self, dims, cellclass, cellparams=None, label=None) ====
+
+**__init__(self, dims, cellclass, cellparams=None, label=None)**
+
 dims should be a tuple containing the population dimensions, or a single
 integer, for a one-dimensional population.
 e.g., (10,10) will create a two-dimensional population of size 10x10.
 cellclass should either be a standardized cell class (a class inheriting
 from common.!StandardCellType) or a string giving the name of the
 simulator-specific model that makes up the population.
-cellparams should be a dict which is passed to the neuron model
-constructor
-label is an optional name for the population.
-==== !__len!__(self) ====
+cellparams should be a dict which is passed to the neuron model constructor label is an optional name for the population.
+
+**__len__(self)**
+
 Returns the total number of cells in the population.
-==== meanSpikeCount(self, gather=True) ====
+
+**meanSpikeCount(self, gather=True)**
+
 Returns the mean number of spikes per neuron.
-==== printSpikes(self, filename, gather=True, compatible_output=True) ====
-Writes spike times to file.
-If compatible_output is True, the format is "spiketime cell_id",
-where cell_id is the index of the cell counting along rows and down
-columns (and the extension of that for 3-D).
+
+**printSpikes(self, filename, gather=True, compatible_output=True)**
+
+Writes spike times to file. If compatible_output is True, the format is "spiketime cell_id", where cell_id is the index of the cell counting along rows and down columns (and the extension of that for 3-D).
 This allows easy plotting of a `raster' plot of spiketimes, with one
 line for each cell.
 The timestep and number of data points per cell is written as a header,
@@ -261,10 +340,10 @@ spike files.
 
 If gather is True, the file will only be created on the master node,
 otherwise, a file will be written on each node.
-==== print_v(self, filename, gather=True, compatible_output=True) ====
-Write membrane potential traces to file.
-If compatible_output is True, the format is "v cell_id",
-where cell_id is the index of the cell counting along rows and down
+
+**print_v(self, filename, gather=True, compatible_output=True)**
+
+Write membrane potential traces to file. If compatible_output is True, the format is           "v cell_id", where cell_id is the index of the cell counting along rows and down
 columns (and the extension of that for 3-D).
 This allows easy plotting of a `raster' plot of spiketimes, with one
 line for each cell.
@@ -274,40 +353,59 @@ indicated by a '#' at the beginning of the line.
 If compatible_output is False, the raw format produced by the simulator
 is used. This may be faster, since it avoids any post-processing of the
 voltage files.
-==== randomInit(self, rand_distr) ====
+
+**randomInit(self, rand_distr)**
+
 Sets initial membrane potentials for all the cells in the population to
 random values.
-==== record(self, record_from=None, rng=None) ====
+
+**record(self, record_from=None, rng=None)**
+
 If record_from is not given, record spikes from all cells in the Population.
 record_from can be an integer - the number of cells to record from, chosen
 at random (in this case a random number generator can also be supplied)
 - or a list containing the ids of the cells to record.
-==== record_v(self, record_from=None, rng=None) ====
+
+**record_v(self, record_from=None, rng=None)**
+
 If record_from is not given, record the membrane potential for all cells in
 the Population.
 record_from can be an integer - the number of cells to record from, chosen
 at random (in this case a random number generator can also be supplied)
 - or a list containing the ids of the cells to record.
-==== rset(self, parametername, rand_distr) ====
+
+**rset(self, parametername, rand_distr)**
+
 'Random' set. Sets the value of parametername to a value taken from
 rand_distr, which should be a !RandomDistribution object.
-==== set(self, param, val=None) ====
+
+**set(self, param, val=None)**
+
 Set one or more parameters for every cell in the population. param
 can be a dict, in which case val should not be supplied, or a string
 giving the parameter name, in which case val is the parameter value.
 val can be a numeric value, or list of such (e.g. for setting spike times).
+
 e.g. p.set("tau_m",20.0).
+
 p.set({'tau_m':20,'v_rest':-65})
-==== tset(self, parametername, valueArray) ====
+
+**tset(self, parametername, valueArray)**
+
 'Topographic' set. Sets the value of parametername to the values in
 valueArray, which must have the same dimensions as the Population.
+
 ----
 
-=== Projection ===
+Projection
+----------
+
 A container for all the connections between two populations, together with
 methods to set parameters of those connections, including of plasticity
 mechanisms.
-==== !__init!__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None) ====
+
+**__init__(self, presynaptic_population, postsynaptic_population, method='allToAll', methodParameters=None, source=None, target=None, label=None, rng=None)**
+
 presynaptic_population and postsynaptic_population - Population objects.
 
 source - string specifying which attribute of the presynaptic cell signals action potentials
@@ -328,66 +426,106 @@ rng - since most of the connection methods need uniform random numbers,
 it is probably more convenient to specify a RNG object here rather
 than within methodParameters, particularly since some methods also use
 random numbers to give variability in the number of connections per cell.
-==== !__len!__(self) ====
+
+**__len__(self)**
+
 Return the total number of connections.
-==== printWeights(self, filename, format=None, gather=True) ====
+
+**printWeights(self, filename, format=None, gather=True)**
+
 Print synaptic weights to file.
-==== randomizeDelays(self, rand_distr) ====
+
+**randomizeDelays(self, rand_distr)**
+
 Set delays to random values taken from rand_distr.
-==== randomizeWeights(self, rand_distr) ====
+
+**randomizeWeights(self, rand_distr)**
+
 Set weights to random values taken from rand_distr.
-==== saveConnections(self, filename, gather=False) ====
+
+**saveConnections(self, filename, gather=False)**
+
 Save connections to file in a format suitable for reading in with the
 'fromFile' method.
-==== setDelays(self, d) ====
+
+**setDelays(self, d)**
+
 d can be a single number, in which case all delays are set to this
 value, or a list/1D array of length equal to the number of connections
 in the population.
-==== setMaxWeight(self, wmax) ====
+
+**setMaxWeight(self, wmax)**
+
 Note that not all STDP models have maximum or minimum weights.
-==== setMinWeight(self, wmin) ====
+
+**setMinWeight(self, wmin)**
+
 Note that not all STDP models have maximum or minimum weights.
-==== setThreshold(self, threshold) ====
+
+**setThreshold(self, threshold)**
+
 Where the emission of a spike is determined by watching for a
 threshold crossing, set the value of this threshold.
-==== setWeights(self, w) ====
+
+**setWeights(self, w)**
+
 w can be a single number, in which case all weights are set to this
 value, or a list/1D array of length equal to the number of connections
 in the population.
 Weights should be in nA for current-based and µS for conductance-based
 synapses.
-==== setupSTDP(self, stdp_model, parameterDict) ====
+
+**setupSTDP(self, stdp_model, parameterDict)**
+
 Set-up STDP.
-==== toggleSTDP(self, onoff) ====
+
+**toggleSTDP(self, onoff)**
+
 Turn plasticity on or off.
-==== weightHistogram(self, min=None, max=None, nbins=10) ====
+
+**weightHistogram(self, min=None, max=None, nbins=10)**
+
 Return a histogram of synaptic weights.
 If min and max are not given, the minimum and maximum weights are
 calculated automatically.
+
 ----
 
-=== Timer ===
+Timer
+-----
+
 For timing script execution.
-==== elapsedTime() ====
+
+**elapsedTime()**
+
 Return the elapsed time but keep the clock running.
-==== reset() ====
+
+**reset()**
+
 Reset the time to zero, and start the clock.
-==== start() ====
+
+**start()**
+
 Start timing.
-----
-
-=== !ConnectionError ===
 
 ----
 
-=== !InvalidDimensionsError ===
+ConnectionError
+---------------
 
-----
 
-=== !InvalidParameterValueError ===
 
-----
+InvalidDimensionsError
+----------------------
 
-=== !NonExistentParameterError ===
 
-----
+
+InvalidParameterValueError
+--------------------------
+
+
+
+NonExistentParameterError
+-------------------------
+
+
