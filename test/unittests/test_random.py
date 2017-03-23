@@ -17,8 +17,10 @@ else:
     have_nrn = True
     from pyNN.neuron.random import NativeRNG
 
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-def assert_arrays_almost_equal(a, b, threshold):
+#deprecated
+def assert_arrays_almost_equal(a, b, threshold): 
     if not (abs(a - b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
         err_msg += "\nlargest difference = %g" % abs(a - b).max()
@@ -129,7 +131,7 @@ class ParallelTests(unittest.TestCase):
         A = range(10)
         perm0 = rng0.permutation(A)
         perm1 = rng1.permutation(A)
-        assert_arrays_almost_equal(perm0, perm1, 1e-99)
+        assert_array_almost_equal(perm0, perm1, decimal=99)
 
 
 class NativeRNGTests(unittest.TestCase):

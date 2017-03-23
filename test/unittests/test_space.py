@@ -13,10 +13,10 @@ try:
 except ImportError:
     from mock import Mock
 from nose.tools import assert_equal, assert_raises
-from pyNN.utility import assert_arrays_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from math import sqrt
 
-
+#deprecated
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
     if a.shape != b.shape:
         raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
@@ -74,7 +74,7 @@ class SpaceTest(unittest.TestCase):
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
-        assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
+        assert_array_equal(s.distances(self.ABCD, self.ABCD),
                             numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29),
                                          sqrt(3), 0.0, sqrt(12), sqrt(14),
                                          sqrt(3), sqrt(12), 0.0, sqrt(50.0),
@@ -88,7 +88,7 @@ class SpaceTest(unittest.TestCase):
         g = lambda j: self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
-        assert_arrays_equal(numpy.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
+        assert_array_equal(numpy.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
                             numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
                                          (sqrt(3), 0.0, sqrt(12), sqrt(14)),
                                          (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
@@ -135,10 +135,10 @@ class LineTest(unittest.TestCase):
         n = 4
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_array_almost_equal(
             positions,
             numpy.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
-            threshold=1e-15
+            decimal=15
         )
 
     def test_generate_positions(self):
@@ -146,10 +146,10 @@ class LineTest(unittest.TestCase):
         n = 2
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_array_almost_equal(
             positions,
             numpy.array([[-100, 444, 987], [0, 444, 987]], float).T,
-            threshold=1e-15
+            decimal=15
         )
 
     def test__eq__(self):
@@ -185,14 +185,14 @@ class Grid2D_Test(object):
         n = 4
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_array_almost_equal(
             positions,
             numpy.array([
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
                 ]).T,
-            1e-15)
-        assert_arrays_almost_equal(
+            decimal=15)
+        assert_array_almost_equal(
             self.grid2.generate_positions(12),
             numpy.array([
                 [123, 456, 789], [123, 465.9, 789],
@@ -202,7 +202,7 @@ class Grid2D_Test(object):
                 [123 + 44.4, 456, 789], [123 + 44.4, 465.9, 789],
                 [123 + 55.5, 456, 789], [123 + 55.5, 465.9, 789],
             ]).T,
-            1e-15)
+            decimal=15)
 
 
 class Grid3D_Test(object):
@@ -227,13 +227,13 @@ class Grid3D_Test(object):
         n = 8
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_array_almost_equal(
             positions,
             numpy.array([
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
                 [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
                 ]).T,
-            1e-15)
+            decimal=15)
 
 
 class TestSphere(object):

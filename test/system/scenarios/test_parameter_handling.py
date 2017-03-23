@@ -3,7 +3,6 @@ import numpy
 from numpy import nan
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 from .registry import register
 
 
@@ -16,7 +15,7 @@ def issue241(sim):
     spike_train3 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000], 'duration': 1234})
     spike_train4 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000]})
     spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001]})
-    assert_arrays_equal(spike_train2.get('duration'), numpy.array([1234, 2345]))
+    assert_array_equal(spike_train2.get('duration'), numpy.array([1234, 2345]))
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
     sim.end()
 
@@ -58,28 +57,28 @@ def test_set_synaptic_parameters_fully_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=float)
     prj.set(weight=positional_weights)
     expected = positional_weights
     actual = prj.get('weight', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2]
     prj.set(U=u_list)
     expected = numpy.array([[0.9, 0.8], [0.7, 0.6], [0.5, 0.4], [0.3, 0.2]])
     actual = prj.get('U', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
     expected = numpy.array([[0.5, 1.5], [1.5, 0.5], [2.5, 1.5], [3.5, 2.5]])
     actual = prj.get('delay', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     # final sanity check
     expected = numpy.array([
@@ -95,7 +94,7 @@ def test_set_synaptic_parameters_fully_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_equal(actual[ind], expected)
+        assert_array_equal(actual[ind], expected)
 test_set_synaptic_parameters_fully_connected.__test__ = False
 
 
@@ -118,7 +117,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -176,7 +175,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     positional_weights = numpy.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -191,7 +190,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get('weight', format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     # postponing implementation of this functionality until after 0.8.0
     # u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4]
@@ -207,7 +206,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     # actual = numpy.array(prj.get('U', format='list'))
     # if mpi_rank == 0:
     #     ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-    #     assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+    #     assert_array_almost_equal(actual[ind], expected, 1e-16)
 
     f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
@@ -222,7 +221,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = numpy.array(prj.get('delay', format='list'))
     if mpi_rank == 0:
         ind = numpy.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_array_almost_equal(actual[ind], expected, decimal=16)
 
     # final sanity check
     expected = numpy.array([

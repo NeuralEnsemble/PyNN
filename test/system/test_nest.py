@@ -2,6 +2,7 @@ from nose.plugins.skip import SkipTest
 from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_not_equal
 from pyNN.utility import init_logging, assert_arrays_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 import numpy
 
 try:
@@ -182,7 +183,7 @@ def test_tsodyks_markram_synapse():
     sim.run(100.0)
     connections = nest.GetConnections(prj._sources.tolist(), synapse_model=prj.nest_synapse_model)
     tau_psc = numpy.array(nest.GetStatus(connections, 'tau_psc'))
-    assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+    assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
 
 
 if __name__ == '__main__':
