@@ -79,27 +79,18 @@ class _State(common.control.BaseState):
 
     @property
     def min_delay(self):
-        # this rather complex implementation is needed to handle min_delay='auto'
-        kernel_delay = nest.GetKernelStatus('min_delay')
-        syn_delay = nest.GetDefaults('static_synapse')['min_delay']
-        if syn_delay == numpy.inf or syn_delay > 1e300:
-            return kernel_delay
-        else:
-            return max(kernel_delay, syn_delay)
+        return nest.GetKernelStatus('min_delay')
 
     def set_delays(self, min_delay, max_delay):
-        if min_delay != 'auto': 
+        if min_delay != 'auto':
             min_delay = float(min_delay)
             max_delay = float(max_delay)
-            for synapse_model in nest.Models(mtype='synapses'):
-                if synapse_model not in ['gap_junction', 'gap_junction_lbl']:
-                    nest.SetDefaults(synapse_model, {'delay': min_delay,
-                                                     'min_delay': min_delay,
-                                                     'max_delay': max_delay})
+            nest.SetKernelStatus({'min_delay': min_delay,
+                                  'max_delay': max_delay})
 
     @property
     def max_delay(self):
-        return nest.GetDefaults('static_synapse')['max_delay']
+        return nest.GetKernelStatus('max_delay')
 
     @property
     def num_processes(self):
@@ -140,7 +131,8 @@ class _State(common.control.BaseState):
         if not self.running and simtime > 0:
             simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
             self.running = True
-        nest.Simulate(simtime)
+        if simtime > 0:
+            nest.Simulate(simtime)
 
     def run_until(self, tstop):
         self.run(tstop - self.t)

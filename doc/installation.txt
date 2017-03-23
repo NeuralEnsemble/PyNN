@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.6, 2.7, 3.3, 3.4 or 3.5)
+    * Python (version 2.6, 2.7, 3.3-3.6)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package
@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.2.tar.gz
-    $ cd PyNN-0.8.2
+    $ tar xzf PyNN-0.8.3.tar.gz
+    $ cd PyNN-0.8.3
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -111,7 +111,7 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.10 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 2.12 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST will not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
 or at `<http://www.nest-simulator.org/installation/>`_.
@@ -138,7 +138,7 @@ Now try it out::
                   -- N E S T --
 
       Copyright (C) 2004 The NEST Initiative
-      Version 2.10.0 Mar 21 2016 21:29:37
+      Version 2.12.0 Mar 21 2016 21:29:37
     ...
     >>> nest.Models()
     (u'ac_generator', u'aeif_cond_alpha', u'aeif_cond_alpha_RK5', u'aeif_cond_alpha_multisynapse',

@@ -12,7 +12,8 @@ from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
                                RandomGammaSpikeSource,
                                RandomPoissonRefractorySpikeSource,
-                               BretteGerstnerIF, GsfaGrrIF, Izhikevich_)
+                               BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
+                               GIFNeuron)
 import logging
 
 logger = logging.getLogger("PyNN")
@@ -271,3 +272,36 @@ class Izhikevich(base_cells.Izhikevich):
         ('i_offset', 'i_offset')
     )
     model = Izhikevich_
+
+
+class GIF_cond_exp(base_cells.GIF_cond_exp):
+    translations = build_translations(
+        ('v_rest', 'v_rest'),
+        ('cm', 'c_m'),
+        ('tau_m', 'tau_m'),
+        ('tau_refrac', 't_refrac'),
+        ('tau_syn_E', 'tau_e'),
+        ('tau_syn_I', 'tau_i'),
+        ('e_rev_E', 'e_e'),
+        ('e_rev_I', 'e_i'),
+        ('v_reset', 'v_reset'),
+        ('i_offset', 'i_offset'),
+        ('delta_v', 'dV'),
+        ('v_t_star', 'vt_star'),
+        ('lambda0', 'lambda0'),
+        ('tau_eta1', 'tau_eta1'),
+        ('tau_eta2', 'tau_eta2'),
+        ('tau_eta3', 'tau_eta3'),
+        ('tau_gamma1', 'tau_gamma1'),
+        ('tau_gamma2', 'tau_gamma2'),
+        ('tau_gamma3', 'tau_gamma3'),
+        ('a_eta1', 'a_eta1'),
+        ('a_eta2', 'a_eta2'),
+        ('a_eta3', 'a_eta3'),
+        ('a_gamma1', 'a_gamma1'),
+        ('a_gamma2', 'a_gamma2'),
+        ('a_gamma3', 'a_gamma3'),
+    )
+    model = GIFNeuron
+    extra_parameters = {'syn_type': 'conductance',
+                        'syn_shape': 'exp'}

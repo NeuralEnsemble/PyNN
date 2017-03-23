@@ -1,0 +1,32 @@
+========================
+PyNN 0.8.3 release notes
+========================
+
+8th March 2017
+
+Welcome to PyNN 0.8.3!
+
+
+NeuroML 2
+---------
+
+The :mod:`neuroml` module has been completely rewritten, and updated from NeuroML v1 to v2.
+This module works like other PyNN "backends", i.e. ``import pyNN.neuroml as sim``...
+but instead of running a simulation, it exports the network to an XML file in NeuroML format.
+
+NEST 2.12
+---------
+
+This release introduces support for NEST_ 2.12. Previous versions of NEST are no longer supported.
+
+
+Other changes
+-------------
+
+* `A couple of bug fixes`_
+
+
+
+.. _Brian: http://briansimulator.org
+.. _NEST: http://nest-simulator.org
+.. _`A couple of bug fixes`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+milestone%3A0.8.3

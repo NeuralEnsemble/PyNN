@@ -357,3 +357,37 @@ class Izhikevich(cells.Izhikevich):
                  "off_grid": "izhikevich"}
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
+
+
+class GIF_cond_exp(cells.GIF_cond_exp):
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('cm',         'C_m',       1000.0),  # nF -> pF
+        ('tau_m',      'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('tau_refrac', 't_ref'),
+        ('tau_syn_E',  'tau_syn_ex'),
+        ('tau_syn_I',  'tau_syn_in'),
+        ('e_rev_E',    'E_ex'),
+        ('e_rev_I',    'E_in'),
+        ('v_reset',    'V_reset'),
+        ('i_offset',   'I_e',       1000.0),  # nA -> pA
+        ('delta_v',    'Delta_V'),
+        ('v_t_star',   'V_T_star'),
+        ('lambda0',    'lambda_0'),
+        ('tau_eta1',   'tau_stc1'),
+        ('tau_eta2',   'tau_stc2'),
+        ('tau_eta3',   'tau_stc3'),
+        ('tau_gamma1', 'tau_sfa1'),
+        ('tau_gamma2', 'tau_sfa2'),
+        ('tau_gamma3', 'tau_sfa3'),
+        ('a_eta1',     'q_stc1',    1000.0),  # nA -> pA
+        ('a_eta2',     'q_stc2',    1000.0),
+        ('a_eta3',     'q_stc3',    1000.0),
+        ('a_gamma1',   'q_sfa1'),
+        ('a_gamma2',   'q_sfa2'),
+        ('a_gamma3',   'q_sfa3'),
+    )
+    nest_name = {"on_grid": "gif_cond_exp",
+                 "off_grid": "gif_cond_exp"}
+    standard_receptor_type = True

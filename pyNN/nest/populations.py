@@ -80,12 +80,24 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
         for name, val in cell_parameters.items():
             if isinstance(val, Sequence):
                 cell_parameters[name] = val.value
+        # The following is a temporary hack to get the gif_cond_exp model working.
+        # Longer-term, an extension to lazyarray would be the best approach
+        if 'tau_sfa1' in cell_parameters:
+            cell_parameters['tau_sfa'] = (cell_parameters.pop('tau_sfa1'), cell_parameters.pop('tau_sfa2'), cell_parameters.pop('tau_sfa3'))
+            cell_parameters['q_sfa'] = (cell_parameters.pop('q_sfa1'), cell_parameters.pop('q_sfa2'), cell_parameters.pop('q_sfa3'))
+            cell_parameters['tau_stc'] = (cell_parameters.pop('tau_stc1'), cell_parameters.pop('tau_stc2'), cell_parameters.pop('tau_stc3'))
+            cell_parameters['q_stc'] = (cell_parameters.pop('q_stc1'), cell_parameters.pop('q_stc2'), cell_parameters.pop('q_stc3'))
     else:
         parameter_space.evaluate(mask=mask_local)
         cell_parameters = list(parameter_space)  # may not be the most efficient way.
         # Might be best to set homogeneous parameters on creation,
         # then inhomogeneous ones using SetStatus. Need some timings.
         for D in cell_parameters:
+            if 'tau_sfa1' in D:  # temporary hack
+                D['tau_sfa'] = (D.pop('tau_sfa1'), D.pop('tau_sfa2'), D.pop('tau_sfa3'))
+                D['q_sfa'] = (D.pop('q_sfa1'), D.pop('q_sfa2'), D.pop('q_sfa3'))
+                D['tau_stc'] = (D.pop('tau_stc1'), D.pop('tau_stc2'), D.pop('tau_stc3'))
+                D['q_stc'] = (D.pop('q_stc1'), D.pop('q_stc2'), D.pop('q_stc3'))
             for name, val in D.items():
                 if isinstance(val, Sequence):
                     D[name] = val.value
