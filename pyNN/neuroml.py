@@ -298,13 +298,14 @@ class SpikeSourceArray(cells.SpikeSourceArray, NotImplementedModel):
 #   Functions for simulation set-up and control
 # ==============================================================================
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=0.1, debug=False, **extra_params):
+def setup(timestep=0.1, min_delay=0.1, debug=False, **extra_params):
     """
     Should be called at the very beginning of a script.
     extra_params contains any keyword arguments that are required by a given
     simulator but not by others.
     """
     global xmldoc, xmlfile, populations_node, projections_node, inputs_node, cells_node, channels_node, neuromlNode, strict
+    max_delay = extra_params.get('max_delay', 0.1)
     xmlfile = extra_params['file']
     if isinstance(xmlfile, basestring):
         xmlfile = open(xmlfile, 'w')
