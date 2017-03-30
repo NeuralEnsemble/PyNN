@@ -400,6 +400,66 @@ class Izhikevich(StandardCellType):
     }
 
 
+class GIF_cond_exp(StandardCellType):
+    """
+    The GIF model is a leaky integrate-and-fire model including a spike-triggered current eta(t),
+    a moving threshold gamma(t) and stochastic spike emission.
+
+    References:
+      [1] Mensi, S., Naud, R., Pozzorini, C., Avermann, M., Petersen, C. C., &
+      Gerstner, W. (2012). Parameter extraction and classification of three cortical
+      neuron types reveals two distinct adaptation mechanisms.
+      Journal of Neurophysiology, 107(6), 1756-1775.
+      [2] Pozzorini, C., Mensi, S., Hagens, O., Naud, R., Koch, C., & Gerstner, W.
+      (2015). Automated High-Throughput Characterization of Single Neurons by Means of
+      Simplified Spiking Models. PLoS Comput Biol, 11(6), e1004275.
+    """
+
+    default_parameters = {
+        'v_rest':     -65.0,  # Resting membrane potential in mV.
+        'cm':           1.0,  # Capacity of the membrane in nF
+        'tau_m':       20.0,  # Membrane time constant in ms.
+        'tau_refrac':   4.0,  # Duration of refractory period in ms.
+        'tau_syn_E':    5.0,  # Decay time of the excitatory synaptic conductance in ms.
+        'tau_syn_I':    5.0,  # Decay time of the inhibitory synaptic conductance in ms.
+        'e_rev_E':      0.0,  # Reversal potential for excitatory input in mV
+        'e_rev_I':    -70.0,  # Reversal potential for inhibitory input in mV
+        'v_reset':    -65.0,  # Reset potential after a spike in mV.
+        'i_offset':     0.0,  # Offset current in nA
+        'delta_v':      0.5,  # Threshold sharpness in mV.
+        'v_t_star':   -48.0,  # Threshold baseline in mV.
+        'lambda0':      1.0,  # Firing intensity at threshold in Hz.
+        'tau_eta1':     1.0,  # }
+        'tau_eta2':    10.0,  # } Time constants for spike-triggered current in ms.
+        'tau_eta3':   100.0,  # }
+        'tau_gamma1':   1.0,  # }
+        'tau_gamma2':  10.0,  # } Time constants for spike-frequency adaptation in ms.
+        'tau_gamma3': 100.0,  # }
+        'a_eta1':       1.0,  # }
+        'a_eta2':       1.0,  # } Post-spike increments for spike-triggered current in nA
+        'a_eta3':       1.0,  # }
+        'a_gamma1':     1.0,  # }
+        'a_gamma2':     1.0,  # } Post-spike increments for moving threshold in mV
+        'a_gamma3':     1.0,  # }
+    }
+
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
+    default_initial_values = {
+        'v': -65.0,
+        'v_t': -48.0,
+        'i_eta': 0.0,
+        'gsyn_exc': 0.0,
+        'gsyn_inh': 0.0,
+    }
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+        'i_eta': 'nA',
+        'v_t': 'mV',
+    }
+
+
 class SpikeSourcePoisson(StandardCellType):
     """Spike source, generating spikes according to a Poisson process."""
 
