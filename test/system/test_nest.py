@@ -60,7 +60,7 @@ def test_record_native_model():
     tstop = 250.0
     nest.run(tstop)
 
-    vm = p1.get_data().segments[0].analogsignalarrays[0]
+    vm = p1.get_data().segments[0].analogsignals[0]
     n_points = int(tstop / nest.get_time_step()) + 1
     assert_equal(vm.shape, (n_points, n_cells))
     assert vm.max() > 0.0  # should have some spikes

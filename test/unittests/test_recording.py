@@ -60,6 +60,11 @@ class MockNeoIO(object):
 class MockRecorder(recording.Recorder):
     _simulator = MockSimulator(mpi_rank=0)
 
+    def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
+        segment = Mock()
+        segment.analogsignals = [Mock(), Mock()]
+        return segment
+
 
 class MockPopulation(object):
     size = 11
@@ -159,7 +164,6 @@ def test_filter_recorded():
 def test_get():
     p = MockPopulation()
     r = MockRecorder(p)
-    r._get_current_segment = Mock()
     data = r.get('spikes')
     assert_equal(data.name, p.label)
     assert_equal(data.description, p.describe())

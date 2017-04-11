@@ -88,12 +88,12 @@ def instantaneous_firing_rate(segment, begin, end):
 if args.plot:
     Figure(
         Panel(stim_data.spiketrains, markersize=0.2, xlim=args.limits),
-        Panel(exc_data.analogsignalarrays[0], yticks=True, xlim=args.limits),
-        Panel(exc_data.analogsignalarrays[1], yticks=True, xlim=args.limits),
+        Panel(exc_data.analogsignals[0], yticks=True, xlim=args.limits),
+        Panel(exc_data.analogsignals[1], yticks=True, xlim=args.limits),
         Panel(exc_data.spiketrains[:100], markersize=0.5, xlim=args.limits),
         Panel(instantaneous_firing_rate(exc_data, *args.limits), yticks=True),
-        Panel(inh_data.analogsignalarrays[0], yticks=True, xlim=args.limits),
-        Panel(inh_data.analogsignalarrays[1], yticks=True, xlim=args.limits),
+        Panel(inh_data.analogsignals[0], yticks=True, xlim=args.limits),
+        Panel(inh_data.analogsignals[1], yticks=True, xlim=args.limits),
         Panel(inh_data.spiketrains[:100], markersize=0.5, xlim=args.limits),
         Panel(instantaneous_firing_rate(inh_data, *args.limits), xticks=True,
               xlabel="Time (ms)", yticks=True),

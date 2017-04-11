@@ -32,7 +32,7 @@ def test_changing_electrode(sim):
         sim.run(simtime)
         c.amplitude += 0.1
 
-    data = p.get_data().segments[0].analogsignalarrays[0]
+    data = p.get_data().segments[0].analogsignals[0]
 
     sim.end()
 
@@ -59,10 +59,10 @@ def ticket226(sim):
     sim.run(30.0)
     v = cell.get_data().segments[0].filter(name='v')[0][:, 0]
     sim.end()
-    v_10p0 = v[abs(v.times - 10.0 * pq.ms) < 0.01 * pq.ms][0]
-    assert abs(v_10p0 - -60.0 * pq.mV) < 1e-10
-    v_10p1 = v[abs(v.times - 10.1 * pq.ms) < 0.01 * pq.ms][0]
-    assert v_10p1 > -59.99 * pq.mV, v_10p1
+    v_10p0 = v.magnitude[abs(v.times - 10.0 * pq.ms) < 0.01 * pq.ms, 0][0]
+    assert abs(v_10p0 - -60.0) < 1e-10
+    v_10p1 = v.magnitude[abs(v.times - 10.1 * pq.ms) < 0.01 * pq.ms, 0][0]
+    assert v_10p1 > -59.99, v_10p1
 
 
 @register()
@@ -142,8 +142,8 @@ def issue437(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = numpy.argmax(t >= t_start)
-    t_stop_ind = numpy.argmax(t >= t_stop)
+    t_start_ind = int(numpy.argmax(t >= t_start))
+    t_stop_ind = int(numpy.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
@@ -162,8 +162,8 @@ def issue437(sim):
     #   Note: there can be a much simpler check for this once recording current profiles enabled (for all simulators).
     #   Test implementation makes use of certain approximations for thresholding; hence taking mode of initial values
     t_up = numpy.arange(float(min(t)), float(max(t))+dt_0/10.0, dt_0/10.0)
-    v0_up = numpy.interp(t_up, t, v0)
-    v1_up = numpy.interp(t_up, t, v1)
+    v0_up = numpy.interp(t_up, t, v0.magnitude.flat)
+    v1_up = numpy.interp(t_up, t, v1.magnitude.flat)
     d2_v0_up = numpy.diff(v0_up, n=2)
     d2_v1_up = numpy.diff(v1_up, n=2)
     dt_0_list = [ j for (i,j) in zip(d2_v0_up, t_up) if abs(i) >= 0.00005 ]
@@ -206,18 +206,18 @@ def issue442(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = numpy.argmax(t >= t_start)
-    t_stop_ind = numpy.argmax(t >= t_stop)
+    t_start_ind = int(numpy.argmax(t >= t_start))
+    t_stop_ind = int(numpy.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
-    assert_true (all(abs(val0 - v_rest*pq.mV) < 1e-9 for val0 in v0[:t_start_ind+1]))
+    assert_true(all(abs(val0 - v_rest*pq.mV) < 1e-9 for val0 in v0[:t_start_ind+1]))
 
     # test for change in vm at dt after start time
-    assert_true (abs(v0[t_start_ind+1] - v0[t_start_ind]) >= 1e-9)
+    assert_true(abs(v0[t_start_ind+1] - v0[t_start_ind]) >= 1e-9)
 
     # test for monotonic decay of vm after stop time
-    assert_true (all(val0 >= val0_next for val0, val0_next in zip(v0[t_stop_ind:], v0[t_stop_ind+1:])))
+    assert_true(all(val0 >= val0_next for val0, val0_next in zip(v0[t_stop_ind:], v0[t_stop_ind+1:])))
 
     # test for accurate frequency; simply counts peaks
     peak_ctr = 0
@@ -228,7 +228,7 @@ def issue442(sim):
             peak_ind.append(t_start_ind+i)
     assert_equal(peak_ctr, freq*1e-3*(t_stop-t_start))
     # also test for offset; peaks initially increase in magnitude
-    assert_true (v0[peak_ind[0]] < v0[peak_ind[1]] and v0[peak_ind[1]] < v0[peak_ind[2]])
+    assert_true(v0[peak_ind[0]] < v0[peak_ind[1]] and v0[peak_ind[1]] < v0[peak_ind[2]])
 
 
 @register(exclude=["nest"])

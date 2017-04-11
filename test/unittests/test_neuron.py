@@ -390,8 +390,8 @@ class TestRecorder(unittest.TestCase):
     #    self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
     #    vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
-    #    self.assertEqual(len(vdata.analogsignalarrays), 1)
-    #    assert_array_equal(numpy.array(vdata.analogsignalarrays[0]),
+    #    self.assertEqual(len(vdata.analogsignals), 1)
+    #    assert_array_equal(numpy.array(vdata.analogsignals[0]),
     #                        numpy.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
 
     def test__get_spikes(self):
@@ -415,10 +415,10 @@ class TestRecorder(unittest.TestCase):
     #        cell._cell.record_times = self.cells[1]._cell.record_times = numpy.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
     #    gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
-    #    self.assertEqual(len(gdata.analogsignalarrays), 2)
-    #    assert_array_equal(numpy.array(gdata.analogsignalarrays[0][:,0]),
+    #    self.assertEqual(len(gdata.analogsignals), 2)
+    #    assert_array_equal(numpy.array(gdata.analogsignals[0][:,0]),
     #                        cell._cell.gsyn_trace['excitatory'])
-    #    assert_array_equal(numpy.array(gdata.analogsignalarrays[1][:,0]),
+    #    assert_array_equal(numpy.array(gdata.analogsignals[1][:,0]),
     #                        cell._cell.gsyn_trace['inhibitory'])
     #
     def test__local_count(self):
