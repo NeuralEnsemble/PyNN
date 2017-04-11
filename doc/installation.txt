@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.3.tar.gz
-    $ cd PyNN-0.8.3
+    $ tar xzf PyNN-0.9.0.tar.gz
+    $ cd PyNN-0.9.0
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
