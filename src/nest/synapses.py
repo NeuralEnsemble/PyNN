@@ -14,7 +14,7 @@ def get_defaults(model_name):
     defaults = nest.GetDefaults(model_name)
     ignore = ['delay', 'max_delay', 'min_delay', 'num_connections',
               'num_connectors', 'synapsemodel', 'weight',
-              'property_object', 'type']
+              'property_object', 'type', 'node_type']
     default_params = {}
     for name,value in defaults.items():
         if name not in ignore:
