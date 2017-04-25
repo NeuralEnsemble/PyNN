@@ -1,3 +1,4 @@
+/examples/PyNN_NeuroML2_Export.nml
 # Editor temporary/working/backup files
 .#*
 [#]*#
@@ -48,7 +49,26 @@ cover
 examples/Results
 examples/tools/Results
 examples/nineml_mechanisms
+examples/*.dat
+examples/*.svg
 
 # Other
 *.btr
 *.log
+/examples/LEMS_Sim_PyNN_NeuroML2_Export.xml
+/pynnpg.sh
+/cleanpynn.sh
+/examples/Potjans2014/*.svg
+/examples/Potjans2014/*.mod
+/examples/Potjans2014/*.png
+/examples/Potjans2014/results/*
+/examples/Potjans2014/*.nml
+/examples/Potjans2014/LEMS*.xml
+/examples/Potjans2014/*netpyne.py
+/examples/Potjans2014/*.ini
+/examples/Potjans2014/*.h5
+/examples/Potjans2014/*.pov
+/examples/Potjans2014/*main.json
+/examples/Potjans2014/*.so
+/test/system/LEMS_Sim_Test0.xml
+/test/system/Test0.net.nml

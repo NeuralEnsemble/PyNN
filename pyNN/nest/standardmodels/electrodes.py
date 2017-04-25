@@ -43,10 +43,19 @@ class NestCurrentSource(StandardCurrentSource):
             self.cell_list = [cell for cell in cells]
         else:
             self.cell_list = cells
-        nest.Connect(self._device, self.cell_list)
+        nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
 
     def _delay_correction(self, value):
-        return value - state.min_delay
+        """
+        A change in a device requires a min_delay to take effect at the target
+        """
+        corrected = value - state.min_delay
+        # set negative times to zero
+        if isinstance(value, numpy.ndarray):
+            corrected = numpy.where(corrected > 0, corrected, 0.0)
+        else:
+            corrected = max(corrected, 0.0)
+        return corrected
 
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)

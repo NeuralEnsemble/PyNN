@@ -429,10 +429,10 @@ class PopulationTest(unittest.TestCase):
         p.record('v')
         sim.run(12.3)
         data = p.get_data(gather=True).segments[0]
-        self.assertEqual(len(data.analogsignalarrays), 1)
+        self.assertEqual(len(data.analogsignals), 1)
         n_values = int(round(12.3 / sim.get_time_step())) + 1
-        self.assertEqual(data.analogsignalarrays[0].name, 'v')
-        self.assertEqual(data.analogsignalarrays[0].shape, (n_values, p.size))
+        self.assertEqual(data.analogsignals[0].name, 'v')
+        self.assertEqual(data.analogsignals[0].shape, (n_values, p.size))
 
     @register(exclude=['hardware.brainscales'])
     def test_record_with_multiple_variables(self, sim=sim):
@@ -440,11 +440,11 @@ class PopulationTest(unittest.TestCase):
         p.record(('v', 'w', 'gsyn_exc'))
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
-        self.assertEqual(len(data.analogsignalarrays), 3)
+        self.assertEqual(len(data.analogsignals), 3)
         n_values = int(round(10.0 / sim.get_time_step())) + 1
-        names = set(arr.name for arr in data.analogsignalarrays)
+        names = set(arr.name for arr in data.analogsignals)
         self.assertEqual(names, set(('v', 'w', 'gsyn_exc')))
-        for arr in data.analogsignalarrays:
+        for arr in data.analogsignals:
             self.assertEqual(arr.shape, (n_values, p.size))
             
     @register()
@@ -453,11 +453,11 @@ class PopulationTest(unittest.TestCase):
         p.record(('v', 'spikes'))
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
-        self.assertEqual(len(data.analogsignalarrays), 1)
+        self.assertEqual(len(data.analogsignals), 1)
         n_values = int(round(10.0 / sim.get_time_step())) + 1
-        names = set(arr.name for arr in data.analogsignalarrays)
+        names = set(arr.name for arr in data.analogsignals)
         self.assertEqual(names, set(('v')))
-        for arr in data.analogsignalarrays:
+        for arr in data.analogsignals:
             self.assertEqual(arr.shape, (n_values, p.size))
 
     @register()
@@ -493,7 +493,7 @@ class PopulationTest(unittest.TestCase):
         p.record('v')
         sim.run(t1)
         # what if we call p.record between two run statements?
-        # would be nice to get an AnalogSignalArray with a non-zero t_start
+        # would be nice to get an AnalogSignal with a non-zero t_start
         # but then need to make sure we get the right initial value
         sim.run(t2)
         sim.reset()
@@ -504,8 +504,8 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(len(data.segments), 2)
 
         seg0 = data.segments[0]
-        self.assertEqual(len(seg0.analogsignalarrays), 1)
-        v = seg0.analogsignalarrays[0]
+        self.assertEqual(len(seg0.analogsignals), 1)
+        v = seg0.analogsignals[0]
         self.assertEqual(v.name, 'v')
         num_points = int(round((t1 + t2) / sim.get_time_step())) + 1
         self.assertEqual(v.shape, (num_points, p.size))
@@ -515,7 +515,7 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(len(seg0.spiketrains), 0)
 
         seg1 = data.segments[1]
-        self.assertEqual(len(seg1.analogsignalarrays), 2)
+        self.assertEqual(len(seg1.analogsignals), 2)
         w = seg1.filter(name='w')[0]
         self.assertEqual(w.name, 'w')
         num_points = int(round(t3 / sim.get_time_step())) + 1
@@ -540,11 +540,11 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(len(data.segments), 2)
 
         seg0 = data.segments[0]
-        self.assertEqual(len(seg0.analogsignalarrays), 1)
+        self.assertEqual(len(seg0.analogsignals), 1)
         self.assertEqual(len(seg0.spiketrains), 0)
 
         seg1 = data.segments[1]
-        self.assertEqual(len(seg1.analogsignalarrays), 2)
+        self.assertEqual(len(seg1.analogsignals), 2)
         self.assertEqual(len(seg1.spiketrains), p.size)
         assert_array_equal(seg1.spiketrains[7],
                             numpy.array([p.first_id + 7, p.first_id + 7 + 5]) % t3)

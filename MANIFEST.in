@@ -10,3 +10,4 @@ include LICENSE
 include AUTHORS
 include README.rst
 include changelog
+include requirements.txt
