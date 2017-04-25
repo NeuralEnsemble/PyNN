@@ -86,7 +86,7 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
+          **extra_params):
     """
     Should be called at the very beginning of a script.
 
@@ -110,7 +110,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     `rng_seeds_seed`:
         a single seed that will be used to generate random values for `rng_seeds`
     """
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
     for key in ("verbosity", "spike_precision", "recording_precision",
                 "threads"):

@@ -29,8 +29,10 @@ def list_standard_models():
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+          **extra_params):
+
+    max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
     simulator.state.dt = timestep  # move to common.setup?
     simulator.state.min_delay = min_delay
