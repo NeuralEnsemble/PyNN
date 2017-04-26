@@ -12,7 +12,8 @@ class NaChannel(standard.NaChannel):
         ('e_rev', 'ena'),
     )
     variable_translations = {
-        'm': ('hh', 'm')
+        'm': ('hh', 'm'),
+        'h': ('hh', 'h')
     }
     model = "hh"
 
@@ -23,8 +24,7 @@ class KdrChannel(standard.KdrChannel):
         ('e_rev', 'ek'),
     )
     variable_translations = {
-        'n': ('hh', 'n'),
-        'h': ('hh', 'h')
+        'n': ('hh', 'n')
     }
     model = "hh"
 

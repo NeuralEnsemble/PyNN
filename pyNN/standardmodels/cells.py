@@ -582,6 +582,7 @@ class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
         'na.m': 'dimensionless',  # hack - should go in ion channel model
+        'na.h': 'dimensionless',
         'kdr.n': 'dimensionless'
     }
 

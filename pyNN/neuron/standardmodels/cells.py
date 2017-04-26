@@ -16,9 +16,9 @@ from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomGammaSpikeSource,
                                RandomPoissonRefractorySpikeSource,
                                BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
-                               GIFNeuron)
+                               GIFNeuron, NeuronTemplate)
 import logging
-from neuron import nrn
+from neuron import nrn, h
 import neuroml  ###
 
 logger = logging.getLogger("PyNN")
@@ -312,10 +312,6 @@ class GIF_cond_exp(base_cells.GIF_cond_exp):
                         'syn_shape': 'exp'}
 
 
-PROXIMAL = 0
-DISTAL = 1
-
-
 class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     """
 
@@ -373,7 +369,7 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     def recordable(self):
         raise NotImplementedError
 
-    def can_record(self, variable):
+    def can_record(self, variable, location=None):
         return True  # todo: implement this properly
 
     @property
@@ -397,67 +393,3 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
                     "mechanism": mechanism,
                     "sections": sections
                 }
-
-
-class NeuronTemplate(object):  # move to ../cells.py
-
-    def __init__(self, morphology, cm, Ra, **ion_channel_parameters):
-        self.traces = {}
-        self.recording_time = False
-        self.spike_source = None
-
-        # create morphology
-        self.sections = {}
-        unresolved_connections = []
-        for segment in morphology.segments:
-            section = nrn.Section()
-            section.L = segment.length
-            section(PROXIMAL).diam = segment.proximal.diameter
-            section(DISTAL).diam = segment.distal.diameter
-            section.nseg = 1
-            section.cm = cm
-            section.Ra = Ra
-            if segment.parent:
-                connection_point = DISTAL  # should generalize
-                if segment.parent.name in self.sections:
-                    section.connect(self.sections[segment.parent.name], DISTAL, PROXIMAL)
-                else:
-                    unresolved_connections.append((segment.name, segment.parent.name))
-            self.sections[segment.name] = section
-        for section_name, parent_name in unresolved_connections:
-            self.sections[section_name].connect(self.sections[parent_name], DISTAL, PROXIMAL)
-
-        # insert ion channels
-        for name, ion_channel in self.ion_channels.items():
-            parameters = ion_channel_parameters[name]
-            sections = ion_channel["sections"]
-            mechanism_name = ion_channel["mechanism"].model
-            for section_name in sections:
-                section = self.sections[section_name]
-                section.insert(mechanism_name)
-                #mechanism = getattr(section(0.5), mechanism_name)
-                for param_name, value in parameters.items():
-                    setattr(section, param_name, value)
-                    print(name, section_name, mechanism_name, param_name, value)
-
-        # set source section
-        if self.spike_source:
-            self.source_section = self.sections[self.spike_source]
-        elif "axon_initial_segment" in self.sections:
-            self.source_section = self.sections["axon_initial_segment"]
-        elif "soma" in self.sections:
-            self.source_section = self.sections["soma"]
-        else:
-            raise Exception("Source section for action potential not defined")
-        self.source = self.source_section(0.5)._ref_v
-
-    def memb_init(self):
-        for state_var in ('v',):
-            initial_value = getattr(self, '{0}_init'.format(state_var))
-            assert initial_value is not None
-            if state_var == 'v':
-                for section in self.sections.values():
-                    for seg in section:
-                        seg.v = initial_value
-            else:
-                raise NotImplementedError()

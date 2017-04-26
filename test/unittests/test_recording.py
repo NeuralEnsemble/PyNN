@@ -9,6 +9,7 @@ import os
 from datetime import datetime
 from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
+from pyNN.recording import Variable
 
 #def test_rename_existing():
     
@@ -77,7 +78,7 @@ class MockPopulation(object):
     def __len__(self):
         return self.size
 
-    def can_record(self, variable):
+    def can_record(self, variable, location=None):
         if variable in ["spikes", "v", "gsyn_exc", "gsyn_inh", "spam"]:
             return True
         else:
@@ -129,36 +130,39 @@ def test_record():
     p = MockPopulation()
     r = MockRecorder(p)
     r._record = Mock()
+    spam_var = Variable(location=None, name='spam')
     assert_equal(r.recorded, defaultdict(set))
     
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
     first_ids = all_ids[0:3]
     r.record('spam', first_ids)
-    assert_equal(r.recorded['spam'], set(id for id in first_ids if id.local))
-    assert_equal(len(r.recorded['spam']), 2)
-    r._record.assert_called_with('spam', r.recorded['spam'], None)
-    
+    assert_equal(r.recorded[spam_var], set(id for id in first_ids if id.local))
+    assert_equal(len(r.recorded[spam_var]), 2)
+    r._record.assert_called_with(spam_var, r.recorded[spam_var], None)
+
     more_ids = all_ids[2:5]
     r.record('spam', more_ids)
-    assert_equal(r.recorded['spam'], set(id for id in all_ids if id.local))
-    assert_equal(len(r.recorded['spam']), 3)
-    r._record.assert_called_with('spam', set(all_ids[3:4]), None)
+    assert_equal(r.recorded[spam_var], set(id for id in all_ids if id.local))
+    assert_equal(len(r.recorded[spam_var]), 3)
+    r._record.assert_called_with(spam_var, set(all_ids[3:4]), None)
 
 
 def test_filter_recorded():
     p = MockPopulation()
     r = MockRecorder(p)
     r._record = Mock()
+    spam_var = Variable(location=None, name='spam')
+    spikes_var = Variable(location=None, name='spikes')
     all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
     r.record(['spikes', 'spam'], all_ids)
-    assert_equal(r.recorded['spikes'], set(id for id in all_ids if id.local))
-    assert_equal(r.recorded['spam'], set(id for id in all_ids if id.local))
+    assert_equal(r.recorded[spikes_var], set(id for id in all_ids if id.local))
+    assert_equal(r.recorded[spam_var], set(id for id in all_ids if id.local))
 
     filter = all_ids[::2]
-    filtered_ids = r.filter_recorded('spam', filter)
+    filtered_ids = r.filter_recorded(spam_var, filter)
     assert_equal(filtered_ids, set(id for id in filter if id.local))
     
-    assert_equal(r.filter_recorded('spikes', None), r.recorded['spikes'])
+    assert_equal(r.filter_recorded(spikes_var, None), r.recorded[spikes_var])
 
 
 def test_get():

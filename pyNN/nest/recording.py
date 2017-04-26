@@ -23,8 +23,8 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.hl_api.NESTError as e:
-        raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
+    except nest.NESTError as e:
+        raise nest.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 
 class RecordingDevice(object):
@@ -389,11 +389,13 @@ class Recorder(recording.Recorder):
         (http://www.nest-initiative.org/index.php/Analog_recording_with_multimeter, 14/11/11)
         we record all analog variables for all requested cells.
         """
-        if variable == 'spikes':
+        if variable.location is not None:
+            raise ValueError("Recording from specific cell locations is not supported for NEST")
+        if variable.name == 'spikes':
             self._spike_detector.add_ids(new_ids)
         else:
             self.sampling_interval = sampling_interval
-            self._multimeter.add_variable(variable)
+            self._multimeter.add_variable(variable.name)
             self._multimeter.add_ids(new_ids)
 
     def _get_sampling_interval(self):
@@ -419,7 +421,7 @@ class Recorder(recording.Recorder):
         return self._spike_detector.get_spiketimes([id])[id]  # hugely inefficient - to be optimized later
 
     def _get_all_signals(self, variable, ids, clear=False):
-        data = self._multimeter.get_data(variable, ids, clear=clear)
+        data = self._multimeter.get_data(variable.name, ids, clear=clear)
         if len(ids) > 0:
             return numpy.vstack([data[i] for i in ids]).T
         else:
@@ -445,7 +447,7 @@ class Recorder(recording.Recorder):
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
         #return N
-        return self._spike_detector.get_spike_counts(self.filter_recorded('spikes', filter_ids))
+        return self._spike_detector.get_spike_counts(self.filter_recorded(recording.Variable('spikes', None), filter_ids))
 
     def _clear_simulator(self):
         """

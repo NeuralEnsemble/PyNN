@@ -340,7 +340,6 @@ class ParameterSpace(object):
         if mask is None:
             for name, value in self._parameters.items():
                 self._parameters[name] = value.evaluate(simplify=simplify)
-                print(name, value, self._parameters[name])
             self._evaluated_shape = self._shape
         else:
             for name, value in self._parameters.items():

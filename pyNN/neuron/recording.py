@@ -30,7 +30,7 @@ class Recorder(recording.Recorder):
                 self._record_state_variable(id._cell, variable)
 
     def _record_state_variable(self, cell, variable):
-        if variable.section is None:
+        if variable.location is None:
             if hasattr(cell, 'recordable') and variable in cell.recordable:
                 hoc_var = cell.recordable[variable]
             elif variable.name == 'v':
@@ -44,9 +44,10 @@ class Recorder(recording.Recorder):
                 hoc_var = getattr(source, "_ref_%s" % var_name)
         else:
             if variable.name == 'v':
-                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+                source = cell.sections[variable.location](0.5)
+                hoc_var = source._ref_v
             else:
-                source = cell.sections[variable.section](0.5)
+                source = cell.sections[variable.location](0.5)
                 ion_channel, var_name = variable.name.split(".")
                 mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel]["mechanism"].variable_translations[var_name]
                 mechanism = getattr(source, mechanism_name)
@@ -121,7 +122,7 @@ class Recorder(recording.Recorder):
     def _local_count(self, variable, filter_ids=None):
         N = {}
         if variable == 'spikes':
-            for id in self.filter_recorded(variable, filter_ids):
+            for id in self.filter_recorded(recording.Variable('spikes', None), filter_ids):
                 N[int(id)] = id._cell.spike_times.size()
         else:
             raise Exception("Only implemented for spikes")

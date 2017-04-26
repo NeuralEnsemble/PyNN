@@ -22,7 +22,7 @@ from collections import defaultdict
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
-from pyNN.recording import files, Variable
+from pyNN.recording import files
 
 deprecated = core.deprecated
 logger = logging.getLogger("PyNN")
@@ -407,28 +407,11 @@ class BasePopulation(object):
     def find_units(self, variable):
         return self.celltype.units[variable.name]
 
-    def can_record(self, variable):
+    def can_record(self, variable, location=None):
         """Determine whether `variable` can be recorded from this population."""
-        return self.celltype.can_record(variable)
+        return self.celltype.can_record(variable, location)
 
-    def _resolve_variables(self, variables, sections):
-        resolved_variables = []
-        if sections is None:
-            for var_path in variables:
-                if "." in var_path:
-                    parts = var_path.split(".")
-                    section = parts[0]
-                    var_name = ".".join(parts[1:])
-                    resolved_variables.append(Variable(section=section, name=var_name))
-                else:
-                    resolved_variables.append(Variable(None, var_path))
-        else:
-            for section in sections:
-                for var_name in variables:
-                    resolved_variables.append(Variable(section=section, name=var_name))
-        return resolved_variables
-
-    def record(self, variables, to_file=None, sampling_interval=None, sections=None):
+    def record(self, variables, to_file=None, sampling_interval=None, locations=None):
         """
         Record the specified variable or variables for all cells in the
         Population or view.
@@ -448,12 +431,11 @@ class BasePopulation(object):
                               # recording will be reset for the entire population, not just the view
             self.recorder.reset()
         else:
-            variables = self._resolve_variables(variables, sections)
             logger.debug("%s.record('%s')", self.label, variables)
             if self._record_filter is None:
-                self.recorder.record(variables, self.all_cells, sampling_interval)
+                self.recorder.record(variables, self.all_cells, sampling_interval, locations)
             else:
-                self.recorder.record(variables, self._record_filter, sampling_interval)
+                self.recorder.record(variables, self._record_filter, sampling_interval, locations)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
 
@@ -471,7 +453,7 @@ class BasePopulation(object):
         """
         self.record(['gsyn_exc', 'gsyn_inh'], to_file)
 
-    def write_data(self, io, variables='all', gather=True, clear=False, annotations=None):
+    def write_data(self, io, variables='all', gather=True, clear=False, annotations=None, locations=None):
         """
         Write recorded data to file, using one of the file formats supported by
         Neo.
@@ -496,9 +478,9 @@ class BasePopulation(object):
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
         self.recorder.write(variables, io, gather, self._record_filter, clear=clear,
-                            annotations=annotations)
+                            annotations=annotations, locations=locations)
 
-    def get_data(self, variables='all', gather=True, clear=False):
+    def get_data(self, variables='all', gather=True, clear=False, locations=None):
         """
         Return a Neo `Block` containing the data (spikes, state variables)
         recorded from the Population.
@@ -514,7 +496,7 @@ class BasePopulation(object):
 
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        return self.recorder.get(variables, gather, self._record_filter, clear)
+        return self.recorder.get(variables, gather, self._record_filter, clear, locations=locations)
 
     @deprecated("write_data(file, 'spikes')")
     def printSpikes(self, file, gather=True, compatible_output=True):

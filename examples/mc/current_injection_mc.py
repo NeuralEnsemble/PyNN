@@ -25,7 +25,7 @@ soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
                distal=P(x=18.8, y=0, z=0, diameter=18.8),
                name="soma")
 dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
-               distal=P(x=-200, y=0, z=0, diameter=2),
+               distal=P(x=-500, y=0, z=0, diameter=2),
                name="dendrite",
                parent=soma)
 
@@ -33,15 +33,15 @@ dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
 
 cell_class = sim.MultiCompartmentNeuron
 cell_class.label = "ExampleMultiCompartmentNeuron"
-cell_class.insert(pas=sim.PassiveLeak, sections=('soma', )) ###'dendrite'))  # or cell_class.whole_cell.pas = sim.PassiveLeak
+cell_class.insert(pas=sim.PassiveLeak, sections=('soma', 'dendrite'))  # or cell_class.whole_cell.pas = sim.PassiveLeak
 cell_class.soma.insert(na=sim.NaChannel)  # or cell_class.soma.na = sim.NaChannel
 cell_class.soma.insert(kdr=sim.KdrChannel) # or cell_class.soma.kdr = sim.KdrChannel
 
-cell_type = cell_class(morphology=Morphology(segments=(soma, )), ###dend)),
+cell_type = cell_class(morphology=Morphology(segments=(soma, dend)),
                        cm=1.0, #*uF_per_cm2,   # allow to set per segment
-                       Ra=123.0, #*ohm_cm)      # allow to set per segment?
-                       #pas={"conductance_density": 0.0005, #*S_per_cm2)
-                       #     "e_rev":-54.3},
+                       Ra=500.0, #*ohm_cm)      # allow to set per segment?
+                       pas={"conductance_density": 0.0003, #*S_per_cm2)
+                            "e_rev":-54.3},
                        na={"conductance_density": 0.120,
                            "e_rev": 50.0},
                        kdr={"conductance_density": 0.036,
@@ -52,14 +52,13 @@ cell_type = cell_class(morphology=Morphology(segments=(soma, )), ###dend)),
 
 # === Create a population with two cells ====================================
 
-cells = sim.Population(2, cell_type, initial_values={'v': [-64.0, -65.0]})  #*mV})
+cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
 
 # === Inject current into the soma of cell #0 and the dendrite of cell #1 ===
 
-#step_current = sim.DCSource(amplitude=0.5*nA, start=50.0*ms, stop=400.0*ms)
 step_current = sim.DCSource(amplitude=0.1, start=50.0, stop=150.0)
 step_current.inject_into(cells[0:1], section="soma")
-###step_current.inject_into(cells[1:2], section="dendrite")
+step_current.inject_into(cells[1:2], section="dendrite")
 
 
 # cells[0] --> ID - 1 cell
@@ -67,9 +66,9 @@ step_current.inject_into(cells[0:1], section="soma")
 
 # === Record from both compartments of both cells ===========================
 
-#cells.record('spikes')
-cells.record(['na.m', 'kdr.n'], sections=['soma'])
-cells.record('v', sections=['soma']) ###, 'dendrite'])
+cells.record('spikes')
+cells.record(['na.m', 'na.h', 'kdr.n'], locations=['soma'])
+cells.record('v', locations=['soma', 'dendrite'])
 
 # === Run the simulation =====================================================
 
@@ -86,28 +85,28 @@ data = cells.get_data().segments[0]  # this is a Neo Segment
 # The segment contains one AnalogSignal per compartment and per recorded variable
 # and one SpikeTrain per neuron
 
+print("Spike times: {}".format(data.spiketrains))
+
 Figure(
         Panel(data.filter(name='soma.v')[0],
               ylabel="Membrane potential, soma (mV)",
-              #yticks=True, ylim=(-66*mV, -48*mV)),
-              yticks=True), #, ylim=(-66, -48)),
-        # Panel(data.filter(name='dendrite.v')[0],
-        #       ylabel="Membrane potential, dendrite (mV)",
-        #       #yticks=True, ylim=(-66*mV, -48*mV)),
-        #       yticks=True), #, ylim=(-66, -48)),
+              yticks=True, ylim=(-80, 40)),
+        Panel(data.filter(name='dendrite.v')[0],
+              ylabel="Membrane potential, dendrite (mV)",
+              yticks=True, ylim=(-70, -45)),
         Panel(data.filter(name='soma.na.m')[0],
               ylabel="m, soma",
-              yticks=True), #, ylim=(0, 1)),
-        # Panel(data.filter(name='soma.kdr.n')[0],
-        #       xticks=True, xlabel="Time (ms)",
-        #       ylabel="n, soma",
-        #       yticks=True), #, ylim=(0, 1)),
+              yticks=True, ylim=(0, 1)),
+         Panel(data.filter(name='soma.na.h')[0],
+               xticks=True, xlabel="Time (ms)",
+               ylabel="h, soma",
+               yticks=True, ylim=(0, 1)),
         Panel(data.filter(name='soma.kdr.n')[0],
               ylabel="n, soma",
               xticks=True, xlabel="Time (ms)",
-              yticks=True),  # , ylim=(0, 1)),
+              yticks=True, ylim=(0, 1)),
         title="Responses of two-compartment neurons to current injection",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save("current_injection_mc.png")
 
-#sim.end()
+sim.end()
