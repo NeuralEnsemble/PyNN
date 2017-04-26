@@ -340,6 +340,7 @@ class ParameterSpace(object):
         if mask is None:
             for name, value in self._parameters.items():
                 self._parameters[name] = value.evaluate(simplify=simplify)
+                print(name, value, self._parameters[name])
             self._evaluated_shape = self._shape
         else:
             for name, value in self._parameters.items():
@@ -349,6 +350,7 @@ class ParameterSpace(object):
             self._evaluated_shape = partial_shape(mask, self._shape)
         self._evaluated = True
         # should possibly update self.shape according to mask?
+        return self
 
     def as_dict(self):
         """

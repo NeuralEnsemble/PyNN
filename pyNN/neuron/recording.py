@@ -20,7 +20,7 @@ class Recorder(recording.Recorder):
 
     def _record(self, variable, new_ids, sampling_interval=None):
         """Add the cells in `new_ids` to the set of recorded cells."""
-        if variable == 'spikes':
+        if variable.name == 'spikes':
             for id in new_ids:
                 if id._cell.rec is not None:
                     id._cell.rec.record(id._cell.spike_times)
@@ -30,17 +30,27 @@ class Recorder(recording.Recorder):
                 self._record_state_variable(id._cell, variable)
 
     def _record_state_variable(self, cell, variable):
-        if hasattr(cell, 'recordable') and variable in cell.recordable:
-            hoc_var = cell.recordable[variable]
-        elif variable == 'v':
-            hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
-        elif variable == 'gsyn_exc':
-            hoc_var = cell.esyn._ref_g
-        elif variable == 'gsyn_inh':
-            hoc_var = cell.isyn._ref_g
+        if variable.section is None:
+            if hasattr(cell, 'recordable') and variable in cell.recordable:
+                hoc_var = cell.recordable[variable]
+            elif variable.name == 'v':
+                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+            elif variable.name == 'gsyn_exc':
+                hoc_var = cell.esyn._ref_g
+            elif variable.name == 'gsyn_inh':
+                hoc_var = cell.isyn._ref_g
+            else:
+                source, var_name = self._resolve_variable(cell, variable.name)
+                hoc_var = getattr(source, "_ref_%s" % var_name)
         else:
-            source, var_name = self._resolve_variable(cell, variable)
-            hoc_var = getattr(source, "_ref_%s" % var_name)
+            if variable.name == 'v':
+                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+            else:
+                source = cell.sections[variable.section](0.5)
+                ion_channel, var_name = variable.name.split(".")
+                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel]["mechanism"].variable_translations[var_name]
+                mechanism = getattr(source, mechanism_name)
+                hoc_var = getattr(mechanism, "_ref_{}".format(hoc_var_name))
         cell.traces[variable] = vec = h.Vector()
         if self.sampling_interval == self._simulator.state.dt:
             vec.record(hoc_var)

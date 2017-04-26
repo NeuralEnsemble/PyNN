@@ -585,5 +585,3 @@ class VectorSpikeSource(hclass(h.VecStim)):
         end = self._spike_times.indwhere(">", h.t)
         if end > 0:
             self._spike_times.remove(0, end - 1)  # range is inclusive
-
-    

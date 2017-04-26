@@ -532,3 +532,65 @@ class SpikeSourceArray(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+
+
+# === Multi-compartment neurons =====
+
+class Section(object):
+    """
+
+    """
+
+    def __init__(self, name, parent):
+        self.name = name
+        self.parent = parent
+
+    def insert(self, **ion_channels):
+        for name, mechanism in ion_channels.items():
+            if name in self.parent.ion_channels:
+                assert self.parent.ion_channels[name]["mechanism"] == mechanism
+                self.parent.ion_channels[name]["sections"].extend([self.name])
+            else:
+                self.parent.ion_channels[name] = {
+                    "mechanism": mechanism,
+                    "sections": [self.name]
+                }
+
+class HasSections(type):
+
+    def __getattribute__(self, name):
+        #print("getattribute", name)
+        try:
+            value = type.__getattribute__(self, name)
+        except AttributeError:
+            value = Section(name=name, parent=self)
+            setattr(self, name, value)
+        return value
+
+
+class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
+    default_parameters = {
+        "morphology": None,
+        "cm": 1.0,
+        "Ra": 35.4
+    }
+    recordable = ['spikes']
+    injectable = True
+    receptor_types = ()
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+        'na.m': 'dimensionless',  # hack - should go in ion channel model
+        'kdr.n': 'dimensionless'
+    }
+
+    def translate(self, parameters):
+        sub_ps = {}
+        for name, ion_channel in self.ion_channels.items():
+            ic_params = parameters.pop(name)
+            sub_ps[name] = ion_channel["mechanism"].translate(ic_params)
+        ps = super(MultiCompartmentNeuron, self).translate(parameters)
+        for name, value in sub_ps.items():
+            ps[name] = value
+        return ps

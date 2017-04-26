@@ -104,7 +104,7 @@ class Population(common.Population, PopulationMixin):
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
-        parameter_space.evaluate(mask=None)
+        parameter_space.evaluate(mask=None, simplify=True)
         for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self

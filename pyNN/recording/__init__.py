@@ -14,7 +14,7 @@ import logging
 import numpy
 import os
 from copy import copy
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from pyNN import errors
 import neo
 from datetime import datetime
@@ -27,6 +27,8 @@ except NameError:
 logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
+
+Variable = namedtuple('Variable', ['section', 'name'])
 
 
 def get_mpi_comm():
@@ -277,7 +279,7 @@ class Recorder(object):
                                     units=units,
                                     t_start=t_start,
                                     sampling_period=sampling_period,
-                                    name=variable,
+                                    name="{}.{}".format(variable.section, variable.name),
                                     source_population=self.population.label,
                                     source_ids=source_ids)
                     signal.channel_index = neo.ChannelIndex(

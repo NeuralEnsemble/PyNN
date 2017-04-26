@@ -7,6 +7,9 @@ Standard base_cells for the neuron module.
 
 """
 
+from collections import defaultdict
+from pyNN.models import BaseCellType
+from pyNN.parameters import ParameterSpace
 from pyNN.standardmodels import cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
@@ -15,6 +18,8 @@ from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
                                GIFNeuron)
 import logging
+from neuron import nrn
+import neuroml  ###
 
 logger = logging.getLogger("PyNN")
 
@@ -305,3 +310,154 @@ class GIF_cond_exp(base_cells.GIF_cond_exp):
     model = GIFNeuron
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
+
+
+PROXIMAL = 0
+DISTAL = 1
+
+
+class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
+    """
+
+    """
+    translations = build_translations(
+        ('Ra', 'Ra'),
+        ('cm', 'cm'),
+        ('morphology', 'morphology')
+    )
+    default_initial_values = {}
+    ion_channels = {}
+
+    def __init__(self, **parameters):
+        # replace ion channel classes with instantiated ion channel objects
+        for name, ion_channel in self.ion_channels.items():
+            self.ion_channels[name]["mechanism"] = ion_channel["mechanism"](**parameters.pop(name))
+        super(MultiCompartmentNeuron, self).__init__(**parameters)
+        for name, ion_channel in self.ion_channels.items():
+            self.parameter_space[name] = ion_channel["mechanism"].parameter_space
+
+        self.extra_parameters = {}
+        self.spike_source = None
+
+    def get_schema(self):
+        schema = {
+            "morphology": neuroml.nml.nml.Morphology,
+            "cm": float,
+            "Ra": float
+        }
+        #for name, ion_channel in self.ion_channels.items():
+        #    schema[name] = ion_channel.get_schema()
+        return schema
+
+    @property   # can you have a classmethod-like property?
+    def default_parameters(self):
+        return {}
+
+    @property
+    def segment_names(self):
+        return [seg.name for seg in self.morphology.segments]
+
+    #def __getattr__(self, item):
+    #    if item in self.segment_names:
+    #        return Segment(item, self)
+
+    def has_parameter(self, name):
+        """Does this model have a parameter with the given name?"""
+        return False   # todo: implement this
+
+    def get_parameter_names(self):
+        """Return the names of the parameters of this model."""
+        raise NotImplementedError
+
+    @property
+    def recordable(self):
+        raise NotImplementedError
+
+    def can_record(self, variable):
+        return True  # todo: implement this properly
+
+    @property
+    def receptor_types(self):
+        raise NotImplementedError
+
+    @property
+    def model(self):
+        return type(self.label,
+                    (NeuronTemplate,),
+                    {"ion_channels": self.ion_channels})
+
+    @classmethod
+    def insert(cls, sections=None, **ion_channels):
+        for name, mechanism in ion_channels.items():
+            if name in cls.ion_channels:
+                assert cls.ion_channels[name]["mechanism"] == mechanism
+                cls.ion_channels[name]["sections"].extend(sections)
+            else:
+                cls.ion_channels[name] = {
+                    "mechanism": mechanism,
+                    "sections": sections
+                }
+
+
+class NeuronTemplate(object):  # move to ../cells.py
+
+    def __init__(self, morphology, cm, Ra, **ion_channel_parameters):
+        self.traces = {}
+        self.recording_time = False
+        self.spike_source = None
+
+        # create morphology
+        self.sections = {}
+        unresolved_connections = []
+        for segment in morphology.segments:
+            section = nrn.Section()
+            section.L = segment.length
+            section(PROXIMAL).diam = segment.proximal.diameter
+            section(DISTAL).diam = segment.distal.diameter
+            section.nseg = 1
+            section.cm = cm
+            section.Ra = Ra
+            if segment.parent:
+                connection_point = DISTAL  # should generalize
+                if segment.parent.name in self.sections:
+                    section.connect(self.sections[segment.parent.name], DISTAL, PROXIMAL)
+                else:
+                    unresolved_connections.append((segment.name, segment.parent.name))
+            self.sections[segment.name] = section
+        for section_name, parent_name in unresolved_connections:
+            self.sections[section_name].connect(self.sections[parent_name], DISTAL, PROXIMAL)
+
+        # insert ion channels
+        for name, ion_channel in self.ion_channels.items():
+            parameters = ion_channel_parameters[name]
+            sections = ion_channel["sections"]
+            mechanism_name = ion_channel["mechanism"].model
+            for section_name in sections:
+                section = self.sections[section_name]
+                section.insert(mechanism_name)
+                #mechanism = getattr(section(0.5), mechanism_name)
+                for param_name, value in parameters.items():
+                    setattr(section, param_name, value)
+                    print(name, section_name, mechanism_name, param_name, value)
+
+        # set source section
+        if self.spike_source:
+            self.source_section = self.sections[self.spike_source]
+        elif "axon_initial_segment" in self.sections:
+            self.source_section = self.sections["axon_initial_segment"]
+        elif "soma" in self.sections:
+            self.source_section = self.sections["soma"]
+        else:
+            raise Exception("Source section for action potential not defined")
+        self.source = self.source_section(0.5)._ref_v
+
+    def memb_init(self):
+        for state_var in ('v',):
+            initial_value = getattr(self, '{0}_init'.format(state_var))
+            assert initial_value is not None
+            if state_var == 'v':
+                for section in self.sections.values():
+                    for seg in section:
+                        seg.v = initial_value
+            else:
+                raise NotImplementedError()

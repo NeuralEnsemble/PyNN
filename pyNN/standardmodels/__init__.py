@@ -145,6 +145,11 @@ class StandardCellType(StandardModelType, models.BaseCellType):
     always_local = False  # override for NEST spike sources
 
 
+class StandardIonChannelModel(StandardModelType, models.BaseIonChannelModel):
+    """Base class for standardized ion channel models."""
+    pass
+
+
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
     """Base class for standardized current source model classes."""
 

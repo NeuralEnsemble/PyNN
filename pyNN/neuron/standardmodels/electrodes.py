@@ -85,15 +85,19 @@ class NeuronCurrentSource(StandardCurrentSource):
     def get_native_parameters(self):
         return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_native_names()))
 
-    def inject_into(self, cells):
+    def inject_into(self, cells, section=None):
         __doc__ = StandardCurrentSource.inject_into.__doc__
         for id in cells:
             if id.local:
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
-                if not (id in self._h_iclamps):
+                if section is None:
+                    sec = id._cell.source_section
+                else:
+                    sec = id._cell.sections[section]
+                if not (id in self._h_iclamps):  # to modify for multi-compartment cells
                     self.cell_list += [id]
-                    self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
+                    self._h_iclamps[id] = h.IClamp(0.5, sec=sec)
                     self._devices.append(self._h_iclamps[id])
 
     def _record(self):
