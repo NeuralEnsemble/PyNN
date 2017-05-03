@@ -28,14 +28,14 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
     sim.run(t_stop)
 
     data = neurons.get_data().segments[0]
-    gsyn = data.analogsignalarrays[0].rescale('uS')
+    gsyn = data.analogsignals[0].rescale('uS')
     if plot_figure:
         import matplotlib.pyplot as plt
         for i in range(neurons.size):
             plt.subplot(neurons.size, 1, i+1)
             plt.plot(gsyn.times, gsyn[:, i])
         plt.savefig("test_simple_stochastic_synapse_%s.png" % sim.__name__)
-    print(data.analogsignalarrays[0].units)
+    print(data.analogsignals[0].units)
     crossings = []
     for i in range(neurons.size):
         crossings.append(

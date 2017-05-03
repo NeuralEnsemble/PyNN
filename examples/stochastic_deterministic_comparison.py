@@ -75,11 +75,11 @@ if options.plot_figure:
         data[label] = populations[label].get_data().segments[0]
         if 'stochastic' in label:
             gsyn = data[label].filter(name='gsyn_inh')[0]
-            gsyn_mean = neo.AnalogSignalArray(gsyn.mean(axis=1).reshape(-1, 1),
-                                              sampling_rate=gsyn.sampling_rate,
-                                              channel_index=np.array([0]))
+            gsyn_mean = neo.AnalogSignal(gsyn.mean(axis=1).reshape(-1, 1),
+                                         sampling_rate=gsyn.sampling_rate,
+                                         channel_index=np.array([0]))
             gsyn_mean.name = 'gsyn_inh_mean'
-            data[label].analogsignalarrays.append(gsyn_mean)
+            data[label].analogsignals.append(gsyn_mean)
     #import pdb; pdb.set_trace()
 
     def make_panel(population, label):

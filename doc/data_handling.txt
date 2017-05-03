@@ -22,8 +22,8 @@ top-level data container, which contains one or more :class:`Segment`\s. Each
 :class:`Segment` is a container for data sharing a common time basis - a new
 :class:`Segment` is added every time the :func:`reset` function is called.
 
-A :class:`Segment` can contain lists of :class:`AnalogSignal`,
-:class:`AnalogSignalArray` and :class:`SpikeTrain` objects. These data objects
+A :class:`Segment` can contain lists of :class:`AnalogSignal` and :class:`SpikeTrain` objects.
+These data objects
 inherit from NumPy's array class, and so can be treated in further processing
 (analysis, visualization, etc.) in exactly the same way as NumPy arrays, but in
 addition they carry metadata about units, sampling interval, etc.
