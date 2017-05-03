@@ -1,0 +1,33 @@
+========================
+PyNN 0.8.2 release notes
+========================
+
+6th December 2016
+
+Welcome to PyNN 0.8.2!
+
+
+New spike sources
+-----------------
+
+Two new spike source models were added, with implementations for the NEST and NEURON backends:
+:class:`SpikeSourceGamma` (spikes follow a gamma process) and :class:`SpikeSourcePoissonRefractory`
+(inter-spike intervals are drawn from an exponential distribution as for a Poisson process,
+but there is a fixed refractory period after each spike during which no spike can occur).
+
+Other changes
+-------------
+
+* Changed the :func:`save_positions()` format from ``id x y z`` to ``index x y z`` to make it simulator independent.
+* Added histograms to the :mod:`utility.plotting` module.
+* Added a `multiple_synapses` flag to :func:`Projection.get(..., format="array")` to control how
+  synaptic parameters are combined when there are multiple connections between pairs of neurons.
+  Until now, parameters were summed, which made sense for weights but not for delays.
+  We have adopted the Brian_ approach of adding an argument ``multiple_synapses`` which is one
+  of ``{'last', 'first', 'sum', 'min', 'max'}``. The default is ``sum``.
+* `Assorted bug fixes`_
+
+
+
+.. _Brian: http://briansimulator.org
+.. _`Assorted bug fixes`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aclosed+milestone%3A0.8.2

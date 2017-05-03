@@ -17,7 +17,7 @@ pulse._record()
 sim.run(100.0)
 
 t, i_inj = pulse._get_data()
-v = population.get_data().segments[0].analogsignalarrays[0]
+v = population.get_data().segments[0].analogsignals[0]
 
 plot_current_source(t, i_inj, v,
                     v_range=(-65.5, -59.5),

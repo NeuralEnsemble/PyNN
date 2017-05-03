@@ -65,7 +65,7 @@ attribute:
 
 .. doctest::
 
-    >>> print IF_cond_exp.default_parameters
+    >>> print(IF_cond_exp.default_parameters)
     {'tau_refrac': 0.1, 'cm': 1.0, 'tau_syn_E': 5.0, 'v_rest': -65.0, 'tau_syn_I': 5.0, 'tau_m': 20.0, 'e_rev_E': 0.0, 'i_offset': 0.0, 'e_rev_I': -70.0, 'v_thresh': -50.0, 'v_reset': -65.0}
 
 
@@ -228,7 +228,7 @@ number of neurons it contains. To iterate over or count populations, use the
 .. doctest::
 
     >>> for p in all_cells.populations:
-    ...    print "%-23s %4d %s" % (p.label, p.size, p.celltype.__class__.__name__)
+    ...    print("%-23s %4d %s" % (p.label, p.size, p.celltype.__class__.__name__))
     Thalamocortical neurons  100 EIF_cond_exp_isfa_ista
     Cortical neurons         500 EIF_cond_exp_isfa_ista
 

@@ -54,7 +54,7 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
 
 
 def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
-    for array in segment.analogsignalarrays:
+    for array in segment.analogsignals:
         sorted_channels = sorted(array.channel_index)
         for j in range(2):
             i = array.channel_index.tolist().index(j)

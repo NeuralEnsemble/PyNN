@@ -51,8 +51,7 @@ def list_standard_models():
 # ==============================================================================
 
 
-def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
+def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY, **extra_params):
     """
     Should be called at the very beginning of a script.
 
@@ -72,12 +71,12 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     returns: MPI rank
 
     """
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.initializer.clear()
     simulator.state.clear()
     simulator.state.dt = timestep
     simulator.state.min_delay = min_delay
-    simulator.state.max_delay = max_delay
+    simulator.state.max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     if 'use_cvode' in extra_params:
         simulator.state.cvode.active(int(extra_params['use_cvode']))
         if 'rtol' in extra_params:

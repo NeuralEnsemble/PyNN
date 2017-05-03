@@ -523,6 +523,22 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
     _interval = property(fget=_get_interval, fset=_set_interval)
 
 
+class RandomPoissonRefractorySpikeSource(hclass(h.PoissonStimRefractory)):
+
+    parameter_names = ('rate', 'tau_refrac', 'start', 'duration')
+
+    def __init__(self, rate=1, tau_refrac=0.0, start=0, duration=0):
+        self.rate = rate
+        self.tau_refrac = tau_refrac
+        self.start = start
+        self.duration = duration
+        self.spike_times = h.Vector(0)
+        self.source = self
+        self.rec = h.NetCon(self, None)
+        self.source_section = None
+        self.seed(state.mpi_rank + state.native_rng_baseseed)
+
+
 class RandomGammaSpikeSource(hclass(h.GammaStim)):
 
     parameter_names = ('alpha', 'beta', 'start', 'duration')

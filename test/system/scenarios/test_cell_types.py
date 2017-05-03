@@ -1,14 +1,14 @@
 
 from __future__ import division
 import numpy
+from nose.plugins.skip import SkipTest
 try:
     import scipy
     have_scipy = True
 except ImportError:
     have_scipy = False
 import quantities as pq
-from nose.tools import assert_less
-from nose.plugins.skip import SkipTest
+from nose.tools import assert_greater, assert_less
 
 from .registry import register
 
@@ -22,14 +22,14 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
-    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67, 113.13, 142.69, 174.79]) * pq.ms
+    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67, 113.13, 142.69, 174.79])
     if plot_figure:
         import matplotlib.pyplot as plt
-        vm = data.analogsignalarrays[0] 
+        vm = data.analogsignals[0]
         plt.plot(vm.times, vm)
         plt.plot(expected_spike_times, -40 * numpy.ones_like(expected_spike_times), "ro")
         plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
-    diff = (data.spiketrains[0] - expected_spike_times) / expected_spike_times
+    diff = (data.spiketrains[0].rescale(pq.ms).magnitude - expected_spike_times) / expected_spike_times
     assert abs(diff).max() < 0.01, abs(diff).max() 
     sim.end()
     return data
@@ -80,7 +80,7 @@ def issue367(sim, plot_figure=False):
     # we take the average membrane potential 0.1 ms before the spike and
     # compare it to the spike threshold
     spike_times = data.spiketrains[0]
-    vm = data.analogsignalarrays[0]
+    vm = data.analogsignals[0]
     spike_bins = ((spike_times - 0.1 * pq.ms) / vm.sampling_period).magnitude.astype(int)
     vm_before_spike = vm.magnitude[spike_bins]
     if plot_figure:
@@ -203,6 +203,64 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
 test_SpikeSourceGamma.__test__ = False
 
 
+@register(exclude=['brian'])
+def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
+    try:
+        from scipy.stats import kstest
+    except ImportError:
+        raise SkipTest("scipy not available")
+    sim.setup()
+    params = {
+        "rate": [100, 100, 50.0],
+        "tau_refrac": [0.0, 5.0, 5.0]
+    }
+    t_stop = 100000.0
+    sources = sim.Population(3, sim.SpikeSourcePoissonRefractory(**params))
+    sources.record('spikes')
+    sim.run(t_stop)
+    data = sources.get_data().segments[0]
+    sim.end()
+
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        plt.clf()
+        for i, (st, rate, tau_refrac) in enumerate(zip(data.spiketrains,
+                                                       params["rate"],
+                                                       params["tau_refrac"])):
+            plt.subplot(3, 1, i + 1)
+            isi = st[1:] - st [:-1]
+            expected_mean_isi = 1000.0/rate
+            poisson_mean_isi = expected_mean_isi - tau_refrac
+            k = 1/poisson_mean_isi
+
+            n_bins = int(numpy.sqrt(k * t_stop))
+            values, bins, patches = plt.hist(isi, bins=n_bins,
+                                             label="{} Hz".format(rate),
+                                             histtype='step')
+            expected = t_stop/expected_mean_isi * (numpy.exp(-(k * (bins[:-1] - tau_refrac))) - numpy.exp(-(k * (bins[1:] - tau_refrac))))
+            plt.plot((bins[1:] + bins[:-1])/2.0, expected, 'r-')
+            plt.legend()
+        plt.xlabel("Inter-spike interval (ms)")
+        plt.savefig("test_SpikeSourcePoissonRefractory_%s.png" % sim.__name__)
+
+
+    # Kolmogorov-Smirnov test
+    for st, expected_rate, tau_refrac in zip(data.spiketrains,
+                                 params['rate'],
+                                 params['tau_refrac']):
+        poisson_mean_isi = 1000.0/expected_rate - tau_refrac # ms
+        corrected_isi = (st[1:] - st[:-1]).magnitude - tau_refrac
+        D, p = kstest(corrected_isi,
+                      "expon",
+                      args=(0, poisson_mean_isi),  # args are (loc, scale)
+                      alternative='two-sided')
+        print(expected_rate, poisson_mean_isi, corrected_isi.mean(), p, D)
+        assert_less(D, 0.1)
+
+    return data
+test_SpikeSourcePoissonRefractory.__test__ = False
+
+
 # todo: add test of Izhikevich model
 
 
@@ -216,3 +274,4 @@ if __name__ == '__main__':
     issue367(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
+    test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)

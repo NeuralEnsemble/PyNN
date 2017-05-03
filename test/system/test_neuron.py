@@ -140,8 +140,8 @@ def test_electrical_synapse():
     p1.record('v')
     p2.record('v')
     pyNN.neuron.run(200)
-    p1_trace = p1.get_data(('v',)).segments[0].analogsignalarrays[0]
-    p2_trace = p2.get_data(('v',)).segments[0].analogsignalarrays[0]
+    p1_trace = p1.get_data(('v',)).segments[0].analogsignals[0]
+    p2_trace = p2.get_data(('v',)).segments[0].analogsignals[0]
     # Check the local forward connection
     assert p2_trace[:, 0].max() - p2_trace[:, 0].min() > 50
     # Check the remote forward connection
@@ -181,7 +181,7 @@ def test_record_native_model():
 
     nrn.run(250.0)
 
-    data = p1.get_data().segments[0].analogsignalarrays
+    data = p1.get_data().segments[0].analogsignals
     assert_equal(len(data), 2)  # one array per variable
     assert_equal(data[0].name, 'apical(1.0).v')
     assert_equal(data[1].name, 'soma(0.5).ina')

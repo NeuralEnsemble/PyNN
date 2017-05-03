@@ -93,7 +93,7 @@ class Projection(object):
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
-            errmsg = "User gave synapse_type=%s, synapse_type must be one of: '%s'"
+            errmsg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
             raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
         self.label = label
         self.space = space
