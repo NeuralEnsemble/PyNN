@@ -10,7 +10,7 @@ Installing PyNN requires:
     * Python (version 2.6, 2.7, 3.3-3.6)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
-    * the Neo_ package
+    * the Neo_ package (>= 0.5.0)
     * at least one of the supported simulators: e.g. NEURON, NEST, or Brian.
 
 Optional dependencies are:
@@ -32,8 +32,8 @@ If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
 available. If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.8.3.tar.gz
-    $ cd PyNN-0.8.3
+    $ tar xzf PyNN-0.9.0.tar.gz
+    $ cd PyNN-0.9.0
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -115,20 +115,6 @@ NEST 2.12 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST will not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
 or at `<http://www.nest-simulator.org/installation/>`_.
-
-.. note:: NumPy must be installed *before* installing NEST.
-
-.. note:: Make sure you have the GNU Scientific Library (GSL) installed,
-          otherwise some PyNN standard models (e.g. :class:`IF_cond_exp`) will not be available.
-
-On Linux, most Unix variants and Mac OS X, installation is usually as simple as::
-
-    $ ./configure --with-mpi
-    $ make
-    $ make install
-
-This will install PyNEST to your Python :file:`site-packages` directory.
-If you wish to install it elsewhere, see the full installation instructions.
 
 Now try it out::
 

@@ -20,7 +20,7 @@ data = cell.get_data()
 sim.end()
 
 for segment in data.segments:
-    vm = segment.analogsignalarrays[0]
+    vm = segment.analogsignals[0]
     plt.plot(vm.times, vm,
              label=str(segment.annotations["amplitude"]))
 plt.legend(loc="upper left")
