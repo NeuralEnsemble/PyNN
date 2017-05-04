@@ -415,6 +415,12 @@ class Connection(common.Connection):
             setattr(self.weight_adjuster, name, value)
         if mechanism == 'TsodyksMarkramWA':  # or could assume that any weight_adjuster parameter called "tau_syn" should be set like this
             self.weight_adjuster.tau_syn = self.nc.syn().tau
+        elif 'Stochastic' in mechanism:
+            pass
+            # todo: (optionally?) set per-stream RNG, i.e.
+            #self.rng = h.Random(seed)
+            #self.rng.uniform()
+            #self.weight_adjuster.setRNG(self.rng)
         # setpointer
         i = len(h.plastic_connections)
         h.plastic_connections.append(self)

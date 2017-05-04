@@ -89,6 +89,41 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse, NESTSynapseMixin):
     nest_name = 'tsodyks_synapse'
 
 
+class SimpleStochasticSynapse(synapses.SimpleStochasticSynapse, NESTSynapseMixin):
+
+    translations = build_translations(
+        ('weight', 'weight', 1000.0),
+        ('delay', 'delay'),
+        ('p', 'p'),
+    )
+    nest_name = 'simple_stochastic_synapse'
+
+
+class StochasticTsodyksMarkramSynapse(synapses.StochasticTsodyksMarkramSynapse, NESTSynapseMixin):
+
+    translations = build_translations(
+        ('weight', 'weight', 1000.0),
+        ('delay', 'delay'),
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_fac')
+    )
+    nest_name = 'stochastic_stp_synapse'
+
+
+class MultiQuantalSynapse(synapses.MultiQuantalSynapse, NESTSynapseMixin):
+
+    translations = build_translations(
+        ('weight', 'weight', 1000.0),
+        ('delay', 'delay'),
+        ('U', 'U'),
+        ('n', 'n'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_fac')
+    )
+    nest_name = 'quantal_stp_synapse'
+
+
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 

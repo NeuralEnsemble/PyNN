@@ -1,0 +1,13 @@
+/*
+
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
+
+*/
+
+/*
+ * Initialization file for PyNNExtensions module.
+ * Run automatically when PyNNExtensions module is loaded.
+ */
+
+M_DEBUG (pynn_extensions.sli) (Initializing SLI support for PyNNExtensions.) message
