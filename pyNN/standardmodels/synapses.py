@@ -81,7 +81,7 @@ class TsodyksMarkramSynapse(StandardSynapseType):
 
 class SimpleStochasticSynapse(StandardSynapseType):
     """
-    docstring needed
+    Each spike is transmitted with a fixed probability `p`.
     """
     default_parameters = {
         'weight': 0.0,

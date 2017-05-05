@@ -97,7 +97,7 @@ def list_files(filter):
 
 print("Running examples in {}".format(tmp_dir))
 for example in examples:
-    new_files = run(example, simulators.next())
+    new_files = run(example, next(simulators))
     if len(new_files) > 1:
         raise Exception("Multiple image files")
     img_path, = new_files
