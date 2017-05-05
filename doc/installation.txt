@@ -22,7 +22,7 @@ Optional dependencies are:
 Installing PyNN
 ===============
 
-.. note:: if using NEURON, it is easiest if you install NEURON *before* you install PyNN (see below).
+.. note:: if using NEURON or NEST, it is easiest if you install NEURON/NEST *before* you install PyNN (see below).
 
 The easiest way to get PyNN is to use pip_::
 
@@ -49,6 +49,8 @@ Test it using something like the following::
     >>> sim.end()
 
 (This assumes you have NEST installed).
+If you get a warning "Unable to install NEST extensions. Certain models may not be available" then ensure the
+program :command:`nest-config` is on your system PATH.
 
 With NEURON as the simulator, make sure you install NEURON *before* you install PyNN.
 The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::

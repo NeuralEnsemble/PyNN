@@ -7,6 +7,7 @@ NEST v2 implementation of the PyNN API.
 
 """
 
+import warnings
 import numpy
 try:
     import tables  # due to freeze when importing nest before tables
@@ -47,7 +48,10 @@ logger = logging.getLogger("PyNN")
 if logger.level == logging.NOTSET:
     logger.setLevel(logging.ERROR)
 
-nest.Install('pynn_extensions')
+try:
+    nest.Install('pynn_extensions')
+except nest.NESTError as err:
+    warnings.warn("Unable to install NEST extensions. Certain models may not be available.\nFurther details: {}".format(err))
 
 
 # ==============================================================================
