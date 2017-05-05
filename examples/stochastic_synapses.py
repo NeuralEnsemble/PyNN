@@ -1,7 +1,6 @@
 # encoding: utf-8
 """
-
-docstring needed
+Example of simple stochastic synapses
 
 """
 

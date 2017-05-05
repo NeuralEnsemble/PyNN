@@ -15,4 +15,6 @@ Examples
    examples/synaptic_input
    examples/tsodyksmarkram
    examples/varying_poisson
+   examples/stochastic_synapses
+   examples/stochastic_deterministic_comparison
    examples/VAbenchmarks

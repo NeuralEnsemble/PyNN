@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-...
+Example of facilitating and depressing synapses in deterministic and stochastic versions
 
 """
 
