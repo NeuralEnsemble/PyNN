@@ -7,6 +7,7 @@ NEST v2 implementation of the PyNN API.
 
 """
 
+import warnings
 import numpy
 try:
     import tables  # due to freeze when importing nest before tables
@@ -47,6 +48,11 @@ logger = logging.getLogger("PyNN")
 if logger.level == logging.NOTSET:
     logger.setLevel(logging.ERROR)
 
+try:
+    nest.Install('pynn_extensions')
+except nest.NESTError as err:
+    warnings.warn("Unable to install NEST extensions. Certain models may not be available.\nFurther details: {}".format(err))
+
 
 # ==============================================================================
 #   Utility functions
@@ -86,7 +92,7 @@ def _discrepancy_due_to_rounding(parameters, output_values):
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
+          **extra_params):
     """
     Should be called at the very beginning of a script.
 
@@ -110,7 +116,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     `rng_seeds_seed`:
         a single seed that will be used to generate random values for `rng_seeds`
     """
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
     for key in ("verbosity", "spike_precision", "recording_precision",
                 "threads"):
@@ -128,7 +135,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
     # set resolution
     simulator.state.dt = timestep
-    # Set min_delay and max_delay for all synapse models
+    # Set min_delay and max_delay
     simulator.state.set_delays(min_delay, max_delay)
     nest.SetDefaults('spike_generator', {'precise_times': True})
     return rank()

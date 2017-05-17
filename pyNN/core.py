@@ -90,3 +90,4 @@ class IndexBasedExpression(object):
 
     def __call__(self, i, j):
         raise NotImplementedError
+

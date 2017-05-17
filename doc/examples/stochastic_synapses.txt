@@ -1,0 +1,7 @@
+Example of simple stochastic synapses
+=====================================
+
+.. image:: ../images/examples/stochastic_synapses__nest_20170505-150345.png
+
+.. literalinclude:: ../../examples/stochastic_synapses.py
+

@@ -1,4 +1,8 @@
 include pyNN/neuron/nmodl/*.mod
+include pyNN/nest/extensions/*.h
+include pyNN/nest/extensions/*.cpp
+include pyNN/nest/extensions/CMakeLists.txt
+include pyNN/nest/extensions/sli/*
 include pyNN/descriptions/templates/*/*.txt
 include test/parameters/*
 include test/system/*.py

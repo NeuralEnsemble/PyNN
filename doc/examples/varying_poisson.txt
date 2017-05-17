@@ -1,7 +1,7 @@
 A demonstration of the use of callbacks to vary the rate of a SpikeSourcePoisson
 ================================================================================
 
-.. image:: ../images/examples/varying_poisson_neuron_20151005-081216.png
+.. image:: ../images/examples/varying_poisson_neuron_20170505-150343.png
 
 .. literalinclude:: ../../examples/varying_poisson.py
 

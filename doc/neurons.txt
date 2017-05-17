@@ -378,8 +378,8 @@ or written to file using :meth:`write_data()`:
 Neo see the documentation at http://packages.python.org/neo. Here, it will
 suffice to note that a :class:`Block` is the top-level container, and contains
 one or more :class:`Segments`. Each :class:`Segment` is a container for data
-that share a common time basis, and can contain lists of :class:`AnalogSignal`,
-:class:`AnalogSignalArray` and :class:`SpikeTrain` objects. These data objects
+that share a common time basis, and can contain lists of :class:`AnalogSignal`
+and :class:`SpikeTrain` objects. These data objects
 inherit from NumPy array, and so can be treated in further processing (analysis,
 visualization, etc.) in exactly the same way as plain arrays, but in addition
 they carry metadata about units, sampling interval, etc.
