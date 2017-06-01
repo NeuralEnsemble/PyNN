@@ -125,9 +125,9 @@ some file (and added to registry) inside system/scenarios, use::
 
     $ nosetests -s --tc=testName:test_changing_electrode test_nest.py
 
-(note that this would also run the tests specified within the simulator specific
-files such as test_brian.py, test_nest.py and test_neuron.py will). To avoid 
-this, specify the test_scenarios function on the command line::
+Note that this would also run the tests specified within the simulator specific
+files such as test_brian.py, test_nest.py and test_neuron.py. To avoid 
+this, specify the 'test_scenarios function' on the command line::
 
     $ nosetests -s --tc=testName:test_changing_electrode test_nest.py:test_scenarios
 
