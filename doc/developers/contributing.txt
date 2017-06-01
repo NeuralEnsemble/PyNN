@@ -114,6 +114,23 @@ The suggested way to do this is to write test functions, in a separate file,
 that take a simulator module as an argument, and then call these functions from
 ``test_neuron.py``, ``test_nest.py``, etc.
 
+System tests defined in the scenarios directory are treated as a single test 
+(test_scenarios()) while running nosetests. To run only the tests within a file
+named 'test_electrodes' located inside system/scenarios, use::
+
+    $ nosetests -s --tc=testFile:test_electrodes test_nest.py
+
+To run a single specific test named 'test_changing_electrode' located within 
+some file (and added to registry) inside system/scenarios, use::
+
+    $ nosetests -s --tc=testName:test_changing_electrode test_nest.py
+
+(note that this would also run the tests specified within the simulator specific
+files such as test_brian.py, test_nest.py and test_neuron.py will). To avoid 
+this, specify the test_scenarios function on the command line::
+
+    $ nosetests -s --tc=testName:test_changing_electrode test_nest.py:test_scenarios
+
 The ``test/unsorted`` directory contains a number of old tests that are either
 no longer useful or have not yet been adapted to the nose framework. These are
 not part of the test suite, but we are gradually adapting those tests that are
