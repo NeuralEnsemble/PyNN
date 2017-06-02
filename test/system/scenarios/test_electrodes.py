@@ -116,7 +116,7 @@ def issue437(sim):
     If fails, run the test again to confirm. Passes 9/10 times on first attempt.
     """
     if not have_scipy:
-        raise SkipTest 
+        raise SkipTest
 
     v_rest = -60.0  # for this test keep v_rest < v_reset
     sim.setup(timestep=0.1, min_delay=0.1)
@@ -288,6 +288,29 @@ def issue451(sim):
     assert_true (all( (val.item()-v_rest)<1e-9 for val in v[:, 0]))
 
 
+@register()
+def issue483(sim):
+    """
+    Test to ensure that length of recorded voltage vector is as expected
+    (checks for the specific scenario that failed earlier)
+    """
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+    p = sim.Population(1, sim.IF_curr_exp())
+    c = sim.DCSource(amplitude=0.5)
+    c.inject_into(p)
+    p.record('v')
+
+    simtime = 200.0
+    sim.run(100.0)
+    sim.run(100.0)
+
+    v = p.get_data().segments[0].filter(name="v")[0]
+
+    # check that the length of vm vector is as expected theoretically
+    assert (len(v) == (int(simtime/dt) + 1))
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -299,3 +322,4 @@ if __name__ == '__main__':
     issue442(sim)
     issue445(sim)
     issue451(sim)
+    issue483(sim)
