@@ -247,17 +247,17 @@ class _State(common.control.BaseState):
                     assert local_minimum_delay >= self.min_delay, \
                        "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
 
-    def _update_current_sources(self):
+    def _update_current_sources(self, tstop):
         for source in self.current_sources:
             for iclamp in source._devices:
-                source._update_iclamp(iclamp)
+                source._update_iclamp(iclamp, tstop)
 
     def run(self, simtime):
         """Advance the simulation for a certain time."""
         self.run_until(self.tstop + simtime)
 
     def run_until(self, tstop):
-        self._update_current_sources()
+        self._update_current_sources(tstop)
         self._pre_run()
         self.tstop = tstop
         #logger.info("Running the simulation until %g ms" % tstop)
