@@ -77,11 +77,15 @@ class NeuronCurrentSource(StandardCurrentSource):
             # t_stop should be part of the time sequence to handle repeated runs
             if not self._is_computed and tstop not in self._h_times.to_python():
                 ind = self._h_times.indwhere(">=", tstop)
-                if ind == -1:
+                if ind == -1:   # tstop beyond last specified time instant
                     ind = self._h_times.size()
+                if ind == 0.0:    # tstop before first specified time instant
+                    amp_val = 0.0
+                else:
+                    amp_val = self._h_amplitudes.x[int(ind)-1]
                 self._h_times.insrt(ind, tstop)
-                self._h_amplitudes.insrt(ind, self._h_amplitudes.x[int(ind)-1])
-                
+                self._h_amplitudes.insrt(ind, amp_val)                
+
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
 
     def set_native_parameters(self, parameters):
