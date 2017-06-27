@@ -477,8 +477,11 @@ class BasePopulation(object):
         file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
+        # ignoring the method parameter 'annotations', and using class attribute 'self.annotations'
+        # seems ok as this method parameter does not seem to be used within pynn currently.
+        # TODO: decide whether this method parameter needs to be retained.
         self.recorder.write(variables, io, gather, self._record_filter, clear=clear,
-                            annotations=annotations)
+                            annotations=self.annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """
@@ -828,6 +831,7 @@ class PopulationView(BasePopulation):
         self.local_cells = self.all_cells[self._mask_local]
         self.first_id = numpy.min(self.all_cells)  # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id = numpy.max(self.all_cells)
+        self.annotations = {}
         self.recorder = self.parent.recorder
         self._record_filter = self.all_cells
 
@@ -909,6 +913,9 @@ class PopulationView(BasePopulation):
         else:
             return indices_in_parent
 
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
+
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
@@ -923,6 +930,7 @@ class PopulationView(BasePopulation):
                    "parent": self.parent.label,
                    "mask": self.mask,
                    "size": self.size}
+        context.update(self.annotations)
         return descriptions.render(engine, template, context)
 
 
