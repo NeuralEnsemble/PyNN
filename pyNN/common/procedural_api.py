@@ -82,7 +82,6 @@ def build_record(simulator):
         source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)
-        simulator.state.write_on_end.append((source, variables, filename))
     return record
 
 
