@@ -438,7 +438,7 @@ class BasePopulation(object):
                 self.recorder.record(variables, self._record_filter, sampling_interval)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
-        self._simulator.state.write_on_end.append((self, variables, self.recorder.file))
+            self._simulator.state.write_on_end.append((self, variables, self.recorder.file))
 
     @deprecated("record('v')")
     def record_v(self, to_file=True):
