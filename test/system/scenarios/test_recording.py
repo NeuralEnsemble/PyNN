@@ -204,11 +204,12 @@ def issue_449_490_491(sim):
         return data
 
     def eval_num_cells(data):
-        # scan data object to evaluate number of cells; returns 3 values
-        # nCells  : # of cells in analogsignals (if "v" recorded)
-        # nspikes1: # of spikes in first recorded cell
-        # nspikes2: # of spikes in second recorded cell (if exists)
-        # if any parameter absent, return -1 as its value
+        # scan data object to evaluate number of cells; returns 4 values
+        # nCells  :  # of cells in analogsignals (if "v" recorded)
+        # nspikes1:  # of spikes in first recorded cell
+        # nspikes2:  # of spikes in second recorded cell (if exists)
+        # -- if any parameter absent, return -1 as its value
+        # annot_bool # true if specified annotation exists; false otherwise
 
         try:
             nCells = data[0].segments[0].analogsignals[0].shape[1]
@@ -225,7 +226,12 @@ def issue_449_490_491(sim):
         except:
             nspikes2 = -1
 
-        return (nCells, nspikes1, nspikes2)
+        if 'script_name' in data[0].annotations.keys():
+            annot_bool = True
+        else:
+            annot_bool = False
+
+        return (nCells, nspikes1, nspikes2, annot_bool)
 
     # END ***** defining methods needed for test *****
 
@@ -271,77 +277,89 @@ def issue_449_490_491(sim):
 
     # retrieve data from the created files, and perform appropriate checks
     # scenario 1
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell1_2vars))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_2vars))
     assert_true (nCells == 1)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 2
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell1_var1))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var1))
     assert_true (nCells == -1)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 3
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell1_var2))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var2))
     assert_true (nCells == 1)
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 4
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell2_2vars))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_2vars))
     assert_true (nCells == 1)
     assert_true (nspikes1 == 0)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 5
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell2_var1))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var1))
     assert_true (nCells == -1)
     assert_true (nspikes1 == 0)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 6
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_cell2_var2))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var2))
     assert_true (nCells == 1)
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 7
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_popl_2vars))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_2vars))
     assert_true (nCells == 2)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
 
     # scenario 8
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_popl_var1))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var1))
     assert_true (nCells == -1)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
 
     # scenario 9
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_sim_popl_var2))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var2))
     assert_true (nCells == 2)
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
 
     # scenario 10
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_rec_2vars))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_2vars))
     assert_true (nCells == 2)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
 
     # scenario 11
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_rec_var1))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var1))
     assert_true (nCells == -1)
     assert_true (nspikes1 > 0)
     assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
 
     # scenario 12
-    nCells, nspikes1, nspikes2 = eval_num_cells(get_file_data(filename_rec_var2))
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var2))
     assert_true (nCells == 2)
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
-
+    assert_true (annot_bool)
+    
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator

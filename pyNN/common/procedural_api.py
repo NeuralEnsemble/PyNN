@@ -75,10 +75,7 @@ def build_record(simulator):
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             if isinstance(source, (IDMixin)):
-                source = source.as_view()
-            else:
-                # not sure when this would be used; retaining earlier code
-                source = source.parent
+                source = source.as_view()            
         source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)

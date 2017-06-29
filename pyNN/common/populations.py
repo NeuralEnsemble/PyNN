@@ -407,6 +407,9 @@ class BasePopulation(object):
     def find_units(self, variable):
         return self.celltype.units[variable]
 
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
+
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
@@ -420,7 +423,7 @@ class BasePopulation(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         
         `sampling_interval` should be a value in milliseconds, and an integer
@@ -478,11 +481,8 @@ class BasePopulation(object):
         file as metadata.
         """
         logger.debug("Population %s is writing %s to %s [gather=%s, clear=%s]" % (self.label, variables, io, gather, clear))
-        # ignoring the method parameter 'annotations', and using class attribute 'self.annotations'
-        # seems ok as this method parameter does not seem to be used within pynn currently.
-        # TODO: decide whether this method parameter needs to be retained.
         self.recorder.write(variables, io, gather, self._record_filter, clear=clear,
-                            annotations=self.annotations)
+                            annotations=annotations)
 
     def get_data(self, variables='all', gather=True, clear=False):
         """
@@ -739,9 +739,6 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
-    def annotate(self, **annotations):
-        self.annotations.update(annotations)
-
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
@@ -913,9 +910,6 @@ class PopulationView(BasePopulation):
             return self.parent.index_in_grandparent(indices_in_parent)
         else:
             return indices_in_parent
-
-    def annotate(self, **annotations):
-        self.annotations.update(annotations)
 
     def describe(self, template='populationview_default.txt', engine='default'):
         """
@@ -1249,7 +1243,7 @@ class Assembly(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         """
         for p in self.populations:
