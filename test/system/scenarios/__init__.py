@@ -22,4 +22,5 @@ else:
                     issue274,
                     test_connectors,
                     issue231,
-                    test_connection_handling )
+                    test_connection_handling,
+                    test_synapse_types)
