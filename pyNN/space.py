@@ -244,7 +244,8 @@ class Grid2D(BaseStructure):
         nx = math.sqrt(n * self.aspect_ratio)
         if n % nx != 0:
             raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
-        ny = n / nx
+        nx = int(round(nx))
+        ny = n // nx
         return nx, ny
 
     def generate_positions(self, n):
