@@ -187,7 +187,9 @@ class _State(common.control.BaseState):
 
     def __get_min_delay(self):
         if h.min_delay < 0:
-            return 'auto'
+            local_minimum_delay = self.parallel_context.set_maxstep(self.default_maxstep)
+            self.min_delay = local_minimum_delay
+            return self.min_delay
         else:
             return h.min_delay
     min_delay = property(fset=__set_min_delay, fget=__get_min_delay)
@@ -240,12 +242,9 @@ class _State(common.control.BaseState):
             self.tstop = 0
             logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep))
             logger.debug("local_minimum_delay on host #%d = %g" % (self.mpi_rank, local_minimum_delay))
-            if self.min_delay == 'auto':
-                self.min_delay = local_minimum_delay
-            else:
-                if self.num_processes > 1:
-                    assert local_minimum_delay >= self.min_delay, \
-                       "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
+            if self.num_processes > 1:
+                assert local_minimum_delay >= self.min_delay, \
+                   "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
 
     def _update_current_sources(self, tstop):
         for source in self.current_sources:
