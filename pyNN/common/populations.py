@@ -407,6 +407,9 @@ class BasePopulation(object):
     def find_units(self, variable):
         return self.celltype.units[variable]
 
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
+
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
@@ -420,7 +423,7 @@ class BasePopulation(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         
         `sampling_interval` should be a value in milliseconds, and an integer
@@ -438,6 +441,7 @@ class BasePopulation(object):
                 self.recorder.record(variables, self._record_filter, sampling_interval)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
+            self._simulator.state.write_on_end.append((self, variables, self.recorder.file))
 
     @deprecated("record('v')")
     def record_v(self, to_file=True):
@@ -735,9 +739,6 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
-    def annotate(self, **annotations):
-        self.annotations.update(annotations)
-
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
@@ -828,6 +829,7 @@ class PopulationView(BasePopulation):
         self.local_cells = self.all_cells[self._mask_local]
         self.first_id = numpy.min(self.all_cells)  # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id = numpy.max(self.all_cells)
+        self.annotations = {}
         self.recorder = self.parent.recorder
         self._record_filter = self.all_cells
 
@@ -923,6 +925,7 @@ class PopulationView(BasePopulation):
                    "parent": self.parent.label,
                    "mask": self.mask,
                    "size": self.size}
+        context.update(self.annotations)
         return descriptions.render(engine, template, context)
 
 
@@ -1240,7 +1243,7 @@ class Assembly(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         """
         for p in self.populations:
