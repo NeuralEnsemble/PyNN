@@ -406,8 +406,8 @@ class BasePopulation(object):
 
     def find_units(self, variable):
         """
-        Returns units of the specified variable. Works for all the recordable
-        variables and neuron parameters of all standard models.
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
         """
         return self.celltype.units[variable]
 
@@ -1036,8 +1036,8 @@ class Assembly(object):
 
     def find_units(self, variable):
         """
-        Returns units of the specified variable. Works for all the recordable
-        variables and neuron parameters of all standard models.
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
         """
         units = set(p.find_units(variable) for p in self.populations)
         if len(units) > 1:
