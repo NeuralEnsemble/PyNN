@@ -316,16 +316,17 @@ def issue487(sim):
     """
     Test to ensure that DCSource and StepCurrentSource work properly
     for repeated runs. Problem existed under pyNN.neuron.
-    Three sub-tests performed:
+    Following sub-tests performed:
     1) DCSource active across two runs
     2) StepCurrentSource active across two runs
     3) DCSource active only during second run (earlier resulted in no current input)
+    4) StepCurrentSource active only during second run (earlier resulted in current initiation at end of first run)
     """
     dt = 0.1
     sim.setup(timestep=dt, min_delay=dt)
 
     v_rest = -60.0
-    cells = sim.Population(3, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
+    cells = sim.Population(4, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
     cells.initialize(v=v_rest)
     cells.record('v')
 
@@ -338,6 +339,9 @@ def issue487(sim):
     dcsource_2 = sim.DCSource(amplitude=0.15, start=115.0, stop=145.0)
     cells[2].inject(dcsource_2)
 
+    step_2 = sim.StepCurrentSource(times=[125.0, 175.0, 215.0], amplitudes=[0.05, 0.10, 0.20])
+    cells[3].inject(step_2)
+
     simtime = 100.0
     sim.run(simtime)
     sim.run(simtime)
@@ -347,13 +351,21 @@ def issue487(sim):
     v_dc = v[:, 0]
     v_step = v[:, 1]
     v_dc_2 = v[:, 2]
+    v_step_2 = v[:, 3]
 
     # check that membrane potential does not fall after end of first run
+    # Test 1
     assert_true (v_dc[int(simtime/dt)] < v_dc[int(simtime/dt)+1])
+    # Test 2
     assert_true (v_step[int(simtime/dt)] < v_step[int(simtime/dt)+1])
     # check that membrane potential of cell undergoes a change
+    # Test 3
     v_dc_2_arr = numpy.squeeze(numpy.array(v_dc_2))
     assert_false (numpy.isclose(v_dc_2_arr, v_rest).all())
+    # check that membrane potential of cell undergoes no change till start of current injection
+    # Test 4
+    v_step_2_arr = numpy.squeeze(numpy.array(v_step_2))
+    assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
 if __name__ == '__main__':
