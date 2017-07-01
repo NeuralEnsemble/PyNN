@@ -405,6 +405,10 @@ class BasePopulation(object):
             self.initial_values[variable] = initial_value
 
     def find_units(self, variable):
+        """
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
+        """
         return self.celltype.units[variable]
 
     def annotate(self, **annotations):
@@ -1034,6 +1038,10 @@ class Assembly(object):
         return rts
 
     def find_units(self, variable):
+        """
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
+        """
         units = set(p.find_units(variable) for p in self.populations)
         if len(units) > 1:
             raise ValueError("Inconsistent units")
