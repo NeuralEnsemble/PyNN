@@ -414,9 +414,10 @@ def issue_465_474(sim):
     simtime += runtime
     sim.run(runtime)
     simtime += runtime
-    sim.end()
 
     vm = cells.get_data().segments[0].filter(name="v")[0]
+    sim.end()
+
     v_ac = vm[:, 0]
     v_dc = vm[:, 1]
     v_noise = vm[:, 2]
