@@ -231,7 +231,7 @@ def issue442(sim):
     assert_true(v0[peak_ind[0]] < v0[peak_ind[1]] and v0[peak_ind[1]] < v0[peak_ind[2]])
 
 
-@register(exclude=["nest"])
+@register()
 def issue445(sim):
     """
     This test basically checks if a new value of current is calculated at every
@@ -240,18 +240,18 @@ def issue445(sim):
     """
     sim_dt = 0.1
     simtime = 200.0
-    sim.setup(timestep=sim_dt, min_delay=1.5)
+    sim.setup(timestep=sim_dt, min_delay=1.0)
     cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
     t_start=50.0
     t_stop=125.0
     acsource = sim.ACSource(start=t_start, stop=t_stop, amplitude=0.5, offset=0.0, frequency=100.0, phase=0.0)
     cells[0].inject(acsource)
-    acsource._record()
+    acsource.record()
 
     sim.run(simtime)
     sim.end()
 
-    i_t_ac, i_amp_ac = acsource._get_data()
+    i_t_ac, i_amp_ac = acsource.get_data()
     t_start_ind = numpy.argmax(i_t_ac >= t_start)
     t_stop_ind = numpy.argmax(i_t_ac >= t_stop)
     assert_true (all(val != val_next for val, val_next in zip(i_t_ac[t_start_ind:t_stop_ind-1], i_t_ac[t_start_ind+1:t_stop_ind])))
