@@ -368,6 +368,90 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
+@register()
+def issue_465_474(sim):
+    """
+    Checks the current traces recorded for each of the four types of
+    electrodes in pyNN, and verifies that:
+    1) Length of the current traces are as expected
+    2) Values at t = t_start and t = t_stop present
+    3) Changes in current value occur at the expected time instant
+    4) Change in Vm begins at the immediate next time instant following current injection
+    """
+    sim_dt = 0.1
+    sim.setup(min_delay=1.0, timestep = sim_dt)
+
+    v_rest = -60.0
+    cells = sim.Population(4, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
+    cells.initialize(v=v_rest)
+
+    amp=0.5
+    offset = 0.1
+    start=50.0
+    stop=125.0
+
+    acsource = sim.ACSource(start=start, stop=stop, amplitude=amp, offset=offset, frequency=100.0, phase=0.0)
+    cells[0].inject(acsource)
+    acsource.record()
+
+    dcsource = sim.DCSource(amplitude=amp, start=start, stop=stop)
+    cells[1].inject(dcsource)
+    dcsource.record()
+
+    noise = sim.NoisyCurrentSource(mean=amp, stdev=0.05, start=start, stop=stop, dt=sim_dt)
+    cells[2].inject(noise)
+    noise.record()
+
+    step = sim.StepCurrentSource(times=[start, (start+stop)/2, stop], amplitudes=[0.4, 0.6, 0.2])
+    cells[3].inject(step)
+    step.record()
+
+    cells.record('v')
+    runtime = 100.0
+    simtime = 0
+    # testing for repeated runs
+    sim.run(runtime)
+    simtime += runtime
+    sim.run(runtime)
+    simtime += runtime
+    sim.end()
+
+    vm = cells.get_data().segments[0].filter(name="v")[0]
+    v_ac = vm[:, 0]
+    v_dc = vm[:, 1]
+    v_noise = vm[:, 2]
+    v_step = vm[:, 3]
+
+    i_t_ac, i_amp_ac = acsource.get_data()
+    i_t_dc, i_amp_dc = dcsource.get_data()
+    i_t_noise, i_amp_noise = noise.get_data()
+    i_t_step, i_amp_step = step.get_data()
+
+    # test for length of recorded current traces
+    assert_true (len(i_t_ac) == len(i_amp_ac) == int(simtime/sim_dt)+1 == len(v_ac))
+    assert_true (len(i_t_dc) == len(i_amp_dc) == int(simtime/sim_dt)+1 == len(v_dc))
+    assert_true (len(i_t_noise) == len(i_amp_noise) == int(simtime/sim_dt)+1 == len(v_noise))
+    assert_true (len(i_t_step) == len(i_amp_step) == int(simtime/sim_dt)+1 == len(v_step))
+
+    # test to check values exist at start and end of simulation
+    assert_true (i_t_ac[0]==0.0 and numpy.isclose(i_t_ac[-1],simtime))
+    assert_true (i_t_dc[0]==0.0 and numpy.isclose(i_t_dc[-1],simtime))
+    assert_true (i_t_noise[0]==0.0 and numpy.isclose(i_t_noise[-1],simtime))
+    assert_true (i_t_step[0]==0.0 and numpy.isclose(i_t_step[-1],simtime))
+
+    # test to check current changes at the expected time instant
+    assert_true (i_amp_ac[(int(start/sim_dt))-1]==0 and i_amp_ac[int(start/sim_dt)]!=0)
+    assert_true (i_amp_dc[int(start/sim_dt)-1]==0 and i_amp_dc[int(start/sim_dt)]!=0)
+    assert_true (i_amp_noise[int(start/sim_dt)-1]==0 and i_amp_noise[int(start/sim_dt)]!=0)
+    assert_true (i_amp_step[int(start/sim_dt)-1]==0 and i_amp_step[int(start/sim_dt)]!=0)
+
+    # test to check vm changes at the time step following current initiation
+    assert_true (numpy.isclose(v_ac[int(start/sim_dt)].item(),v_rest) and v_ac[int(start/sim_dt)+1]!=v_rest)
+    assert_true (numpy.isclose(v_dc[int(start/sim_dt)].item(),v_rest) and v_dc[int(start/sim_dt)+1]!=v_rest)
+    assert_true (numpy.isclose(v_noise[int(start/sim_dt)].item(),v_rest) and v_noise[int(start/sim_dt)+1]!=v_rest)
+    assert_true (numpy.isclose(v_step[int(start/sim_dt)].item(),v_rest) and v_step[int(start/sim_dt)+1]!=v_rest)
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -381,3 +465,4 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
+    issue_465_474(sim)
