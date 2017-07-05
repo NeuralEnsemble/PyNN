@@ -416,7 +416,7 @@ def issue_465_474(sim):
     simtime += runtime
 
     vm = cells.get_data().segments[0].filter(name="v")[0]
-    #sim.end()
+    sim.end()
 
     v_ac = vm[:, 0]
     v_dc = vm[:, 1]
@@ -429,10 +429,10 @@ def issue_465_474(sim):
     i_t_step, i_amp_step = step.get_data()
 
     # test for length of recorded current traces
-    print len(i_t_ac)
-    print len(i_amp_ac)
+    print (len(i_t_ac))
+    print (len(i_amp_ac))
     print (int(simtime/sim_dt)+1)
-    print len(v_ac)
+    print (len(v_ac))
     assert_true (len(i_t_ac) == len(i_amp_ac) == (int(simtime/sim_dt)+1) == len(v_ac))
     assert_true (len(i_t_dc) == len(i_amp_dc) == int(simtime/sim_dt)+1 == len(v_dc))
     assert_true (len(i_t_noise) == len(i_amp_noise) == int(simtime/sim_dt)+1 == len(v_noise))
