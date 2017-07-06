@@ -11,10 +11,11 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" 
     export NEST="nest-$NEST_VERSION"
     pip install cython==0.23.4
 
-    if NEST_VERSION == "master":
+    if [ NEST_VERSION == "master" ]; then
       wget https://github.com/nest/nest-simulator/archive/$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz;
-    else:
+    else
       wget https://github.com/nest/nest-simulator/releases/download/v$NEST_VERSION/nest-$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz
+    fi
 
     pushd $HOME;
     tar xzf $NEST.tar.gz;
