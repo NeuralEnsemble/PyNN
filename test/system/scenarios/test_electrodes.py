@@ -400,9 +400,9 @@ def issue497(sim):
     i_t_ac1, i_amp_ac1 = acsource1._get_data()
     i_t_ac2, i_amp_ac2 = acsource2._get_data()
 
-    # test to verify that acsource1 has first calculated value as 0
+    # test to verify that acsource1 has value at t = start as 0
     assert_true (abs(i_amp_ac1[int(start/sim_dt)]) < 1e-9)
-    # test to verify that acsource2 has first calculated value as 'amplitude'
+    # test to verify that acsource2 has value at start as 'amplitude'
     assert_true (abs(i_amp_ac2[int(start/sim_dt)]-amplitude) < 1e-9)
 
 
