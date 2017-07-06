@@ -387,22 +387,22 @@ def issue497(sim):
     acsource1 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
                         frequency=100.0, phase=0.0)
     cells[0].inject(acsource1)
-    acsource1._record()
+    acsource1.record()
     acsource2 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
                         frequency=100.0, phase=90.0)
     cells[1].inject(acsource2)
-    acsource2._record()
+    acsource2.record()
 
     cells.record('v')
     sim.run(25.0)
     vm = cells.get_data().segments[0].filter(name="v")[0]
     sim.end()
-    i_t_ac1, i_amp_ac1 = acsource1._get_data()
-    i_t_ac2, i_amp_ac2 = acsource2._get_data()
+    i_t_ac1, i_amp_ac1 = acsource1.get_data()
+    i_t_ac2, i_amp_ac2 = acsource2.get_data()
 
     # test to verify that acsource1 has value at t = start as 0
     assert_true (abs(i_amp_ac1[int(start/sim_dt)]) < 1e-9)
-    # test to verify that acsource2 has value at start as 'amplitude'
+    # test to verify that acsource2 has value at t = start as 'amplitude'
     assert_true (abs(i_amp_ac2[int(start/sim_dt)]-amplitude) < 1e-9)
 
 
