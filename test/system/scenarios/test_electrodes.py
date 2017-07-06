@@ -368,14 +368,14 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register(exclude=["nest"])
+@register(exclude=["brian", "neuron", "nest"])
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid
     at the specified start time (and not, for example, at t=0 as NEST currently does)
 
-    NOTE: This test is currently excluded for NEST in the 'master' branch, as
-    the current recording feature is not presently available in 'master'
+    NOTE: This test is currently excluded for all the simulators as the final
+    current recording implementation is currently unavailable on 'master'.
     """
     sim_dt = 0.1
     sim.setup(min_delay=1.0, timestep = sim_dt)
