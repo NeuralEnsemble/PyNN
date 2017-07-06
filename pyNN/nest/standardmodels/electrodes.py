@@ -74,6 +74,11 @@ class NestCurrentSource(StandardCurrentSource):
                                               'amplitude_times': times})
             elif key in ("start", "stop"):
                 nest.SetStatus(self._device, {key: self._delay_correction(value)})
+            elif key == "phase":
+                phase_fix = ( (value*numpy.pi/180) - (2*numpy.pi*self.frequency*self.start/1000)) * 180/numpy.pi
+                phase_fix.shape = (1)
+                phase_fix = phase_fix.evaluate()[0]
+                nest.SetStatus(self._device, {key: phase_fix})
             elif not key == "amplitude_times":
                 nest.SetStatus(self._device, {key: value})
 

@@ -368,6 +368,44 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
+@register(exclude=["nest"])
+def issue497(sim):
+    """
+    This is a test to check that the specified phase for the ACSource is valid
+    at the specified start time (and not, for example, at t=0 as NEST currently does)
+
+    NOTE: This test is currently excluded for NEST in the 'master' branch, as
+    the current recording feature is not presently available in 'master'
+    """
+    sim_dt = 0.1
+    sim.setup(min_delay=1.0, timestep = sim_dt)
+
+    start = 5.0
+    amplitude = 1.0
+    cells = sim.Population(2, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
+
+    acsource1 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
+                        frequency=100.0, phase=0.0)
+    cells[0].inject(acsource1)
+    acsource1.record()
+    acsource2 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
+                        frequency=100.0, phase=90.0)
+    cells[1].inject(acsource2)
+    acsource2.record()
+
+    cells.record('v')
+    sim.run(25.0)
+    vm = cells.get_data().segments[0].filter(name="v")[0]
+    sim.end()
+    i_t_ac1, i_amp_ac1 = acsource1.get_data()
+    i_t_ac2, i_amp_ac2 = acsource2.get_data()
+
+    # test to verify that acsource1 has first calculated value as 0
+    assert_true (abs(i_amp_ac1[int(start/sim_dt)]) < 1e-9)
+    # test to verify that acsource2 has first calculated value as 'amplitude'
+    assert_true (abs(i_amp_ac2[int(start/sim_dt)]-amplitude) < 1e-9)
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -381,3 +419,4 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
+    issue497(sim)
