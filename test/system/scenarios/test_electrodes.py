@@ -428,11 +428,7 @@ def issue_465_474(sim):
     i_t_noise, i_amp_noise = noise.get_data()
     i_t_step, i_amp_step = step.get_data()
 
-    # test for length of recorded current traces
-    print (len(i_t_ac))
-    print (len(i_amp_ac))
-    print (int(simtime/sim_dt)+1)
-    print (len(v_ac))
+    # test for length of recorded current traces    
     assert_true (len(i_t_ac) == len(i_amp_ac) == (int(simtime/sim_dt)+1) == len(v_ac))
     assert_true (len(i_t_dc) == len(i_amp_dc) == int(simtime/sim_dt)+1 == len(v_dc))
     assert_true (len(i_t_noise) == len(i_amp_noise) == int(simtime/sim_dt)+1 == len(v_noise))
