@@ -376,22 +376,41 @@ def issue497(sim):
 
     NOTE: This test is currently excluded for all the simulators as the final
     current recording implementation is currently unavailable on 'master'.
+
+    Approach:
+    > Two signals with different initial specified phases
+    > 'start' of one signal updated on the fly
+    > 'frequency' of other signal updated on the fly
+    > Test to ensure that initial specified phases applicable at t = start
     """
     sim_dt = 0.1
     sim.setup(min_delay=1.0, timestep = sim_dt)
 
-    start = 5.0
+    start1 = 5.0
+    freq1 = 100.0
+    phase1 = 0.0
+    start2 = 5.0
+    freq2 = 100.0
+    phase2 = 90.0
     amplitude = 1.0
+
     cells = sim.Population(2, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
 
-    acsource1 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
-                        frequency=100.0, phase=0.0)
+    acsource1 = sim.ACSource(start=start1, stop=20.0, amplitude=amplitude, offset=0.0,
+                        frequency=freq1, phase=phase1)
     cells[0].inject(acsource1)
     acsource1.record()
-    acsource2 = sim.ACSource(start=start, stop=20.0, amplitude=amplitude, offset=0.0,
-                        frequency=100.0, phase=90.0)
+    acsource2 = sim.ACSource(start=start2, stop=20.0, amplitude=amplitude, offset=0.0,
+                        frequency=freq2, phase=phase2)
     cells[1].inject(acsource2)
     acsource2.record()
+
+    # cannot directly assign/read from electrode variables, as each
+    # simulator currently returns parameters in different units (see #452)
+    start1 = 10.0
+    acsource1.start = start1
+    freq2 = 20.0
+    acsource2.frequency = freq2
 
     cells.record('v')
     sim.run(25.0)
@@ -400,10 +419,11 @@ def issue497(sim):
     i_t_ac1, i_amp_ac1 = acsource1.get_data()
     i_t_ac2, i_amp_ac2 = acsource2.get_data()
 
-    # test to verify that acsource1 has value at t = start as 0
-    assert_true (abs(i_amp_ac1[int(start/sim_dt)]) < 1e-9)
-    # test to verify that acsource2 has value at t = start as 'amplitude'
-    assert_true (abs(i_amp_ac2[int(start/sim_dt)]-amplitude) < 1e-9)
+    # verify that acsource1 has value at t = start as 0 and as non-zero at next dt
+    assert_true (abs(i_amp_ac1[int(start1/sim_dt)]) < 1e-9)
+    assert_true (abs(i_amp_ac1[int(start1/sim_dt)+1]) > 1e-9)
+    # verify that acsources has value at t = start as 'amplitude'
+    assert_true (abs(i_amp_ac2[int(start2/sim_dt)]-amplitude) < 1e-9)
 
 
 if __name__ == '__main__':
