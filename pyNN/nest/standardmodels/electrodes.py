@@ -86,7 +86,7 @@ class NestCurrentSource(StandardCurrentSource):
                                               'amplitude_times': times})
             elif key in ("start", "stop"):
                 nest.SetStatus(self._device, {key: self._delay_correction(value)})
-                if key == "start":
+                if key == "start" and type(self).__name__ == "ACSource":
                     self._phase_correction(self.start, self.frequency, self.phase_given)
             elif key == "frequency":
                 nest.SetStatus(self._device, {key: value})
