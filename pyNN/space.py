@@ -244,7 +244,8 @@ class Grid2D(BaseStructure):
         nx = math.sqrt(n * self.aspect_ratio)
         if n % nx != 0:
             raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
-        ny = n / nx
+        nx = int(round(nx))
+        ny = n // nx
         return nx, ny
 
     def generate_positions(self, n):
@@ -308,10 +309,13 @@ class Grid3D(BaseStructure):
         x = self.x0 + self.dx * x.flatten()
         y = self.y0 + self.dy * y.flatten()
         z = self.z0 + self.dz * z.flatten()
+        positions = numpy.array((x, y, z))
         if self.fill_order == 'sequential':
-            return numpy.array((x, y, z))
+            return positions
         else:
-            raise NotImplementedError
+            if self.rng is None:
+                self.rng = NumpyRNG()
+            return self.rng.permutation(positions.T).T
     generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
