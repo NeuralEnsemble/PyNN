@@ -359,7 +359,25 @@ def issue_449_490_491(sim):
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
     assert_true (annot_bool)
-    
+
+
+@register()
+def issue499(sim):
+    """
+    Test to check that sim.end() does not erase the recorded data
+    """
+    sim.setup(min_delay=1.0, timestep = 0.1)
+    cells = sim.Population(1, sim.IF_curr_exp())
+    dcsource = sim.DCSource(amplitude=0.5, start=20, stop=80)
+    cells[0].inject(dcsource)
+    cells.record('v')
+
+    sim.run(50.0)
+    sim.end()
+    vm = cells.get_data().segments[0].filter(name="v")[0]
+    v_dc = vm[:, 0]
+    assert_true (len(v_dc)!=0)
+
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
@@ -370,3 +388,4 @@ if __name__ == '__main__':
     test_sampling_interval(sim)
     test_mix_procedural_and_oo(sim)
     issue_449_490_491(sim)
+    issue499(sim)
