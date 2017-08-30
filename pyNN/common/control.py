@@ -31,7 +31,7 @@ class BaseState(object):
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
+           **extra_params):
     """
     Initialises/reinitialises the simulator. Any existing network structure is
     destroyed.
@@ -41,6 +41,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     `extra_params` contains any keyword arguments that are required by a given
     simulator but not by others.
     """
+    max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     invalid_extra_params = ('mindelay', 'maxdelay', 'dt', 'time_step')
     for param in invalid_extra_params:
         if param in extra_params:

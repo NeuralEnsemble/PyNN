@@ -60,11 +60,11 @@ class NeuronCurrentSource(StandardCurrentSource):
             self._times = None
             self._generate()
         for iclamp in self._h_iclamps.values():
-            self._update_iclamp(iclamp)
+            self._update_iclamp(iclamp, 0.0)    # send tstop = 0.0 on _reset()
 
-    def _update_iclamp(self, iclamp):
+    def _update_iclamp(self, iclamp, tstop):
         if not self._is_playable:
-            iclamp.delay = max(0, self.start - simulator.state.t)
+            iclamp.delay = self.start
             iclamp.dur = self.stop - self.start
             iclamp.amp = self.amplitude
 
@@ -72,6 +72,20 @@ class NeuronCurrentSource(StandardCurrentSource):
             iclamp.delay = 0.0
             iclamp.dur = 1e12
             iclamp.amp = 0.0
+
+            # check exists only for StepCurrentSource (_is_playable = True, _is_computed = False)
+            # t_stop should be part of the time sequence to handle repeated runs
+            if not self._is_computed and tstop not in self._h_times.to_python():
+                ind = self._h_times.indwhere(">=", tstop)
+                if ind == -1:   # tstop beyond last specified time instant
+                    ind = self._h_times.size()
+                if ind == 0.0:    # tstop before first specified time instant
+                    amp_val = 0.0
+                else:
+                    amp_val = self._h_amplitudes.x[int(ind)-1]
+                self._h_times.insrt(ind, tstop)
+                self._h_amplitudes.insrt(ind, amp_val)                
+
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
 
     def set_native_parameters(self, parameters):
@@ -96,14 +110,23 @@ class NeuronCurrentSource(StandardCurrentSource):
                     self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
                     self._devices.append(self._h_iclamps[id])
 
-    def _record(self):
+    def record(self):
         self.itrace = h.Vector()
         self.itrace.record(self._devices[0]._ref_i)
         self.record_times = h.Vector()
         self.record_times.record(h._ref_t)
 
-    def _get_data(self):
-        return numpy.array((self.record_times, self.itrace))
+    def get_data(self):
+        # NEURON and pyNN have different concepts of current initiation times
+        # To keep this consistent across simulators, pyNN will have current
+        # initiating at the electrode at t_start and effect on cell at next dt.
+        # This requires removing the first element from the current Vector
+        # as NEURON computes the currents one time step later. The vector length
+        # is compensated by repeating the last recorded value of current.
+        t_arr = numpy.array(self.record_times)
+        i_arr = numpy.array(self.itrace)[1:]
+        i_arr = numpy.append(i_arr, i_arr[-1])
+        return (t_arr, i_arr)
 
 
 class DCSource(NeuronCurrentSource, electrodes.DCSource):
@@ -187,7 +210,7 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
     def _generate(self):
         ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
         ## Otherwise should have a buffer mechanism
-        self.times = numpy.arange(self.start, self.stop + simulator.state.dt, simulator.state.dt)
-        tmp = numpy.arange(0, self.stop - self.start, simulator.state.dt)
-        self.amplitudes = self.mean + (self.stdev * self.dt) * numpy.random.randn(len(tmp))
+        self.times = numpy.arange(self.start, self.stop, max(self.dt, simulator.state.dt))
+        self.times = numpy.append(self.times, self.stop)
+        self.amplitudes = self.mean + self.stdev * numpy.random.randn(len(self.times))
         self.amplitudes[-1] = 0.0

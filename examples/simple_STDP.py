@@ -127,9 +127,10 @@ class WeightRecorder(object):
         return t + self.interval
 
     def get_weights(self):
-        return neo.AnalogSignalArray(self._weights, units='nA', sampling_period=self.interval * ms,
-                                     channel_index=numpy.arange(len(self._weights[0])),
-                                     name="weight")
+        signal = neo.AnalogSignal(self._weights, units='nA', sampling_period=self.interval * ms,
+                                  name="weight")
+        signal.channel_index = neo.ChannelIndex(numpy.arange(len(self._weights[0])))
+        return signal
 
 weight_recorder = WeightRecorder(sampling_interval=1.0, projection=connections)
 

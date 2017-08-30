@@ -1,5 +1,6 @@
 
 from nose.tools import assert_almost_equal, assert_raises
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
 from .registry import register
 
@@ -24,8 +25,8 @@ def test_reset(sim):
 
     assert len(data.segments) == repeats
     for segment in data.segments[1:]:
-        assert_arrays_almost_equal(segment.analogsignalarrays[0],
-                                   data.segments[0].analogsignalarrays[0], 1e-11)
+        assert_array_almost_equal(segment.analogsignals[0],
+                                  data.segments[0].analogsignals[0], 10)
 test_reset.__test__ = False
 
 
@@ -51,8 +52,8 @@ def test_reset_with_clear(sim):
 
     for rec in data:
         assert len(rec.segments) == 1
-        assert_arrays_almost_equal(rec.segments[0].analogsignalarrays[0],
-                                   data[0].segments[0].analogsignalarrays[0], 1e-11)
+        assert_arrays_almost_equal(rec.segments[0].analogsignals[0],
+                                   data[0].segments[0].analogsignals[0], 1e-11)
 test_reset_with_clear.__test__ = False
 
 
@@ -77,9 +78,9 @@ def test_setup(sim):
     assert len(data) == n
     for block in data:
         assert len(block.segments) == 1
-        signals = block.segments[0].analogsignalarrays
+        signals = block.segments[0].analogsignals
         assert len(signals) == 1
-        assert_arrays_equal(signals[0], data[0].segments[0].analogsignalarrays[0])
+        assert_array_equal(signals[0], data[0].segments[0].analogsignals[0])
 test_setup.__test__ = False
 
 

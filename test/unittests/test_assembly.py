@@ -392,7 +392,7 @@ class AssemblyTest(unittest.TestCase):
         a.record('v')
         sim.run(t1)
         # what if we call p.record between two run statements?
-        # would be nice to get an AnalogSignalArray with a non-zero t_start
+        # would be nice to get an AnalogSignal with a non-zero t_start
         # but then need to make sure we get the right initial value
         sim.run(t2)
         sim.reset()
@@ -402,7 +402,7 @@ class AssemblyTest(unittest.TestCase):
         data = a.get_data(gather=True)
         self.assertEqual(len(data.segments), 2)
         seg0 = data.segments[0]
-        self.assertEqual(len(seg0.analogsignalarrays), 1)
+        self.assertEqual(len(seg0.analogsignals), 1)
         v = seg0.filter(name='v')[0]
         self.assertEqual(v.name, 'v')
         num_points = int(round((t1 + t2) / sim.get_time_step())) + 1
@@ -413,7 +413,7 @@ class AssemblyTest(unittest.TestCase):
         self.assertEqual(len(seg0.spiketrains), 0)
         
         seg1 = data.segments[1]
-        self.assertEqual(len(seg1.analogsignalarrays), 2)
+        self.assertEqual(len(seg1.analogsignals), 2)
         w = seg1.filter(name='w')[0]
         self.assertEqual(w.name, 'w')
         num_points = int(round(t3 / sim.get_time_step())) + 1

@@ -1,0 +1,32 @@
+========================
+PyNN 0.9.1 release notes
+========================
+
+May 4th 2017
+
+Welcome to PyNN 0.9.1!
+
+
+Stochastic synapses
+-------------------
+
+This release adds three new standard synapse models, available for the NEST and NEURON simulators. They are:
+
+* :class:`SimpleStochasticSynapse` - each spike is transmitted with a probability `p`.
+* :class:`StochasticTsodyksMarkramSynapse` - synapse exhibiting facilitation and depression, implemented using the model
+    of Tsodyks, Markram et al., in its stochastic version.
+* :class:`MultiQuantalSynapse` - synapse exhibiting facilitation and depression with multiple quantal release sites.
+
+There are some new example scripts which demonstrate use of the synapse models - see :doc:`../examples/stochastic_synapses`
+and :doc:`../examples/stochastic_deterministic_comparison`.
+
+Note that the new models require building a NEST extension;
+this is done automatically during installation (when running :command:`pip install` or :command:`setup.py install`).
+
+
+Bug fixes
+---------
+
+A `number of bugs`_ have been fixed.
+
+.. _`number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aissue+milestone%3A0.9.1+is%3Aclosed

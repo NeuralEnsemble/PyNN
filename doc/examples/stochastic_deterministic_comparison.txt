@@ -1,0 +1,7 @@
+Example of facilitating and depressing synapses in deterministic and stochastic versions
+========================================================================================
+
+.. image:: ../images/examples/stochastic_comparison_neuron_20170505-150418.png
+
+.. literalinclude:: ../../examples/stochastic_deterministic_comparison.py
+

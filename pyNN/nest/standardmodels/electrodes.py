@@ -82,6 +82,24 @@ class NestCurrentSource(StandardCurrentSource):
         return ParameterSpace(dict((k, v) for k, v in all_params.items()
                                    if k in self.get_native_names()))
 
+    def record(self):
+        self.i_multimeter = nest.Create('multimeter', params={'record_from': ['I'], 'interval' :state.dt})
+        nest.Connect(self.i_multimeter, self._device)
+
+    def get_data(self):
+        events = nest.GetStatus(self.i_multimeter)[0]['events']
+        # Similar to recording.py: NEST does not record values at
+        # the zeroth time step, so we add them here.
+        t_arr = numpy.insert(numpy.array(events['times']), 0, 0.0)
+        i_arr = numpy.insert(numpy.array(events['I']/1000.0), 0, 0.0)
+        # NEST and pyNN have different concepts of current initiation times
+        # To keep this consistent across simulators, we will have current
+        # initiating at the electrode at t_start and effect on cell at next dt
+        # This requires padding min_delay equivalent period with 0's
+        pad_length = int(state.min_delay/state.dt)
+        i_arr = numpy.insert(i_arr[:-pad_length], 0, [0]*pad_length)
+        return t_arr, i_arr
+
 
 class DCSource(NestCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__

@@ -24,12 +24,12 @@ def list_standard_models():
     return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, std.StandardCellType)]
 
 
-def setup(timestep=0.1, min_delay=0.1, max_delay=10.0, **extra_params):
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+def setup(timestep=0.1, min_delay=0.1, **extra_params):
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
     simulator.state.dt = timestep  # move to common.setup?
     simulator.state.min_delay = min_delay
-    simulator.state.max_delay = max_delay
+    simulator.state.max_delay = extra_params.get('max_delay', 10.0)
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
     simulator.state.output_filename = extra_params.get("filename", "PyNN29ML.xml")

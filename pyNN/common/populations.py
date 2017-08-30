@@ -405,7 +405,14 @@ class BasePopulation(object):
             self.initial_values[variable] = initial_value
 
     def find_units(self, variable):
+        """
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
+        """
         return self.celltype.units[variable]
+
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
 
     def can_record(self, variable):
         """Determine whether `variable` can be recorded from this population."""
@@ -420,7 +427,7 @@ class BasePopulation(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         
         `sampling_interval` should be a value in milliseconds, and an integer
@@ -438,6 +445,7 @@ class BasePopulation(object):
                 self.recorder.record(variables, self._record_filter, sampling_interval)
         if isinstance(to_file, basestring):
             self.recorder.file = to_file
+            self._simulator.state.write_on_end.append((self, variables, self.recorder.file))
 
     @deprecated("record('v')")
     def record_v(self, to_file=True):
@@ -735,9 +743,6 @@ class Population(BasePopulation):
                          giving the x,y,z coordinates of all the neurons (soma, in the
                          case of non-point models).""")
 
-    def annotate(self, **annotations):
-        self.annotations.update(annotations)
-
     def describe(self, template='population_default.txt', engine='default'):
         """
         Returns a human-readable description of the population.
@@ -828,6 +833,7 @@ class PopulationView(BasePopulation):
         self.local_cells = self.all_cells[self._mask_local]
         self.first_id = numpy.min(self.all_cells)  # only works if we assume all_cells is sorted, otherwise could use min()
         self.last_id = numpy.max(self.all_cells)
+        self.annotations = {}
         self.recorder = self.parent.recorder
         self._record_filter = self.all_cells
 
@@ -923,6 +929,7 @@ class PopulationView(BasePopulation):
                    "parent": self.parent.label,
                    "mask": self.mask,
                    "size": self.size}
+        context.update(self.annotations)
         return descriptions.render(engine, template, context)
 
 
@@ -1031,6 +1038,10 @@ class Assembly(object):
         return rts
 
     def find_units(self, variable):
+        """
+        Returns units of the specified variable or parameter, as a string.
+        Works for all the recordable variables and neuron parameters of all standard models.
+        """
         units = set(p.find_units(variable) for p in self.populations)
         if len(units) > 1:
             raise ValueError("Inconsistent units")
@@ -1240,7 +1251,7 @@ class Assembly(object):
         names. For a given celltype class, `celltype.recordable` contains a list of
         variables that can be recorded for that celltype.
 
-        If specified, `to_file` should be a Neo IO instance and `write_data()`
+        If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
         """
         for p in self.populations:
@@ -1305,19 +1316,18 @@ class Assembly(object):
         name = self.label
         description = self.describe()
         blocks = [p.get_data(variables, gather, clear) for p in self.populations]
+        # adjust channel_ids to match assembly channel indices
         offset = 0
         for block, p in zip(blocks, self.populations):
             for segment in block.segments:
-                #segment.name = name
-                #segment.description = description
-                for signal_array in segment.analogsignalarrays:
-                    signal_array.channel_index = numpy.array(signal_array.channel_index) + offset  # hack
+                for signal_array in segment.analogsignals:
+                    signal_array.channel_index.channel_ids += offset
             offset += p.size
         for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
             for j, segment in enumerate(block.segments):
                 logger.debug("  %d: %s", j, segment.name)
-                for arr in segment.analogsignalarrays:
+                for arr in segment.analogsignals:
                     logger.debug("    %s %s", arr.shape, arr.name)
         merged_block = blocks[0]
         for block in blocks[1:]:

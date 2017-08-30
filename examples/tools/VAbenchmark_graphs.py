@@ -28,7 +28,7 @@ from neo.io import get_io
 
 def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_aps=False,
                 hide_axis_labels=False):
-    label = "%s (Neuron %d)" % (label, signal.channel_index[index])
+    label = "%s (Neuron %d)" % (label, signal.channel_index.index[index])
     if fake_aps:  # add fake APs for plotting
         v_thresh = fake_aps
         spike_indices = signal >= v_thresh - 0.05 * mV
@@ -54,10 +54,10 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
 
 
 def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
-    for array in segment.analogsignalarrays:
-        sorted_channels = sorted(array.channel_index)
+    for array in segment.analogsignals:
+        sorted_channels = sorted(array.channel_index.index)
         for j in range(2):
-            i = array.channel_index.tolist().index(j)
+            i = array.channel_index.index.tolist().index(j)
             print("plotting '%s' for %s" % (array.name, label))
             col = 'rbgmck'[j % 6]
             plot_signal(panel, array, i, colour=col, linewidth=1, label=label,

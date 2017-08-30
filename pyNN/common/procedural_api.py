@@ -74,11 +74,11 @@ def build_record(simulator):
         # would actually like to be able to record to an array and choose later
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
-            source = source.parent
+            if isinstance(source, (IDMixin)):
+                source = source.as_view()            
         source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)
-        simulator.state.write_on_end.append((source, variables, filename))
     return record
 
 

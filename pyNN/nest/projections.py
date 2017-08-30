@@ -362,3 +362,7 @@ class Projection(common.Projection):
                     value_arr *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
             all_values.append(value_arr)
         return all_values
+
+    def _set_initial_value_array(self, variable, value):
+        local_value = value.evaluate(simplify=True)
+        nest.SetStatus(self.nest_connections, variable, local_value)
