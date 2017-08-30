@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
-from neo import AnalogSignalArray, AnalogSignal, SpikeTrain
+from neo import AnalogSignal, SpikeTrain
 try:
     from sys import maxint
 except ImportError:  # Py3
@@ -53,7 +53,7 @@ def handle_options(ax, options):
 
 def plot_signal(ax, signal, index=None, label='', **options):
     """
-    Plot an AnalogSignal or one signal from an AnalogSignalArray.
+    Plot a single channel from an AnalogSignal.
     """
     if "ylabel" in options:
         if options["ylabel"] == "auto":
@@ -61,7 +61,7 @@ def plot_signal(ax, signal, index=None, label='', **options):
                                              signal.units._dimensionality.string)
     handle_options(ax, options)
     if index is None:
-        label = "%s (Neuron %d)" % (label, signal.channel_index)
+        label = "%s (Neuron %d)" % (label, signal.channel_index or 0)
     else:
         label = "%s (Neuron %d)" % (label, signal.channel_index[index])
         signal = signal[:, index]
@@ -71,7 +71,7 @@ def plot_signal(ax, signal, index=None, label='', **options):
 
 def plot_signals(ax, signal_array, label_prefix='', **options):
     """
-    Plot all signals in an AnalogSignalArray in a single panel.
+    Plot all channels in an AnalogSignal in a single panel.
     """
     if "ylabel" in options:
         if options["ylabel"] == "auto":
@@ -80,8 +80,8 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     handle_options(ax, options)
     offset = options.pop("y_offset", None)
     show_legend = options.pop("legend", True)
-    for i in signal_array.channel_index.argsort():
-        channel = signal_array.channel_index[i]
+    for i in signal_array.channel_index.index.argsort():
+        channel = signal_array.channel_index.index[i]
         signal = signal_array[:, i]
         if label_prefix:
             label = "%s (Neuron %d)" % (label_prefix, channel)
@@ -155,10 +155,10 @@ def plot_hist(ax, histogram, label='', **options):
 
 def variable_names(segment):
     """
-    List the names of all the AnalogSignalArrays (used for the variable name by
+    List the names of all the AnalogSignals (used for the variable name by
     PyNN) in the given segment.
     """
-    return set(signal.name for signal in segment.analogsignalarrays)
+    return set(signal.name for signal in segment.analogsignals)
 
 
 class Figure(object):
@@ -221,7 +221,7 @@ class Panel(object):
     Represents a single panel in a multi-panel figure.
 
     A panel is a Matplotlib Axes or Subplot instance. A data item may be an
-    AnalogSignal, AnalogSignalArray, or a list of SpikeTrains. The Panel will
+    AnalogSignal, AnalogSignal, or a list of SpikeTrains. The Panel will
     automatically choose an appropriate representation. Multiple data items may
     be plotted in the same panel.
 
@@ -253,8 +253,6 @@ class Panel(object):
             elif isinstance(datum, Histogram):
                 plot_hist(axes, datum, label=label, **properties)
             elif isinstance(datum, AnalogSignal):
-                plot_signal(axes, datum, label=label, **properties)
-            elif isinstance(datum, AnalogSignalArray):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
@@ -286,7 +284,7 @@ def comparison_plot(segments, labels, title='', annotations=None,
         lw = 2 * (n_seg - k) - 1
         col = 'rbgmck'[k % 6]
         line_properties.append({"linewidth": lw, "color": col})
-        for array in segment.analogsignalarrays:
+        for array in segment.analogsignals:
             for i in array.channel_index.argsort():
                 channel = array.channel_index[i]
                 signal = array[:, i]

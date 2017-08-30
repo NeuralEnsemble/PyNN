@@ -1025,7 +1025,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             source_index = self.rng.next(1, 'uniform_int',
                                          {"low": 0, "high": projection.pre.size},
                                          mask_local=False)[0]
-            target_index = self.rng.choice(possible_targets, size=1)
+            target_index = self.rng.choice(possible_targets, size=1)[0]
             connections[target_index].append(source_index)
 
         def build_source_masks(mask=None):

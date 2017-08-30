@@ -45,13 +45,13 @@ def plot_signal(signal, index, colour='b'):
     plt.setp(plt.gca().get_xticklabels(), visible=False)
     plt.legend()
 
-n_panels = sum(a.shape[1] for a in data_out.segments[0].analogsignalarrays) + 2
+n_panels = sum(a.shape[1] for a in data_out.segments[0].analogsignals) + 2
 plt.subplot(n_panels, 1, 1)
 plot_spiketrains(spikes_in.segments[0])
 plt.subplot(n_panels, 1, 2)
 plot_spiketrains(data_out.segments[0])
 panel = 3
-for array in data_out.segments[0].analogsignalarrays:
+for array in data_out.segments[0].analogsignals:
     for i in range(array.shape[1]):
         plt.subplot(n_panels, 1, panel)
         plot_signal(array, i, colour='bg'[panel % 2])

@@ -1,7 +1,7 @@
 Small network created with the Population and Projection classes
 ================================================================
 
-.. image:: ../images/examples/small_network_nest_np1_20151005-081205.png
+.. image:: ../images/examples/small_network_nest_np1_20170505-150334.png
 
 .. literalinclude:: ../../examples/small_network.py
 

@@ -2,10 +2,12 @@
 import os
 import numpy
 import quantities as pq
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from neo.io import get_io
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging
+from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging, normalized_filename
 from .registry import register
+import pickle
 
 
 @register(exclude=['nemo'])
@@ -30,12 +32,11 @@ def test_reset_recording(sim):
     sim.run(10.0)
     data = p.get_data()
     sim.end()
-    ti = lambda i: data.segments[i].analogsignalarrays[0].times
+    ti = lambda i: data.segments[i].analogsignals[0].times
     assert_arrays_equal(ti(0), ti(1))
-    idx = lambda i: data.segments[i].analogsignalarrays[0].channel_index
-    assert idx(0) == [3]
-    assert idx(1) == [4]
-    vi = lambda i: data.segments[i].analogsignalarrays[0]
+    assert_array_equal(data.segments[0].analogsignals[0].channel_index.channel_ids, numpy.array([3]))
+    assert_array_equal(data.segments[1].analogsignals[0].channel_index.channel_ids, numpy.array([4]))
+    vi = lambda i: data.segments[i].analogsignals[0]
     assert vi(0).shape == vi(1).shape == (101, 1)
     assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV  # the first value should be the same
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
@@ -79,14 +80,20 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     assert_equal(gsyn_p1.shape, (n_points, 4))
     assert_equal(gsyn_all.shape, (n_points, 7))
 
-    assert_arrays_equal(vm_p1[:, 3], vm_all[:, 8])
+    assert_array_equal(vm_p1[:, 3], vm_all[:, 8])
 
-    assert_arrays_equal(vm_p0.channel_index, numpy.arange(5))
-    assert_arrays_equal(vm_p1.channel_index, numpy.arange(6))
-    assert_arrays_equal(vm_all.channel_index, numpy.arange(11))
-    assert_arrays_equal(gsyn_p0.channel_index, numpy.array([2, 3, 4]))
-    assert_arrays_equal(gsyn_p1.channel_index, numpy.arange(4))
-    assert_arrays_equal(gsyn_all.channel_index, numpy.arange(2, 9))
+    assert_array_equal(vm_p0.channel_index.index, numpy.arange(5))
+    assert_array_equal(vm_p1.channel_index.index, numpy.arange(6))
+    assert_array_equal(vm_all.channel_index.index, numpy.arange(11))
+    assert_array_equal(vm_p0.channel_index.channel_ids, numpy.arange(5))
+    assert_array_equal(vm_p1.channel_index.channel_ids, numpy.arange(6))
+    assert_array_equal(vm_all.channel_index.channel_ids, numpy.arange(11))
+    assert_array_equal(gsyn_p0.channel_index.index, numpy.arange(3))
+    assert_array_equal(gsyn_p1.channel_index.index, numpy.arange(4))
+    assert_array_equal(gsyn_all.channel_index.index, numpy.arange(7))
+    assert_array_equal(gsyn_p0.channel_index.channel_ids, numpy.array([2, 3, 4]))
+    assert_array_equal(gsyn_p1.channel_index.channel_ids, numpy.arange(4))
+    assert_array_equal(gsyn_all.channel_index.channel_ids, numpy.arange(2, 9))
 
     sim.end()
 test_record_vm_and_gsyn_from_assembly.__test__ = False
@@ -111,8 +118,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_arrays_almost_equal(spiketrains0[0], numpy.array([0.075]) * pq.ms, 1e-17)
-    assert_arrays_almost_equal(spiketrains1[0], numpy.array([10.025, 12.34]) * pq.ms, 1e-14)
+    assert_arrays_almost_equal(spiketrains0[0].rescale(pq.ms).magnitude, numpy.array([0.075]), 1e-17)
+    assert_arrays_almost_equal(spiketrains1[0].rescale(pq.ms).magnitude, numpy.array([10.025, 12.34]), 1e-14)
     assert_equal(spiketrains2[0].size, 0)
 
 
@@ -127,8 +134,8 @@ def test_sampling_interval(sim):
     p1.record('v', sampling_interval=1.0)
     p2.record('v', sampling_interval=0.5)
     sim.run(10.0)
-    d1 = p1.get_data().segments[0].analogsignalarrays[0]
-    d2 = p2.get_data().segments[0].analogsignalarrays[0]
+    d1 = p1.get_data().segments[0].analogsignals[0]
+    d2 = p2.get_data().segments[0].analogsignals[0]
     assert_equal(d1.sampling_period, 1.0 * pq.ms)
     assert_equal(d1.shape, (11, 3))
     assert_equal(d2.sampling_period, 0.5 * pq.ms)
@@ -151,13 +158,208 @@ def test_mix_procedural_and_oo(sim):
 
     data_proc = get_io(fn_proc).read()[0]
     data_oo = get_io(fn_oo).read()[0]
-    assert_arrays_equal(data_proc.segments[0].analogsignalarrays[0],
-                        data_oo.segments[0].analogsignalarrays[0])
+    assert_array_equal(data_proc.segments[0].analogsignals[0],
+                       data_oo.segments[0].analogsignals[0])
 
     os.remove(fn_proc)
     os.remove(fn_oo)
 test_mix_procedural_and_oo.__test__ = False
 
+
+@register()
+def issue_449_490_491(sim):
+    """
+    Test to ensure that Simulator and Population recording work properly
+    The following 12 scenarios are explored:
+        Note: var1 = "spikes", var2 = "v"
+        1) sim.record()
+            i) cell[0]
+                a) 2 parameters (2vars)         (scenario 1)
+                b) parameter1 (var1)            (scenario 2)
+                c) parameter2 (var2)            (scenario 3)
+            ii) cell[1]
+                a) 2 parameters (2vars)         (scenario 4)
+                b) parameter1 (var1)            (scenario 5)
+                c) parameter2 (var2)            (scenario 6)
+            iii) population
+                a) 2 parameters (2vars)         (scenario 7)
+                b) parameter1 (var1)            (scenario 8)
+                c) parameter2 (var2)            (scenario 9)
+        2) pop.record() - always records for a population; not a single cell
+            a) 2 parameters (2vars)             (scenario 10)
+            b) parameter1 (var1)                (scenario 11)
+            c) parameter2 (var2)                (scenario 12)
+    """
+    # START ***** defining methods needed for test *****
+
+    def get_file_data(filename):
+        # method to access pickled file and retrieve data
+        data = []
+        with (open(filename, "rb")) as openfile:
+            while True:
+                try:
+                    data.append(pickle.load(openfile))
+                except EOFError:
+                    break
+        return data
+
+    def eval_num_cells(data):
+        # scan data object to evaluate number of cells; returns 4 values
+        # nCells  :  # of cells in analogsignals (if "v" recorded)
+        # nspikes1:  # of spikes in first recorded cell
+        # nspikes2:  # of spikes in second recorded cell (if exists)
+        # -- if any parameter absent, return -1 as its value
+        # annot_bool # true if specified annotation exists; false otherwise
+
+        try:
+            nCells = data[0].segments[0].analogsignals[0].shape[1]
+        except:
+            nCells = -1
+
+        try:
+            nspikes1 = data[0].segments[0].spiketrains[0].shape[0]
+        except:
+            nspikes1 = -1
+
+        try:
+            nspikes2 = data[0].segments[0].spiketrains[1].shape[0]
+        except:
+            nspikes2 = -1
+
+        if 'script_name' in data[0].annotations.keys():
+            annot_bool = True
+        else:
+            annot_bool = False
+
+        return (nCells, nspikes1, nspikes2, annot_bool)
+
+    # END ***** defining methods needed for test *****
+
+    sim_dt = 0.1
+    sim.setup(min_delay=1.0, timestep = sim_dt)
+
+    # creating a population of two cells; only cell[0] gets stimulus
+    # hence only cell[0] will have entries for spiketrains
+    cells = sim.Population(2, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
+    steady = sim.DCSource(amplitude=2.5, start=25.0, stop=75.0)
+    cells[0].inject(steady)
+
+    # specify appropriate filenames for output files
+    filename_sim_cell1_2vars = normalized_filename("Results", "sim_cell1_2vars", "pkl", sim)
+    filename_sim_cell1_var1  = normalized_filename("Results", "sim_cell1_var1", "pkl", sim)
+    filename_sim_cell1_var2  = normalized_filename("Results", "sim_cell1_var2", "pkl", sim)
+    filename_sim_cell2_2vars = normalized_filename("Results", "sim_cell2_2vars", "pkl", sim)
+    filename_sim_cell2_var1  = normalized_filename("Results", "sim_cell2_var1", "pkl", sim)
+    filename_sim_cell2_var2  = normalized_filename("Results", "sim_cell2_var2", "pkl", sim)
+    filename_sim_popl_2vars  = normalized_filename("Results", "sim_popl_2vars", "pkl", sim)
+    filename_sim_popl_var1   = normalized_filename("Results", "sim_popl_var1", "pkl", sim)
+    filename_sim_popl_var2   = normalized_filename("Results", "sim_popl_var2", "pkl", sim)
+    filename_rec_2vars = normalized_filename("Results", "rec_2vars", "pkl", sim)
+    filename_rec_var1  = normalized_filename("Results", "rec_var1", "pkl", sim)
+    filename_rec_var2  = normalized_filename("Results", "rec_var2", "pkl", sim)
+
+    # instruct pynn to record as per above scenarios
+    sim.record(["spikes", "v"], cells[0], filename_sim_cell1_2vars, annotations={'script_name': __file__})
+    sim.record(["spikes"], cells[0], filename_sim_cell1_var1, annotations={'script_name': __file__})
+    sim.record(["v"], cells[0], filename_sim_cell1_var2, annotations={'script_name': __file__})
+    sim.record(["spikes", "v"], cells[1], filename_sim_cell2_2vars, annotations={'script_name': __file__})
+    sim.record(["spikes"], cells[1], filename_sim_cell2_var1, annotations={'script_name': __file__})
+    sim.record(["v"], cells[1], filename_sim_cell2_var2, annotations={'script_name': __file__})
+    sim.record(["spikes", "v"], cells, filename_sim_popl_2vars, annotations={'script_name': __file__})
+    sim.record(["spikes"], cells, filename_sim_popl_var1, annotations={'script_name': __file__})
+    sim.record(["v"], cells, filename_sim_popl_var2, annotations={'script_name': __file__})
+    cells.record(["spikes", "v"], to_file=filename_rec_2vars)
+    cells.record(["spikes"], to_file=filename_rec_var1)
+    cells.record(["v"], to_file=filename_rec_var2)
+
+    sim.run(100.0)
+    sim.end()
+
+    # retrieve data from the created files, and perform appropriate checks
+    # scenario 1
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_2vars))
+    assert_true (nCells == 1)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 2
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var1))
+    assert_true (nCells == -1)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 3
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var2))
+    assert_true (nCells == 1)
+    assert_true (nspikes1 == -1)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 4
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_2vars))
+    assert_true (nCells == 1)
+    assert_true (nspikes1 == 0)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 5
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var1))
+    assert_true (nCells == -1)
+    assert_true (nspikes1 == 0)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 6
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var2))
+    assert_true (nCells == 1)
+    assert_true (nspikes1 == -1)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 7
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_2vars))
+    assert_true (nCells == 2)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
+
+    # scenario 8
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var1))
+    assert_true (nCells == -1)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
+
+    # scenario 9
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var2))
+    assert_true (nCells == 2)
+    assert_true (nspikes1 == -1)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+
+    # scenario 10
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_2vars))
+    assert_true (nCells == 2)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
+
+    # scenario 11
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var1))
+    assert_true (nCells == -1)
+    assert_true (nspikes1 > 0)
+    assert_true (nspikes2 == 0)
+    assert_true (annot_bool)
+
+    # scenario 12
+    nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var2))
+    assert_true (nCells == 2)
+    assert_true (nspikes1 == -1)
+    assert_true (nspikes2 == -1)
+    assert_true (annot_bool)
+    
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
@@ -167,3 +369,4 @@ if __name__ == '__main__':
     issue259(sim)
     test_sampling_interval(sim)
     test_mix_procedural_and_oo(sim)
+    issue_449_490_491(sim)

@@ -364,21 +364,21 @@ class PopulationTest(unittest.TestCase):
         p.record('v')
         sim.run(12.3)
         data = p.get_data(gather=True).segments[0]
-        self.assertEqual(len(data.analogsignalarrays), 1)
+        self.assertEqual(len(data.analogsignals), 1)
         n_values = int(round(12.3 / sim.get_time_step())) + 1
-        self.assertEqual(data.analogsignalarrays[0].name, 'v')
-        self.assertEqual(data.analogsignalarrays[0].shape, (n_values, p.size))
+        self.assertEqual(data.analogsignals[0].name, 'v')
+        self.assertEqual(data.analogsignals[0].shape, (n_values, p.size))
 
     def test_record_with_multiple_variables(self):
         p = sim.Population(2, EIF_cond_exp_isfa_ista())
         p.record(('v', 'spikes'))
         sim.run(10.0)
         data = p.get_data(gather=True).segments[0]
-        self.assertEqual(len(data.analogsignalarrays), 1)
+        self.assertEqual(len(data.analogsignals), 1)
         n_values = int(round(10.0 / sim.get_time_step())) + 1
-        names = set(arr.name for arr in data.analogsignalarrays)
+        names = set(arr.name for arr in data.analogsignals)
         self.assertEqual(names, set(('v')))
-        for arr in data.analogsignalarrays:
+        for arr in data.analogsignals:
             self.assertEqual(arr.shape, (n_values, p.size))
 
     def test_record_v(self):

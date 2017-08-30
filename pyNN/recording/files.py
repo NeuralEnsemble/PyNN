@@ -255,14 +255,22 @@ if have_hdf5:
             """
             self.name = filename
             self.mode = mode
-            self.fileobj = tables.openFile(filename, mode=mode, title=title)
+            try:
+                self.fileobj = tables.open_file(filename, mode=mode, title=title)
+                self._new_pytables = True
+            except AttributeError:
+                self.fileobj = tables.openFile(filename, mode=mode, title=title)
+                self._new_pytables = False
 
         # may not work with old versions of PyTables < 1.3, since they only support numarray, not numpy
         def write(self, data, metadata):
             __doc__ = BaseFile.write.__doc__
             if len(data) > 0:
                 try:
-                    node = self.fileobj.createArray(self.fileobj.root, "data", data)
+                    if self._new_pytables:
+                        node = self.fileobj.create_array(self.fileobj.root, "data", data)
+                    else:
+                        node = self.fileobj.createArray(self.fileobj.root, "data", data)
                 except tables.HDF5ExtError as e:
                     raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" % (e, data.shape, metadata))
                 for name, value in metadata.items():
