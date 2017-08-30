@@ -79,16 +79,14 @@ class NestCurrentSource(StandardCurrentSource):
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
                 times = self._delay_correction(parameters["amplitude_times"].value)
-                numpy.append(times, 1e12)
                 amplitudes = value.value
-                numpy.append(amplitudes, amplitudes[-1])
-                ctr = next((i for i,v in enumerate(times) if v > state.dt), None) - 1
+                ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
                 if ctr >= 0:
                     times[ctr] = state.dt
                     times = times[ctr:]
                     amplitudes = amplitudes[ctr:]
                 for ind in range(len(times)):
-                    times[ind] = self._round_timestamp(times[ind], state.dt)
+                    times[ind] = self._round_timestamp(times[ind], state.dt)                
                 nest.SetStatus(self._device, {key: amplitudes,
                                               'amplitude_times': times})
             elif key in ("start", "stop"):
