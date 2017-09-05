@@ -8,7 +8,8 @@ try:
 except ImportError:
     have_scipy = False
 import quantities as pq
-from nose.tools import assert_greater, assert_less
+from nose.tools import assert_greater, assert_less, assert_raises
+from pyNN.errors import InvalidParameterValueError
 
 from .registry import register
 
@@ -261,6 +262,16 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
 test_SpikeSourcePoissonRefractory.__test__ = False
 
 
+
+@register()
+def issue511(sim):
+    """Giving SpikeSourceArray an array of non-ordered spike times should produce an InvalidParameterValueError error"""
+    sim.setup()
+    celltype = sim.SpikeSourceArray(spike_times=[[2.4, 4.8, 6.6, 9.4], [3.5, 6.8, 9.6, 8.3]])
+    assert_raises(InvalidParameterValueError, sim.Population, 2, celltype)
+
+
+
 # todo: add test of Izhikevich model
 
 
@@ -275,3 +286,4 @@ if __name__ == '__main__':
     test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)
+    issue511(sim)
