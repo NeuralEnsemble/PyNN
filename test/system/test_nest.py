@@ -185,5 +185,14 @@ def test_tsodyks_markram_synapse():
     assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
 
 
+def test_issue505():
+    sim = pyNN.nest
+    sim.setup()
+    p = sim.Population(2, sim.IF_cond_exp())
+    projection = sim.Projection(p, p, sim.AllToAllConnector(), sim.TsodyksMarkramSynapse(U=0.543))
+    U = projection.get('U', format='list', with_address=False)
+    assert_equal(U, [0.543, 0.543, 0.543, 0.543])
+
+
 if __name__ == '__main__':
     data = test_random_seeds()
