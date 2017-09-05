@@ -8,7 +8,6 @@ simulator_params = {
       'timestep'        : 0.1,    # ms
       'threads'         : 1,
       'sim_duration'    : 1000.,  # ms
-      'min_delay'       : 0.1     # ms
     }
 }
 
