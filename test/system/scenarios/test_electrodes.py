@@ -426,6 +426,98 @@ def issue497(sim):
     assert_true (abs(i_amp_ac2[int(start2/sim_dt)]-amplitude) < 1e-9)
 
 
+@register()
+def issue512(sim):
+    """
+    Test to ensure that StepCurrentSource times are handled similarly across
+    all simulators. Multiple combinations of step times tested for:
+    1) dt = 0.1 ms
+    2) dt = 0.01 ms
+    Note: # note: exact matches not appropriate owing to floating point
+    rounding errors. If absolute difference <1e-9, then considered equal.
+    """
+
+    # 1) dt = 0.1 ms
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+    cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=-60.0))
+    # 1.1) Negative time value
+    flag = 0
+    try:
+        step = sim.StepCurrentSource(times=[0.4, -0.6, 0.8],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    except ValueError:
+        flag = 1
+    assert_true (flag == 1)
+    # 1.2) Time values not monotonically increasing
+    flag = 0
+    try:
+        step = sim.StepCurrentSource(times=[0.4, 0.2, 0.8],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    except ValueError:
+        flag = 1
+    assert_true (flag == 1)
+    # 1.3) Check mapping of time values and removal of duplicates
+    step = sim.StepCurrentSource(times=[0.41, 0.42, 0.85],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    assert_true (len(step.times) == 2)
+    assert_true (len(step.amplitudes) == 2)
+    if "pyNN.brian" in str(sim):
+        assert_true (abs(step.times[0]-0.4*1e-3) < 1e-9)
+        assert_true (abs(step.times[1]-0.9*1e-3) < 1e-9)
+        assert_true (step.amplitudes[0] == -0.5*1e-9)
+        assert_true (step.amplitudes[1] == 0.5*1e-9)
+    else:
+        assert_true (abs(step.times[0]-0.4) < 1e-9)
+        assert_true (abs(step.times[1]-0.9) < 1e-9)
+        if "pyNN.nest" in str(sim):
+            assert_true (step.amplitudes[0] == -0.5*1e3)
+            assert_true (step.amplitudes[1] == 0.5*1e3)
+        else: # neuron
+            assert_true (step.amplitudes[0] == -0.5)
+            assert_true (step.amplitudes[1] == 0.5)
+
+    # 2) dt = 0.01 ms
+    dt = 0.01
+    sim.setup(timestep=dt, min_delay=dt)
+    cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=-60.0))
+    # 2.1) Negative time value
+    flag = 0
+    try:
+        step = sim.StepCurrentSource(times=[0.4, -0.6, 0.8],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    except ValueError:
+        flag = 1
+    assert_true (flag == 1)
+    # 2.2) Time values not monotonically increasing
+    flag = 0
+    try:
+        step = sim.StepCurrentSource(times=[0.5, 0.4999, 0.8],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    except ValueError:
+        flag = 1
+    assert_true (flag == 1)
+    # 2.3) Check mapping of time values and removal of duplicates
+    step = sim.StepCurrentSource(times=[0.451, 0.452, 0.85],
+                                     amplitudes=[0.5, -0.5, 0.5])
+    assert_true (len(step.times) == 2)
+    assert_true (len(step.amplitudes) == 2)
+    if "pyNN.brian" in str(sim):
+        assert_true (abs(step.times[0]-0.45*1e-3) < 1e-9)
+        assert_true (abs(step.times[1]-0.85*1e-3) < 1e-9)
+        assert_true (step.amplitudes[0] == -0.5*1e-9)
+        assert_true (step.amplitudes[1] == 0.5*1e-9)
+    else:
+        assert_true (abs(step.times[0]-0.45) < 1e-9)
+        assert_true (abs(step.times[1]-0.85) < 1e-9)
+        if "pyNN.nest" in str(sim):
+            assert_true (step.amplitudes[0] == -0.5*1e3)
+            assert_true (step.amplitudes[1] == 0.5*1e3)
+        else: # neuron
+            assert_true (step.amplitudes[0] == -0.5)
+            assert_true (step.amplitudes[1] == 0.5)
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -440,3 +532,4 @@ if __name__ == '__main__':
     issue483(sim)
     issue487(sim)
     issue497(sim)
+    issue512(sim)
