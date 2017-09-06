@@ -69,19 +69,24 @@ class NestCurrentSource(StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
+    def _round_timestamp(self, value, resolution):
+        # subtraction by 1e-12 to match NEURON working
+        return round ((float(value)-1e-12)/ resolution) * resolution
+
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
                 times = self._delay_correction(parameters["amplitude_times"].value)
-                numpy.append(times, 1e12)
                 amplitudes = value.value
-                numpy.append(amplitudes, amplitudes[-1])
-                if amplitudes[0] != 0:
-                    times[0] = max(times[0], state.dt)  # NEST ignores changes at time zero.
-                    # must it be dt, or would any positive value work?
-                    # this will fail if the second, third, etc. time points are also close to zero
+                ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
+                if ctr >= 0:
+                    times[ctr] = state.dt
+                    times = times[ctr:]
+                    amplitudes = amplitudes[ctr:]
+                for ind in range(len(times)):
+                    times[ind] = self._round_timestamp(times[ind], state.dt)                
                 nest.SetStatus(self._device, {key: amplitudes,
                                               'amplitude_times': times})
             elif key in ("start", "stop"):
@@ -149,3 +154,4 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
         ('dt',    'dt')
     )
     nest_name = 'noise_generator'
+
