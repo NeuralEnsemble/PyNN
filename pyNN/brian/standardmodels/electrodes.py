@@ -79,15 +79,11 @@ class BrianCurrentSource(StandardCurrentSource):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
             if name == "amplitudes": # key used only by StepCurrentSource
-                print "Times Before = ", parameters["times"].value
-                print "Amps Before = ", parameters["amplitudes"].value
                 step_times = parameters["times"].value
                 step_amplitudes = parameters["amplitudes"].value
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
-                parameters["amplitudes"].value = step_amplitudes
-                print "Times After = ", parameters["times"].value
-                print "Amps After = ", parameters["amplitudes"].value
+                parameters["amplitudes"].value = step_amplitudes            
             if isinstance(value, Sequence):
                 value = value.value
             object.__setattr__(self, name, value)

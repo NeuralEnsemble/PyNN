@@ -119,15 +119,11 @@ class NestCurrentSource(StandardCurrentSource):
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
-                print "Times Before = ", parameters["amplitude_times"].value
-                print "Amps Before = ", parameters["amplitude_values"].value
                 step_times = parameters["amplitude_times"].value
                 step_amplitudes = parameters["amplitude_values"].value
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, state.dt)
                 parameters["amplitude_times"].value = step_times
-                parameters["amplitude_values"].value = step_amplitudes
-                print "Times After = ", parameters["amplitude_times"].value
-                print "Amps After = ", parameters["amplitude_values"].value
+                parameters["amplitude_values"].value = step_amplitudes                
                 nest.SetStatus(self._device, {key: step_amplitudes,
                                               'amplitude_times': step_times})
             elif key in ("start", "stop"):
