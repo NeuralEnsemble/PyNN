@@ -431,13 +431,19 @@ def issue512(sim):
     """
     Test to ensure that StepCurrentSource times are handled similarly across
     all simulators. Multiple combinations of step times tested for:
-    1) dt = 0.1 ms
-    2) dt = 0.01 ms
-    Note: # note: exact matches not appropriate owing to floating point
+    1) dt = 0.1 ms, min_delay = 0.1 ms
+    2) dt = 0.01 ms, min_delay = 0.01 ms
+    Note: exact matches of times not appropriate owing to floating point
     rounding errors. If absolute difference <1e-9, then considered equal.
     """
+    def get_len(data):
+        if "pyNN.nest" in str(sim):
+            # as NEST uses LazyArray
+            return len(data.evaluate())
+        else:
+            return len(data)
 
-    # 1) dt = 0.1 ms
+    # 1) dt = 0.1 ms, min_delay = 0.1 ms
     dt = 0.1
     sim.setup(timestep=dt, min_delay=dt)
     cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=-60.0))
@@ -460,24 +466,31 @@ def issue512(sim):
     # 1.3) Check mapping of time values and removal of duplicates
     step = sim.StepCurrentSource(times=[0.41, 0.42, 0.85],
                                      amplitudes=[0.5, -0.5, 0.5])
-    assert_true (len(step.times) == 2)
-    assert_true (len(step.amplitudes) == 2)
+    assert_true (get_len(step.times) == 2)
+    assert_true (get_len(step.amplitudes) == 2)
     if "pyNN.brian" in str(sim):
+        # Brian requires time in seconds (s)
         assert_true (abs(step.times[0]-0.4*1e-3) < 1e-9)
         assert_true (abs(step.times[1]-0.9*1e-3) < 1e-9)
+        # Brain requires amplitudes in amperes (A)
         assert_true (step.amplitudes[0] == -0.5*1e-9)
         assert_true (step.amplitudes[1] == 0.5*1e-9)
     else:
-        assert_true (abs(step.times[0]-0.4) < 1e-9)
-        assert_true (abs(step.times[1]-0.9) < 1e-9)
+        # NEST requires amplitudes in picoamperes (pA) but stored
+        # as LazyArray and so needn't manually adjust; use nA
+        # NEURON requires amplitudes in nanoamperes (nA)
+        assert_true (step.amplitudes[0] == -0.5)
+        assert_true (step.amplitudes[1] == 0.5)
+        # NEST and NEURON require time in ms
+        # But NEST has time stamps reduced by min_delay
         if "pyNN.nest" in str(sim):
-            assert_true (step.amplitudes[0] == -0.5*1e3)
-            assert_true (step.amplitudes[1] == 0.5*1e3)
+            assert_true (abs(step.times[0]-0.3) < 1e-9)
+            assert_true (abs(step.times[1]-0.8) < 1e-9)
         else: # neuron
-            assert_true (step.amplitudes[0] == -0.5)
-            assert_true (step.amplitudes[1] == 0.5)
+            assert_true (abs(step.times[0]-0.4) < 1e-9)
+            assert_true (abs(step.times[1]-0.9) < 1e-9)            
 
-    # 2) dt = 0.01 ms
+    # 2) dt = 0.01 ms, min_delay = 0.01 ms
     dt = 0.01
     sim.setup(timestep=dt, min_delay=dt)
     cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=-60.0))
@@ -500,22 +513,30 @@ def issue512(sim):
     # 2.3) Check mapping of time values and removal of duplicates
     step = sim.StepCurrentSource(times=[0.451, 0.452, 0.85],
                                      amplitudes=[0.5, -0.5, 0.5])
-    assert_true (len(step.times) == 2)
-    assert_true (len(step.amplitudes) == 2)
+    assert_true (get_len(step.times) == 2)
+    assert_true (get_len(step.amplitudes) == 2)
     if "pyNN.brian" in str(sim):
+        # Brian requires time in seconds (s)
         assert_true (abs(step.times[0]-0.45*1e-3) < 1e-9)
         assert_true (abs(step.times[1]-0.85*1e-3) < 1e-9)
+        # Brain requires amplitudes in amperes (A)
         assert_true (step.amplitudes[0] == -0.5*1e-9)
         assert_true (step.amplitudes[1] == 0.5*1e-9)
     else:
-        assert_true (abs(step.times[0]-0.45) < 1e-9)
-        assert_true (abs(step.times[1]-0.85) < 1e-9)
+        # NEST requires amplitudes in picoamperes (pA) but stored
+        # as LazyArray and so needn't manually adjust; use nA
+        # NEURON requires amplitudes in nanoamperes (nA)
+        assert_true (step.amplitudes[0] == -0.5)
+        assert_true (step.amplitudes[1] == 0.5)
+        # NEST and NEURON require time in ms
+        # But NEST has time stamps reduced by min_delay
         if "pyNN.nest" in str(sim):
-            assert_true (step.amplitudes[0] == -0.5*1e3)
-            assert_true (step.amplitudes[1] == 0.5*1e3)
+            assert_true (abs(step.times[0]-0.44) < 1e-9)
+            assert_true (abs(step.times[1]-0.84) < 1e-9)
         else: # neuron
-            assert_true (step.amplitudes[0] == -0.5)
-            assert_true (step.amplitudes[1] == 0.5)
+            assert_true (abs(step.times[0]-0.45) < 1e-9)
+            assert_true (abs(step.times[1]-0.85) < 1e-9)
+
 
 
 if __name__ == '__main__':
