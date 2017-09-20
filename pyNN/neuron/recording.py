@@ -6,6 +6,7 @@
 
 import numpy
 from pyNN import recording
+from pyNN.morphology import MorphologyFilter
 from pyNN.neuron import simulator
 import re
 from neuron import h
@@ -43,13 +44,24 @@ class Recorder(recording.Recorder):
                 source, var_name = self._resolve_variable(cell, variable.name)
                 hoc_var = getattr(source, "_ref_%s" % var_name)
         else:
+            if isinstance(variable.location, str):
+                if variable.location in cell.section_labels:
+                    section = cell.section_labels[variable.location]
+                elif variable.location == "soma":
+                    section = cell.sections[cell.morphology.soma_index]
+                else:
+                    raise ValueError("Cell has no location labelled '{}'".format(variable.location))
+            elif isinstance(variable.location, MorphologyFilter):
+                sec_index = variable.location(cell.morphology)  # todo: support lists of sections
+                section = cell.sections[sec_index]
+            else:
+                raise ValueError("Invalid location specification: {}".format(variable.location))
+            source = section(0.5)
             if variable.name == 'v':
-                source = cell.sections[variable.location](0.5)
                 hoc_var = source._ref_v
             else:
-                source = cell.sections[variable.location](0.5)
                 ion_channel, var_name = variable.name.split(".")
-                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel]["mechanism"].variable_translations[var_name]
+                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
                 mechanism = getattr(source, mechanism_name)
                 hoc_var = getattr(mechanism, "_ref_{}".format(hoc_var_name))
         cell.traces[variable] = vec = h.Vector()

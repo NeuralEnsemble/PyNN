@@ -16,6 +16,7 @@ class NaChannel(standard.NaChannel):
         'h': ('hh', 'h')
     }
     model = "hh"
+    conductance_density_parameter = 'gnabar_hh'
 
 
 class KdrChannel(standard.KdrChannel):
@@ -27,6 +28,7 @@ class KdrChannel(standard.KdrChannel):
         'n': ('hh', 'n')
     }
     model = "hh"
+    conductance_density_parameter = 'gkbar_hh'
 
 
 class PassiveLeak(standard.PassiveLeak):
@@ -35,3 +37,4 @@ class PassiveLeak(standard.PassiveLeak):
         ('e_rev', 'e_pas'),
     )
     model = "pas"
+    conductance_density_parameter = 'g_pas'

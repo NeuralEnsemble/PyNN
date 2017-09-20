@@ -72,3 +72,5 @@ examples/*.svg
 /examples/Potjans2014/*.so
 /test/system/LEMS_Sim_Test0.xml
 /test/system/Test0.net.nml
+_build
+tmp

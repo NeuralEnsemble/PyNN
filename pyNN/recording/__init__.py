@@ -28,7 +28,8 @@ logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
 
-Variable = namedtuple('Variable', ['name', 'location'])
+Variable = namedtuple('Variable', ['name', 'location', 'location_label'])
+Variable.__new__.__defaults__ = (None,)  # make 'location_label' optional
 
 
 def get_mpi_comm():
@@ -125,10 +126,12 @@ def localize_variables(variables, locations):
                 resolved_variables.append(Variable(location=location, name=var_name))
             else:
                 resolved_variables.append(Variable(location=None, name=var_path))
-    else:
-        for location in locations:
+    elif hasattr(locations, "items"):
+        for label, location in locations.items():
             for var_name in variables:
-                resolved_variables.append(Variable(location=location, name=var_name))
+                resolved_variables.append(Variable(location=location, name=var_name, location_label=label))
+    else:
+        raise ValueError("'locations' should be a dictionary or None")
     return resolved_variables
 
 
@@ -292,7 +295,9 @@ class Recorder(object):
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = numpy.fromiter(ids, dtype=int)
-                    if variable.location:
+                    if variable.location_label:
+                        signal_name = "{}.{}".format(variable.location_label, variable.name)
+                    elif variable.location:
                         signal_name = "{}.{}".format(variable.location, variable.name)
                     else:
                         signal_name = variable.name

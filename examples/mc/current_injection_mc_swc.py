@@ -6,9 +6,7 @@ Injecting time-varying current into multi-compartment cells.
 
 import matplotlib
 matplotlib.use("Agg")
-from neuroml import Morphology, Segment, Point3DWithDiam as P
-from pyNN.morphology import NeuroMLMorphology, uniform
-#from pyNN.units import uF_per_cm2, ohm_cm, S_per_cm2, mV, nA, ms
+from pyNN.morphology import load_morphology, uniform, random_section, apical_dendrite
 from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
 
@@ -22,13 +20,8 @@ sim.setup(timestep=0.025) #*ms)
 
 # === Create neuron model template ===========================================
 
-soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
-               distal=P(x=18.8, y=0, z=0, diameter=18.8),
-               name="soma")
-dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
-               distal=P(x=-500, y=0, z=0, diameter=2),
-               name="dendrite",
-               parent=soma)
+#morph = load_morphology("http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc")  # todo: smart inference of morphology file format
+morph = load_morphology("oi15rpy4-1.CNG.swc")
 
 # need to specify nseg for dendrite
 
@@ -36,13 +29,9 @@ cell_class = sim.MultiCompartmentNeuron
 cell_class.label = "ExampleMultiCompartmentNeuron"
 cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
 
-# cell_class.insert(pas=sim.PassiveLeak, sections=('soma', 'dendrite'))  # or cell_class.whole_cell.pas = sim.PassiveLeak
-# cell_class.soma.insert(na=sim.NaChannel)  # or cell_class.soma.na = sim.NaChannel
-# cell_class.soma.insert(kdr=sim.KdrChannel) # or cell_class.soma.kdr = sim.KdrChannel
-
-cell_type = cell_class(morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),  # yuck
-                       cm=1.0,
-                       Ra=500.0,
+cell_type = cell_class(morphology=morph,
+                       cm=1.0,    # allow to set per segment
+                       Ra=500.0,  # allow to set per segment?
                        pas={"conductance_density": uniform('all', 0.0003),
                             "e_rev":-54.3},
                        na={"conductance_density": uniform('soma', 0.120),
@@ -59,9 +48,11 @@ cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV
 
 # === Inject current into the soma of cell #0 and the dendrite of cell #1 ===
 
-step_current = sim.DCSource(amplitude=0.1, start=50.0, stop=150.0)
+step_current = sim.DCSource(amplitude=5.0, start=50.0, stop=150.0)
 step_current.inject_into(cells[0:1], location="soma")
-step_current.inject_into(cells[1:2], location="dendrite")
+#step_current.inject_into(cells[1:2], location=apical_dendrite(fraction_along=0.9))
+#step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrite))
+step_current.inject_into(cells[1:2], location=random_section(apical_dendrite()))
 
 
 # cells[0] --> ID - 1 cell
@@ -70,8 +61,8 @@ step_current.inject_into(cells[1:2], location="dendrite")
 # === Record from both compartments of both cells ===========================
 
 cells.record('spikes')
-cells.record(['na.m', 'na.h', 'kdr.n'], locations=['soma'])
-cells.record('v', locations=['soma', 'dendrite'])
+cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
+cells.record('v', locations={'soma': 'soma', 'dendrite': random_section(apical_dendrite())})
 
 # === Run the simulation =====================================================
 
@@ -96,7 +87,7 @@ Figure(
               yticks=True, ylim=(-80, 40)),
         Panel(data.filter(name='dendrite.v')[0],
               ylabel="Membrane potential, dendrite (mV)",
-              yticks=True, ylim=(-70, -45)),
+              yticks=True, ylim=(-80, 40)),
         Panel(data.filter(name='soma.na.m')[0],
               ylabel="m, soma",
               yticks=True, ylim=(0, 1)),
@@ -110,6 +101,6 @@ Figure(
               yticks=True, ylim=(0, 1)),
         title="Responses of two-compartment neurons to current injection",
         annotations="Simulated with %s" % options.simulator.upper()
-    ).save("current_injection_mc.png")
+    ).save("current_injection_mc_swc.png")
 
 sim.end()

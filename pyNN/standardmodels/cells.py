@@ -590,7 +590,7 @@ class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
         sub_ps = {}
         for name, ion_channel in self.ion_channels.items():
             ic_params = parameters.pop(name)
-            sub_ps[name] = ion_channel["mechanism"].translate(ic_params)
+            sub_ps[name] = ion_channel.translate(ic_params)
         ps = super(MultiCompartmentNeuron, self).translate(parameters)
         for name, value in sub_ps.items():
             ps[name] = value

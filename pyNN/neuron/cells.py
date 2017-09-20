@@ -594,58 +594,94 @@ DISTAL = 1
 class NeuronTemplate(object):  # move to ../cells.py
 
     def __init__(self, morphology, cm, Ra, **ion_channel_parameters):
+        import neuroml
+        import neuroml.arraymorph
+
         self.traces = {}
         self.recording_time = False
         self.spike_source = None
         self.spike_times = h.Vector(0)
 
         # create morphology
+        self.morphology = morphology
         self.sections = {}
-        unresolved_connections = []
-        for segment in morphology.segments:
-            section = nrn.Section()
-            section.L = segment.length
-            section(PROXIMAL).diam = segment.proximal.diameter
-            section(DISTAL).diam = segment.distal.diameter
-            section.nseg = 1
-            section.cm = cm
-            section.Ra = Ra
-            if segment.parent:
-                connection_point = DISTAL  # should generalize
-                if segment.parent.name in self.sections:
-                    section.connect(self.sections[segment.parent.name], DISTAL, PROXIMAL)
-                else:
-                    unresolved_connections.append((segment.name, segment.parent.name))
-            self.sections[segment.name] = section
-        for section_name, parent_name in unresolved_connections:
-            self.sections[section_name].connect(self.sections[parent_name], DISTAL, PROXIMAL)
+        self.section_labels = {}
+
+        if isinstance(morphology._morphology, neuroml.arraymorph.ArrayMorphology):
+            M = morphology._morphology
+            for i in range(len(morphology._morphology)):
+                vertex = M.vertices[i]
+                parent_index = M.connectivity[i]
+                parent = M.vertices[parent_index]
+                section = nrn.Section()
+                for v in (vertex, parent):
+                    x, y, z, d = v
+                    h.pt3dadd(x, y, z, d, sec=section)
+                section.nseg = 1
+                section.cm = cm
+                section.Ra = Ra
+                # ignore fractions_along for now
+                if i > 1:
+                    section.connect(self.sections[parent_index], DISTAL, PROXIMAL)
+                self.sections[i] = section
+            self.morphology._soma_index = 0  # fragile temporary hack - should be index of the vertex with no parent
+        elif isinstance(morphology._morphology, neuroml.Morphology):
+            unresolved_connections = []
+            for segment in morphology.segments:
+                section = nrn.Section()
+                section.L = segment.length
+                section(PROXIMAL).diam = segment.proximal.diameter
+                section(DISTAL).diam = segment.distal.diameter
+                section.nseg = 1
+                section.cm = cm
+                section.Ra = Ra
+                segment_id = id(segment)
+                if segment.parent:
+                    parent_id = id(segment.parent)
+                    connection_point = DISTAL  # should generalize
+                    if id(segment.parent) in self.sections:
+                        section.connect(self.sections[parent_id], connection_point, PROXIMAL)
+                    else:
+                        unresolved_connections.append((segment_id, parent_id))
+                self.sections[segment_id] = section
+                if segment.name == "soma":
+                    self.morphology._soma_index = id(segment)
+                if segment.name is not None:
+                    self.section_labels[segment.name] = section
+            for section_id, parent_id in unresolved_connections:
+                self.sections[section_id].connect(self.sections[parent_id], DISTAL, PROXIMAL)
+        else:
+            raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
 
         # insert ion channels
         for name, ion_channel in self.ion_channels.items():
             parameters = ion_channel_parameters[name]
-            sections = ion_channel["sections"]
-            mechanism_name = ion_channel["mechanism"].model
-            for section_name in sections:
-                section = self.sections[section_name]
-                section.insert(mechanism_name)
-                #mechanism = getattr(section(0.5), mechanism_name)
-                for param_name, value in parameters.items():
-                    setattr(section, param_name, value)
-                    print(name, section_name, mechanism_name, param_name, value)
-                # temporary hack - we're not using the leak conductance from the hh mechanism,
-                # so set the conductance to zero
-                if mechanism_name == "hh":
-                    setattr(section, "gl_hh", 0.0)
+            mechanism_name = ion_channel.model
+            conductance_density = parameters[ion_channel.conductance_density_parameter]
+            for index in self.sections:
+                g = conductance_density.value_in(self.morphology, index)
+                if g > 0:
+                    section = self.sections[index]
+                    section.insert(mechanism_name)
+                    setattr(section, ion_channel.conductance_density_parameter, g)
+                    ##print(index, mechanism_name, ion_channel.conductance_density_parameter, g)
+                    # temporary hack - we're not using the leak conductance from the hh mechanism,
+                    # so set the conductance to zero
+                    if mechanism_name == "hh":
+                        setattr(section, "gl_hh", 0.0)
+                    for param_name, value in parameters.items():
+                        if param_name != ion_channel.conductance_density_parameter:
+                            setattr(section, param_name, value)
+                            ##print(index, mechanism_name, param_name, value)
+
 
         # set source section
         if self.spike_source:
             self.source_section = self.sections[self.spike_source]
         elif "axon_initial_segment" in self.sections:
             self.source_section = self.sections["axon_initial_segment"]
-        elif "soma" in self.sections:
-            self.source_section = self.sections["soma"]
         else:
-            raise Exception("Source section for action potential not defined")
+            self.source_section = self.sections[morphology.soma_index]
         self.source = self.source_section(0.5)._ref_v
         self.rec = h.NetCon(self.source, None, sec=self.source_section)
 

@@ -17,9 +17,10 @@ from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
                                RandomPoissonRefractorySpikeSource,
                                BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
                                GIFNeuron, NeuronTemplate)
+from pyNN.morphology import Morphology
 import logging
 from neuron import nrn, h
-import neuroml  ###
+
 
 logger = logging.getLogger("PyNN")
 
@@ -327,17 +328,17 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     def __init__(self, **parameters):
         # replace ion channel classes with instantiated ion channel objects
         for name, ion_channel in self.ion_channels.items():
-            self.ion_channels[name]["mechanism"] = ion_channel["mechanism"](**parameters.pop(name))
+            self.ion_channels[name] = ion_channel(**parameters.pop(name))
         super(MultiCompartmentNeuron, self).__init__(**parameters)
         for name, ion_channel in self.ion_channels.items():
-            self.parameter_space[name] = ion_channel["mechanism"].parameter_space
+            self.parameter_space[name] = ion_channel.parameter_space
 
         self.extra_parameters = {}
         self.spike_source = None
 
     def get_schema(self):
         schema = {
-            "morphology": neuroml.nml.nml.Morphology,
+            "morphology": Morphology,
             "cm": float,
             "Ra": float
         }
@@ -382,14 +383,14 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
                     (NeuronTemplate,),
                     {"ion_channels": self.ion_channels})
 
-    @classmethod
-    def insert(cls, sections=None, **ion_channels):
-        for name, mechanism in ion_channels.items():
-            if name in cls.ion_channels:
-                assert cls.ion_channels[name]["mechanism"] == mechanism
-                cls.ion_channels[name]["sections"].extend(sections)
-            else:
-                cls.ion_channels[name] = {
-                    "mechanism": mechanism,
-                    "sections": sections
-                }
+    # @classmethod
+    # def insert(cls, sections=None, **ion_channels):
+    #     for name, mechanism in ion_channels.items():
+    #         if name in cls.ion_channels:
+    #             assert cls.ion_channels[name]["mechanism"] == mechanism
+    #             cls.ion_channels[name]["sections"].extend(sections)
+    #         else:
+    #             cls.ion_channels[name] = {
+    #                 "mechanism": mechanism,
+    #                 "sections": sections
+    #             }
