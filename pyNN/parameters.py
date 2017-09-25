@@ -123,7 +123,6 @@ class Sequence(object):
             self.value = value
         else:
             self.value = numpy.array(value, float)
-#        if value<0.:
         if (self.value<0.).any():
             print("Warning : Times are negative")
 
