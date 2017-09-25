@@ -289,7 +289,8 @@ def adjust_spike_times_forward(spike_times):
     parrot neuron.
     """
     # todo: emit warning if any times become negative
-    return spike_times - simulator.state.min_delay
+#    return spike_times - simulator.state.min_delay
+    return spike_times + simulator.state.min_delay
 
 
 def adjust_spike_times_backward(spike_times):
