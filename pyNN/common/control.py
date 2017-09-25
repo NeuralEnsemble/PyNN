@@ -54,7 +54,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         if timestep<0. or min_delay<0.:
             raise Warning("Times are negative")
     if min_delay == 'auto':
-        if timestep<0. or min_delay<0.:
+        if timestep<0.:
             raise Warning("Warning : Times are negative")
 
 def end(compatible_output=True):
