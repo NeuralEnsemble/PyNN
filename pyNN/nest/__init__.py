@@ -133,14 +133,14 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
         n = simulator.state.num_processes * simulator.state.threads
         simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
-    if min_delay == 'auto':
-        print("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
-        return Warning("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay
     simulator.state.set_delays(min_delay, max_delay)
     nest.SetDefaults('spike_generator', {'precise_times': True})
+    if min_delay == 'auto':
+        print("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
+        return Warning("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
     return rank()
 
 
