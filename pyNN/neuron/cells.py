@@ -9,7 +9,9 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+from collections import defaultdict
 from neuron import h, nrn, hclass
+import numpy.random
 
 from pyNN import errors
 from pyNN.models import BaseCellType
@@ -81,7 +83,7 @@ class BaseSingleCompartmentNeuron(nrn.Section):
 
         # for recording
         self.spike_times = h.Vector(0)
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.recording_time = 0
 
         self.v_init = None
@@ -591,13 +593,13 @@ PROXIMAL = 0
 DISTAL = 1
 
 
-class NeuronTemplate(object):  # move to ../cells.py
+class NeuronTemplate(object):
 
-    def __init__(self, morphology, cm, Ra, **ion_channel_parameters):
+    def __init__(self, morphology, cm, Ra, **other_parameters):
         import neuroml
         import neuroml.arraymorph
 
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.recording_time = False
         self.spike_source = None
         self.spike_times = h.Vector(0)
@@ -606,6 +608,9 @@ class NeuronTemplate(object):  # move to ../cells.py
         self.morphology = morphology
         self.sections = {}
         self.section_labels = {}
+        for receptor_name in self.post_synaptic_entities:
+            self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
+
 
         if isinstance(morphology._morphology, neuroml.arraymorph.ArrayMorphology):
             M = morphology._morphology
@@ -655,7 +660,7 @@ class NeuronTemplate(object):  # move to ../cells.py
 
         # insert ion channels
         for name, ion_channel in self.ion_channels.items():
-            parameters = ion_channel_parameters[name]
+            parameters = other_parameters[name]
             mechanism_name = ion_channel.model
             conductance_density = parameters[ion_channel.conductance_density_parameter]
             for index in self.sections:
@@ -674,6 +679,22 @@ class NeuronTemplate(object):  # move to ../cells.py
                             setattr(section, param_name, value)
                             ##print(index, mechanism_name, param_name, value)
 
+        # insert post-synaptic mechanisms
+        for name, pse in self.post_synaptic_entities.items():
+            parameters = other_parameters[name]
+            mechanism_name = pse.model
+            synapse_model = getattr(h, mechanism_name)
+            density_function = parameters["density"]
+            for index in self.sections:
+                density = density_function.value_in(self.morphology, index)
+                if density > 0:
+                    n_synapses, remainder = divmod(density, 1)
+                    rnd = numpy.random  # todo: use the RNG from the parent Population
+                    if rnd.uniform() < remainder:
+                        n_synapses += 1
+                    section = self.sections[index]
+                    for i in range(int(n_synapses)):
+                        self.morphology.synaptic_receptors[name][index].append(synapse_model(0.5, sec=section))
 
         # set source section
         if self.spike_source:

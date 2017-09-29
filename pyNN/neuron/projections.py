@@ -73,6 +73,7 @@ class Projection(common.Projection):
         return len(list(self.connections))
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
+                            location_selector=None,
                             **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -96,7 +97,9 @@ class Projection(common.Projection):
             parameters = dict(zip(connection_parameters.keys(), values))
             #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx].append(
-                self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters))
+                self.synapse_type.connection_type(self, pre_idx, postsynaptic_index,
+                                                  location_selector=location_selector,
+                                                  **parameters))
 
     def _configure_presynaptic_components(self):
         """

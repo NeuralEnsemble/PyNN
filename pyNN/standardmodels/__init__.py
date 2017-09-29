@@ -20,6 +20,7 @@ Classes:
 
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
+from pyNN.morphology import IonChannelDistribution, SynapseDistribution
 import numpy
 from pyNN.core import is_listlike, itervalues
 from copy import deepcopy
@@ -147,7 +148,23 @@ class StandardCellType(StandardModelType, models.BaseCellType):
 
 class StandardIonChannelModel(StandardModelType, models.BaseIonChannelModel):
     """Base class for standardized ion channel models."""
-    pass
+
+    def get_schema(self):
+        return {
+            "conductance_density": IonChannelDistribution,
+            "e_rev": float
+        }
+
+
+class StandardPostSynapticResponseModel(StandardModelType, models.BasePostSynapticResponseModel):
+    """Base class for standardized post-synaptic receptor models."""
+
+    def get_schema(self):
+        return {
+            "density": SynapseDistribution,
+            "e_rev": float,
+            "tau_syn": float  # should be a tuple, if multiple time constants
+        }
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):

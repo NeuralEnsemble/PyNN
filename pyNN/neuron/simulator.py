@@ -26,6 +26,7 @@ except NameError:
     xrange = range
 from pyNN import __path__ as pyNN_path
 from pyNN import common
+from pyNN.morphology import MorphologyFilter
 import logging
 import numpy
 import os.path
@@ -344,7 +345,7 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, projection, pre, post, **parameters):
+    def __init__(self, projection, pre, post, location_selector=None, **parameters):
         """
         Create a new connection.
         """
@@ -353,17 +354,33 @@ class Connection(common.Connection):
         self.postsynaptic_index = post
         self.presynaptic_cell = projection.pre[pre]
         self.postsynaptic_cell = projection.post[post]
-        if "." in projection.receptor_type:
-            section, target = projection.receptor_type.split(".")
-            target_object = getattr(getattr(self.postsynaptic_cell._cell, section), target)
+        cell_obj = self.postsynaptic_cell._cell
+        if isinstance(location_selector, MorphologyFilter):  # point neuron model
+            section_index = location_selector(cell_obj.morphology,
+                                              filter_by_receptor_type=projection.receptor_type)
+            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]  # what if there are multiple synapses in a single section? here we just take the first
+        elif isinstance(location_selector, str):
+            if location_selector in cell_obj.section_labels:
+                section_index = cell_obj.section_labels[location_selector]
+            elif location_selector == "soma":
+                section_index = cell_obj.sections[cell_obj.morphology.soma_index]
+            else:
+                raise ValueError("Cell has no location labelled '{}'".format(location_selector))
+            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]
+        elif location_selector is None:  # point neuron model
+            if "." in projection.receptor_type:
+                section, target = projection.receptor_type.split(".")
+                target_object = getattr(getattr(cell_obj, section), target)
+            else:
+                target_object = getattr(cell_obj, projection.receptor_type)
         else:
-            target_object = getattr(self.postsynaptic_cell._cell, projection.receptor_type)
+            raise ValueError("location selector not supported")
         self.nc = state.parallel_context.gid_connect(int(self.presynaptic_cell), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple
         # synaptic channels, need to set nc.weight[1] here
-        if self.nc.wcnt() > 1 and hasattr(self.postsynaptic_cell._cell, "type"):
-            self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(projection.receptor_type)
+        if self.nc.wcnt() > 1 and hasattr(cell_obj, "type"):
+            self.nc.weight[1] = cell_obj.type.receptor_types.index(projection.receptor_type)
         self.nc.delay = parameters.pop('delay')
         if projection.synapse_type.model is not None:
             self._setup_plasticity(projection.synapse_type, parameters)

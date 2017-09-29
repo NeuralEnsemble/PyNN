@@ -324,14 +324,20 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     )
     default_initial_values = {}
     ion_channels = {}
+    post_synaptic_entities = {}
 
     def __init__(self, **parameters):
         # replace ion channel classes with instantiated ion channel objects
         for name, ion_channel in self.ion_channels.items():
             self.ion_channels[name] = ion_channel(**parameters.pop(name))
+        # ditto for post synaptic responses
+        for name, pse in self.post_synaptic_entities.items():
+            self.post_synaptic_entities[name] = pse(**parameters.pop(name))
         super(MultiCompartmentNeuron, self).__init__(**parameters)
         for name, ion_channel in self.ion_channels.items():
             self.parameter_space[name] = ion_channel.parameter_space
+        for name, pse in self.post_synaptic_entities.items():
+            self.parameter_space[name] = pse.parameter_space
 
         self.extra_parameters = {}
         self.spike_source = None
@@ -375,13 +381,14 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
 
     @property
     def receptor_types(self):
-        raise NotImplementedError
+        return self.post_synaptic_entities.keys()
 
     @property
     def model(self):
         return type(self.label,
                     (NeuronTemplate,),
-                    {"ion_channels": self.ion_channels})
+                    {"ion_channels": self.ion_channels,
+                     "post_synaptic_entities": self.post_synaptic_entities})
 
     # @classmethod
     # def insert(cls, sections=None, **ion_channels):

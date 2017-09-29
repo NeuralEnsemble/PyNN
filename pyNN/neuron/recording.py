@@ -4,6 +4,7 @@
 :license: CeCILL, see LICENSE for details.
 """
 
+from collections import defaultdict
 import numpy
 from pyNN import recording
 from pyNN.morphology import MorphologyFilter
@@ -43,32 +44,37 @@ class Recorder(recording.Recorder):
             else:
                 source, var_name = self._resolve_variable(cell, variable.name)
                 hoc_var = getattr(source, "_ref_%s" % var_name)
+            hoc_vars = [hoc_var]
         else:
             if isinstance(variable.location, str):
                 if variable.location in cell.section_labels:
-                    section = cell.section_labels[variable.location]
+                    sections = [cell.section_labels[variable.location]]
                 elif variable.location == "soma":
-                    section = cell.sections[cell.morphology.soma_index]
+                    sections = [cell.sections[cell.morphology.soma_index]]
                 else:
                     raise ValueError("Cell has no location labelled '{}'".format(variable.location))
             elif isinstance(variable.location, MorphologyFilter):
-                sec_index = variable.location(cell.morphology)  # todo: support lists of sections
-                section = cell.sections[sec_index]
+                section_indices = variable.location(cell.morphology)  # todo: support lists of sections
+                sections = [cell.sections[index] for index in section_indices]
             else:
                 raise ValueError("Invalid location specification: {}".format(variable.location))
-            source = section(0.5)
-            if variable.name == 'v':
-                hoc_var = source._ref_v
+            hoc_vars = []
+            for section in sections:
+                source = section(0.5)
+                if variable.name == 'v':
+                    hoc_vars.append(source._ref_v)
+                else:
+                    ion_channel, var_name = variable.name.split(".")
+                    mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
+                    mechanism = getattr(source, mechanism_name)
+                    hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
+        for hoc_var in hoc_vars:
+            vec = h.Vector()
+            if self.sampling_interval == self._simulator.state.dt:
+                vec.record(hoc_var)
             else:
-                ion_channel, var_name = variable.name.split(".")
-                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
-                mechanism = getattr(source, mechanism_name)
-                hoc_var = getattr(mechanism, "_ref_{}".format(hoc_var_name))
-        cell.traces[variable] = vec = h.Vector()
-        if self.sampling_interval == self._simulator.state.dt:
-            vec.record(hoc_var)
-        else:
-            vec.record(hoc_var, self.sampling_interval)
+                vec.record(hoc_var, self.sampling_interval)
+            cell.traces[variable].append(vec)
         if not cell.recording_time:
             cell.record_times = h.Vector()
             if self.sampling_interval == self._simulator.state.dt:
@@ -97,7 +103,7 @@ class Recorder(recording.Recorder):
     def _reset(self):
         """Reset the list of things to be recorded."""
         for id in set.union(*self.recorded.values()):
-            id._cell.traces = {}
+            id._cell.traces = defaultdict(list)
             id._cell.spike_times = h.Vector(0)
         id._cell.recording_time == 0
         id._cell.record_times = None
@@ -110,7 +116,8 @@ class Recorder(recording.Recorder):
         for id in set.union(*self.recorded.values()):
             if hasattr(id._cell, "traces"):
                 for variable in id._cell.traces:
-                    id._cell.traces[variable].resize(0)
+                    for vec in id._cell.traces[variable]:
+                        vec.resize(0)
             if id._cell.rec is not None:
                 id._cell.spike_times.resize(0)
             else:
@@ -123,7 +130,7 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
-            signals = numpy.vstack((id._cell.traces[variable] for id in ids)).T
+            signals = numpy.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
             expected_length = int(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = numpy.vstack((signals, signals[-1, :]))

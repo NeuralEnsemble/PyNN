@@ -6,7 +6,7 @@ Injecting time-varying current into multi-compartment cells.
 
 import matplotlib
 matplotlib.use("Agg")
-from pyNN.morphology import load_morphology, uniform, random_section, apical_dendrite
+from pyNN.morphology import load_morphology, uniform, random_section, apical_dendrites
 from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
 
@@ -50,9 +50,9 @@ cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV
 
 step_current = sim.DCSource(amplitude=5.0, start=50.0, stop=150.0)
 step_current.inject_into(cells[0:1], location="soma")
-#step_current.inject_into(cells[1:2], location=apical_dendrite(fraction_along=0.9))
-#step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrite))
-step_current.inject_into(cells[1:2], location=random_section(apical_dendrite()))
+#step_current.inject_into(cells[1:2], location=apical_dendrites(fraction_along=0.9))
+#step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrites))
+step_current.inject_into(cells[1:2], location=random_section(apical_dendrites()))
 
 
 # cells[0] --> ID - 1 cell
@@ -62,7 +62,7 @@ step_current.inject_into(cells[1:2], location=random_section(apical_dendrite()))
 
 cells.record('spikes')
 cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-cells.record('v', locations={'soma': 'soma', 'dendrite': random_section(apical_dendrite())})
+cells.record('v', locations={'soma': 'soma', 'dendrite': random_section(apical_dendrites())})
 
 # === Run the simulation =====================================================
 

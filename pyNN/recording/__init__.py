@@ -15,9 +15,10 @@ import numpy
 import os
 from copy import copy
 from collections import defaultdict, namedtuple
-from pyNN import errors
-import neo
 from datetime import datetime
+from pyNN import errors
+from pyNN.morphology import MorphologyFilter
+import neo
 import quantities as pq
 try:
     basestring
