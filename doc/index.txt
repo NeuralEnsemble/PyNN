@@ -2,30 +2,39 @@
 PyNN: documentation
 ===================
 
+.. warning:: This documentation is for a future version of PyNN which is still under heavy development.
+             The API is liable to change before the final release.
+
 .. toctree::
    :maxdepth: 1
 
-   introduction
-   installation
-   quickstart
-   building_networks
-   injecting_current
-   recording
-   data_handling
-   simulation_control
-   parameters
-   random_numbers
-   backends
-   parallel
-   units
-   examples
-   contributors
-   release_notes
+   mc_installation
+   mc_aims
+   mc_api
+   mc_examples
+
+..   introduction
+..   installation
+..   quickstart
+..   building_networks
+..   injecting_current
+..   recording
+..   data_handling
+..   simulation_control
+..   parameters
+..   random_numbers
+..   backends
+..   parallel
+..   units
+..   examples
+..   contributors
+..   release_notes
 
 .. note::
 
    This is the documentation for version |release|. Earlier versions:
 
+     - `version 0.9`_
      - `version 0.8`_
      - `version 0.7 and earlier`_
 
@@ -42,30 +51,23 @@ Developers' Guide
    developers_guide
 
 
-API reference
-=============
+.. API reference
+.. =============
 
-.. toctree::
-   :maxdepth: 2
+.. .. toctree::
+..    :maxdepth: 2
 
-   api_reference
-
-
-Old documents
-=============
-
-.. toctree::
-   :maxdepth: 1
-
-   standardmodels
+..    api_reference
 
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. Indices and tables
+.. ==================
 
+.. * :ref:`genindex`
+.. * :ref:`modindex`
+.. * :ref:`search`
+
+.. _`version 0.9`: http://neuralensemble.org/docs/PyNN/
 .. _`version 0.8`: http://neuralensemble.org/docs/PyNN/0.8/
 .. _`version 0.7 and earlier`: http://neuralensemble.org/docs/PyNN/0.7/

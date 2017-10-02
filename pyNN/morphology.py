@@ -211,3 +211,5 @@ class random_section(MorphologyFilter):
     def __call__(self, morphology, **kwargs):
         sections = self.f(morphology, **kwargs)
         return numpy.random.choice(sections)
+
+sample = random_section  # alias
