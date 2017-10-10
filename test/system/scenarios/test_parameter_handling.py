@@ -240,6 +240,17 @@ def test_set_synaptic_parameters_multiply_connected(sim):
 test_set_synaptic_parameters_multiply_connected.__test__ = False
 
 
+@register()
+def issue505(sim):
+    sim.setup(timestep=0.05, min_delay=0.05)
+    p = sim.Population(2, sim.IF_cond_exp())
+    projection = sim.Projection(p, p, sim.AllToAllConnector(), sim.TsodyksMarkramSynapse(U=0.543))
+    U = projection.get('U', format='list', with_address=False)
+    assert_equal(U, [0.543, 0.543, 0.543, 0.543])
+    delay = projection.get('delay', format='list', with_address=False)
+    assert_equal(delay, [0.05, 0.05, 0.05, 0.05])
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -247,3 +258,4 @@ if __name__ == '__main__':
     issue302(sim)
     test_set_synaptic_parameters_fully_connected(sim)
     test_set_synaptic_parameters_partially_connected(sim)
+    issue505(sim)
