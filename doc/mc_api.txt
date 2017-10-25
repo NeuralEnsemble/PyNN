@@ -22,7 +22,7 @@ For example:
 Here we create 100 neurons.
 They all have the same equations (integrate-and-fire model),
 and they all have the same value for the membrane capacitance (`cm` parameter),
-but each neuron has a different membrane potential (parameter `tau_m`), drawn from a normal distribution,
+but each neuron has a different membrane time constant (parameter `tau_m`), drawn from a normal distribution,
 and each neuron has a different firing threshold (parameter `v_thresh`,
 determined by a function of its position within the population).
 
@@ -58,7 +58,7 @@ When it come to instantiating such a cell type in order to create a population, 
 to the point-neuron case:
 
 **Hierarchical parameter sets**
-    Ion channel parameters should be in a separate dictionary nested inside the main parameter dictionary)
+    Ion channel parameters should be in a separate dictionary nested inside the main parameter dictionary.
 
 **More complex parameter types**
     For the standard library of point neurons, most of the parameters are floats, with :class:`Sequence` being the only special case.
