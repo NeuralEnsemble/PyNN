@@ -10,6 +10,19 @@ try:
 except ImportError:
     have_nest = False
 
+# Issue 506
+try:
+    import pyNN.nest as sim
+    import nest
+except ImportError:
+    nest = False
+
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+
 
 def test_scenarios():
     for scenario in registry:
@@ -183,6 +196,58 @@ def test_tsodyks_markram_synapse():
     connections = nest.GetConnections(prj._sources.tolist(), synapse_model=prj.nest_synapse_model)
     tau_psc = numpy.array(nest.GetStatus(connections, 'tau_psc'))
     assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+
+
+# Issue 506
+def test_ticket506():
+    """ Test of NativeElectrodeType class """
+    if not have_nest:
+        raise SkipTest
+    sim = pyNN.nest
+    sim.setup()
+    p1 = sim.Population(5, sim.IF_curr_exp(i_offset=0.1, v_thresh=-55.0, tau_refrac=5.0))
+    p1.record('v')
+    # Values for parameters
+    mean = 0.55
+    stdev=0.1
+    start=50.0
+    stop=450.0
+    # sim.native_electrode_type
+    electrode_type = sim.native_electrode_type('noise_generator')
+    noise = electrode_type(mean=mean, stdev=stdev, start=start, stop=stop, dt=0.1)
+    noiseElectrodeType = noise.inject_into(p1[0])
+    # sim.DCSource
+    steady = sim.DCSource(amplitude=mean, start=start, stop=stop)
+    noiseSteady = p1[1].inject(steady)
+    # sim.NoisyCurrentSource with dt=1.0
+    noise2 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=1.0)
+    noiseNoisyCurrentSource2 = p1[2].inject(noise2)
+    # sim.NoisyCurrentSource with dt=5
+    noise3 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=5)
+    noiseNoisyCurrentSource3 = p1[3].inject(noise3)
+    # sim.NoisyCurrentSource with dt=10
+    noise4 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=10)
+    noiseNoisyCurrentSource4 = p1[4].inject(noise4)
+
+    sim.run(500)
+
+    assert noiseElectrodeType == noiseSteady
+    assert noiseElectrodeType == noiseNoisyCurrentSource2
+    assert noiseElectrodeType == noiseNoisyCurrentSource3
+    assert noiseElectrodeType == noiseNoisyCurrentSource4
+
+
+# Test native_electrode class
+@unittest.skipUnless(nest, "Requires NEST")
+class TestPopulation(unittest.TestCase):
+
+    def setUp(self):
+        sim.setup()
+        self.p = sim.Population(5, sim.IF_curr_exp(i_offset=0.1, v_thresh=-55.0, tau_refrac=5.0))
+
+    def test_create_native(self):
+        electrode_type = sim.native_electrode_type('noise_generator')
+        noise = electrode_type(mean=0.55, stdev=0.1, start=50.0, stop=450.0, dt=0.1)
 
 
 if __name__ == '__main__':

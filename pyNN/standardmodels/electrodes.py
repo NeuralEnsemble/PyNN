@@ -113,3 +113,16 @@ class NoisyCurrentSource(StandardCurrentSource):
         'stop':  1e12,
         'dt':    0.1
     }
+
+
+# See Issue 506
+class NativeElectrodeType(StandardCurrentSource):
+
+    # Values coming from nest.GetDefaults('noise_generator')
+    default_parameters = {
+        'mean':  0.0,
+        'stdev': 0.0,
+        'start': 0.0,
+        'stop':  1.8e308,
+        'dt':    1.0
+    }
