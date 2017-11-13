@@ -247,8 +247,7 @@ class TestPopulation(unittest.TestCase):
 
     def test_create_native(self):
         electrode_type = sim.native_electrode_type('noise_generator')
-        noise = electrode_type(mean=0.55, stdev=0.1, start=50.0, stop=450.0, dt=0.1)
-
+        noise = electrode_type(mean=0.55*1000, std=0.1*1000, start=50.0, stop=450.0, dt=0.1)
 
 if __name__ == '__main__':
     data = test_random_seeds()
