@@ -214,7 +214,7 @@ def test_ticket506():
     stop=450.0
     # sim.native_electrode_type
     electrode_type = sim.native_electrode_type('noise_generator')
-    noise = electrode_type(mean=mean, stdev=stdev, start=start, stop=stop, dt=0.1)
+    noise = electrode_type(mean=mean*1000, std=stdev*1000, start=start, stop=stop, dt=0.1)
     noiseElectrodeType = noise.inject_into(p1[0])
     # sim.DCSource
     steady = sim.DCSource(amplitude=mean, start=start, stop=stop)
