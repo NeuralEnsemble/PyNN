@@ -80,8 +80,8 @@ Matlab :file:`.mat` files, and HDF5. To write to a given format, we create a Neo
 
 .. doctest::
 
-    >>> from neo.io import NeoHdf5IO
-    >>> io = NeoHdf5IO(filename="my_data.h5")
+    >>> from neo.io import NixIO
+    >>> io = NixIO(filename="my_data.h5")
     >>> population.write_data(io)
 
 .. todo: check whether we need to close the `io` object.
@@ -173,6 +173,6 @@ for example SpykeViewer_ and OpenElectrophy_.
 
 
 .. _Neo: http://neuralensemble.org/neo
-.. _`variety of different file formats`: http://packages.python.org/neo/io.html#module-neo.io
+.. _`variety of different file formats`: http://neo.readthedocs.io/en/latest/io.html
 .. _SpykeViewer: http://spyke-viewer.readthedocs.org/en/0.4.0/
 .. _OpenElectrophy: http://neuralensemble.org/OpenElectrophy/

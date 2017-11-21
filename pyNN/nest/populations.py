@@ -141,6 +141,8 @@ class Population(common.Population, PopulationMixin):
         except nest.NESTError as err:
             if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
+            if "Spike times must be sorted in non-descending order" in err.args[0]:
+                raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
             raise  # errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:

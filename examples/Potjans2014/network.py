@@ -35,7 +35,7 @@ class Network:
 
                 # Spike recording
                 if record_fraction:
-                    num_spikes = round(this_pop.size * frac_record_spikes)
+                    num_spikes = int(round(this_pop.size * frac_record_spikes))
                 else:
                     num_spikes = n_record
                 this_pop[0:num_spikes].record('spikes')
@@ -43,7 +43,7 @@ class Network:
                 # Membrane potential recording
                 if record_v:
                     if record_fraction:
-                        num_v = round(this_pop.size * frac_record_v)
+                        num_v = int(round(this_pop.size * frac_record_v))
 
                     else:
                         num_v = n_record_v

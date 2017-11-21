@@ -2,3 +2,6 @@
 NeuroML
 =======
 
+A subset of models specified in PyNN can be exported into NeuroML 2 format.
+
+See https://github.com/NeuroML/NeuroML2/issues/73 for latest status.
