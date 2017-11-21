@@ -61,8 +61,7 @@ class NativeElectrodeType(NestCurrentSource):
 
     def __init__(self, **parameters):
         self._device = nest.Create(self)
-        self.cell_list = [] 
-        self.phase_given = 0.0  # required for PR #502
+        self.cell_list = []
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))

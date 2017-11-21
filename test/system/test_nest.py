@@ -10,13 +10,6 @@ try:
 except ImportError:
     have_nest = False
 
-# Issue 506
-try:
-    import pyNN.nest as sim
-    import nest
-except ImportError:
-    nest = False
-
 try:
     import unittest2 as unittest
 except ImportError:
