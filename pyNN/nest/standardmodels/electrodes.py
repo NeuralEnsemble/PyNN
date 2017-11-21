@@ -172,4 +172,3 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
         ('dt',    'dt')
     )
     nest_name = 'noise_generator'
-
