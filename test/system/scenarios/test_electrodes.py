@@ -453,14 +453,11 @@ def issue_465_474(sim):
     assert_true (numpy.isclose(v_step[int(start/sim_dt)].item(),v_rest) and v_step[int(start/sim_dt)+1]!=v_rest)
 
 
-@register(exclude=["brian", "neuron", "nest"])
+@register()
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid
     at the specified start time (and not, for example, at t=0 as NEST currently does)
-
-    NOTE: This test is currently excluded for all the simulators as the final
-    current recording implementation is currently unavailable on 'master'.
 
     Approach:
     > Two signals with different initial specified phases
