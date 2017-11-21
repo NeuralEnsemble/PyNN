@@ -103,16 +103,8 @@ class NativeElectrodeType(NestCurrentSource):
                                               'amplitude_times': times})
             elif key in ("start", "stop"):
                 nest.SetStatus(self._device, {key: self._delay_correction(value)})
-                #For NativeElectrodeType class
-                if key == "start" and type(self).__name__ == "NativeElectrodeType":
-                    self._phase_correction(self.start, self.frequency, self.phase_given)
             elif key == "frequency":
-                nest.SetStatus(self._device, {key: value})
-                self._phase_correction(self.start, self.frequency, self.phase_given)
-            elif key == "phase":
-                self.phase_given = value
-                self._phase_correction(self.start, self.frequency, self.phase_given)
-           
+                nest.SetStatus(self._device, {key: value})           
             elif not key == "amplitude_times":
                 nest.SetStatus(self._device, {key: value})
                 self.default_parameters[key] = value
