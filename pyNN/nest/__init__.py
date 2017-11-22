@@ -31,7 +31,6 @@ import shutil
 import logging
 
 from pyNN.nest.cells import NativeCellType, native_cell_type
-# Issue 506
 from pyNN.nest.electrodes import NativeElectrodeType, native_electrode_type
 from pyNN.nest.synapses import NativeSynapseType, native_synapse_type
 from pyNN.nest.standardmodels.cells import *

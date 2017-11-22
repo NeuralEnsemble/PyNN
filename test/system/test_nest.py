@@ -191,56 +191,45 @@ def test_tsodyks_markram_synapse():
     assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
 
 
-# Issue 506
-def test_ticket506():
-    """ Test of NativeElectrodeType class """
+def test_native_electrode_types():
+    """ Test of NativeElectrodeType class. (See issue #506)"""
     if not have_nest:
         raise SkipTest
     sim = pyNN.nest
-    sim.setup()
-    p1 = sim.Population(5, sim.IF_curr_exp(i_offset=0.1, v_thresh=-55.0, tau_refrac=5.0))
-    p1.record('v')
-    # Values for parameters
-    mean = 0.55
-    stdev=0.1
-    start=50.0
-    stop=450.0
-    # sim.native_electrode_type
-    electrode_type = sim.native_electrode_type('noise_generator')
-    noise = electrode_type(mean=mean*1000, std=stdev*1000, start=start, stop=stop, dt=0.1)
-    noiseElectrodeType = noise.inject_into(p1[0])
-    # sim.DCSource
-    steady = sim.DCSource(amplitude=mean, start=start, stop=stop)
-    noiseSteady = p1[1].inject(steady)
-    # sim.NoisyCurrentSource with dt=1.0
-    noise2 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=1.0)
-    noiseNoisyCurrentSource2 = p1[2].inject(noise2)
-    # sim.NoisyCurrentSource with dt=5
-    noise3 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=5)
-    noiseNoisyCurrentSource3 = p1[3].inject(noise3)
-    # sim.NoisyCurrentSource with dt=10
-    noise4 = sim.NoisyCurrentSource(mean=mean, stdev=stdev, start=start, stop=stop, dt=10)
-    noiseNoisyCurrentSource4 = p1[4].inject(noise4)
+    dt = 0.1
+    sim.setup(timestep=0.1, min_delay=0.1)
+    current_sources = [sim.DCSource(amplitude=0.5, start=50.0, stop=400.0),
+                       sim.native_electrode_type('dc_generator')(amplitude=500.0, start=50.0 - dt, stop=400.0 - dt),
+                       sim.StepCurrentSource(times=[50.0, 210.0, 250.0, 410.0],
+                                             amplitudes=[0.4, 0.6, -0.2, 0.2]),
+                       sim.native_electrode_type('step_current_generator')(
+                           amplitude_times=[50.0 - dt, 210.0 - dt, 250.0 - dt, 410.0 - dt],
+                           amplitude_values=[400.0, 600.0, -200.0, 200.0]),
+                       sim.ACSource(start=50.0, stop=450.0, amplitude=0.2,
+                                    offset=0.1, frequency=10.0, phase=180.0),
+                       sim.native_electrode_type('ac_generator')(
+                           start=50.0 - dt, stop=450.0 - dt, amplitude=200.0,
+                           offset=100.0, frequency=10.0, phase=180.0),
+                       sim.NoisyCurrentSource(mean=0.5, stdev=0.2, start=50.0,
+                                              stop=450.0, dt=1.0),
+                       sim.native_electrode_type('noise_generator')(
+                           mean=500.0, std=200.0, start=50.0 - dt,
+                           stop=450.0 - dt, dt=1.0), ]
 
+    n_cells = len(current_sources)
+    cells = sim.Population(n_cells, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, tau_m=10.0))
+
+    for cell, current_source in zip(cells, current_sources):
+        cell.inject(current_source)
+
+    cells.record('v')
     sim.run(500)
 
-    assert noiseElectrodeType == noiseSteady
-    assert noiseElectrodeType == noiseNoisyCurrentSource2
-    assert noiseElectrodeType == noiseNoisyCurrentSource3
-    assert noiseElectrodeType == noiseNoisyCurrentSource4
+    vm = cells.get_data().segments[0].filter(name="v")[0]
+    assert_array_equal(vm[:, 0].magnitude, vm[:, 1].magnitude)
+    assert_array_equal(vm[:, 2].magnitude, vm[:, 3].magnitude)
 
-
-# Test native_electrode class
-@unittest.skipUnless(nest, "Requires NEST")
-class TestPopulation(unittest.TestCase):
-
-    def setUp(self):
-        sim.setup()
-        self.p = sim.Population(5, sim.IF_curr_exp(i_offset=0.1, v_thresh=-55.0, tau_refrac=5.0))
-
-    def test_create_native(self):
-        electrode_type = sim.native_electrode_type('noise_generator')
-        noise = electrode_type(mean=0.55*1000, std=0.1*1000, start=50.0, stop=450.0, dt=0.1)
 
 if __name__ == '__main__':
-    data = test_random_seeds()
+    #data = test_random_seeds()
+    test_native_electrode_types()

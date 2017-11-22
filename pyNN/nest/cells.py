@@ -6,6 +6,7 @@ Definition of NativeCellType class for NEST.
 """
 
 import warnings
+import numpy as np
 import nest
 from pyNN.models import BaseCellType
 from pyNN.parameters import Sequence
@@ -18,7 +19,7 @@ UNITS_MAP = {
 
 
 def get_defaults(model_name):
-    valid_types = (int, float, Sequence)
+    valid_types = (int, float, Sequence, np.ndarray)
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
     ignore = ['archiver_length', 'available', 'Ca', 'capacity', 'elementsize',
@@ -27,7 +28,7 @@ def get_defaults(model_name):
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
               'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
               'thread_local_id', 'node_uses_wfr', 'supports_precise_spikes',
-              'synaptic_elements']
+              'synaptic_elements', 'y_0', 'y_1']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():
