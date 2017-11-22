@@ -3,8 +3,6 @@ dist: trusty
 sudo: required
 matrix:
     include:
-        - python: 2.6
-          env: PYENV=py26
         - python: 2.7
           env: PYENV=py27
         - python: 3.3
