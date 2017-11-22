@@ -23,6 +23,8 @@ from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike, itervalues
 from copy import deepcopy
+import neo
+import quantities as pq
 
 # ==============================================================================
 #   Standard cells
@@ -209,6 +211,17 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
 
     def get_native_parameters(self):
         raise NotImplementedError
+
+    def get_data(self):
+        """Return the recorded current as a Neo signal object"""
+        t_arr, i_arr = self._get_data()
+        intervals = numpy.diff(t_arr)
+        if intervals.max() - intervals.min() < 1e-9:
+            signal = neo.AnalogSignal(i_arr, units="nA", t_start=t_arr[0] * pq.ms,
+                                      sampling_period=intervals[0] * pq.ms)
+        else:
+            signal = neo.IrregularlySampledSignal(t_arr, i_arr, units="nA", time_units="ms")
+        return signal
 
 
 class ModelNotAvailable(object):
