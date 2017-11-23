@@ -48,14 +48,11 @@ class BrianCurrentSource(StandardCurrentSource):
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)
 
-    def _round_timestamp(self, value, resolution):
-        return int(value/resolution+0.5) * resolution
-
     def _check_step_times(self, times, amplitudes, resolution):
         # change resolution from ms to s; as per brian convention
         resolution = resolution*1e-3
         # ensure that all time stamps are non-negative
-        if not all(times>=0.0):
+        if not (times >= 0.0).all():
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
         dt_times = numpy.diff(times)
@@ -83,7 +80,7 @@ class BrianCurrentSource(StandardCurrentSource):
                 step_amplitudes = parameters["amplitudes"].value
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
-                parameters["amplitudes"].value = step_amplitudes            
+                parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):
                 value = value.value
             object.__setattr__(self, name, value)

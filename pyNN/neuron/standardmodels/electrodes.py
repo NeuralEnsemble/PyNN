@@ -88,12 +88,9 @@ class NeuronCurrentSource(StandardCurrentSource):
 
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
 
-    def _round_timestamp(self, value, resolution):
-        return int(value/resolution+0.5) * resolution
-
     def _check_step_times(self, times, amplitudes, resolution):
         # ensure that all time stamps are non-negative
-        if not all(times>=0.0):
+        if not (times >= 0.0).all():
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
         dt_times = numpy.diff(times)
@@ -121,7 +118,7 @@ class NeuronCurrentSource(StandardCurrentSource):
                 step_amplitudes = parameters["amplitudes"].value
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
-                parameters["amplitudes"].value = step_amplitudes                
+                parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):  # this shouldn't be necessary, but seems to prevent a segfault
                 value = value.value
             object.__setattr__(self, name, value)

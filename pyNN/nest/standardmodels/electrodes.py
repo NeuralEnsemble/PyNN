@@ -80,12 +80,9 @@ class NestCurrentSource(StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
-    def _round_timestamp(self, value, resolution):
-        return int(value/resolution+0.5) * resolution
-
     def _check_step_times(self, times, amplitudes, resolution):
         # ensure that all time stamps are non-negative
-        if not all(times>=0.0):
+        if not (times >= 0.0).all():
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
         dt_times = numpy.diff(times)
@@ -95,7 +92,7 @@ class NestCurrentSource(StandardCurrentSource):
         times = self._delay_correction(times)
         # find the last element <= dt (we find >dt and then go one element back)
         # this corresponds to the first timestamp that can be used by NEST for current injection
-        ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
+        ctr = (v > state.dt).nonzero()[0][0] - 1
         if ctr >= 0:
             times[ctr] = state.dt
             times = times[ctr:]
@@ -104,14 +101,10 @@ class NestCurrentSource(StandardCurrentSource):
         for ind in range(len(times)):
             times[ind] = self._round_timestamp(times[ind], resolution)
         # remove duplicate timestamps, and corresponding amplitudes, after mapping
-        step_times = []
-        step_amplitudes = []
-        for ts0, amp0, ts1 in zip(times, amplitudes, times[1:]):
-            if ts0 != ts1:
-                step_times.append(ts0)
-                step_amplitudes.append(amp0)
-        step_times.append(times[-1])
-        step_amplitudes.append(amplitudes[-1])
+        step_times, step_indices = np.unique(times[::-1], return_index=True)
+        step_times = step_times.tolist()
+        step_indices = len(times)-step_indices-1
+        step_amplitudes = [amplitudes[i] for i in step_indices]
         return step_times, step_amplitudes
 
     def set_native_parameters(self, parameters):
@@ -123,7 +116,7 @@ class NestCurrentSource(StandardCurrentSource):
                 step_amplitudes = parameters["amplitude_values"].value
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, state.dt)
                 parameters["amplitude_times"].value = step_times
-                parameters["amplitude_values"].value = step_amplitudes                
+                parameters["amplitude_values"].value = step_amplitudes
                 nest.SetStatus(self._device, {key: step_amplitudes,
                                               'amplitude_times': step_times})
             elif key in ("start", "stop"):
@@ -191,4 +184,3 @@ class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
         ('dt',    'dt')
     )
     nest_name = 'noise_generator'
-

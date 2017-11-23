@@ -210,6 +210,8 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
     def get_native_parameters(self):
         raise NotImplementedError
 
+    def _round_timestamp(self, value, resolution):
+        return int(value/resolution+0.5) * resolution
 
 class ModelNotAvailable(object):
     """Not available for this simulator."""
