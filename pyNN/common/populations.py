@@ -277,14 +277,30 @@ class BasePopulation(object):
             return_list = False
         else:
             return_list = True
-        if isinstance(self.celltype, standardmodels.StandardCellType):
+        if isinstance(self.celltype, standardmodels.StandardCellType):            
             if any(name in self.celltype.computed_parameters() for name in parameter_names):
                 native_names = self.celltype.get_native_names()  # need all parameters in order to calculate values
+                native_parameter_space = self._get_parameters(*native_names)
+                parameter_space = self.celltype.reverse_translate(native_parameter_space)
             else:
-                native_names = self.celltype.get_native_names(*parameter_names)
-            native_parameter_space = self._get_parameters(*native_names)
-            parameter_space = self.celltype.reverse_translate(native_parameter_space)
-        else:
+                if any(name in self.celltype.default_initial_values for name in parameter_names):
+                    if return_list : 
+                        values = []
+                        for parameter in parameter_names :
+                            native_names = self.get_data(parameter, gather)
+                            values.append(native_names.segments[0].analogsignalarrays[0][-1])
+
+                    else :
+                        native_names = self.get_data(parameter_names, gather)
+                        values = [native_names.segments[0].analogsignalarrays[0][-1]]
+
+                    return values
+
+                else:    
+                    native_names = self.celltype.get_native_names(*parameter_names)
+                    native_parameter_space = self._get_parameters(*native_names)
+                    parameter_space = self.celltype.reverse_translate(native_parameter_space)              
+        else:       
             parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
         parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
                                                      # this also causes problems if the population size matches the number of MPI nodes
@@ -297,7 +313,7 @@ class BasePopulation(object):
                     all_values = {self._simulator.state.mpi_rank: values.tolist()}
                     local_indices = numpy.arange(self.size)[self._mask_local].tolist()
                     all_indices = {self._simulator.state.mpi_rank: local_indices}
-                    all_values = recording.gather_dict(all_values)
+                    all_values = recording.gather_dict(all_values) 
                     all_indices = recording.gather_dict(all_indices)
                     if self._simulator.state.mpi_rank == 0:
                         values = reduce(operator.add, all_values.values())
