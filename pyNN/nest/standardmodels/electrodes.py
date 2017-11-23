@@ -19,21 +19,17 @@ from pyNN.standardmodels import electrodes, build_translations, StandardCurrentS
 from pyNN.common import Population, PopulationView, Assembly
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.nest.simulator import state
+from pyNN.nest.electrodes import NestCurrentSource
 
 
-class NestCurrentSource(StandardCurrentSource):
+class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
     def __init__(self, **parameters):
-        self._device = nest.Create(self.nest_name)
-        self.cell_list = []
+        NestCurrentSource.__init__(self, **parameters)
         self.phase_given = 0.0  # required for PR #502
-        parameter_space = ParameterSpace(self.default_parameters,
-                                         self.get_schema(),
-                                         shape=(1,))
-        parameter_space.update(**parameters)
-        parameter_space = self.translate(parameter_space)
-        self.set_native_parameters(parameter_space)
+        native_parameters = self.translate(self.parameter_space)
+        self.set_native_parameters(native_parameters)
 
     def inject_into(self, cells):
         __doc__ = StandardCurrentSource.inject_into.__doc__
@@ -138,7 +134,7 @@ class NestCurrentSource(StandardCurrentSource):
                                    if k in self.get_native_names()))
 
 
-class DCSource(NestCurrentSource, electrodes.DCSource):
+class DCSource(NestStandardCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
 
     translations = build_translations(
@@ -149,7 +145,7 @@ class DCSource(NestCurrentSource, electrodes.DCSource):
     nest_name = 'dc_generator'
 
 
-class ACSource(NestCurrentSource, electrodes.ACSource):
+class ACSource(NestStandardCurrentSource, electrodes.ACSource):
     __doc__ = electrodes.ACSource.__doc__
 
     translations = build_translations(
@@ -163,7 +159,7 @@ class ACSource(NestCurrentSource, electrodes.ACSource):
     nest_name = 'ac_generator'
 
 
-class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
+class StepCurrentSource(NestStandardCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
 
     translations = build_translations(
@@ -173,7 +169,7 @@ class StepCurrentSource(NestCurrentSource, electrodes.StepCurrentSource):
     nest_name = 'step_current_generator'
 
 
-class NoisyCurrentSource(NestCurrentSource, electrodes.NoisyCurrentSource):
+class NoisyCurrentSource(NestStandardCurrentSource, electrodes.NoisyCurrentSource):
     __doc__ = electrodes.NoisyCurrentSource.__doc__
 
     translations = build_translations(

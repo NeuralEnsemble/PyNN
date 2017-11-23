@@ -9,6 +9,7 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+import numpy
 from neuron import h, nrn, hclass
 
 from pyNN import errors
@@ -572,6 +573,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
             self._spike_times = h.Vector(spike_times.value)
         except (RuntimeError, AttributeError):
             raise errors.InvalidParameterValueError("spike_times must be an array of floats")
+        if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
+            raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
 
     def _get_spike_times(self):
