@@ -97,7 +97,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         for ind in range(len(times)):
             times[ind] = self._round_timestamp(times[ind], resolution)
         # remove duplicate timestamps, and corresponding amplitudes, after mapping
-        step_times, step_indices = np.unique(times[::-1], return_index=True)
+        step_times, step_indices = numpy.unique(times[::-1], return_index=True)
         step_times = step_times.tolist()
         step_indices = len(times)-step_indices-1
         step_amplitudes = [amplitudes[i] for i in step_indices]
