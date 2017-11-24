@@ -144,7 +144,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self.record_times = h.Vector()
         self.record_times.record(h._ref_t)
 
-    def get_data(self):
+    def _get_data(self):
         # NEURON and pyNN have different concepts of current initiation times
         # To keep this consistent across simulators, pyNN will have current
         # initiating at the electrode at t_start and effect on cell at next dt.

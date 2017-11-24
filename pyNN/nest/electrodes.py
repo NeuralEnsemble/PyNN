@@ -54,7 +54,7 @@ class NestCurrentSource(BaseCurrentSource):
         self.i_multimeter = nest.Create('multimeter', params={'record_from': ['I'], 'interval': state.dt})
         nest.Connect(self.i_multimeter, self._device)
 
-    def get_data(self):
+    def _get_data(self):
         events = nest.GetStatus(self.i_multimeter)[0]['events']
         # Similar to recording.py: NEST does not record values at
         # the zeroth time step, so we add them here.

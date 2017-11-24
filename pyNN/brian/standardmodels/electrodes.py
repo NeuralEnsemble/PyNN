@@ -123,7 +123,7 @@ class BrianCurrentSource(StandardCurrentSource):
         self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0, when='start')
         simulator.state.network.add(self.i_state_monitor)
 
-    def get_data(self):
+    def _get_data(self):
         # code based on brian/recording.py:_get_all_signals()
         # because we use `when='start'`, we need to add the
         # value at the end of the final time step.
