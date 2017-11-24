@@ -318,23 +318,18 @@ class Projection(common.Projection):
                 nest_names.append('target')
             else:
                 nest_names.append(name)
-        values = nest.GetStatus(self.nest_connections, nest_names)
+        values = numpy.array(nest.GetStatus(self.nest_connections, nest_names))  # ought to preserve int type for source, target
         if 'weight' in names:  # other attributes could also have scale factors - need to use translation mechanisms
-            values = numpy.array(values)  # ought to preserve int type for source, target
             scale_factors = numpy.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
             if self.receptor_type == 'inhibitory' and self.post.conductance_based:
                 scale_factors[names.index('weight')] *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
             values *= scale_factors
-            values = values.tolist()
         if 'presynaptic_index' in names:
-            values = numpy.array(values)
             values[:, names.index('presynaptic_index')] -= self.pre.first_id
-            values = values.tolist()
         if 'postsynaptic_index' in names:
-            values = numpy.array(values)
             values[:, names.index('postsynaptic_index')] -= self.post.first_id
-            values = values.tolist()
+        values = values.tolist()
         for i in xrange(len(values)):
             values[i] = tuple(values[i])
         return values

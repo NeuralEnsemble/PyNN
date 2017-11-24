@@ -36,11 +36,7 @@ import os
 from datetime import datetime
 import functools
 import numpy
-try:
-    from importlib import import_module
-except ImportError:  # Python 2.6
-    def import_module(name):
-        return __import__(name)
+from importlib import import_module
     
 from pyNN.core import deprecated
 
