@@ -110,14 +110,23 @@ class NeuronCurrentSource(StandardCurrentSource):
                     self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
                     self._devices.append(self._h_iclamps[id])
 
-    def _record(self):
+    def record(self):
         self.itrace = h.Vector()
         self.itrace.record(self._devices[0]._ref_i)
         self.record_times = h.Vector()
         self.record_times.record(h._ref_t)
 
     def _get_data(self):
-        return numpy.array((self.record_times, self.itrace))
+        # NEURON and pyNN have different concepts of current initiation times
+        # To keep this consistent across simulators, pyNN will have current
+        # initiating at the electrode at t_start and effect on cell at next dt.
+        # This requires removing the first element from the current Vector
+        # as NEURON computes the currents one time step later. The vector length
+        # is compensated by repeating the last recorded value of current.
+        t_arr = numpy.array(self.record_times)
+        i_arr = numpy.array(self.itrace)[1:]
+        i_arr = numpy.append(i_arr, i_arr[-1])
+        return (t_arr, i_arr)
 
 
 class DCSource(NeuronCurrentSource, electrodes.DCSource):

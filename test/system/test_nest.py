@@ -10,6 +10,12 @@ try:
 except ImportError:
     have_nest = False
 
+try:
+    import unittest2 as unittest
+except ImportError:
+    import unittest
+from numpy.testing import assert_array_equal, assert_array_almost_equal
+
 
 def test_scenarios():
     for scenario in registry:
@@ -185,5 +191,45 @@ def test_tsodyks_markram_synapse():
     assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
 
 
+def test_native_electrode_types():
+    """ Test of NativeElectrodeType class. (See issue #506)"""
+    if not have_nest:
+        raise SkipTest
+    sim = pyNN.nest
+    dt = 0.1
+    sim.setup(timestep=0.1, min_delay=0.1)
+    current_sources = [sim.DCSource(amplitude=0.5, start=50.0, stop=400.0),
+                       sim.native_electrode_type('dc_generator')(amplitude=500.0, start=50.0 - dt, stop=400.0 - dt),
+                       sim.StepCurrentSource(times=[50.0, 210.0, 250.0, 410.0],
+                                             amplitudes=[0.4, 0.6, -0.2, 0.2]),
+                       sim.native_electrode_type('step_current_generator')(
+                           amplitude_times=[50.0 - dt, 210.0 - dt, 250.0 - dt, 410.0 - dt],
+                           amplitude_values=[400.0, 600.0, -200.0, 200.0]),
+                       sim.ACSource(start=50.0, stop=450.0, amplitude=0.2,
+                                    offset=0.1, frequency=10.0, phase=180.0),
+                       sim.native_electrode_type('ac_generator')(
+                           start=50.0 - dt, stop=450.0 - dt, amplitude=200.0,
+                           offset=100.0, frequency=10.0, phase=180.0),
+                       sim.NoisyCurrentSource(mean=0.5, stdev=0.2, start=50.0,
+                                              stop=450.0, dt=1.0),
+                       sim.native_electrode_type('noise_generator')(
+                           mean=500.0, std=200.0, start=50.0 - dt,
+                           stop=450.0 - dt, dt=1.0), ]
+
+    n_cells = len(current_sources)
+    cells = sim.Population(n_cells, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, tau_m=10.0))
+
+    for cell, current_source in zip(cells, current_sources):
+        cell.inject(current_source)
+
+    cells.record('v')
+    sim.run(500)
+
+    vm = cells.get_data().segments[0].filter(name="v")[0]
+    assert_array_equal(vm[:, 0].magnitude, vm[:, 1].magnitude)
+    assert_array_equal(vm[:, 2].magnitude, vm[:, 3].magnitude)
+
+
 if __name__ == '__main__':
-    data = test_random_seeds()
+    #data = test_random_seeds()
+    test_native_electrode_types()

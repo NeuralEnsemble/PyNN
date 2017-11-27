@@ -3,8 +3,6 @@ dist: trusty
 sudo: required
 matrix:
     include:
-        - python: 2.6
-          env: PYENV=py26
         - python: 2.7
           env: PYENV=py27
         - python: 3.3
@@ -18,8 +16,8 @@ after_success:
   - coveralls
 cache:
   directories:
-    - $HOME/nest-2.12.0
-    - $HOME/nrn-7.4
-    - $HOME/build/nest-2.12.0
-    - $HOME/build/nrn-7.4
+    - $HOME/nest-2.14.0
+    - $HOME/nrn-7.5
+    - $HOME/build/nest-2.14.0
+    - $HOME/build/nrn-7.5
     - $HOME/.cache/pip

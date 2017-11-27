@@ -89,12 +89,21 @@ class BrianCurrentSource(StandardCurrentSource):
                     for cell, idx in zip(self.cell_list, self.indices):
                         cell.parent.brian_group.i_inj[idx] = 0
 
-    def _record(self):
-        self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0)
+    def record(self):
+        self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0, when='start')
         simulator.state.network.add(self.i_state_monitor)
 
     def _get_data(self):
-        return numpy.array((self.i_state_monitor.times / ms, self.i_state_monitor[0] / nA))
+        # code based on brian/recording.py:_get_all_signals()
+        # because we use `when='start'`, we need to add the
+        # value at the end of the final time step.
+        device = self.i_state_monitor
+        current_t_value = device.P.state_('t')[device.record]
+        current_i_value = device.P.state_(device.varname)[device.record]
+        t_all_values = numpy.append(device.times, current_t_value)
+        i_all_values = numpy.append(device._values, current_i_value)
+        return (t_all_values / ms, i_all_values / nA)
+
 
 class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
