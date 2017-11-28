@@ -44,12 +44,16 @@ class NeuroMLCurrentSource(StandardCurrentSource):
             object.__setattr__(self, name, value)
 
     def _get_input_list(self, stim_id, pop):
+        id="Input_%s"%(stim_id)
         
-        input_list = neuroml.InputList(id="Input_%s"%(stim_id),
+        self.network = _get_main_network()
+        for il in self.network.input_lists:
+            if il.id ==id:
+                return il
+        input_list = neuroml.InputList(id=id,
                              component=stim_id,
                              populations=pop)
                              
-        self.network = _get_main_network()
         self.network.input_lists.append(input_list)
         
         return input_list
