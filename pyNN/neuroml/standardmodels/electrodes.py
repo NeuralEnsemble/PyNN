@@ -93,13 +93,18 @@ class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
     )
     
     def add_to_nml_doc(self, nml_doc, cells):
-        pg = neuroml.PulseGenerator(id=self.get_id_for_nml(cells),
+        id=self.get_id_for_nml(cells)
+        pg = neuroml.PulseGenerator(id=id,
                                       delay='%sms'%self.start,
                                       duration='%sms'%(self.stop-self.start),
                                       amplitude='%snA'%self.amplitude)
      
         self.nml_doc = _get_nml_doc()
-        self.nml_doc.pulse_generators.append(pg)
+        found = False
+        for pg in self.nml_doc.pulse_generators:
+            if pg.id==id: found = True
+        if not found:
+            self.nml_doc.pulse_generators.append(pg)
         return pg.id
 
 

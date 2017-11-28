@@ -73,3 +73,6 @@ examples/*.svg
 /examples/Potjans2014/*.so
 /test/system/LEMS_Sim_Test0.xml
 /test/system/Test0.net.nml
+/examples/Potjans2014/*.spikes
+/examples/Potjans2014/*.dat
+/examples/Potjans2014/*_nrn.py
