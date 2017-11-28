@@ -88,7 +88,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         times = self._delay_correction(times)
         # find the last element <= dt (we find >dt and then go one element back)
         # this corresponds to the first timestamp that can be used by NEST for current injection
-        ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
+        ctr = numpy.searchsorted(times, state.dt, side="right") - 1
         if ctr >= 0:
             times[ctr] = state.dt
             times = times[ctr:]
