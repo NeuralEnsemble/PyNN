@@ -76,3 +76,7 @@ examples/*.svg
 /examples/Potjans2014/*.spikes
 /examples/Potjans2014/*.dat
 /examples/Potjans2014/*_nrn.py
+/examples/PyNN_NeuroML2_Export.net.nml
+/examples/input.spikes
+/examples/output.spikes
+/examples/Potjans2014/clean.sh
