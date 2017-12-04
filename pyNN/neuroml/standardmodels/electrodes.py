@@ -14,6 +14,7 @@ import neuroml
 
 logger = logging.getLogger("PyNN_NeuroML")
 
+current_sources = []
         
 
 class NeuroMLCurrentSource(StandardCurrentSource):
@@ -33,8 +34,6 @@ class NeuroMLCurrentSource(StandardCurrentSource):
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)
         
-        self.nml_doc = _get_nml_doc()
-        self.network = _get_main_network()
         
 
     def set_native_parameters(self, parameters):
@@ -45,8 +44,13 @@ class NeuroMLCurrentSource(StandardCurrentSource):
             object.__setattr__(self, name, value)
 
     def _get_input_list(self, stim_id, pop):
+        id="Input_%s"%(stim_id)
         
-        input_list = neuroml.InputList(id="Input_%s"%(stim_id),
+        self.network = _get_main_network()
+        for il in self.network.input_lists:
+            if il.id ==id:
+                return il
+        input_list = neuroml.InputList(id=id,
                              component=stim_id,
                              populations=pop)
                              
@@ -60,6 +64,7 @@ class NeuroMLCurrentSource(StandardCurrentSource):
         
         logger.debug("%s injecting into: %s"%(self.__class__.__name__, cells))
         
+        self.nml_doc = _get_nml_doc()
         id = self.add_to_nml_doc(self.nml_doc, cells)
         
         
@@ -92,12 +97,18 @@ class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
     )
     
     def add_to_nml_doc(self, nml_doc, cells):
-        pg = neuroml.PulseGeneratorDL(id=self.get_id_for_nml(cells),
+        id=self.get_id_for_nml(cells)
+        pg = neuroml.PulseGenerator(id=id,
                                       delay='%sms'%self.start,
                                       duration='%sms'%(self.stop-self.start),
-                                      amplitude='%s'%self.amplitude)
+                                      amplitude='%snA'%self.amplitude)
      
-        nml_doc.pulse_generator_dls.append(pg)
+        self.nml_doc = _get_nml_doc()
+        found = False
+        for pg in self.nml_doc.pulse_generators:
+            if pg.id==id: found = True
+        if not found:
+            self.nml_doc.pulse_generators.append(pg)
         return pg.id
 
 
@@ -110,13 +121,15 @@ class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
     )
         
     def add_to_nml_doc(self, nml_doc, cells):
-        ci = neuroml.CompoundInputDL(id=self.get_id_for_nml(cells))
+        ci = neuroml.CompoundInput(id=self.get_id_for_nml(cells))
      
         num_steps = len(self.amplitudes)
         for i in range(num_steps):
             next_time = 1e9 if i==num_steps-1 else self.times[i+1]
-            ci.pulse_generator_dls.append(neuroml.PulseGeneratorDL(id='step_%s'%i,delay='%sms'%self.times[i],duration='%sms'%(next_time-self.times[i]),amplitude='%s'%self.amplitudes[i]))
-        nml_doc.compound_input_dls.append(ci)
+            ci.pulse_generator_dls.append(neuroml.PulseGenerator(id='step_%s'%i,delay='%sms'%self.times[i],duration='%sms'%(next_time-self.times[i]),amplitude='%snA'%self.amplitudes[i]))
+            
+        self.nml_doc = _get_nml_doc()
+        self.nml_doc.compound_inputs.append(ci)
         return ci.id
 
 
@@ -134,23 +147,24 @@ class ACSource(NeuroMLCurrentSource, electrodes.ACSource):
     
     def add_to_nml_doc(self, nml_doc, cells):
         
-        ci = neuroml.CompoundInputDL(id=self.get_id_for_nml(cells))
+        ci = neuroml.CompoundInput(id=self.get_id_for_nml(cells))
     
-        sg = neuroml.SineGeneratorDL(id='SG_'+self.get_id_for_nml(cells),
+        sg = neuroml.SineGenerator(id='SG_'+self.get_id_for_nml(cells),
                              delay='%sms'%self.start,
                              duration='%sms'%(self.stop-self.start),
-                             amplitude='%s'%self.amplitude,
+                             amplitude='%snA'%self.amplitude,
                              period='%s s'%(1/float(self.frequency)),
                              phase=(3.14159265 * self.phase/180))
                              
-        pg = neuroml.PulseGeneratorDL(id='PG_'+self.get_id_for_nml(cells),
+        pg = neuroml.PulseGenerator(id='PG_'+self.get_id_for_nml(cells),
                                       delay='%sms'%self.start,
                                       duration='%sms'%(self.stop-self.start),
-                                      amplitude='%s'%self.offset)
+                                      amplitude='%snA'%self.offset)
      
-        ci.sine_generator_dls.append(sg)
-        ci.pulse_generator_dls.append(pg)
-        nml_doc.compound_input_dls.append(ci)
+        ci.sine_generator.append(sg)
+        ci.pulse_generators.append(pg)
+        self.nml_doc = _get_nml_doc()
+        self.nml_doc.compound_input_dls.append(ci)
         return ci.id
 
 
