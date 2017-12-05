@@ -553,7 +553,7 @@ class FromFileConnector(FromListConnector):
 
                 # columns = ["i", "j", "weight", "delay", "U", "tau_rec"]
 
-            Note that the header requires ‘#’ at the beginning of the line.
+            Note that the header requires `#` at the beginning of the line.            
 
         `distributed`:
             if this is True, then each node will read connections from a file
