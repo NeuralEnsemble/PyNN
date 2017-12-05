@@ -189,6 +189,8 @@ class Sequence(object):
         else:
             return Sequence(self.value / val)
 
+    __truediv__ = __div__  # Python 3
+
     def __eq__(self, other):
         if isinstance(other, Sequence):
             return self.value.size == other.value.size and (self.value == other.value).all()
