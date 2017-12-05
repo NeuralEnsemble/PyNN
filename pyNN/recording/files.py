@@ -175,10 +175,11 @@ class StandardTextFile(BaseFile):
                     break
                 name, value = line[1:].split("=")
                 name = name.strip()
-                try:
-                    D[name] = eval(value)
-                except Exception:
-                    D[name] = value.strip()
+                value = eval(value)
+                if type(value) in [list, tuple]:
+                    D[name] = value
+                else:
+                    raise TypeError("Column headers must be specified using a list or tuple.")
             else:
                 break
         self.fileobj.seek(0)
