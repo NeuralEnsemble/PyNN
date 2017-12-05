@@ -31,6 +31,17 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         native_parameters = self.translate(self.parameter_space)
         self.set_native_parameters(native_parameters)
 
+    def inject_into(self, cells):
+        __doc__ = StandardCurrentSource.inject_into.__doc__
+        for id in cells:
+            if id.local and not id.celltype.injectable:
+                raise TypeError("Can't inject current into a spike source.")
+        if isinstance(cells, (Population, PopulationView, Assembly)):
+            self.cell_list = [cell for cell in cells]
+        else:
+            self.cell_list = cells
+        nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
+
     def _phase_correction(self, start, freq, phase):
         """
         Fixes #497 (PR #502)
@@ -42,22 +53,68 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
+    def _delay_correction(self, value):
+        """
+        A change in a device requires a min_delay to take effect at the target
+        """
+        corrected = value - state.min_delay
+        # set negative times to zero
+        if isinstance(value, numpy.ndarray):
+            corrected = numpy.where(corrected > 0, corrected, 0.0)
+        else:
+            corrected = max(corrected, 0.0)
+        return corrected
+
+    def _phase_correction(self, start, freq, phase):
+        """
+        Fixes #497 (PR #502)
+        Tweaks the value of phase supplied to NEST ACSource
+        so as to remain consistent with other simulators
+        """
+        phase_fix = ( (phase*numpy.pi/180) - (2*numpy.pi*freq*start/1000)) * 180/numpy.pi
+        phase_fix.shape = (1)
+        phase_fix = phase_fix.evaluate()[0]
+        nest.SetStatus(self._device, {'phase': phase_fix})
+
+    def _check_step_times(self, times, amplitudes, resolution):
+        # ensure that all time stamps are non-negative
+        if not (times >= 0.0).all():
+            raise ValueError("Step current cannot accept negative timestamps.")
+        # ensure that times provided are of strictly increasing magnitudes
+        dt_times = numpy.diff(times)
+        if not all(dt_times>0.0):
+            raise ValueError("Step current timestamps should be monotonically increasing.")
+        # NEST specific: subtract min_delay from times (set to 0.0, if result is negative)
+        times = self._delay_correction(times)
+        # find the last element <= dt (we find >dt and then go one element back)
+        # this corresponds to the first timestamp that can be used by NEST for current injection
+        ctr = numpy.searchsorted(times, state.dt, side="right") - 1
+        if ctr >= 0:
+            times[ctr] = state.dt
+            times = times[ctr:]
+            amplitudes = amplitudes[ctr:]
+        # map timestamps to actual simulation time instants based on specified dt
+        for ind in range(len(times)):
+            times[ind] = self._round_timestamp(times[ind], resolution)
+        # remove duplicate timestamps, and corresponding amplitudes, after mapping
+        step_times, step_indices = numpy.unique(times[::-1], return_index=True)
+        step_times = step_times.tolist()
+        step_indices = len(times)-step_indices-1
+        step_amplitudes = [amplitudes[i] for i in step_indices]
+        return step_times, step_amplitudes
+
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for key, value in parameters.items():
             if key == "amplitude_values":
                 assert isinstance(value, Sequence)
-                times = self._delay_correction(parameters["amplitude_times"].value)
-                amplitudes = value.value
-                ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
-                if ctr >= 0:
-                    times[ctr] = state.dt
-                    times = times[ctr:]
-                    amplitudes = amplitudes[ctr:]
-                for ind in range(len(times)):
-                    times[ind] = self._round_timestamp(times[ind], state.dt)                
-                nest.SetStatus(self._device, {key: amplitudes,
-                                              'amplitude_times': times})
+                step_times = parameters["amplitude_times"].value
+                step_amplitudes = parameters["amplitude_values"].value
+                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, state.dt)
+                parameters["amplitude_times"].value = step_times
+                parameters["amplitude_values"].value = step_amplitudes
+                nest.SetStatus(self._device, {key: step_amplitudes,
+                                              'amplitude_times': step_times})
             elif key in ("start", "stop"):
                 nest.SetStatus(self._device, {key: self._delay_correction(value)})
                 if key == "start" and type(self).__name__ == "ACSource":
