@@ -126,7 +126,7 @@ class StepCurrentSource(NeuroMLCurrentSource, electrodes.StepCurrentSource):
         num_steps = len(self.amplitudes)
         for i in range(num_steps):
             next_time = 1e9 if i==num_steps-1 else self.times[i+1]
-            ci.pulse_generator_dls.append(neuroml.PulseGenerator(id='step_%s'%i,delay='%sms'%self.times[i],duration='%sms'%(next_time-self.times[i]),amplitude='%snA'%self.amplitudes[i]))
+            ci.pulse_generators.append(neuroml.PulseGenerator(id='step_%s'%i,delay='%sms'%self.times[i],duration='%sms'%(next_time-self.times[i]),amplitude='%snA'%self.amplitudes[i]))
             
         self.nml_doc = _get_nml_doc()
         self.nml_doc.compound_inputs.append(ci)
@@ -161,10 +161,11 @@ class ACSource(NeuroMLCurrentSource, electrodes.ACSource):
                                       duration='%sms'%(self.stop-self.start),
                                       amplitude='%snA'%self.offset)
      
-        ci.sine_generator.append(sg)
+        ci.sine_generators.append(sg)
         ci.pulse_generators.append(pg)
+        
         self.nml_doc = _get_nml_doc()
-        self.nml_doc.compound_input_dls.append(ci)
+        self.nml_doc.compound_inputs.append(ci)
         return ci.id
 
 
