@@ -558,7 +558,7 @@ class FromFileConnector(FromListConnector):
         `callback`:
             if True, display a progress bar on the terminal.
     """
-    parameter_names = ('filename', 'distributed')
+    parameter_names = ('file', 'distributed')
 
     def __init__(self, file, distributed=False, safe=True, callback=None):
         """
