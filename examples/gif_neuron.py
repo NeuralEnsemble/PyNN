@@ -48,7 +48,7 @@ parameters = {
         'e_rev_E':      0.0,  # Reversal potential for excitatory input in mV
         'e_rev_I':    -70.0,  # Reversal potential for inhibitory input in mV
         'v_reset':    -65.0,  # Reset potential after a spike in mV.
-        'i_offset':     0.0,  # Offset current in nA
+        'i_offset':     [0.0, 0.0, 0.0, 0.0],  # Offset current in nA
         'v_t_star':   -55.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
         'tau_eta':   (1.0, 10.0, 100.0),  # Time constants for spike-triggered current in ms.
@@ -73,6 +73,12 @@ parameters = {
 
 neurons = sim.Population(4, sim.GIF_cond_exp(**parameters['neurons']),
                          initial_values={'v': -65.0, 'v_t': -55.0})
+
+print("i_offset = ", neurons.get('i_offset'))
+print("v_t_star = ", neurons.get('v_t_star'))
+print("delta_v = ", neurons.get('delta_v'))
+print("tau_eta = ", neurons.get('tau_eta'))
+print("a_gamma = ", neurons.get('a_gamma'))
 
 electrode = sim.DCSource(**parameters['stimulus'])
 electrode.inject_into(neurons)
