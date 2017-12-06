@@ -51,20 +51,18 @@ parameters = {
         'i_offset':     0.0,  # Offset current in nA
         'v_t_star':   -55.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
-        'tau_eta1':     1.0,  # }
-        'tau_eta2':    10.0,  # } Time constants for spike-triggered current in ms.
-        'tau_eta3':   100.0,  # }
-        'tau_gamma1':   1.0,  # }
-        'tau_gamma2':  10.0,  # } Time constants for spike-frequency adaptation in ms.
-        'tau_gamma3': 100.0,  # }
+        'tau_eta':   (1.0, 10.0, 100.0),  # Time constants for spike-triggered current in ms.
+        'tau_gamma': (1.0, 10.0, 100.0),  # Time constants for spike-frequency adaptation in ms.
         # the following parameters have different values for each neuron
-        'delta_v':  [1e-6, 1e-6, 0.5, 0.5],  # Threshold sharpness in mV.
-        'a_eta1':   [0.1, 0.0, 0.0, 0.0],  # }
-        'a_eta2':   [0.1, 0.0, 0.0, 0.0],  # } Post-spike increments for spike-triggered current in nA
-        'a_eta3':   [0.1, 0.0, 0.0, 0.0],  # }
-        'a_gamma1': [0.0, 5.0, 0.0, 0.0],  # }
-        'a_gamma2': [0.0, 5.0, 0.0, 0.0],  # } Post-spike increments for spike-frequency adaptation in mV
-        'a_gamma3': [0.0, 5.0, 0.0, 0.0],  # }
+        'delta_v':   [1e-6, 1e-6, 0.5, 0.5],  # Threshold sharpness in mV.
+        'a_eta':     [(0.1, 0.1, 0.1),  # Post-spike increments for spike-triggered current in nA
+                      (0.0, 0.0, 0.0),
+                      (0.0, 0.0, 0.0),
+                      (0.0, 0.0, 0.0)],
+        'a_gamma':   [(0.0, 0.0, 0.0),  # Post-spike increments for spike-frequency adaptation in mV
+                      (5.0, 5.0, 5.0),
+                      (0.0, 0.0, 0.0),
+                      (0.0, 0.0, 0.0)],
     },
     'stimulus': {
         'start': 20.0,
@@ -73,7 +71,8 @@ parameters = {
     }
 }
 
-neurons = sim.Population(4, sim.GIF_cond_exp(**parameters['neurons']))
+neurons = sim.Population(4, sim.GIF_cond_exp(**parameters['neurons']),
+                         initial_values={'v': -65.0, 'v_t': -55.0})
 
 electrode = sim.DCSource(**parameters['stimulus'])
 electrode.inject_into(neurons)

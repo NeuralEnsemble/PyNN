@@ -11,7 +11,7 @@ import numpy
 import nest
 import logging
 from pyNN import common, errors
-from pyNN.parameters import Sequence, ParameterSpace, simplify
+from pyNN.parameters import ArrayParameter, Sequence, ParameterSpace, simplify
 from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
 from . import simulator
@@ -78,7 +78,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
         if extra_parameters:
             cell_parameters.update(extra_parameters)
         for name, val in cell_parameters.items():
-            if isinstance(val, Sequence):
+            if isinstance(val, ArrayParameter):
                 cell_parameters[name] = val.value
         # The following is a temporary hack to get the gif_cond_exp model working.
         # Longer-term, an extension to lazyarray would be the best approach
@@ -99,7 +99,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
                 D['tau_stc'] = (D.pop('tau_stc1'), D.pop('tau_stc2'), D.pop('tau_stc3'))
                 D['q_stc'] = (D.pop('q_stc1'), D.pop('q_stc2'), D.pop('q_stc3'))
             for name, val in D.items():
-                if isinstance(val, Sequence):
+                if isinstance(val, ArrayParameter):
                     D[name] = val.value
             if extra_parameters:
                 D.update(extra_parameters)
