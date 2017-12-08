@@ -50,11 +50,6 @@ class NestCurrentSource(BaseCurrentSource):
             corrected = max(corrected, 0.0)
         return corrected
 
-    @profile
-    def _round_timestamp(self, value, resolution):
-        # subtraction by 1e-12 to match NEURON working
-        return round ((float(value)-1e-12)/ resolution) * resolution
-
     def record(self):
         self.i_multimeter = nest.Create('multimeter', params={'record_from': ['I'], 'interval': state.dt})
         nest.Connect(self.i_multimeter, self._device)
@@ -79,18 +74,18 @@ def native_electrode_type(model_name):
     Return a new NativeElectrodeType subclass.
     """
     assert isinstance(model_name, str)
-    default_parameters, default_initial_values = get_defaults(model_name)  
+    default_parameters, default_initial_values = get_defaults(model_name)
     return type(model_name,
                (NativeElectrodeType,),
                 {'nest_name': model_name,
                  'default_parameters': default_parameters,
                  'default_initial_values': default_initial_values,
                 })
-    
+
 
 # Should be usable with any NEST current generator
 class NativeElectrodeType(NestCurrentSource):
-    
+
     _is_computed = True
     _is_playable = True
 

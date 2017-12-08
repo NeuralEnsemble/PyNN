@@ -212,6 +212,9 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
     def get_native_parameters(self):
         raise NotImplementedError
 
+    def _round_timestamp(self, value, resolution):
+        return int(value/resolution+0.5) * resolution
+
     def get_data(self):
         """Return the recorded current as a Neo signal object"""
         t_arr, i_arr = self._get_data()

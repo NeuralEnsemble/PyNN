@@ -623,7 +623,7 @@ class Population(BasePopulation):
                      "You should import Population from a PyNN backend module, " \
                      "e.g. pyNN.nest or pyNN.neuron"
             raise Exception(errmsg)
-        if not isinstance(size, int):  # also allow a single integer, for a 1D population
+        if not isinstance(size, (int, numpy.integer)):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
             # check the things inside are ints
             for e in size:

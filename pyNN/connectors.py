@@ -468,7 +468,7 @@ class FromListConnector(Connector):
         `column_names`:
             the names of the parameters p1, p2, etc. If not provided, it is
             assumed the parameters are 'weight', 'delay' (for backwards
-            compatibility).
+            compatibility). This should be specified using a tuple.
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
@@ -548,6 +548,13 @@ class FromFileConnector(FromListConnector):
         `file`:
             either an open file object or the filename of a file containing a
             list of connections, in the format required by `FromListConnector`.
+            Column headers, if included in the file,  must be specified using
+            a list or tuple, e.g.::
+
+                # columns = ["i", "j", "weight", "delay", "U", "tau_rec"]
+
+            Note that the header requires `#` at the beginning of the line.            
+
         `distributed`:
             if this is True, then each node will read connections from a file
             called `filename.x`, where `x` is the MPI rank. This speeds up
@@ -558,7 +565,7 @@ class FromFileConnector(FromListConnector):
         `callback`:
             if True, display a progress bar on the terminal.
     """
-    parameter_names = ('filename', 'distributed')
+    parameter_names = ('file', 'distributed')
 
     def __init__(self, file, distributed=False, safe=True, callback=None):
         """
