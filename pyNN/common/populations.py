@@ -285,7 +285,7 @@ class BasePopulation(object):
             native_parameter_space = self._get_parameters(*native_names)
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
-            parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
+            parameter_space = self._get_parameters(*parameter_names)
         parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
                                                      # this also causes problems if the population size matches the number of MPI nodes
         parameters = dict(parameter_space.items())
