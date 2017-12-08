@@ -42,6 +42,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
+    @profile
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for key, value in parameters.items():
@@ -49,13 +50,13 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
                 assert isinstance(value, Sequence)
                 times = self._delay_correction(parameters["amplitude_times"].value)
                 amplitudes = value.value
-                ctr = next((i for i,v in enumerate(times) if v > state.dt), len(times)) - 1
+                ctr = next((i for i,v in enumerate(times) if v > self.dt), len(times)) - 1
                 if ctr >= 0:
-                    times[ctr] = state.dt
+                    times[ctr] = self.dt
                     times = times[ctr:]
                     amplitudes = amplitudes[ctr:]
                 for ind in range(len(times)):
-                    times[ind] = self._round_timestamp(times[ind], state.dt)                
+                    times[ind] = self._round_timestamp(times[ind],self.dt)                
                 nest.SetStatus(self._device, {key: amplitudes,
                                               'amplitude_times': times})
             elif key in ("start", "stop"):

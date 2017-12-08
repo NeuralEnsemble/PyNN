@@ -24,6 +24,9 @@ class NestCurrentSource(BaseCurrentSource):
         if parameters:
             self.parameter_space.update(**parameters)
 
+        self.min_delay = state.min_delay
+        self.dt = state.dt
+
     def inject_into(self, cells):
         for id in cells:
             if id.local and not id.celltype.injectable:
@@ -34,11 +37,12 @@ class NestCurrentSource(BaseCurrentSource):
             self.cell_list = cells
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
 
+    @profile
     def _delay_correction(self, value):
         """
         A change in a device requires a min_delay to take effect at the target
         """
-        corrected = value - state.min_delay
+        corrected = value - self.dt
         # set negative times to zero
         if isinstance(value, numpy.ndarray):
             corrected = numpy.where(corrected > 0, corrected, 0.0)
@@ -46,6 +50,7 @@ class NestCurrentSource(BaseCurrentSource):
             corrected = max(corrected, 0.0)
         return corrected
 
+    @profile
     def _round_timestamp(self, value, resolution):
         # subtraction by 1e-12 to match NEURON working
         return round ((float(value)-1e-12)/ resolution) * resolution
