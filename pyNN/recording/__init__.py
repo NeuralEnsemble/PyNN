@@ -242,7 +242,7 @@ class Recorder(object):
             return set(filter_ids).intersection(self.recorded[variable])
         else:
             return self.recorded[variable]
-
+    @profile
     def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
@@ -257,13 +257,12 @@ class Recorder(object):
                 data = self._get_spiketimes(sids)
 
                 segment.spiketrains = [
-                    neo.SpikeTrain(data.get(id,[]),
+                    neo.SpikeTrain(data.get(int(id),[]),
                                    t_start=self._recording_start_time,
                                    t_stop=t_stop,
                                    units='ms',
                                    source_population=self.population.label,
-                                   source_id=int(id),
-                                   source_index=self.population.id_to_index(id))
+                                   source_id=int(id),source_index=self.population.id_to_index(id))
                     for id in sids]
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))

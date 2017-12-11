@@ -46,6 +46,7 @@ class RecordingDevice(object):
         assert not self._connected
         self._all_ids = self._all_ids.union(new_ids)
 
+    @profile
     def get_data(self, variable, desired_ids, clear=False):
         """
         Return recorded data as a dictionary containing one numpy array for
@@ -58,15 +59,15 @@ class RecordingDevice(object):
         values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
         x = set(ids)
-
+        
         for id in x:
             data[id]=[]
 
         for id,v in zip(ids,values):
             data[id].append(v)
-        
-        a = numpy.intersect1d(numpy.array(list(x)),numpy.array(desired_ids))
-        data = {k : data[k] for k in a}
+
+        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(x)),numpy.array(desired_ids))
+        data = {k : data[k] for k in desired_and_existing_ids}
 
         if variable != 'times':
             for id in desired_ids:
@@ -74,14 +75,15 @@ class RecordingDevice(object):
                 # add them here.
                 if variable not in self._initial_values:
                     self._initial_values[variable] = {}
-                initial_value = self._initial_values[variable].get(id,
+                initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                data[id] = numpy.concatenate((numpy.hstack([initial_value]), data.get(id,[])))
+                #data[id] = numpy.concatenate((numpy.hstack([initial_value]), data.get(id,[])))
+                data[int(id)] = [initial_value] + data.get(int(id),[])
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
                 if clear:
-                    self._initial_values[variable][id] = data.get(id,[])[-1]
+                    self._initial_values[variable][int(id)] = data[int(id)][-1]
 
         return data
 
@@ -437,6 +439,7 @@ class Recorder(recording.Recorder):
     def _get_spiketimes(self, ids):
         return self._spike_detector.get_spiketimes(ids)  # hugely inefficient - to be optimized later
     
+    @profile
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
