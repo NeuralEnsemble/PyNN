@@ -86,14 +86,13 @@ class LazyArray(larray):
         if isinstance(self.base_value, RandomDistribution) and self.base_value.rng.parallel_safe:
             if mask is None:
                 for j in column_indices:
-                    yield self._apply_operations(self.base_value.next(self.nrows, mask_local=False),
-                                                 (slice(None), j))
+                    yield self._partially_evaluate((slice(None), j), simplify=True)
             else:
                 column_indices = numpy.arange(self.ncols)
                 for j, local in zip(column_indices, mask):
-                    col = self.base_value.next(self.nrows, mask_local=False)
+                    col = self._partially_evaluate((slice(None), j), simplify=True)
                     if local:
-                        yield self._apply_operations(col, (slice(None), j))
+                        yield col
         else:
             for j in column_indices:
                 yield self._partially_evaluate((slice(None), j), simplify=True)

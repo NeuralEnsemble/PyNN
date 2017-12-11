@@ -85,7 +85,7 @@ def gather_blocks(data, ordered=True):
     # for now, use gather_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
-    blocks = D.values()
+    blocks = list(D.values())
     merged = data
     if mpi_comm.rank == MPI_ROOT:    
         merged = blocks[0]
