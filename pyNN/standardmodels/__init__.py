@@ -71,9 +71,15 @@ class StandardModelType(models.BaseModelType):
         """
         return self.translate(self.parameter_space)
 
-    def translate(self, parameters):
+    def translate(self, parameters,copy=True):
         """Translate standardized model parameters to simulator-specific parameters."""
-        _parameters = deepcopy(parameters)
+        if copy:
+            _parameters = deepcopy(parameters)
+            if "amplitudes" in parameters.keys():
+                if len(parameters["amplitudes"].base_value.value) > 2:
+                    print parameters["amplitudes"].base_value.value
+        else:
+            _parameters = parameters
         cls = self.__class__
         if parameters.schema != self.get_schema():
             raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
@@ -182,7 +188,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         else:
             object.__setattr__(self, name, value)
 
-    def set_parameters(self, **parameters):
+    def set_parameters(self,copy=True,**parameters):
         """
         Set current source parameters, given as a sequence of parameter=value arguments.
         """
@@ -197,7 +203,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             parameters = all_parameters
         else:
             parameters = ParameterSpace(parameters, self.get_schema(), (1,))
-        parameters = self.translate(parameters)
+        parameters = self.translate(parameters,copy=copy)
         self.set_native_parameters(parameters)
 
     def get_parameters(self):

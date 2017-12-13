@@ -53,7 +53,6 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
-    @profile
     def _delay_correction(self, value):
         """
         A change in a device requires a min_delay to take effect at the target
@@ -77,7 +76,6 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
 
-    @profile
     def _check_step_times(self, times, amplitudes, resolution):
         # ensure that all time stamps are non-negative
         if numpy.min(times) < 0:
@@ -105,7 +103,6 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         step_amplitudes = amplitudes[step_indices] #[amplitudes[i] for i in step_indices]
         return step_times, step_amplitudes
 
-    @profile
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for key, value in parameters.items():

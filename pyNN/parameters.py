@@ -228,7 +228,6 @@ class ParameterSpace(object):
 
     .. _`lazy array`: https://lazyarray.readthedocs.org/
     """
-
     def __init__(self, parameters, schema=None, shape=None, component=None):
         """
 
