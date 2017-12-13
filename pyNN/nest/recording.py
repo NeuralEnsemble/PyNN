@@ -46,7 +46,6 @@ class RecordingDevice(object):
         assert not self._connected
         self._all_ids = self._all_ids.union(new_ids)
 
-    @profile
     def get_data(self, variable, desired_ids, clear=False):
         """
         Return recorded data as a dictionary containing one numpy array for
@@ -439,7 +438,6 @@ class Recorder(recording.Recorder):
     def _get_spiketimes(self, ids):
         return self._spike_detector.get_spiketimes(ids)  # hugely inefficient - to be optimized later
     
-    @profile
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:

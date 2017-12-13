@@ -37,7 +37,6 @@ class NestCurrentSource(BaseCurrentSource):
             self.cell_list = cells
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
 
-    @profile
     def _delay_correction(self, value):
         """
         A change in a device requires a min_delay to take effect at the target
