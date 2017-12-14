@@ -117,7 +117,6 @@ class Projection(common.Projection):
         self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model,
                                                                synapse_label=self.nest_synapse_label)]
     
-
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
         """
