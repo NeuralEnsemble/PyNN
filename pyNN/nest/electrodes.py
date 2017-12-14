@@ -63,7 +63,7 @@ class NestCurrentSource(BaseCurrentSource):
         # To keep this consistent across simulators, we will have current
         # initiating at the electrode at t_start and effect on cell at next dt
         # This requires padding min_delay equivalent period with 0's
-        pad_length = int(state.min_delay/state.dt)
+        pad_length = int(self.min_delay/self.dt)
         i_arr = numpy.insert(i_arr[:-pad_length], 0, [0]*pad_length)
         return t_arr, i_arr
 

@@ -441,7 +441,8 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
-            return numpy.vstack([data[i] for i in ids]).T
+            print type(data[ids[0]])
+            return numpy.array([data[i] for i in ids]).T
         else:
             return numpy.array([])
 
