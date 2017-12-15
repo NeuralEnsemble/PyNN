@@ -75,9 +75,6 @@ class StandardModelType(models.BaseModelType):
         """Translate standardized model parameters to simulator-specific parameters."""
         if copy:
             _parameters = deepcopy(parameters)
-            if "amplitudes" in parameters.keys():
-                if len(parameters["amplitudes"].base_value.value) > 2:
-                    print parameters["amplitudes"].base_value.value
         else:
             _parameters = parameters
         cls = self.__class__
