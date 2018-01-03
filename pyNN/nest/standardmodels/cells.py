@@ -375,18 +375,10 @@ class GIF_cond_exp(cells.GIF_cond_exp):
         ('delta_v',    'Delta_V'),
         ('v_t_star',   'V_T_star'),
         ('lambda0',    'lambda_0'),
-        ('tau_eta1',   'tau_stc1'),
-        ('tau_eta2',   'tau_stc2'),
-        ('tau_eta3',   'tau_stc3'),
-        ('tau_gamma1', 'tau_sfa1'),
-        ('tau_gamma2', 'tau_sfa2'),
-        ('tau_gamma3', 'tau_sfa3'),
-        ('a_eta1',     'q_stc1',    1000.0),  # nA -> pA
-        ('a_eta2',     'q_stc2',    1000.0),
-        ('a_eta3',     'q_stc3',    1000.0),
-        ('a_gamma1',   'q_sfa1'),
-        ('a_gamma2',   'q_sfa2'),
-        ('a_gamma3',   'q_sfa3'),
+        ('tau_eta',   'tau_stc'),
+        ('tau_gamma', 'tau_sfa'),
+        ('a_eta',     'q_stc',    1000.0),  # nA -> pA
+        ('a_gamma',   'q_sfa'),
     )
     nest_name = {"on_grid": "gif_cond_exp",
                  "off_grid": "gif_cond_exp"}

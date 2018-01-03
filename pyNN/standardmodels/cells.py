@@ -29,7 +29,7 @@ Spike sources (input neurons)
 """
 
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import Sequence
+from pyNN.parameters import ArrayParameter, Sequence
 
 
 class IF_curr_alpha(StandardCellType):
@@ -543,18 +543,10 @@ class GIF_cond_exp(StandardCellType):
         'delta_v':      0.5,  # Threshold sharpness in mV.
         'v_t_star':   -48.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
-        'tau_eta1':     1.0,  # }
-        'tau_eta2':    10.0,  # } Time constants for spike-triggered current in ms.
-        'tau_eta3':   100.0,  # }
-        'tau_gamma1':   1.0,  # }
-        'tau_gamma2':  10.0,  # } Time constants for spike-frequency adaptation in ms.
-        'tau_gamma3': 100.0,  # }
-        'a_eta1':       1.0,  # }
-        'a_eta2':       1.0,  # } Post-spike increments for spike-triggered current in nA
-        'a_eta3':       1.0,  # }
-        'a_gamma1':     1.0,  # }
-        'a_gamma2':     1.0,  # } Post-spike increments for moving threshold in mV
-        'a_gamma3':     1.0,  # }
+        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.
+        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.
+        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms.
+        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV
     }
 
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
@@ -584,18 +576,10 @@ class GIF_cond_exp(StandardCellType):
         'delta_v': 'mV',
         'v_t_star': 'mV',
         'lambda0': 'Hz',
-        'tau_eta1': 'ms',
-        'tau_eta2': 'ms',
-        'tau_eta3': 'ms',
-        'tau_gamma1': 'ms',
-        'tau_gamma2': 'ms',
-        'tau_gamma3': 'ms',
-        'a_eta1': 'nA',
-        'a_eta2': 'nA',
-        'a_eta3': 'nA',
-        'a_gamma1': 'mV',
-        'a_gamma2': 'mV',
-        'a_gamma3': 'mV',
+        'tau_eta': 'ms',
+        'tau_gamma': 'ms',
+        'a_eta': 'nA',
+        'a_gamma': 'mV',
     }
 
 
