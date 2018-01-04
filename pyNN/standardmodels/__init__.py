@@ -219,7 +219,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         """Return the recorded current as a Neo signal object"""
         t_arr, i_arr = self._get_data()
         intervals = numpy.diff(t_arr)
-        if intervals.max() - intervals.min() < 1e-9:
+        if intervals.size > 0 and intervals.max() - intervals.min() < 1e-9:
             signal = neo.AnalogSignal(i_arr, units="nA", t_start=t_arr[0] * pq.ms,
                                       sampling_period=intervals[0] * pq.ms)
         else:

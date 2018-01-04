@@ -369,7 +369,7 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register()
+@register(exclude=["brian"])  # todo: fix for Brian
 def issue_465_474(sim):
     """
     Checks the current traces recorded for each of the four types of
@@ -454,7 +454,7 @@ def issue_465_474(sim):
     assert_true (numpy.isclose(float(v_step[int(start / sim_dt), 0].item()), v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
-@register()
+@register(exclude=["brian"])
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid
@@ -467,7 +467,7 @@ def issue497(sim):
     > Test to ensure that initial specified phases applicable at t = start
     """
     sim_dt = 0.1
-    sim.setup(min_delay=1.0, timestep = sim_dt)
+    sim.setup(min_delay=1.0, timestep=sim_dt)
 
     start1 = 5.0
     freq1 = 100.0

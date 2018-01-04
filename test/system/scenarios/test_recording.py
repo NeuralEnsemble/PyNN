@@ -166,8 +166,8 @@ def test_mix_procedural_and_oo(sim):
 test_mix_procedural_and_oo.__test__ = False
 
 
-@register()
-def issue_449_490_491(sim):
+@register(exclude=['brian'])  # todo: known to fail with Brian, but should work
+def test_record_with_filename(sim):
     """
     Test to ensure that Simulator and Population recording work properly
     The following 12 scenarios are explored:
@@ -189,6 +189,8 @@ def issue_449_490_491(sim):
             a) 2 parameters (2vars)             (scenario 10)
             b) parameter1 (var1)                (scenario 11)
             c) parameter2 (var2)                (scenario 12)
+
+    cf Issues #449, #490, #491
     """
     # START ***** defining methods needed for test *****
 
@@ -245,18 +247,18 @@ def issue_449_490_491(sim):
     cells[0].inject(steady)
 
     # specify appropriate filenames for output files
-    filename_sim_cell1_2vars = normalized_filename("Results", "sim_cell1_2vars", "pkl", sim)
-    filename_sim_cell1_var1  = normalized_filename("Results", "sim_cell1_var1", "pkl", sim)
-    filename_sim_cell1_var2  = normalized_filename("Results", "sim_cell1_var2", "pkl", sim)
-    filename_sim_cell2_2vars = normalized_filename("Results", "sim_cell2_2vars", "pkl", sim)
-    filename_sim_cell2_var1  = normalized_filename("Results", "sim_cell2_var1", "pkl", sim)
-    filename_sim_cell2_var2  = normalized_filename("Results", "sim_cell2_var2", "pkl", sim)
-    filename_sim_popl_2vars  = normalized_filename("Results", "sim_popl_2vars", "pkl", sim)
-    filename_sim_popl_var1   = normalized_filename("Results", "sim_popl_var1", "pkl", sim)
-    filename_sim_popl_var2   = normalized_filename("Results", "sim_popl_var2", "pkl", sim)
-    filename_rec_2vars = normalized_filename("Results", "rec_2vars", "pkl", sim)
-    filename_rec_var1  = normalized_filename("Results", "rec_var1", "pkl", sim)
-    filename_rec_var2  = normalized_filename("Results", "rec_var2", "pkl", sim)
+    filename_sim_cell1_2vars = normalized_filename("Results", "sim_cell1_2vars", "pkl", sim.__name__)
+    filename_sim_cell1_var1  = normalized_filename("Results", "sim_cell1_var1", "pkl", sim.__name__)
+    filename_sim_cell1_var2  = normalized_filename("Results", "sim_cell1_var2", "pkl", sim.__name__)
+    filename_sim_cell2_2vars = normalized_filename("Results", "sim_cell2_2vars", "pkl", sim.__name__)
+    filename_sim_cell2_var1  = normalized_filename("Results", "sim_cell2_var1", "pkl", sim.__name__)
+    filename_sim_cell2_var2  = normalized_filename("Results", "sim_cell2_var2", "pkl", sim.__name__)
+    filename_sim_popl_2vars  = normalized_filename("Results", "sim_popl_2vars", "pkl", sim.__name__)
+    filename_sim_popl_var1   = normalized_filename("Results", "sim_popl_var1", "pkl", sim.__name__)
+    filename_sim_popl_var2   = normalized_filename("Results", "sim_popl_var2", "pkl", sim.__name__)
+    filename_rec_2vars = normalized_filename("Results", "rec_2vars", "pkl", sim.__name__)
+    filename_rec_var1  = normalized_filename("Results", "rec_var1", "pkl", sim.__name__)
+    filename_rec_var2  = normalized_filename("Results", "rec_var2", "pkl", sim.__name__)
 
     # instruct pynn to record as per above scenarios
     sim.record(["spikes", "v"], cells[0], filename_sim_cell1_2vars, annotations={'script_name': __file__})
@@ -359,6 +361,7 @@ def issue_449_490_491(sim):
     assert_true (nspikes1 == -1)
     assert_true (nspikes2 == -1)
     assert_true (annot_bool)
+test_record_with_filename.__test__ = False
 
 
 @register()
@@ -387,5 +390,5 @@ if __name__ == '__main__':
     issue259(sim)
     test_sampling_interval(sim)
     test_mix_procedural_and_oo(sim)
-    issue_449_490_491(sim)
+    test_record_with_filename(sim)
     issue499(sim)

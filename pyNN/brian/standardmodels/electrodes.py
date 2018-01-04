@@ -22,13 +22,10 @@ from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
-current_sources = []
-
 
 @network_operation(when='start')
 def update_currents():
-    global current_sources
-    for current_source in current_sources:
+    for current_source in simulator.state.current_sources:
         current_source._update_current()
 
 
@@ -37,10 +34,9 @@ class BrianCurrentSource(StandardCurrentSource):
 
     def __init__(self, **parameters):
         super(StandardCurrentSource, self).__init__(**parameters)
-        global current_sources
         self.cell_list = []
         self.indices = []
-        current_sources.append(self)
+        simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))
