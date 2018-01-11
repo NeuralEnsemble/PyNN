@@ -76,7 +76,6 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                #data[id] = numpy.concatenate((numpy.hstack([initial_value]), data.get(id,[])))
                 data[int(id)] = [initial_value] + data.get(int(id),[])
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
@@ -441,8 +440,7 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
-            print type(data[ids[0]])
-            return numpy.array([data[i] for i in ids]).T
+            return numpy.array([data[i] for i in ids]).T #JACOMMENT: this is very expensive but not sure how to get rid of it 
         else:
             return numpy.array([])
 
