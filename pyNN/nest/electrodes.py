@@ -41,7 +41,7 @@ class NestCurrentSource(BaseCurrentSource):
         """
         A change in a device requires a min_delay to take effect at the target
         """
-        corrected = value - self.dt
+        corrected = value - self.min_delay
         # set negative times to zero
         if isinstance(value, numpy.ndarray):
             corrected = numpy.where(corrected > 0, corrected, 0.0)

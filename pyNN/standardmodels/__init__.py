@@ -71,7 +71,7 @@ class StandardModelType(models.BaseModelType):
         """
         return self.translate(self.parameter_space)
 
-    def translate(self, parameters,copy=True):
+    def translate(self, parameters, copy=True):
         """Translate standardized model parameters to simulator-specific parameters."""
         if copy:
             _parameters = deepcopy(parameters)
@@ -185,7 +185,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         else:
             object.__setattr__(self, name, value)
 
-    def set_parameters(self,copy=True,**parameters):
+    def set_parameters(self, copy=True, **parameters):
         """
         Set current source parameters, given as a sequence of parameter=value arguments.
         """
@@ -200,7 +200,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             parameters = all_parameters
         else:
             parameters = ParameterSpace(parameters, self.get_schema(), (1,))
-        parameters = self.translate(parameters,copy=copy)
+        parameters = self.translate(parameters, copy=copy)
         self.set_native_parameters(parameters)
 
     def get_parameters(self):

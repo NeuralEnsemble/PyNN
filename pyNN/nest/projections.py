@@ -185,7 +185,7 @@ class Projection(common.Projection):
                 if 'tsodyks' in self.nest_synapse_model:    
                    syn_dict.update({'tau_psc': numpy.array([[nest.GetStatus([postsynaptic_cell], param_name)[0]] * len(presynaptic_cells.astype(int).tolist())])}) 
 
-                nest.Connect([pre], [postsynaptic_cell],'one_to_one',syn_dict)
+                nest.Connect([pre], [postsynaptic_cell], 'one_to_one', syn_dict)
 
 
         # Book-keeping

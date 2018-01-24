@@ -57,15 +57,15 @@ class RecordingDevice(object):
         ids = events['senders']
         values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
-        x = set(ids)
+        recorded_ids = set(ids)
         
-        for id in x:
+        for id in recorded_ids:
             data[id]=[]
 
         for id,v in zip(ids,values):
             data[id].append(v)
 
-        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(x)),numpy.array(desired_ids))
+        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(recorded_ids)),numpy.array(desired_ids))
         data = {k : data[k] for k in desired_and_existing_ids}
 
         if variable != 'times':
