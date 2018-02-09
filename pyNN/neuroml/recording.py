@@ -15,11 +15,8 @@ from . import simulator
 import logging
 logger = logging.getLogger("PyNN_NeuroML")
 
-
 class Recorder(recording.Recorder):
     _simulator = simulator
-    
-    
     
     def __init__(self, population, file=None):
         super(Recorder, self).__init__(population, file=file)

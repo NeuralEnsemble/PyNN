@@ -16,6 +16,7 @@ except ImportError:
 from pyNN import common
 from pyNN.core import ezip
 from pyNN.space import Space
+
 from . import simulator
 import logging
 
@@ -32,13 +33,27 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, pre, post, projection, conn_id, pre_pop_comp, post_pop_comp, **attributes):
-        #logger.debug("Creating Connection: %s -> %s" % (pre, post))
+    def __init__(self, pre_index, post_index, presynaptic_population, postsynaptic_population, projection_nml, conn_id, pre_pop_comp, post_pop_comp, **attributes):
+        logger.info("Creating Connection: %s -> %s (%s)" % (pre_index, post_index, projection_nml))
         
-        self.presynaptic_index = pre
-        self.postsynaptic_index = post
-        projection.connection_wds.append(neuroml.ConnectionWD(id=conn_id,pre_cell_id="../%s/%i/%s"%(projection.presynaptic_population,pre,pre_pop_comp),
-                   post_cell_id="../%s/%i/%s"%(projection.postsynaptic_population,post,post_pop_comp), weight=attributes['WEIGHT'], delay='%sms'%attributes['DELAY']))
+        self.presynaptic_index = pre_index
+        self.postsynaptic_index = post_index
+        
+        nml_pre_index = pre_index
+        nml_post_index = post_index
+        
+        pre_pop = presynaptic_population
+        if isinstance(presynaptic_population, common.PopulationView):
+            pre_pop = presynaptic_population.parent
+            nml_pre_index = presynaptic_population.index_in_grandparent([pre_index])[0]
+        
+        post_pop = postsynaptic_population
+        if isinstance(postsynaptic_population, common.PopulationView):
+            post_pop = postsynaptic_population.parent
+            nml_post_index = postsynaptic_population.index_in_grandparent([post_index])[0]
+            
+        projection_nml.connection_wds.append(neuroml.ConnectionWD(id=conn_id,pre_cell_id="../%s/%i/%s"%(pre_pop.label,nml_pre_index,pre_pop_comp),
+                   post_cell_id="../%s/%i/%s"%(post_pop.label,nml_post_index,post_pop_comp), weight=attributes['WEIGHT'], delay='%sms'%attributes['DELAY']))
                    
         for name, value in attributes.items():
             setattr(self, name, value)
@@ -58,6 +73,11 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
+                                   
+        logger.info("Creating Projection: %s -> %s (%s)" % (presynaptic_population, postsynaptic_population, synapse_type))
+        
+        self.presynaptic_population = presynaptic_population
+        self.postsynaptic_population = postsynaptic_population
                                    
         nml_doc = simulator._get_nml_doc()
         net = nml_doc.networks[0]
@@ -97,9 +117,16 @@ class Projection(common.Projection):
         self.pre_pop_comp = '%s_%s'%(presynaptic_population.celltype.__class__.__name__, presynaptic_population.label)
         self.post_pop_comp = '%s_%s'%(postsynaptic_population.celltype.__class__.__name__, postsynaptic_population.label)
         
+        pre_pop = presynaptic_population.label 
+        if isinstance(presynaptic_population, common.PopulationView):
+            pre_pop = presynaptic_population.parent.label
+        post_pop = postsynaptic_population.label
+        if isinstance(postsynaptic_population, common.PopulationView):
+            post_pop = postsynaptic_population.parent.label
+        
         logger.debug("Creating Projection: %s" % (nml_proj_id))
-        self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=presynaptic_population.label, 
-                        postsynaptic_population=postsynaptic_population.label, synapse=syn_id)
+        self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=pre_pop, 
+                        postsynaptic_population=post_pop, synapse=syn_id)
         net.projections.append(self.projection)
 
 
@@ -122,5 +149,13 @@ class Projection(common.Projection):
         for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
             other_attributes = dict(zip(connection_parameters.keys(), other))
             self.connections.append(
-                Connection(pre_idx, postsynaptic_index, self.projection, len(self.connections), self.pre_pop_comp, self.post_pop_comp, **other_attributes)
+                Connection(pre_idx, 
+                           postsynaptic_index, 
+                           self.presynaptic_population,
+                           self.postsynaptic_population,
+                           self.projection, 
+                           len(self.connections), 
+                           self.pre_pop_comp, 
+                           self.post_pop_comp, 
+                           **other_attributes)
             )
