@@ -22,13 +22,10 @@ from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
-current_sources = []
-
 
 @network_operation(when='start')
 def update_currents():
-    global current_sources
-    for current_source in current_sources:
+    for current_source in simulator.state.current_sources:
         current_source._update_current()
 
 
@@ -37,10 +34,9 @@ class BrianCurrentSource(StandardCurrentSource):
 
     def __init__(self, **parameters):
         super(StandardCurrentSource, self).__init__(**parameters)
-        global current_sources
         self.cell_list = []
         self.indices = []
-        current_sources.append(self)
+        simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))
@@ -48,9 +44,39 @@ class BrianCurrentSource(StandardCurrentSource):
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)
 
+    def _check_step_times(self, times, amplitudes, resolution):
+        # change resolution from ms to s; as per brian convention
+        resolution = resolution*1e-3
+        # ensure that all time stamps are non-negative
+        if not (times >= 0.0).all():
+            raise ValueError("Step current cannot accept negative timestamps.")
+        # ensure that times provided are of strictly increasing magnitudes
+        dt_times = numpy.diff(times)
+        if not all(dt_times>0.0):
+            raise ValueError("Step current timestamps should be monotonically increasing.")
+        # map timestamps to actual simulation time instants based on specified dt
+        for ind in range(len(times)):
+            times[ind] = self._round_timestamp(times[ind], resolution)
+        # remove duplicate timestamps, and corresponding amplitudes, after mapping
+        step_times = []
+        step_amplitudes = []
+        for ts0, amp0, ts1 in zip(times, amplitudes, times[1:]):
+            if ts0 != ts1:
+                step_times.append(ts0)
+                step_amplitudes.append(amp0)
+        step_times.append(times[-1])
+        step_amplitudes.append(amplitudes[-1])
+        return step_times, step_amplitudes
+
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
+            if name == "amplitudes": # key used only by StepCurrentSource
+                step_times = parameters["times"].value
+                step_amplitudes = parameters["amplitudes"].value
+                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
+                parameters["times"].value = step_times
+                parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):
                 value = value.value
             object.__setattr__(self, name, value)

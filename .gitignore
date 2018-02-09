@@ -52,13 +52,7 @@ examples/tools/Results
 examples/nineml_mechanisms
 examples/*.dat
 examples/*.svg
-
-# Other
-*.btr
-*.log
 /examples/LEMS_Sim_PyNN_NeuroML2_Export.xml
-/pynnpg.sh
-/cleanpynn.sh
 /examples/Potjans2014/*.svg
 /examples/Potjans2014/*.mod
 /examples/Potjans2014/*.png
@@ -80,3 +74,11 @@ examples/*.svg
 /examples/input.spikes
 /examples/output.spikes
 /examples/Potjans2014/clean.sh
+/test/benchmarks/*.h5
+
+# Other
+*.btr
+*.log
+tmp
+/pynnpg.sh
+/cleanpynn.sh

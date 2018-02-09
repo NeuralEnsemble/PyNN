@@ -285,7 +285,7 @@ class BasePopulation(object):
             native_parameter_space = self._get_parameters(*native_names)
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
-            parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
+            parameter_space = self._get_parameters(*parameter_names)
         parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
                                                      # this also causes problems if the population size matches the number of MPI nodes
         parameters = dict(parameter_space.items())
@@ -623,7 +623,7 @@ class Population(BasePopulation):
                      "You should import Population from a PyNN backend module, " \
                      "e.g. pyNN.nest or pyNN.neuron"
             raise Exception(errmsg)
-        if not isinstance(size, int):  # also allow a single integer, for a 1D population
+        if not isinstance(size, (int, numpy.integer)):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
             # check the things inside are ints
             for e in size:

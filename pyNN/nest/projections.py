@@ -277,6 +277,8 @@ class Projection(common.Projection):
                         "Projection was only partially initialized."
                         " Please call sim.nest.reset() to reset "
                         "your network and start over!".format(name))
+        if hasattr(value, "__len__"):
+            value = value[0]
         self._common_synapse_properties[name] = value
         nest.SetDefaults(self.nest_synapse_model, name, value)
 

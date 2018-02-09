@@ -280,22 +280,34 @@ def comparison_plot(segments, labels, title='', annotations=None,
     n_seg = len(segments)
     by_var_and_channel = defaultdict(lambda: defaultdict(list))
     line_properties = []
+    units = {}
     for k, (segment, label) in enumerate(zip(segments, labels)):
         lw = 2 * (n_seg - k) - 1
-        col = 'rbgmck'[k % 6]
+        col = 'bcgmkr'[k % 6]
         line_properties.append({"linewidth": lw, "color": col})
         for array in segment.analogsignals:
-            for i in array.channel_index.argsort():
-                channel = array.channel_index[i]
+            # rescale signals to the same units, for a given variable name
+            if array.name not in units:
+                units[array.name] = array.units
+            elif array.units != units[array.name]:
+                array = array.rescale(units[array.name])
+            for i in array.channel_index.index.argsort():
+                channel = array.channel_index.index[i]
                 signal = array[:, i]
-                signal.channel_index = channel  # Neo should do this in the previous line
                 by_var_and_channel[array.name][channel].append(signal)
     # each panel plots the signals for a given variable.
     panels = []
     for by_channel in by_var_and_channel.values():
-        panels += [Panel(*array_list,
-                         line_properties=line_properties,
-                         data_labels=labels) for array_list in by_channel.values()]
+        for array_list in by_channel.values():
+            ylabel = array_list[0].name
+            if ylabel:
+                ylabel += " ({})".format(array_list[0].dimensionality)
+            panels.append(
+                Panel(*array_list,
+                      line_properties=line_properties,
+                      yticks=True,
+                      ylabel=ylabel,
+                      data_labels=labels))
     if with_spikes and len(segments[0].spiketrains) > 0:
         panels += [Panel(segment.spiketrains, data_labels=[label])
                    for segment, label in zip(segments, labels)]
