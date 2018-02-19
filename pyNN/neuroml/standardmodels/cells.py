@@ -214,8 +214,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     )
     
     def add_to_nml_doc(self, nml_doc, population):
-        cell = neuroml.IF_curr_exp(id="%s_%s"%(self.__class__.__name__, population.label))
-        nml_doc.IF_curr_exp.append(cell)
+        cell = neuroml.EIF_cond_alpha_isfa_ista(id="%s_%s"%(self.__class__.__name__, population.label))
+        nml_doc.EIF_cond_alpha_isfa_ista.append(cell)
         add_params(self, cell)
         return cell.id
 

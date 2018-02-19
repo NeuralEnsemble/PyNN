@@ -34,7 +34,7 @@ class Connection(common.Connection):
     """
 
     def __init__(self, pre_index, post_index, presynaptic_population, postsynaptic_population, projection_nml, conn_id, pre_pop_comp, post_pop_comp, **attributes):
-        logger.info("Creating Connection: %s -> %s (%s)" % (pre_index, post_index, projection_nml))
+        #logger.info("Creating Connection: %s -> %s (%s)" % (pre_index, post_index, projection_nml))
         
         self.presynaptic_index = pre_index
         self.postsynaptic_index = post_index
@@ -114,8 +114,6 @@ class Projection(common.Projection):
             
         syn.tau_syn = postsynaptic_population.celltype.parameter_space[tau_key].base_value
             
-        self.pre_pop_comp = '%s_%s'%(presynaptic_population.celltype.__class__.__name__, presynaptic_population.label)
-        self.post_pop_comp = '%s_%s'%(postsynaptic_population.celltype.__class__.__name__, postsynaptic_population.label)
         
         pre_pop = presynaptic_population.label 
         if isinstance(presynaptic_population, common.PopulationView):
@@ -123,6 +121,9 @@ class Projection(common.Projection):
         post_pop = postsynaptic_population.label
         if isinstance(postsynaptic_population, common.PopulationView):
             post_pop = postsynaptic_population.parent.label
+        
+        self.pre_pop_comp = '%s_%s'%(presynaptic_population.celltype.__class__.__name__, pre_pop)
+        self.post_pop_comp = '%s_%s'%(postsynaptic_population.celltype.__class__.__name__, post_pop)
         
         logger.debug("Creating Projection: %s" % (nml_proj_id))
         self.projection = neuroml.Projection(id=nml_proj_id, presynaptic_population=pre_pop, 
