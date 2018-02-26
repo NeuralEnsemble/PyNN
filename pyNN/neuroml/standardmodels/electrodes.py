@@ -103,12 +103,11 @@ class DCSource(NeuroMLCurrentSource, electrodes.DCSource):
                                       duration='%sms'%(self.stop-self.start),
                                       amplitude='%snA'%self.amplitude)
      
-        self.nml_doc = _get_nml_doc()
         found = False
-        for pg in self.nml_doc.pulse_generators:
+        for pg in nml_doc.pulse_generators:
             if pg.id==id: found = True
         if not found:
-            self.nml_doc.pulse_generators.append(pg)
+            nml_doc.pulse_generators.append(pg)
         return pg.id
 
 
