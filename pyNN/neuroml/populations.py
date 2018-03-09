@@ -119,6 +119,15 @@ class Population(common.Population):
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size
+        
+        
+    def annotate(self, **annotations):
+        print("Updating annotations: %s"%annotations)
+        for k in annotations:
+            
+            self.pop.properties.append(neuroml.Property(k, annotations[k]))
+            
+        self.annotations.update(annotations)
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
