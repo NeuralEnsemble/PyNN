@@ -498,6 +498,7 @@ class FromListConnector(Connector):
                 raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
                                  n_columns - 2, len(self.column_names)))
 
+
     def connect(self, projection):
         """Connect-up a Projection."""
         logger.debug("conn_list (original) = \n%s", self.conn_list)
@@ -530,6 +531,7 @@ class FromListConnector(Connector):
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             connection_parameters = deepcopy(projection.synapse_type.parameter_space)
+
             connection_parameters.shape = (r - l,)
             for col, name in enumerate(self.column_names, 2):
                 connection_parameters.update(**{name: self.conn_list[l:r, col]})
