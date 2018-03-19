@@ -94,8 +94,15 @@ class Recorder(recording.Recorder):
                 id._cell.clear_past_spikes()
 
     def _get_spiketimes(self, id):
-        spikes = numpy.array(id._cell.spike_times)
-        return spikes[spikes <= simulator.state.t + 1e-9]
+        if hasattr(id, "__len__"):
+            all_spiketimes = {}
+            for cell_id in id:
+                spikes = numpy.array(cell_id._cell.spike_times)
+                all_spiketimes[cell_id] = spikes[spikes <= simulator.state.t + 1e-9]
+            return all_spiketimes
+        else:
+            spikes = numpy.array(id._cell.spike_times)
+            return spikes[spikes <= simulator.state.t + 1e-9]
 
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
