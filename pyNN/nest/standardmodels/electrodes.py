@@ -111,7 +111,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
                 step_times = parameters["amplitude_times"].value
                 step_amplitudes = parameters["amplitude_values"].value
                 
-                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes,self.dt)
+                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, self.timestep)
                 parameters["amplitude_times"].value = step_times
                 parameters["amplitude_values"].value = step_amplitudes
                 nest.SetStatus(self._device, {key: step_amplitudes,

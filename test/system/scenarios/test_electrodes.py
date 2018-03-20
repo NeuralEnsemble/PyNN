@@ -380,7 +380,7 @@ def issue_465_474(sim):
     4) Change in Vm begins at the immediate next time instant following current injection
     """
     sim_dt = 0.1
-    sim.setup(min_delay=1.0, timestep = sim_dt)
+    sim.setup(min_delay=1.0, timestep=sim_dt)
 
     v_rest = -60.0
     cells = sim.Population(4, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
