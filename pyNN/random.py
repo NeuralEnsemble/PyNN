@@ -18,14 +18,20 @@ Classes:
 from copy import deepcopy
 import logging
 import numpy.random
-from lazyarray import VectorizedIterable
+try:
+    reduce
+except NameError:
+    from functools import reduce
+import operator
+import time
 
 try:
     import pygsl.rng
     have_gsl = True
 except (ImportError, Warning):
     have_gsl = False
-import time
+
+from lazyarray import partial_shape
 
 logger = logging.getLogger("PyNN")
 
@@ -77,7 +83,7 @@ class AbstractRNG(object):
     def __repr__(self):
         return "%s(seed=%r)" % (self.__class__.__name__, self.seed)
 
-    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask=None):
         """Return `n` random numbers from the specified distribution.
 
         If:
@@ -87,6 +93,25 @@ class AbstractRNG(object):
             * `n` is 0, return an empty array.
 
         If called with distribution=None, returns uniformly distributed floats in the range [0, 1)
+        
+        If `mask` is provided, it should be a boolean or integer NumPy array,
+        indicating that only a subset of the random numbers should be returned.
+        
+        Example::
+            
+            rng.next(5, mask=np.array([True, False, True, False, True]))
+            
+        or::
+        
+            rng.next(5, mask=np.array([0, 2, 4]))
+            
+        will each return only three values.
+        
+        If the rng is "parallel safe", an array of n values will be drawn from the rng,
+        and the mask applied.
+        If the rng is not parallel safe, the contents of the mask are disregarded, only its
+        size (for an integer mask) or the number of True values (for a boolean mask)
+        is used in determining how many values to draw.
         """
         raise NotImplementedError
 
@@ -102,7 +127,7 @@ class WrappedRNG(AbstractRNG):
             if self.mpi_rank != 0:
                 logger.warning("Changing the seed to %s on node %d" % (self.seed, self.mpi_rank))
 
-    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask=None):
         if distribution is None:
             distribution = 'uniform'
             if parameters is None:
@@ -112,24 +137,23 @@ class WrappedRNG(AbstractRNG):
         elif n is None:
             rarr = self._next(distribution, 1, parameters)
         elif n > 0:
-            if self.num_processes > 1 and not self.parallel_safe:
-                # n is the number for the whole model, so if we do not care about
-                # having exactly the same random numbers independent of the
-                # number of processors (m), we only need generate n/m+1 per node
-                # (assuming round-robin distribution of cells between processors)
-                if mask_local is None:
-                    n = n // self.num_processes + 1
-                elif mask_local is not False:
-                    n = mask_local.sum()
+            if mask is not None:
+                assert isinstance(mask, numpy.ndarray)
+                if mask.dtype == numpy.bool:
+                    if mask.size != n:
+                        raise ValueError("boolean mask size must equal n")
+                if not self.parallel_safe:
+                    if mask.dtype == numpy.bool:
+                        n = mask.sum()
+                    elif mask.dtype == numpy.integer:
+                        n = mask.size
             rarr = self._next(distribution, n, parameters)
         else:
             raise ValueError("The sample number must be positive")
         if not isinstance(rarr, numpy.ndarray):
             rarr = numpy.array(rarr)
-        if self.parallel_safe and self.num_processes > 1:
-            if hasattr(mask_local, 'size'):      # strip out the random numbers that
-                assert mask_local.size == n      # should be used on other processors.
-                rarr = rarr[mask_local]
+        if self.parallel_safe and mask is not None:
+            rarr = rarr[mask]  # strip out the random numbers that should be used on other processors.
         if n is None:
             return rarr[0]
         else:
@@ -306,7 +330,7 @@ class NativeRNG(AbstractRNG):
         return "NativeRNG(seed=%s)" % self.seed
 
 
-class RandomDistribution(VectorizedIterable):
+class RandomDistribution(object):
     """
     Class which defines a next(n) method which returns an array of `n` random
     numbers from a given distribution.
@@ -365,12 +389,12 @@ class RandomDistribution(VectorizedIterable):
         else:  # use numpy.random.RandomState() by default
             self.rng = NumpyRNG()  # should we provide a seed?
 
-    def next(self, n=None, mask_local=None):
+    def next(self, n=None, mask=None):
         """Return `n` random numbers from the distribution."""
         res = self.rng.next(n=n,
                             distribution=self.name,
                             parameters=self.parameters,
-                            mask_local=mask_local)
+                            mask=mask)
         return res
 
     def __str__(self):
@@ -391,3 +415,33 @@ class RandomDistribution(VectorizedIterable):
                 return dict((name, value) for name, value in zip(expected_parameter_names, positional))
         else:
             raise ValueError("Mixed positional and named parameters")
+
+    def lazily_evaluate(self, mask=None, shape=None):
+        """
+        Generate an array of random numbers of the requested shape.
+        
+        If a mask is given, produce only enough numbers to fill the
+        region defined by the mask (hence 'lazily').
+        
+        This method is called by the lazyarray `evaluate()` and
+        `_partially_evaluate()` methods.
+        """
+        if mask is None:
+            # produce an array of random numbers with the requested shape
+            n = reduce(operator.mul, shape)
+            res = self.next(n)
+            if res.shape != shape:
+                res = res.reshape(shape)
+            if n == 1:
+                res = res[0]
+        else:
+            # produce an array of random numbers whose shape is
+            # that of a sub-array produced by applying the mask
+            # to an array of the requested global shape
+            p_shape = partial_shape(mask, shape)
+            if p_shape:
+                n = reduce(operator.mul, p_shape)
+            else:
+                n = 1
+            res = self.next(n).reshape(p_shape)
+        return res

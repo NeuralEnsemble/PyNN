@@ -47,6 +47,7 @@ class State(common.control.BaseState):
         self.num_processes = 1
         self.network = None
         self._min_delay = 'auto'
+        self.current_sources = []
         self.clear()
     
     def run(self, simtime):
@@ -59,6 +60,7 @@ class State(common.control.BaseState):
     def clear(self):
         self.recorders = set([])
         self.id_counter = 0
+        self.current_sources = []
         self.segment_counter = -1
         if self.network:
             for item in self.network.groups + self.network._all_operations:

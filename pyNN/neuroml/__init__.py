@@ -52,7 +52,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     save_format = extra_params.get('save_format', "xml")
     
     # Create network
-    net = neuroml.Network(id="network")
+    net = neuroml.Network(id=nml_doc.id)
     nml_doc.networks.append(net)
     
     lems_sim = simulator._get_lems_sim(reset=True)

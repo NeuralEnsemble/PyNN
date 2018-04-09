@@ -9,6 +9,7 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+import numpy
 from neuron import h, nrn, hclass
 
 from pyNN import errors
@@ -441,10 +442,10 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
                  v_reset=-55.0,
                  tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  vt_star=-48.0, dV=0.5, lambda0=1.0,
-                 tau_eta1=10.0, tau_eta2=50.0, tau_eta3=250.0,
-                 a_eta1=0.2, a_eta2=0.05, a_eta3=0.025,
-                 tau_gamma1=5.0, tau_gamma2=200.0, tau_gamma3=250.0,
-                 a_gamma1=15.0, a_gamma2=3.0, a_gamma3=1.0):
+                 tau_eta=(10.0, 50.0, 250.0),
+                 a_eta=(0.2, 0.05, 0.025),
+                 tau_gamma=(5.0, 200.0, 250.0),
+                 a_gamma=(15.0, 3.0, 1.0)):
 
         LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m,
                                               c_m, v_rest, i_offset,
@@ -457,26 +458,45 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 't_refrac',
                                 'i_offset', 'v_reset', 'tau_e', 'tau_i',
                                 'vt_star', 'dV', 'lambda0',
-                                'tau_eta1', 'tau_eta2', 'tau_eta3',
-                                'a_eta1', 'a_eta2', 'a_eta3',
-                                'tau_gamma1', 'tau_gamma2', 'tau_gamma3',
-                                'a_gamma1', 'a_gamma2', 'a_gamma3']
+                                'tau_eta', 'a_eta',
+                                'tau_gamma', 'a_gamma']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
 
-    tau_eta1 = _new_property('gif_fun', 'tau_eta1')
-    tau_eta2 = _new_property('gif_fun', 'tau_eta2')
-    tau_eta3 = _new_property('gif_fun', 'tau_eta3')
-    a_eta1 = _new_property('gif_fun', 'a_eta1')
-    a_eta2 = _new_property('gif_fun', 'a_eta2')
-    a_eta3 = _new_property('gif_fun', 'a_eta3')
-    tau_gamma1 = _new_property('gif_fun', 'tau_gamma1')
-    tau_gamma2 = _new_property('gif_fun', 'tau_gamma2')
-    tau_gamma3 = _new_property('gif_fun', 'tau_gamma3')
-    a_gamma1 = _new_property('gif_fun', 'a_gamma1')
-    a_gamma2 = _new_property('gif_fun', 'a_gamma2')
-    a_gamma3 = _new_property('gif_fun', 'a_gamma3')
+    def __set_tau_eta(self, value):
+        self.gif_fun.tau_eta1, self.gif_fun.tau_eta2, self.gif_fun.tau_eta3 = value.value
+
+    def __get_tau_eta(self):
+        return self.gif_fun.tau_eta1, self.gif_fun.tau_eta2, self.gif_fun.tau_eta3
+
+    tau_eta = property(fset=__set_tau_eta, fget=__get_tau_eta)
+
+    def __set_a_eta(self, value):
+        self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3 = value.value
+
+
+    def __get_a_eta(self):
+        return self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3
+
+    a_eta = property(fset=__set_a_eta, fget=__get_a_eta)
+
+    def __set_tau_gamma(self, value):
+        self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3 = value.value
+
+
+    def __get_tau_gamma(self):
+        return self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3
+
+    tau_gamma = property(fset=__set_tau_gamma, fget=__get_tau_gamma)
+
+    def __set_a_gamma(self, value):
+        self.gif_fun.a_gamma1, self.gif_fun.a_gamma2, self.gif_fun.a_gamma3 = value.value
+
+    def __get_a_gamma(self):
+        return self.gif_fun.a_gamma1, self.gif_fun.a_gamma2, self.gif_fun.a_gamma3
+
+    a_gamma = property(fset=__set_a_gamma, fget=__get_a_gamma)
 
     v_reset = _new_property('gif_fun', 'Vr')
     t_refrac = _new_property('gif_fun', 'Tref')
@@ -572,6 +592,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
             self._spike_times = h.Vector(spike_times.value)
         except (RuntimeError, AttributeError):
             raise errors.InvalidParameterValueError("spike_times must be an array of floats")
+        if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
+            raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
 
     def _get_spike_times(self):

@@ -53,7 +53,7 @@ class build(_build):
                     print("Unable to compile NEST extensions. Output was:")
                     print('  '.join([''] + stdout))
                 else:
-                    result, stdout = run_command("make install", nest_build_dir)
+                    result, stdout = run_command("make install", nest_build_dir)  # should really move this to install stage
                     if result != 0:
                         print("Unable to install NEST extensions. Output was:")
                         print('  '.join([''] + stdout))
@@ -73,7 +73,7 @@ class build(_build):
 
 setup(
     name="PyNN",
-    version="0.9.1",
+    version="0.9.2",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
@@ -100,7 +100,6 @@ setup(
                  'Natural Language :: English',
                  'Operating System :: OS Independent',
                  'Programming Language :: Python :: 2',
-                 'Programming Language :: Python :: 2.6',
                  'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3',
                  'Programming Language :: Python :: 3.3',

@@ -53,7 +53,7 @@ def _get_lems_sim(reference=None,reset=False):
         reference = _get_nml_doc().id
     if lems_sim == None or reset:
         # Note: values will be over written
-        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target="network",comment=comment%'LEMS')
+        lems_sim = LEMSSimulation("Sim_%s"%reference, 100, 0.01, target=reference,comment=comment%'LEMS')
     return lems_sim
 
 class ID(int, common.IDMixin):

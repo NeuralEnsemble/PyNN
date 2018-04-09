@@ -85,7 +85,7 @@ def gather_blocks(data, ordered=True):
     # for now, use gather_dict, which will probably be slow. Can optimize later
     D = {mpi_comm.rank: data}
     D = gather_dict(D)
-    blocks = D.values()
+    blocks = list(D.values())
     merged = data
     if mpi_comm.rank == MPI_ROOT:    
         merged = blocks[0]
@@ -253,15 +253,17 @@ class Recorder(object):
         for variable in variables_to_include:
             if variable == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
+                sids = sorted(self.filter_recorded('spikes', filter_ids))
+                data = self._get_spiketimes(sids)
+
                 segment.spiketrains = [
-                    neo.SpikeTrain(self._get_spiketimes(id),
+                    neo.SpikeTrain(data.get(int(id),[]),
                                    t_start=self._recording_start_time,
                                    t_stop=t_stop,
                                    units='ms',
                                    source_population=self.population.label,
-                                   source_id=int(id),
-                                   source_index=self.population.id_to_index(id))
-                    for id in sorted(self.filter_recorded('spikes', filter_ids))]
+                                   source_id=int(id),source_index=self.population.id_to_index(int(id)))
+                    for id in sids]
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
