@@ -111,5 +111,6 @@ setup(
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build': build},
+    install_requires=['numpy>=1.8.2', 'lazyarray>=0.3.2', 'matplotlib',
+                      'neo>=0.5.2', 'quantities>=0.12.1']
 )
-
