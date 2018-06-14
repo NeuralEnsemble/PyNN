@@ -2,7 +2,7 @@
 
 set -e  # stop execution in case of errors
 
-sudo apt-get update && sudo apt-get install -qq python-numpy python3-numpy python-scipy python3-scipy libgsl0-dev  openmpi-bin libopenmpi-dev python-all-dev build-essential python-all-dev python3-all-dev
+sudo apt-get update && sudo apt-get install -qq libgsl0-dev openmpi-bin libopenmpi-dev python-all-dev build-essential python3-all-dev
 
 pip install -r requirements.txt
 pip install coverage coveralls
