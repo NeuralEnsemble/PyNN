@@ -1,19 +1,36 @@
 language: python
 dist: trusty
 sudo: required
-matrix:
-    include:
-        - python: 2.7
-          env: PYENV=py27
-        - python: 3.3
-          env: PYENV=py33
-        - python: 3.5
-          env: PYENV=py35
+python:
+    - 2.7
+    - 3.5
+    - 3.6
+
+before_install:
+   - pip install -U pip
+   - pip install -U setuptools
+   - pip install coverage coveralls
+   - pip install nose-testconfig
+   - sudo apt-get update && sudo apt-get install -qq libgsl0-dev openmpi-bin libopenmpi-dev python-all-dev build-essential
+   - pip install -r requirements.txt
+   - which python
+   - python --version
+   - which pip
+   - which nosetests
+   - nosetests --version
+   - nosetests --plugins
+   - which cmake
+   - cmake --version
+
 install:
     - source ci/install.sh
-script:  bash ci/test_script.sh
+
+script:
+    - bash ci/test_script.sh
+
 after_success:
   - coveralls
+
 cache:
   directories:
     - $HOME/nest-2.14.0

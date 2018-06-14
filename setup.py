@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 from distutils.command.build import build as _build
 import os
 import subprocess
@@ -108,5 +111,6 @@ setup(
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build': build},
+    install_requires=['numpy>=1.8.2', 'lazyarray>=0.3.2', 'matplotlib',
+                      'neo>=0.5.2', 'quantities>=0.12.1']
 )
-
