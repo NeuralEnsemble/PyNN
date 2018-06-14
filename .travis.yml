@@ -25,10 +25,10 @@ install:
    - cmake --version
 
 before_script:
-    - chmod +x ci/*.sh
+    - source ci/install.sh
 
 script:
-    - ./ci/install.sh && ./ci/test_script.sh
+    - bash ci/test_script.sh
 
 after_success:
   - coveralls
