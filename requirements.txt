@@ -8,3 +8,4 @@ neo>=0.5.2
 setuptools
 matplotlib
 scipy
+mpi4py
