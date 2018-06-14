@@ -10,15 +10,9 @@ class Recorder(recording.Recorder):
         pass
 
     def _get_spiketimes(self, id_):
-        # common.Recorder._get_current_segment creates id_ as a set, so we must
-        # cast it to numpy.array if we want to add a scalar to each element
-        # below
-        id_ = numpy.array(id_)
-        data = numpy.array([id_, id_ + 5], dtype=float) % self._simulator.state.t
-
         # _get_spiketimes is expected to return a dict
-        retval = {x[0]: x[1] for x in data}
-        print(retval)
+        retval = {x: (numpy.array([x, (x + 5)]) % self._simulator.state.t) for
+                  x in id_}
         return retval
 
     def _get_all_signals(self, variable, ids, clear=False):
