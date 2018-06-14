@@ -103,12 +103,15 @@ class Projection(common.Projection):
         Create connections by calling nest. Connect on the presynaptic and postsynaptic population
         with the parameters provided by params.
         """
-        if self.receptor_type == 'inhibitory':
-           param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
-        if self.receptor_type == 'excitatory':
-           param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
         if 'tsodyks' in self.nest_synapse_model:
-           syn_params.update({'tau_psc': nest.GetStatus([self.nest_connections[0,1]], param_name)})
+            if self.receptor_type == 'inhibitory':
+                param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
+            elif self.receptor_type == 'excitatory':
+                param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
+            else:
+                raise NotImplementedError()
+            syn_params.update({'tau_psc': nest.GetStatus([self.nest_connections[0,1]], param_name)})
+           
                 
         syn_params.update({'synapse_label': self.nest_synapse_label})
         nest.Connect(self.pre.all_cells.astype(int).tolist(),
@@ -140,11 +143,6 @@ class Projection(common.Projection):
             weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
         delays = connection_parameters.pop('delay')
 
-        if self.receptor_type == 'inhibitory':
-           param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
-        if self.receptor_type == 'excitatory':
-           param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
-
         # Create connections, with weights and delays
         # Setting other connection parameters is done afterwards
         if postsynaptic_cell.celltype.standard_receptor_type:
@@ -158,8 +156,14 @@ class Projection(common.Projection):
                             'synapse_label': self.nest_synapse_label,
                            }
 
-                if 'tsodyks' in self.nest_synapse_model:    
-                   syn_dict.update({'tau_psc': numpy.array([[nest.GetStatus([postsynaptic_cell], param_name)[0]] * len(presynaptic_cells.astype(int).tolist())])})             
+                if 'tsodyks' in self.nest_synapse_model:
+                    if self.receptor_type == 'inhibitory':
+                        param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
+                    elif self.receptor_type == 'excitatory':
+                        param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
+                    else:
+                        raise NotImplementedError()
+                    syn_dict.update({'tau_psc': numpy.array([[nest.GetStatus([postsynaptic_cell], param_name)[0]] * len(presynaptic_cells.astype(int).tolist())])})             
 
                 nest.Connect(presynaptic_cells.astype(int).tolist(),
                              [int(postsynaptic_cell)],
@@ -325,22 +329,18 @@ class Projection(common.Projection):
             else:
                 nest_names.append(name)
         values = nest.GetStatus(self.nest_connections, nest_names)
+        values = numpy.array(values)  # ought to preserve int type for source, target
         if 'weight' in names:  # other attributes could also have scale factors - need to use translation mechanisms
-            values = numpy.array(values)  # ought to preserve int type for source, target
             scale_factors = numpy.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
             if self.receptor_type == 'inhibitory' and self.post.conductance_based:
                 scale_factors[names.index('weight')] *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
             values *= scale_factors
-            values = values.tolist()
         if 'presynaptic_index' in names:
-            values = numpy.array(values)
             values[:, names.index('presynaptic_index')] -= self.pre.first_id
-            values = values.tolist()
         if 'postsynaptic_index' in names:
-            values = numpy.array(values)
             values[:, names.index('postsynaptic_index')] -= self.post.first_id
-            values = values.tolist()
+        values = values.tolist()
         for i in xrange(len(values)):
             values[i] = tuple(values[i])
         return values

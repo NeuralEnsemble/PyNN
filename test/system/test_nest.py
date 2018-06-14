@@ -186,7 +186,7 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    connections = nest.GetConnections(prj._sources.tolist(), synapse_model=prj.nest_synapse_model)
+    connections = nest.GetConnections(numpy.unique(prj._sources).tolist(), synapse_model=prj.nest_synapse_model)
     tau_psc = numpy.array(nest.GetStatus(connections, 'tau_psc'))
     assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
 
