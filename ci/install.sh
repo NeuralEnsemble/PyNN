@@ -2,8 +2,8 @@
 
 set -e  # stop execution in case of errors
 
-./ci/install_brian.sh
-./ci/install_nest.sh
-./ci/install_neuron.sh
+source ci/install_brian.sh
+source ci/install_nest.sh
+source ci/install_neuron.sh
 
 python setup.py install
