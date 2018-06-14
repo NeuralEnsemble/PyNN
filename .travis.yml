@@ -7,8 +7,6 @@ matrix:
           env: PYENV=py27
         - python: 3.4
           env: PYENV=py34
-        - python: 3.5
-          env: PYENV=py35
 install:
     - source ci/install.sh
 script:  bash ci/test_script.sh
