@@ -224,7 +224,7 @@ class Recorder(object):
             if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
                 raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
 
-        ids = set([id for id in ids if id.local])
+        ids = set([id_ for id_ in ids if id_.local])
         for variable in normalize_variables_arg(variables):
             if not self.population.can_record(variable):
                 raise errors.RecordingError(variable, self.population.celltype)
@@ -257,13 +257,13 @@ class Recorder(object):
                 data = self._get_spiketimes(sids)
 
                 segment.spiketrains = [
-                    neo.SpikeTrain(data.get(int(id),[]),
+                    neo.SpikeTrain(data.get(int(id_),[]),
                                    t_start=self._recording_start_time,
                                    t_stop=t_stop,
                                    units='ms',
                                    source_population=self.population.label,
-                                   source_id=int(id),source_index=self.population.id_to_index(int(id)))
-                    for id in sids]
+                                   source_id=int(id_),source_index=self.population.id_to_index(int(id_)))
+                    for id_ in sids]
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
@@ -284,7 +284,7 @@ class Recorder(object):
                                     source_ids=source_ids)
                     signal.channel_index = neo.ChannelIndex(
                             index=numpy.arange(source_ids.size),
-                            channel_ids=numpy.array([self.population.id_to_index(id) for id in ids]))
+                            channel_ids=numpy.array([self.population.id_to_index(id_) for id_ in ids]))
                     segment.analogsignals.append(signal)
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, signal.channel_index)
                     assert segment.analogsignals[0].t_stop - current_time - 2 * sampling_period < 1e-10
