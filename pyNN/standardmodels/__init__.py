@@ -216,6 +216,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         raise NotImplementedError
 
     def _round_timestamp(self, value, resolution):
+        # todo: consider using decimals module, since rounding of floating point numbers is so horrible
         return numpy.rint(value/resolution) * resolution
 
     def get_data(self):

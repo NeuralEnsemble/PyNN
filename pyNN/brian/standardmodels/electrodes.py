@@ -55,8 +55,7 @@ class BrianCurrentSource(StandardCurrentSource):
         if not all(dt_times>0.0):
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # map timestamps to actual simulation time instants based on specified dt
-        for ind in range(len(times)):
-            times[ind] = self._round_timestamp(times[ind], resolution)
+        times = self._round_timestamp(times, resolution)
         # remove duplicate timestamps, and corresponding amplitudes, after mapping
         step_times = []
         step_amplitudes = []

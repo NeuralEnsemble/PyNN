@@ -8,6 +8,7 @@ import logging
 import numpy
 import quantities as pq
 import brian
+from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
 
@@ -72,8 +73,15 @@ class Recorder(recording.Recorder):
             device.reinit()
 
     def _get_spiketimes(self, id):
-        i = id - self.population.first_id
-        return self._devices['spikes'].spiketimes[i] / ms
+        if is_listlike(id):
+            all_spiketimes = {}
+            for cell_id in id:
+                i = cell_id - self.population.first_id
+                all_spiketimes[cell_id] = self._devices['spikes'].spiketimes[i] / ms
+            return all_spiketimes
+        else:
+            i = id - self.population.first_id
+            return self._devices['spikes'].spiketimes[i] / ms
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
