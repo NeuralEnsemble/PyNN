@@ -118,5 +118,6 @@ setup(
         'plotting': ['matplotlib', 'scipy'],
         'MPI': ['mpi4py']
     },
-    tests_require=['mpi4py', 'scipy', 'matplotlib', 'Cheetah3']
+    tests_require=['mpi4py', 'scipy;python_version>="3.4"',
+                   'matplotlib;python_version>="3.4"', 'Cheetah3']
 )
