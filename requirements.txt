@@ -6,3 +6,4 @@ quantities>=0.12.1
 lazyarray>=0.3.2
 neo>=0.5.2
 setuptools
+nose
