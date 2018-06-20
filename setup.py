@@ -2,9 +2,10 @@
 
 try:
     from setuptools import setup
+    from setuptools.command.build_py import build_py as _build
 except ImportError:
     from distutils.core import setup
-from distutils.command.build import build as _build
+    from distutils.command.build_py import build_py as _build
 import os
 import subprocess
 
@@ -26,6 +27,7 @@ class build(_build):
         _build.run(self)
         # try to compile NEURON extensions
         nrnivmodl = self.find("nrnivmodl")
+
         if nrnivmodl:
             print("nrnivmodl found at", nrnivmodl)
             result, stdout = run_command(nrnivmodl,
@@ -110,7 +112,7 @@ setup(
                  'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: 3.6',
                  'Topic :: Scientific/Engineering'],
-    cmdclass={'build': build},
+    cmdclass={'build_py': build},
     install_requires=['numpy>=1.8.2', 'lazyarray>=0.3.2', 'neo>=0.5.2',
                       'quantities>=0.12.1'],
     extras_require={
