@@ -70,8 +70,8 @@ step_current.inject_into(cells[1:2], location="dendrite")
 # === Record from both compartments of both cells ===========================
 
 cells.record('spikes')
-cells.record(['na.m', 'na.h', 'kdr.n'], locations=['soma'])
-cells.record('v', locations=['soma', 'dendrite'])
+cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
+cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
 
 # === Run the simulation =====================================================
 

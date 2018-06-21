@@ -31,9 +31,11 @@ print("Building populations")
 
 pyramidal_cell_class = sim.MultiCompartmentNeuron
 pyramidal_cell_class.label = "PyramidalNeuron"
-pyramidal_cell_class.ion_channels = {'pas': sim.PassiveLeak,
-                                     'na': sim.NaChannel,
-                                     'kdr': sim.KdrChannel}
+pyramidal_cell_class.ion_channels = {
+      'pas': sim.PassiveLeak,
+      'na': sim.NaChannel,
+      'kdr': sim.KdrChannel
+}
 pyramidal_cell_class.post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticResponse,
                                                'GABA_A': sim.CondExpPostSynapticResponse}
 

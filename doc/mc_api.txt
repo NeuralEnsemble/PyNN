@@ -203,7 +203,7 @@ or synapses, for example:
 Here we combine morphology filters like :func:`apical_dendrites` with spatial distribution functions like
 :func:`uniform` and :func:`by_distance` (all defined in the module :mod:`pyNN.morphology`).
 
-We can also record state regions from entire regions of the neurites, e.g.:
+We can also record state variables from entire regions of the neurites, e.g.:
 
 .. code-block:: python
 

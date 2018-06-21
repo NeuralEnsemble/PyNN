@@ -4,10 +4,12 @@
 
 """
 
+from __future__ import absolute_import
 import os.path
 import shutil
 import numpy as np
 import numpy.random
+import neuroml.arraymorph
 import neuroml.loaders
 
 # swc compartment types
@@ -210,6 +212,8 @@ class random_section(MorphologyFilter):
 
     def __call__(self, morphology, **kwargs):
         sections = self.f(morphology, **kwargs)
+        if len(sections) < 1:
+            raise Exception("List of sections is empty.")
         return numpy.random.choice(sections)
 
 sample = random_section  # alias

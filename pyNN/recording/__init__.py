@@ -17,7 +17,6 @@ from copy import copy
 from collections import defaultdict, namedtuple
 from datetime import datetime
 from pyNN import errors
-from pyNN.morphology import MorphologyFilter
 import neo
 import quantities as pq
 try:
