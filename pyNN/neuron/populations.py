@@ -12,7 +12,7 @@ import logging
 from pyNN import common
 from pyNN.parameters import Sequence, ParameterSpace, simplify
 from pyNN.standardmodels import StandardCellType
-from pyNN.random import RandomDistribution
+from pyNN.random import RandomDistribution, NativeRNG
 from . import simulator
 from .recording import Recorder
 

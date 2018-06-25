@@ -8,7 +8,7 @@ from pyNN.standardmodels import ion_channels as standard, build_translations
 
 class NaChannel(standard.NaChannel):
     translations = build_translations(
-        ('conductance_density', 'gnabar_hh'),
+        ('conductance_density', 'gnabar'),
         ('e_rev', 'ena'),
     )
     variable_translations = {
@@ -16,28 +16,28 @@ class NaChannel(standard.NaChannel):
         'h': ('hh', 'h')
     }
     model = "hh"
-    conductance_density_parameter = 'gnabar_hh'
+    conductance_density_parameter = 'gnabar'
 
 
 class KdrChannel(standard.KdrChannel):
     translations = build_translations(
-        ('conductance_density', 'gkbar_hh'),
+        ('conductance_density', 'gkbar'),
         ('e_rev', 'ek'),
     )
     variable_translations = {
         'n': ('hh', 'n')
     }
     model = "hh"
-    conductance_density_parameter = 'gkbar_hh'
+    conductance_density_parameter = 'gkbar'
 
 
 class PassiveLeak(standard.PassiveLeak):
     translations = build_translations(
-        ('conductance_density', 'g_pas'),
-        ('e_rev', 'e_pas'),
+        ('conductance_density', 'g'),
+        ('e_rev', 'e'),
     )
     model = "pas"
-    conductance_density_parameter = 'g_pas'
+    conductance_density_parameter = 'g'
 
 
 class CondExpPostSynapticResponse(standard.CondExpPostSynapticResponse):

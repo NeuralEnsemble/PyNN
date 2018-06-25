@@ -564,3 +564,4 @@ state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 initializer = _Initializer()
 del _Initializer
+dummy = h.Section()  # dummy section to allow introspection of NMODL mechanisms

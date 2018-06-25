@@ -28,8 +28,10 @@ Spike sources (input neurons)
 :license: CeCILL, see LICENSE for details.
 """
 
+from six import with_metaclass
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import Sequence
+from pyNN.morphology import uniform
 
 
 class IF_curr_alpha(StandardCellType):
@@ -568,11 +570,13 @@ class HasSections(type):
         return value
 
 
-class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
+class MultiCompartmentNeuron(with_metaclass(HasSections, StandardCellType)):
+#class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
     default_parameters = {
         "morphology": None,
-        "cm": 1.0,
-        "Ra": 35.4
+        "cm": uniform('all', 1.0),
+        "Ra": 35.4,
+        "ionic_species": None
     }
     recordable = ['spikes']
     injectable = True

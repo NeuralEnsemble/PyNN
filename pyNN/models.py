@@ -22,7 +22,8 @@ class BaseModelType(object):
         """
         self.parameter_space = ParameterSpace(self.default_parameters,
                                               self.get_schema(),
-                                              shape=None)
+                                              shape=None,
+                                              component=self.__class__)
         if parameters:
             self.parameter_space.update(**parameters)
 
