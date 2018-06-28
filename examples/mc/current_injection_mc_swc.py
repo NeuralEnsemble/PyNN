@@ -7,6 +7,7 @@ Injecting time-varying current into multi-compartment cells.
 import matplotlib
 matplotlib.use("Agg")
 from pyNN.morphology import load_morphology, uniform, random_section, apical_dendrites
+from pyNN.parameters import IonicSpecies
 from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
 
@@ -30,8 +31,12 @@ cell_class.label = "ExampleMultiCompartmentNeuron"
 cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
 
 cell_type = cell_class(morphology=morph,
-                       cm=1.0,    # allow to set per segment
+                       cm=1.0,
                        Ra=500.0,  # allow to set per segment?
+                       ionic_species={
+                              "na": IonicSpecies("na", reversal_potential=50.0),
+                              "k": IonicSpecies("k", reversal_potential=-77.0)
+                       },
                        pas={"conductance_density": uniform('all', 0.0003),
                             "e_rev":-54.3},
                        na={"conductance_density": uniform('soma', 0.120),
@@ -39,8 +44,6 @@ cell_type = cell_class(morphology=morph,
                        kdr={"conductance_density": uniform('soma', 0.036),
                             "e_rev": -77.0}
                        )
-
-#import pdb; pdb.set_trace()
 
 # === Create a population with two cells ====================================
 

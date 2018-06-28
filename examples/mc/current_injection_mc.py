@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use("Agg")
 from neuroml import Morphology, Segment, Point3DWithDiam as P
 from pyNN.morphology import NeuroMLMorphology, uniform
+from pyNN.parameters import IonicSpecies
 #from pyNN.units import uF_per_cm2, ohm_cm, S_per_cm2, mV, nA, ms
 from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
@@ -24,11 +25,11 @@ sim.setup(timestep=0.025) #*ms)
 
 soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
                distal=P(x=18.8, y=0, z=0, diameter=18.8),
-               name="soma")
+               name="soma", id=0)
 dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
                distal=P(x=-500, y=0, z=0, diameter=2),
                name="dendrite",
-               parent=soma)
+               parent=soma, id=1)
 
 # need to specify nseg for dendrite
 
@@ -43,6 +44,10 @@ cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': s
 cell_type = cell_class(morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),  # yuck
                        cm=1.0,
                        Ra=500.0,
+                       ionic_species={
+                              "na": IonicSpecies("na", reversal_potential=50.0),
+                              "k": IonicSpecies("k", reversal_potential=-77.0)
+                       },
                        pas={"conductance_density": uniform('all', 0.0003),
                             "e_rev":-54.3},
                        na={"conductance_density": uniform('soma', 0.120),

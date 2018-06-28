@@ -12,6 +12,7 @@ import neuroml.loaders ##
 #from nineml.abstraction_layer.readers import XMLReader
 from quantities import S, cm, um
 from pyNN.space import Grid2D, RandomStructure, Sphere #, uniform, by_distance
+from pyNN.parameters import IonicSpecies
 from pyNN.utility.plotting import Figure, Panel
 #from neurom import longest_dendrite
 
@@ -47,6 +48,10 @@ pyramidal_cell = pyramidal_cell_class(
                            "e_rev": 50.0},
                     kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0),
                          "e_rev": -77.0},
+                    ionic_species={
+                        "na": IonicSpecies("na", reversal_potential=50.0),
+                        "k": IonicSpecies("k", reversal_potential=-77.0)
+                    },
                     cm=1.0,
                     Ra=500.0,
                     AMPA={"density": uniform('all', 0.05),  # number per µm

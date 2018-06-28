@@ -15,7 +15,7 @@ import numpy.random
 
 from pyNN import errors
 from pyNN.models import BaseCellType
-from pyNN.morphology import IonChannelDistribution
+from pyNN.morphology import NeuriteDistribution, IonChannelDistribution
 from .recording import recordable_pattern
 from .simulator import state
 
@@ -639,7 +639,10 @@ class NeuronTemplate(object):
                 section(PROXIMAL).diam = segment.proximal.diameter
                 section(DISTAL).diam = segment.distal.diameter
                 section.nseg = 1
-                section.cm = cm.value_in(self.morphology, index)
+                if isinstance(cm, NeuriteDistribution):
+                    section.cm = cm.value_in(self.morphology, index)
+                else:
+                    section.cm = cm
                 section.Ra = Ra
                 segment_id = segment.id
                 assert segment_id is not None
