@@ -22,8 +22,8 @@ top-level data container, which contains one or more :class:`Segment`\s. Each
 :class:`Segment` is a container for data sharing a common time basis - a new
 :class:`Segment` is added every time the :func:`reset` function is called.
 
-A :class:`Segment` can contain lists of :class:`AnalogSignal`,
-:class:`AnalogSignalArray` and :class:`SpikeTrain` objects. These data objects
+A :class:`Segment` can contain lists of :class:`AnalogSignal` and :class:`SpikeTrain` objects.
+These data objects
 inherit from NumPy's array class, and so can be treated in further processing
 (analysis, visualization, etc.) in exactly the same way as NumPy arrays, but in
 addition they carry metadata about units, sampling interval, etc.
@@ -80,8 +80,8 @@ Matlab :file:`.mat` files, and HDF5. To write to a given format, we create a Neo
 
 .. doctest::
 
-    >>> from neo.io import NeoHdf5IO
-    >>> io = NeoHdf5IO(filename="my_data.h5")
+    >>> from neo.io import NixIO
+    >>> io = NixIO(filename="my_data.h5")
     >>> population.write_data(io)
 
 .. todo: check whether we need to close the `io` object.
@@ -173,6 +173,6 @@ for example SpykeViewer_ and OpenElectrophy_.
 
 
 .. _Neo: http://neuralensemble.org/neo
-.. _`variety of different file formats`: http://packages.python.org/neo/io.html#module-neo.io
+.. _`variety of different file formats`: http://neo.readthedocs.io/en/latest/io.html
 .. _SpykeViewer: http://spyke-viewer.readthedocs.org/en/0.4.0/
 .. _OpenElectrophy: http://neuralensemble.org/OpenElectrophy/

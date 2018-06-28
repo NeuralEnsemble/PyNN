@@ -28,7 +28,7 @@ If using *cvode*, there are two more optional parameters:
 
 .. testcode:: cvode
 
-    setup(cvode=True,
+    setup(use_cvode=True,
           rtol=0.001, # specify relative error tolerance
           atol=1e-4)  # specify absolute error tolerance
 

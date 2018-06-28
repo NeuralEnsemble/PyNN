@@ -140,3 +140,6 @@ class Projection(common.Projection):
                 for index in connection_group:
                     for connection in connection_group[index]:
                         setattr(connection, name, value[index])
+
+    def _set_initial_value_array(self, variable, value):
+        raise NotImplemented

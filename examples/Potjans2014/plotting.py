@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -14,7 +16,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     pop_list = ['E', 'I'] 
 
     for i in range(8):
-        layer = i / 2
+        layer = int(i / 2)
         pop = i % 2
         filestart = path + 'spikes_' + str(layer_list[layer]) + '_' + str(pop_list[pop]) + '*'
         filelist = glob.glob(filestart)
@@ -41,7 +43,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     id_count = 0
     print("Mean rates")
     for i in range(8)[::-1]:
-        layer = i / 2
+        layer = int(i / 2)
         pop = i % 2
         rate = 0.0
         t_spikes = spikes[i][:, 0]
@@ -53,7 +55,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
         # Compute rates with all neurons
         rate = 1000 * len(t_spikes) / (t_stop - t_start) * 1 / float(n_rec[layer][pop])
         rates[i] = rate
-        print(pops[-i] + np.round(rate, 2))
+        #print(pops[-i] + np.round(rate, 2))
         # Reduce data for raster plot
         num_neurons = frac_to_plot * np.unique(ids).size
         t_spikes = t_spikes[np.where(ids < num_neurons + id_count + 1)[0]]

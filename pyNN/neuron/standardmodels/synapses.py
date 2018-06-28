@@ -91,8 +91,54 @@ class TsodyksMarkramSynapse(BaseSynapse, synapses.TsodyksMarkramSynapse):
 
     def _get_minimum_delay(self):
         return state.min_delay
-    
-    
+
+
+class SimpleStochasticSynapse(BaseSynapse, synapses.SimpleStochasticSynapse):
+    translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay'),
+        ('p', 'p'),
+    )
+    model = 'SimpleStochasticWA'
+    postsynaptic_variable = None
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+
+class StochasticTsodyksMarkramSynapse(BaseSynapse, synapses.StochasticTsodyksMarkramSynapse):
+
+    translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay'),
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_facil'),
+    )
+    model = 'StochasticTsodyksMarkramWA'
+    postsynaptic_variable = None
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+
+class MultiQuantalSynapse(BaseSynapse, synapses.MultiQuantalSynapse):
+
+    translations = build_translations(
+        ('weight', 'weight'),
+        ('delay', 'delay'),
+        ('U', 'U'),
+        ('n', 'n'),
+        ('tau_rec', 'tau_rec'),
+        ('tau_facil', 'tau_fac')
+    )
+    model = 'QuantalSTPWA'
+    postsynaptic_variable = None
+
+    def _get_minimum_delay(self):
+        return state.min_delay
+
+
 class AdditiveWeightDependence(BaseSynapse, synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 

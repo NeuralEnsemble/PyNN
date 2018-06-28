@@ -74,6 +74,63 @@ class TsodyksMarkramSynapse(StandardSynapseType):
         'tau_rec':  100.0,  # depression time constant (ms)
         'tau_facil':  0.0,  # facilitation time constant (ms)
     }
+    default_initial_values = {
+        'u': 0.0
+    }
+
+
+class SimpleStochasticSynapse(StandardSynapseType):
+    """
+    Each spike is transmitted with a fixed probability `p`.
+    """
+    default_parameters = {
+        'weight': 0.0,
+        'delay': None,
+        'p': 0.5,
+    }
+
+
+class StochasticTsodyksMarkramSynapse(StandardSynapseType):
+    """
+    Synapse exhibiting facilitation and depression, implemented using the model
+    of Tsodyks, Markram et al.:
+
+    `Tsodyks, Uziel and Markram (2000)`_ Synchrony Generation in Recurrent Networks
+    with Frequency-Dependent Synapses. Journal of Neuroscience 20:RC50
+
+    in its stochastic version (cf Fuhrmann et al. 2002)
+
+    Arguments:
+        `U`:
+            use parameter.
+        `tau_rec`:
+            depression time constant (ms).
+        `tau_facil`:
+            facilitation time constant (ms).
+
+    .. _`Tsodyks, Uziel and Markram (2000)`: http://www.jneurosci.org/content/20/1/RC50.long
+    """
+    default_parameters = {
+        'weight':     0.0,
+        'delay':     None,
+        'U':          0.5,  # use parameter
+        'tau_rec':  100.0,  # depression time constant (ms)
+        'tau_facil':  0.0,  # facilitation time constant (ms)
+    }
+
+
+class MultiQuantalSynapse(StandardSynapseType):
+    """
+    docstring needed
+    """
+    default_parameters = {
+        'weight':     0.0,
+        'delay':     None,
+        'U':          0.5,  # maximal fraction of available resources
+        'n':            1,  # total number of release sites
+        'tau_rec':  800.0,  # depression time constant (ms)
+        'tau_facil':  0.0,  # facilitation time constant (ms)
+    }
 
 
 class STDPMechanism(StandardSynapseType):

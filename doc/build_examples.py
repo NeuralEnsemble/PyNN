@@ -35,6 +35,8 @@ examples = (
     "synaptic_input.py",
     "tsodyksmarkram.py",
     "varying_poisson.py",
+    "stochastic_synapses.py",
+    "stochastic_deterministic_comparison.py"
 )
 
 # todo: add line numbering to code examples
@@ -62,8 +64,9 @@ examples_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.path.
 tmp_dir = tempfile.mkdtemp()
 results_dir = os.path.join(tmp_dir, "Results")
 
-if not os.path.exists(image_dir):
-    os.makedirs(image_dir)
+for dir_name in (image_dir, results_dir):
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
 
 
 def run(python_script, simulator, *extra_args):
@@ -92,8 +95,9 @@ def list_files(filter):
                 for filename in x[2]
                 if filter in filename])
 
+print("Running examples in {}".format(tmp_dir))
 for example in examples:
-    new_files = run(example, simulators.next())
+    new_files = run(example, next(simulators))
     if len(new_files) > 1:
         raise Exception("Multiple image files")
     img_path, = new_files

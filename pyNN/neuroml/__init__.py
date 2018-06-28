@@ -36,13 +36,13 @@ def list_standard_models():
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-          max_delay=DEFAULT_MAX_DELAY, **extra_params):
+          **extra_params):
     """ Set up for saving cell models and network structure to NeuroML """
-    common.setup(timestep, min_delay, max_delay, **extra_params)
+    common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
     simulator.state.dt = timestep  # move to common.setup?
     simulator.state.min_delay = min_delay
-    simulator.state.max_delay = max_delay
+    simulator.state.max_delay =  extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
 
@@ -52,7 +52,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     save_format = extra_params.get('save_format', "xml")
     
     # Create network
-    net = neuroml.Network(id="network")
+    net = neuroml.Network(id=nml_doc.id)
     nml_doc.networks.append(net)
     
     lems_sim = simulator._get_lems_sim(reset=True)

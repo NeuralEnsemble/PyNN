@@ -10,6 +10,7 @@ Definition of cell classes for the brian module.
 import numpy
 import brian
 from pyNN.parameters import Sequence, simplify
+from pyNN import errors
 from . import simulator
 
 mV = brian.mV
@@ -252,6 +253,7 @@ class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
         Note that `equations` is not used: it is simply for compatibility with
         other NeuronGroup subclasses.
         """
+        self._check_spike_times(spike_times)
         spiketimes = [(i, t) for i, seq in enumerate(spike_times) for t in seq.value]
         brian.SpikeGeneratorGroup.__init__(self, n, spiketimes,
                                            clock=simulator.state.network.clock)
@@ -267,9 +269,16 @@ class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
             existing_times = self._get_spike_times()
             existing_times[mask] = spike_times
             spike_times = existing_times
+        self._check_spike_times(spike_times)
         values = [(i, t) for i, seq in enumerate(spike_times) for t in seq.value]
         brian.SpikeGeneratorGroup.__init__(self, self.N, values, period=self.period)
     spike_times = property(fget=_get_spike_times, fset=_set_spike_times)
+
+    def _check_spike_times(self, spike_times):
+        for seq in spike_times:
+            if numpy.any(seq.value[:-1] > seq.value[1:]):
+                raise errors.InvalidParameterValueError(
+                    "Spike times given to SpikeSourceArray must be in increasing order")
 
     def initialize(self):
         pass

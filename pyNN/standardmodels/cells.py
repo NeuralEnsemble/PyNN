@@ -30,7 +30,7 @@ Spike sources (input neurons)
 
 from six import with_metaclass
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import Sequence
+from pyNN.parameters import ArrayParameter, Sequence
 from pyNN.morphology import uniform
 
 
@@ -62,6 +62,15 @@ class IF_curr_alpha(StandardCellType):
         'v': 'mV',
         'isyn_exc': 'nA',
         'isyn_inh': 'nA',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'i_offset': 'nA',
+        'v_reset': 'mV',
+        'v_thresh': 'mV',
     }
 
 
@@ -94,6 +103,15 @@ class IF_curr_exp(StandardCellType):
         'v': 'mV',
         'isyn_exc': 'nA',
         'isyn_inh': 'nA',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'i_offset': 'nA',
+        'v_reset': 'mV',
+        'v_thresh': 'mV',
     }
 
 
@@ -126,6 +144,17 @@ class IF_cond_alpha(StandardCellType):
         'v': 'mV',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'e_rev_E': 'mV',
+        'e_rev_I': 'mV',
+        'v_thresh': 'mV',
+        'v_reset': 'mV',
+        'i_offset': 'nA',
     }
 
 
@@ -158,6 +187,17 @@ class IF_cond_exp(StandardCellType):
         'v': 'mV',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'e_rev_E': 'mV',
+        'e_rev_I': 'mV',
+        'v_thresh': 'mV',
+        'v_reset': 'mV',
+        'i_offset': 'nA',
     }
 
 
@@ -207,6 +247,23 @@ class IF_cond_exp_gsfa_grr(StandardCellType):
         'g_s': 'nS',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'e_rev_E': 'mV',
+        'e_rev_I': 'mV',
+        'v_thresh': 'mV',
+        'v_reset': 'mV',
+        'i_offset': 'nA',
+        'tau_sfa': 'ms',
+        'e_rev_sfa': 'mV',
+        'q_sfa': 'nS',
+        'tau_rr': 'ms',
+        'e_rev_rr': 'mV',
+        'q_rr': 'nS',
     }
 
 
@@ -240,6 +297,13 @@ class IF_facets_hardware1(StandardCellType):
         'v': 'mV',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'g_leak': 'nS',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'v_reset': 'mV',
+        'e_rev_I': 'mV',
+        'v_rest': 'mV',
+        'v_thresh': 'mV',
     }
 
 
@@ -275,6 +339,19 @@ class HH_cond_exp(StandardCellType):
         'v': 'mV',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'gbar_Na': 'uS',
+        'gbar_K': 'uS',
+        'g_leak': 'uS',
+        'cm': 'nF',
+        'v_offset': 'mV',
+        'e_rev_Na': 'mV',
+        'e_rev_K': 'mV',
+        'e_rev_leak': 'mV',
+        'e_rev_E': 'mV',
+        'e_rev_I': 'mV',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'i_offset': 'nA',
     }
 
 
@@ -319,6 +396,22 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'w': 'nA',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'cm': 'nF',
+        'tau_refrac': 'ms',
+        'v_spike': 'mV',
+        'v_reset': 'mV',
+        'v_rest': 'mV',
+        'tau_m': 'ms',
+        'i_offset': 'nA',
+        'a': 'nS',
+        'b': 'nA',
+        'delta_T': 'mV',
+        'tau_w': 'ms',
+        'v_thresh': 'mV',
+        'e_rev_E': 'mV',
+        'tau_syn_E': 'ms',
+        'e_rev_I': 'mV',
+        'tau_syn_I': 'ms',
     }
 
 
@@ -363,6 +456,22 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
         'w': 'nA',
         'gsyn_exc': 'uS',
         'gsyn_inh': 'uS',
+        'cm': 'nF',
+        'tau_refrac': 'ms',
+        'v_spike': 'mV',
+        'v_reset': 'mV',
+        'v_rest': 'mV',
+        'tau_m': 'ms',
+        'i_offset': 'nA',
+        'a': 'nS',
+        'b': 'nA',
+        'delta_T': 'mV',
+        'tau_w': 'ms',
+        'v_thresh': 'mV',
+        'e_rev_E': 'mV',
+        'tau_syn_E': 'ms',
+        'e_rev_I': 'mV',
+        'tau_syn_I': 'ms',
     }
 
 
@@ -376,7 +485,7 @@ class Izhikevich(StandardCellType):
         du/dt = a*(b*v - u)
 
     Synapses are modeled as Dirac delta currents (voltage step), as in the original model
-    
+
     NOTE: name should probably be changed to match standard nomenclature,
     e.g. QIF_cond_delta_etc_etc, although keeping "Izhikevich" as an alias would be good
 
@@ -399,6 +508,11 @@ class Izhikevich(StandardCellType):
     units = {
         'v': 'mV',
         'u': 'mV/ms',
+        'a': '/ms',
+        'b': '/ms',
+        'c': 'mV',
+        'd': 'mV/ms',
+        'i_offset': 'nA',
     }
 
 
@@ -431,18 +545,10 @@ class GIF_cond_exp(StandardCellType):
         'delta_v':      0.5,  # Threshold sharpness in mV.
         'v_t_star':   -48.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
-        'tau_eta1':     1.0,  # }
-        'tau_eta2':    10.0,  # } Time constants for spike-triggered current in ms.
-        'tau_eta3':   100.0,  # }
-        'tau_gamma1':   1.0,  # }
-        'tau_gamma2':  10.0,  # } Time constants for spike-frequency adaptation in ms.
-        'tau_gamma3': 100.0,  # }
-        'a_eta1':       1.0,  # }
-        'a_eta2':       1.0,  # } Post-spike increments for spike-triggered current in nA
-        'a_eta3':       1.0,  # }
-        'a_gamma1':     1.0,  # }
-        'a_gamma2':     1.0,  # } Post-spike increments for moving threshold in mV
-        'a_gamma3':     1.0,  # }
+        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.
+        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.
+        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms.
+        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV
     }
 
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
@@ -459,6 +565,23 @@ class GIF_cond_exp(StandardCellType):
         'gsyn_inh': 'uS',
         'i_eta': 'nA',
         'v_t': 'mV',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'e_rev_E': 'mV',
+        'e_rev_I': 'mV',
+        'v_reset': 'mV',
+        'i_offset': 'nA',
+        'delta_v': 'mV',
+        'v_t_star': 'mV',
+        'lambda0': 'Hz',
+        'tau_eta': 'ms',
+        'tau_gamma': 'ms',
+        'a_eta': 'nA',
+        'a_gamma': 'mV',
     }
 
 
@@ -473,6 +596,11 @@ class SpikeSourcePoisson(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+    units = {
+        'rate': 'Hz',
+        'start': 'ms',
+        'duration': 'ms',
+    }
 
 
 class SpikeSourcePoissonRefractory(StandardCellType):
@@ -487,6 +615,12 @@ class SpikeSourcePoissonRefractory(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+    units = {
+        'rate': 'Hz',
+        'tau_refrac': 'ms',
+        'start': 'ms',
+        'duration': 'ms',
+    }
 
 
 class SpikeSourceGamma(StandardCellType):
@@ -504,6 +638,12 @@ class SpikeSourceGamma(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+    units = {
+        'alpha': 'dimensionless',
+        'beta': 'Hz',
+        'start': 'ms',
+        'duration': 'ms',
+    }
 
 
 class SpikeSourceInhGamma(StandardCellType):
@@ -525,6 +665,13 @@ class SpikeSourceInhGamma(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+    units = {
+        'a': 'dimensionless',
+        'b': 's',
+        'tbins': 'ms',
+        'start': 'ms',
+        'duration': 'ms',
+    }
 
 
 class SpikeSourceArray(StandardCellType):
@@ -534,6 +681,9 @@ class SpikeSourceArray(StandardCellType):
     recordable = ['spikes']
     injectable = False
     receptor_types = ()
+    units = {
+        'spike_times': 'ms',
+    }
 
 
 # === Multi-compartment neurons =====

@@ -472,7 +472,7 @@ class FromListConnector(Connector):
         `column_names`:
             the names of the parameters p1, p2, etc. If not provided, it is
             assumed the parameters are 'weight', 'delay' (for backwards
-            compatibility).
+            compatibility). This should be specified using a tuple.
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
@@ -501,6 +501,7 @@ class FromListConnector(Connector):
             if n_columns != len(self.column_names) + 2:
                 raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
                                  n_columns - 2, len(self.column_names)))
+
 
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -534,6 +535,7 @@ class FromListConnector(Connector):
         for tgt, l, r in zip(local_targets, left, right):
             sources = self.conn_list[l:r, 0].astype(numpy.int)
             connection_parameters = deepcopy(projection.synapse_type.parameter_space)
+
             connection_parameters.shape = (r - l,)
             for col, name in enumerate(self.column_names, 2):
                 connection_parameters.update(**{name: self.conn_list[l:r, col]})
@@ -552,6 +554,13 @@ class FromFileConnector(FromListConnector):
         `file`:
             either an open file object or the filename of a file containing a
             list of connections, in the format required by `FromListConnector`.
+            Column headers, if included in the file,  must be specified using
+            a list or tuple, e.g.::
+
+                # columns = ["i", "j", "weight", "delay", "U", "tau_rec"]
+
+            Note that the header requires `#` at the beginning of the line.            
+
         `distributed`:
             if this is True, then each node will read connections from a file
             called `filename.x`, where `x` is the MPI rank. This speeds up
@@ -562,7 +571,7 @@ class FromFileConnector(FromListConnector):
         `callback`:
             if True, display a progress bar on the terminal.
     """
-    parameter_names = ('filename', 'distributed')
+    parameter_names = ('file', 'distributed')
 
     def __init__(self, file, distributed=False, safe=True, callback=None):
         """
@@ -611,12 +620,12 @@ class FixedNumberConnector(MapConnector):
         self.rng = _get_rng(rng)
 
     def _rng_uniform_int_exclude(self, n, size, exclude):
-        res = self.rng.next(n, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
+        res = self.rng.next(n, 'uniform_int', {"low": 0, "high": size}, mask=None)
         logger.debug("RNG0 res=%s" % res)
         idx = numpy.where(res == exclude)[0]
         logger.debug("RNG1 exclude=%d, res=%s idx=%s" % (exclude, res, idx))
         while idx.size > 0:
-            redrawn = self.rng.next(idx.size, 'uniform_int', {"low": 0, "high": size}, mask_local=False)
+            redrawn = self.rng.next(idx.size, 'uniform_int', {"low": 0, "high": size}, mask=None)
             res[idx] = redrawn
             idx = idx[numpy.where(res == exclude)[0]]
             logger.debug("RNG2 exclude=%d redrawn=%s res=%s idx=%s" % (exclude, redrawn, res, idx))
@@ -677,7 +686,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
                 if not self.allow_self_connections and projection.pre == projection.post:
                     targets = self._rng_uniform_int_exclude(n, projection.post.size, source_index)
                 else:
-                    targets = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask_local=False)
+                    targets = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask=None)
             else:
                 all_cells = numpy.arange(projection.post.size)
                 if not self.allow_self_connections and projection.pre == projection.post:
@@ -763,7 +772,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                 def build_source_masks(mask=None):
                     n_pre = self._get_num_pre(projection.post.size, mask)
                     for n in n_pre:
-                        sources = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.pre.size}, mask_local=False)
+                        sources = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.pre.size}, mask=None)
                         assert sources.size == n
                         yield sources
             else:
@@ -1028,8 +1037,8 @@ class FixedTotalNumberConnector(FixedNumberConnector):
         for i in range(num_conns_on_vp[rank]):
             source_index = self.rng.next(1, 'uniform_int',
                                          {"low": 0, "high": projection.pre.size},
-                                         mask_local=False)[0]
-            target_index = self.rng.choice(possible_targets, size=1)
+                                         mask=None)[0]
+            target_index = self.rng.choice(possible_targets, size=1)[0]
             connections[target_index].append(source_index)
 
         def build_source_masks(mask=None):

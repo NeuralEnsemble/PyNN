@@ -1,7 +1,7 @@
 Balanced network of excitatory and inhibitory neurons
 =====================================================
 
-.. image:: ../images/examples/VAbenchmarks_CUBA_20151005-081325.png
+.. image:: ../images/examples/VAbenchmarks_CUBA_20170505-150538.png
 
 .. literalinclude:: ../../examples/VAbenchmarks.py
 

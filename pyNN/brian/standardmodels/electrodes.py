@@ -22,13 +22,10 @@ from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
-current_sources = []
-
 
 @network_operation(when='start')
 def update_currents():
-    global current_sources
-    for current_source in current_sources:
+    for current_source in simulator.state.current_sources:
         current_source._update_current()
 
 
@@ -37,10 +34,9 @@ class BrianCurrentSource(StandardCurrentSource):
 
     def __init__(self, **parameters):
         super(StandardCurrentSource, self).__init__(**parameters)
-        global current_sources
         self.cell_list = []
         self.indices = []
-        current_sources.append(self)
+        simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))
@@ -48,9 +44,38 @@ class BrianCurrentSource(StandardCurrentSource):
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)
 
+    def _check_step_times(self, times, amplitudes, resolution):
+        # change resolution from ms to s; as per brian convention
+        resolution = resolution*1e-3
+        # ensure that all time stamps are non-negative
+        if not (times >= 0.0).all():
+            raise ValueError("Step current cannot accept negative timestamps.")
+        # ensure that times provided are of strictly increasing magnitudes
+        dt_times = numpy.diff(times)
+        if not all(dt_times>0.0):
+            raise ValueError("Step current timestamps should be monotonically increasing.")
+        # map timestamps to actual simulation time instants based on specified dt
+        times = self._round_timestamp(times, resolution)
+        # remove duplicate timestamps, and corresponding amplitudes, after mapping
+        step_times = []
+        step_amplitudes = []
+        for ts0, amp0, ts1 in zip(times, amplitudes, times[1:]):
+            if ts0 != ts1:
+                step_times.append(ts0)
+                step_amplitudes.append(amp0)
+        step_times.append(times[-1])
+        step_amplitudes.append(amplitudes[-1])
+        return step_times, step_amplitudes
+
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
+            if name == "amplitudes": # key used only by StepCurrentSource
+                step_times = parameters["times"].value
+                step_amplitudes = parameters["amplitudes"].value
+                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
+                parameters["times"].value = step_times
+                parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):
                 value = value.value
             object.__setattr__(self, name, value)
@@ -89,12 +114,21 @@ class BrianCurrentSource(StandardCurrentSource):
                     for cell, idx in zip(self.cell_list, self.indices):
                         cell.parent.brian_group.i_inj[idx] = 0
 
-    def _record(self):
-        self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0)
+    def record(self):
+        self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0, when='start')
         simulator.state.network.add(self.i_state_monitor)
 
     def _get_data(self):
-        return numpy.array((self.i_state_monitor.times / ms, self.i_state_monitor[0] / nA))
+        # code based on brian/recording.py:_get_all_signals()
+        # because we use `when='start'`, we need to add the
+        # value at the end of the final time step.
+        device = self.i_state_monitor
+        current_t_value = device.P.state_('t')[device.record]
+        current_i_value = device.P.state_(device.varname)[device.record]
+        t_all_values = numpy.append(device.times, current_t_value)
+        i_all_values = numpy.append(device._values, current_i_value)
+        return (t_all_values / ms, i_all_values / nA)
+
 
 class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
