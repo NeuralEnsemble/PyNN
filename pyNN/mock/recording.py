@@ -25,8 +25,8 @@ class Recorder(recording.Recorder):
 
     def _local_count(self, variable, filter_ids=None):
         N = {}
-        if variable == 'spikes':
-            for id in self.filter_recorded(recording.Variable('spikes', None), filter_ids):
+        if variable.name == 'spikes':
+            for id in self.filter_recorded(variable, filter_ids):
                 N[int(id)] = 2
         else:
             raise Exception("Only implemented for spikes")

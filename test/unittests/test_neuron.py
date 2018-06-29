@@ -426,7 +426,7 @@ class TestRecorder(unittest.TestCase):
         self.rec.recorded[Variable('spikes', None)] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(numpy.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(numpy.arange(13.0, 33.0))
-        self.assertEqual(self.rec._local_count('spikes', filter_ids=None),
+        self.assertEqual(self.rec._local_count(Variable('spikes', location=None), filter_ids=None),
                          {self.cells[0]: 10, self.cells[1]: 20})
 
 

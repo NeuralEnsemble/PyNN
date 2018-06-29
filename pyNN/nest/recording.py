@@ -447,7 +447,7 @@ class Recorder(recording.Recorder):
             return numpy.array([])
 
     def _local_count(self, variable, filter_ids):
-        assert variable == 'spikes'
+        assert variable.name == 'spikes'
         #N = {}
         #if self._device.in_memory():
         #    events = nest.GetStatus(self._device.device, 'events')[0]
@@ -466,7 +466,7 @@ class Recorder(recording.Recorder):
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
         #return N
-        return self._spike_detector.get_spike_counts(self.filter_recorded(recording.Variable('spikes', None), filter_ids))
+        return self._spike_detector.get_spike_counts(self.filter_recorded(variable, filter_ids))
 
     def _clear_simulator(self):
         """

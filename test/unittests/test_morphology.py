@@ -206,7 +206,6 @@ class MorphologyFilterTest(unittest.TestCase):
     def test_random_sample_filter(self):
         filter = random_section(apical_dendrites())
         id = filter(self.array_morph)
-        self.assertIsInstance(id, int)
         self.assertIn(id, apical_dendrites()(self.array_morph))
 
     def test_with_label_filter_arraymorph(self):
@@ -230,7 +229,8 @@ class MorphologyFilterTest(unittest.TestCase):
     def test_with_label_filter_neuromlmorph_section_name(self):
         filter = with_label("basal10")
         index = filter(self.neuroml_morph)
-        segment = self.neuroml_morph.segments[index]
+        assert index.size == 1
+        segment = self.neuroml_morph.segments[index[0]]
         self.assertEqual(segment.name, "basal10")
 
     def test_with_label_filter_neuromlmorph_non_existent(self):
