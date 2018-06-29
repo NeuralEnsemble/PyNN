@@ -309,6 +309,25 @@ class basal_dendrites(MorphologyFilter):
             raise Exception("No neurites labelled as basal dendrite")
 
 
+class axon(MorphologyFilter):
+
+    def __init__(self, fraction_along=None):
+        self.fraction_along = fraction_along
+
+    def __call__(self, morphology, filter_by_receptor_type=False):
+        # if filter_by_receptor_type is not False,
+        # return only sections that contain at least one post-synaptic receptor
+        # of the specified name
+        if AXON in morphology.section_groups:
+            section_index = morphology.section_groups[AXON]
+            if filter_by_receptor_type:
+                section_index = np.intersect1d(section_index,
+                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+            return section_index
+        else:
+            raise Exception("No neurites labelled as axon")
+
+
 class random_section(MorphologyFilter):
 
     def __init__(self, f):

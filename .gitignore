@@ -15,6 +15,7 @@
 *.tmp*
 *.swp
 .idea
+.vscode
 
 # Compiled source
 *.py[ocd]
@@ -82,3 +83,5 @@ examples/*.svg
 tmp
 /pynnpg.sh
 /cleanpynn.sh
+doc/logos
+docker_*
