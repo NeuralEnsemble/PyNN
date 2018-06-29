@@ -250,6 +250,7 @@ class Recorder(object):
             if not self.population.can_record(variable.name, variable.location):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
+            assert isinstance(variable, Variable)
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids, sampling_interval)
 
@@ -398,7 +399,7 @@ class Recorder(object):
         useful for spike counts or for variable-time-step integration methods.
         """
         if variable == 'spikes':
-            N = self._local_count(variable, filter_ids)
+            N = self._local_count(Variable(variable, location=None), filter_ids)
         else:
             raise Exception("Only implemented for spikes.")
         if gather and self._simulator.state.num_processes > 1:

@@ -37,10 +37,10 @@ class Recorder(recording.Recorder):
         # This is different to the PyNN semantics (i.e. the value at the end of
         # the step is associated with the time at the end of the step.)
         clock = simulator.state.network.clock
-        if variable == 'spikes':
+        if variable.name == 'spikes':
             self._devices[variable] = brian.SpikeMonitor(group, record=self.recorded)
         else:
-            varname = self.population.celltype.state_variable_translations[variable]['translated_name']
+            varname = self.population.celltype.state_variable_translations[variable.name]['translated_name']
             self._devices[variable] = brian.StateMonitor(group, varname,
                                                          record=self.recorded,
                                                          clock=clock,
@@ -50,16 +50,18 @@ class Recorder(recording.Recorder):
 
     def _record(self, variable, new_ids, sampling_interval=None):
         """Add the cells in `new_ids` to the set of recorded cells."""
+        if variable.location is not None:
+            raise ValueError("Recording from specific cell locations is not supported for Brian")
         self.sampling_interval = sampling_interval or self._simulator.state.dt
         if variable not in self._devices:
             self._create_device(self.population.brian_group, variable)
         # update StateMonitor.record and StateMonitor.recordindex
-        if variable is not 'spikes':
+        if variable.name is not 'spikes':
             device = self._devices[variable]
             device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             device.recordindex = dict((i, j) for i, j in zip(device.record,
                                                              range(len(device.record))))
-            logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
+            logger.debug("recording %s from %s" % (variable.name, self.recorded[variable]))
 
     def _reset(self):
         """Clear the list of cells to record."""
@@ -75,13 +77,14 @@ class Recorder(recording.Recorder):
     def _get_spiketimes(self, id):
         if is_listlike(id):
             all_spiketimes = {}
+            spike_var = recording.Variable('spikes', location=None)
             for cell_id in id:
                 i = cell_id - self.population.first_id
-                all_spiketimes[cell_id] = self._devices['spikes'].spiketimes[i] / ms
+                all_spiketimes[cell_id] = self._devices[spike_var].spiketimes[i] / ms
             return all_spiketimes
         else:
             i = id - self.population.first_id
-            return self._devices['spikes'].spiketimes[i] / ms
+            return self._devices[spike_var].spiketimes[i] / ms
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
@@ -91,8 +94,8 @@ class Recorder(recording.Recorder):
         current_values = device.P.state_(device.varname)[device.record]
         all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
         logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)
-        varname = self.population.celltype.state_variable_translations[variable]['translated_name']
-        all_values = eval(self.population.celltype.state_variable_translations[variable]['reverse_transform'], {}, {varname: all_values})
+        varname = self.population.celltype.state_variable_translations[variable.name]['translated_name']
+        all_values = eval(self.population.celltype.state_variable_translations[variable.name]['reverse_transform'], {}, {varname: all_values})
         if clear:
             self._devices[variable].reinit()
         return all_values
@@ -102,6 +105,7 @@ class Recorder(recording.Recorder):
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding = self.population.first_id
         indices = numpy.fromiter(filtered_ids, dtype=int) - padding
+        spike_var = recording.Variable('spikes', location=None)
         for i, id in zip(indices, filtered_ids):
-            N[id] = len(self._devices['spikes'].spiketimes[i])
+            N[id] = len(self._devices[spike_var].spiketimes[i])
         return N
