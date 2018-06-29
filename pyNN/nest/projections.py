@@ -121,7 +121,7 @@ class Projection(common.Projection):
                                                                synapse_label=self.nest_synapse_label)]
     
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
-                            **connection_parameters):
+                            location_selector=None, **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
@@ -131,6 +131,10 @@ class Projection(common.Projection):
         TO UPDATE
         """
         #logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
+
+        if location_selector is not None:
+            raise NotImplementedError("NEST backend does not support multicompartmental models.")
+
         presynaptic_cells = self.pre.all_cells[presynaptic_indices]
         postsynaptic_cell = self.post[postsynaptic_index]
         assert presynaptic_cells.size == presynaptic_indices.size

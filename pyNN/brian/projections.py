@@ -156,7 +156,10 @@ class Projection(common.Projection):
             return 0, index
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
+                            location_selector=None,
                             **connection_parameters):
+        if location_selector is not None:
+            raise NotImplementedError("Brian backend does not support multicompartmental models.")
         connection_parameters.pop("dendritic_delay_fraction", None)  # TODO: need to to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
         j_group, j = self._localize_index(postsynaptic_index)

@@ -30,7 +30,8 @@ def test_ticket235():
     p2 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
     p1.record('spikes', to_file=False)
     p2.record('spikes', to_file=False)
-    prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(), pynnn.StaticSynapse(weight=10.0), receptor_type='excitatory')
+    prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(), pynnn.StaticSynapse(weight=10.0),
+                              receptor_type='excitatory')
     # we note that the connectivity is as expected: a uniform diagonal
     prj1_2.get('weight', format='array')
     src = pynnn.DCSource(amplitude=70)
