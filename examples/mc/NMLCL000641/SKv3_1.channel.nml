@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="SKv3_1">
+
+    <notes>NeuroML file containing a single Channel description</notes>
+
+    <ionChannel id="SKv3_1" conductance="10pS" type="ionChannelHH" species="k">
+
+        <notes>Fast, non inactivating K+ current
+            
+Comment from original mod file: 
+:Reference : :		Characterization of a Shaw-related potassium channel family in rat brain, The EMBO Journal, vol.11, no.7,2473-2486 (1992)</notes>
+                
+        <annotation>
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about="SKv3_1">
+                    
+                    <bqmodel:isDescribedBy xmlns:bqmodel="http://biomodels.net/model-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Models of Neocortical Layer 5b Pyramidal Cells Capturing a Wide Range of Dendritic and Perisomatic Active Properties,
+            Etay Hay, Sean Hill, Felix Schürmann, Henry Markram and Idan Segev, PLoS Comp Biol 2011</rdf:li>
+                            <rdf:li rdf:resource="http://www.ncbi.nlm.nih.gov/pubmed/21829333"/>
+                        </rdf:Bag>
+                    </bqmodel:isDescribedBy>
+
+                
+                    <bqbiol:isVersionOf xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>K channels</rdf:li>
+                            <rdf:li rdf:resource="http://senselab.med.yale.edu/neurondb/channelGene2.aspx#table3"/>
+                        </rdf:Bag>
+                    </bqbiol:isVersionOf>
+
+                </rdf:Description>
+            </rdf:RDF>
+        </annotation>
+
+        <gate id="m" type="gateHHtauInf" instances="1">
+            <timeCourse type="SKv3_1_m_tau_tau"/>
+            <steadyState type="HHSigmoidVariable" rate="1" scale="9.7mV" midpoint="18.7mV"/>
+        </gate>
+                            
+    </ionChannel>
+
+    <ComponentType name="SKv3_1_m_tau_tau" extends="baseVoltageDepTime">
+        <Constant name="TIME_SCALE" dimension="time" value="1 ms"/>
+        <Constant name="VOLT_SCALE" dimension="voltage" value="1 mV"/>
+
+        <Dynamics>
+            <DerivedVariable name="V" dimension="none" value="v / VOLT_SCALE"/>
+            <DerivedVariable name="t" exposure="t" dimension="time" value="(4/(1 + exp( (V+46.56) / (-44.140) ))) * TIME_SCALE"/>
+        </Dynamics>
+
+    </ComponentType>
+
+</neuroml>

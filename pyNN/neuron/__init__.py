@@ -28,6 +28,7 @@ from pyNN.neuron.standardmodels.ion_channels import *
 from pyNN.neuron.populations import Population, PopulationView, Assembly
 from pyNN.neuron.projections import Projection
 from pyNN.neuron.cells import NativeCellType
+from . import neuroml
 try:
     from . import nineml
 except ImportError:

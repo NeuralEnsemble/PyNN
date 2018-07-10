@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="SK_E2">
+
+    <notes>NeuroML file containing a single Channel description</notes>
+
+    <ionChannel id="SK_E2" conductance="10pS" type="ionChannelHH" species="k">
+
+        <notes>Small-conductance, Ca2+ activated K+ current
+            
+Comment from original mod file: 
+: SK-type calcium-activated potassium current
+: Reference : Kohler et al. 1996</notes>
+                
+        <annotation>
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about="SK_E2">
+                    
+                    <bqmodel:isDescribedBy xmlns:bqmodel="http://biomodels.net/model-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Models of Neocortical Layer 5b Pyramidal Cells Capturing a Wide Range of Dendritic and Perisomatic Active Properties,
+            Etay Hay, Sean Hill, Felix Schürmann, Henry Markram and Idan Segev, PLoS Comp Biol 2011</rdf:li>
+                            <rdf:li rdf:resource="http://www.ncbi.nlm.nih.gov/pubmed/21829333"/>
+                        </rdf:Bag>
+                    </bqmodel:isDescribedBy>
+
+                
+                    <bqbiol:isVersionOf xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>K channels</rdf:li>
+                            <rdf:li rdf:resource="http://senselab.med.yale.edu/neurondb/channelGene2.aspx#table3"/>
+                        </rdf:Bag>
+                    </bqbiol:isVersionOf>
+
+                </rdf:Description>
+            </rdf:RDF>
+        </annotation>
+
+        <gate id="z" type="gateHHtauInf" instances="1">
+            <timeCourse type="SK_E2_z_tau_tau"/>
+            <steadyState type="SK_E2_z_inf_inf"/>
+        </gate>
+                            
+    </ionChannel>
+
+    <ComponentType name="SK_E2_z_tau_tau" extends="baseVoltageConcDepTime">
+        <Constant name="TIME_SCALE" dimension="time" value="1 ms"/>
+        <Constant name="VOLT_SCALE" dimension="voltage" value="1 mV"/>
+        <Constant name="CONC_SCALE" dimension="concentration" value="1 mol_per_cm3"/>
+
+        <Dynamics>
+            <DerivedVariable name="V" dimension="none" value="v / VOLT_SCALE"/>
+            <DerivedVariable name="ca_conc" dimension="none" value="caConc / CONC_SCALE"/>
+            <DerivedVariable name="t" exposure="t" dimension="time" value="(1) * TIME_SCALE"/>
+        </Dynamics>
+
+    </ComponentType>
+
+    <ComponentType name="SK_E2_z_inf_inf" extends="baseVoltageConcDepVariable">
+        <Constant name="TIME_SCALE" dimension="time" value="1 ms"/>
+        <Constant name="VOLT_SCALE" dimension="voltage" value="1 mV"/>
+        <Constant name="CONC_SCALE" dimension="concentration" value="1 mol_per_cm3"/>
+
+        <Dynamics>
+            <DerivedVariable name="V" dimension="none" value="v / VOLT_SCALE"/>
+            <DerivedVariable name="ca_conc" dimension="none" value="caConc / CONC_SCALE"/>
+            <DerivedVariable name="x" exposure="x" dimension="none" value="1/(1+(4.3e-10/ca_conc)^4.8)"/>
+        </Dynamics>
+
+    </ComponentType>
+
+</neuroml>
