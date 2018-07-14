@@ -3,9 +3,16 @@
 try:
     from setuptools import setup
     from setuptools.command.build_py import build_py as _build
+    from setuptools import version
+    if version.__version__ > '20.5':
+        tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
+                     'matplotlib;python_version>="3.4"', 'Cheetah3']
+    else:
+        tests_req = ['mpi4py', 'Cheetah3']
 except ImportError:
     from distutils.core import setup
     from distutils.command.build_py import build_py as _build
+
 import os
 import subprocess
 
@@ -76,6 +83,7 @@ class build(_build):
                 break
         return cmd
 
+
 setup(
     name="PyNN",
     version="0.9.2",
@@ -120,6 +128,5 @@ setup(
         'plotting': ['matplotlib', 'scipy'],
         'MPI': ['mpi4py']
     },
-    tests_require=['mpi4py', 'scipy;python_version>="3.4"',
-                   'matplotlib;python_version>="3.4"', 'Cheetah3']
+    tests_require=tests_req
 )
