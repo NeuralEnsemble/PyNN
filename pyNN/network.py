@@ -34,6 +34,12 @@ class Network(object):
 
     def count_neurons(self):
         return sum(population.size for population in chain(self.populations))
-    
+
     def count_connections(self):
         return sum(projection.size() for projection in chain(self.projections))
+
+    def get_component(self, label):
+        for obj in chain(self.populations, self.views, self.assemblies, self.projections):
+            if obj.label == label:
+                return obj
+        return None
