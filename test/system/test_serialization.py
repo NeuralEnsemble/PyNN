@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 import pyNN.nest as sim
 from pyNN.random import RandomDistribution as RD
 from pyNN.network import Network
-from pyNN.serialization import export_to_sonata, import_from_sonata
+from pyNN.serialization import export_to_sonata, import_from_sonata, asciify
 
 sim.setup()
 
@@ -35,7 +35,12 @@ net2 = import_from_sonata("tmp_serialization_test/circuit_config.json", sim)
 
 
 for orig_population in net.populations:
-    imp_population = list(net2.assemblies)[0].get_population(orig_population.label)
+    imp_population = net2.get_component(orig_population.label)
     assert orig_population.size == imp_population.size
     for name in orig_population.celltype.default_parameters:
         assert_array_almost_equal(orig_population.get(name), imp_population.get(name), 12)
+
+w1 = prj.get('weight', format='array')
+prj2 = net2.get_component(asciify(prj.label).decode('utf-8') + "-0")
+w2 = prj2.get('weight', format='array')
+assert_array_almost_equal(w1, w2, 12)

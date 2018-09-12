@@ -34,6 +34,16 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
 
     If `target` is "nest" or "NEST", then the names of NEST cell and synapse models
     are used in the exported files.
+
+
+    A "node group" in SONATA corresponds approximately to a PyNN Population or PopulationView.
+    A "node population" in SONATA corresponds approximately to a PyNN Assembly, except that
+    node populations must be disjoint, whereas a given neuron may be in more than one
+    PyNN Assembly (it is PyNN Populations that are disjoint).
+
+    In this first version of the export, we simplify this by exporting each Population
+    as an implicit Assembly with a single member, at the cost of losing some information about
+    the PyNN network structure. This approach could be improved in future.
     """
 
     # --- define directory layout ---
@@ -53,17 +63,17 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
             "templates": "$COMPONENT_DIR/hoc_templates",
         },
         "networks": {
-            "nodes": [  # todo: could have multiple entries here
-                {
-                    "nodes_file": "$NETWORK_DIR/nodes.h5",
-                    "node_types_file": "$NETWORK_DIR/node_types.csv"
-                }
+            "nodes": [
+                #{
+                #    "nodes_file": "$NETWORK_DIR/nodes.h5",
+                #    "node_types_file": "$NETWORK_DIR/node_types.csv"
+                #}
             ],
-            "edges":[  # todo: could have multiple entries here
-                {
-                    "edges_file": "$NETWORK_DIR/edges.h5",
-                    "edge_types_file": "$NETWORK_DIR/edge_types.csv"
-                },
+            "edges":[
+                #{
+                #    "edges_file": "$NETWORK_DIR/edges.h5",
+                #    "edge_types_file": "$NETWORK_DIR/edge_types.csv"
+                #},
             ]
         }
     }
@@ -93,33 +103,24 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
     # - not necessary for the current version of PyNN
 
     # --- export nodes ---
-    # - we define a separate group and node-type for each PyNN Population
-    # - maybe in future we could exploit node-type to support PopulationViews
-    #   and Assemblies, but we keep it simple for now
+    # - we define a separate SONATA node population for each PyNN Population
+    # - we may in future use node groups to support PopulationViews
+    # - Assemblies are not explicitly represented in the SONATA structure,
+    #   rather their constituent Populations are exported individually.
 
-    node_type_path = Template(config["networks"]["nodes"][0]["node_types_file"]).substitute(NETWORK_DIR=network_dir)
-    nodes_path = Template(config["networks"]["nodes"][0]["nodes_file"]).substitute(NETWORK_DIR=network_dir)
-
-    nodes_file = h5py.File(nodes_path, 'w')
-    nodes_file.attrs["version"] = (0, 1)  # ??? unclear what is the required format or the current version!
-    nodes_file.attrs["magic"] = MAGIC  # needs to be uint32
-
-    n = network.count_neurons()
-    root = nodes_file.create_group("nodes")  # todo: add attribute with network name
-    default = root.create_group("default")  # for now, put the entire Network into a single SONATA "population"
-                                            # if future, we could have a SONATA population for each PyNN Assembly
-    default.create_dataset("node_id", shape=(n,), dtype='i4')
-    default.create_dataset("node_type_id", shape=(n,), dtype='i2')
-    default.create_dataset("node_group_id", shape=(n,), dtype='S32')  # todo: calculate the max label size
-                                                                      # required data type not specified. Optional?
-    default.create_dataset("node_group_index", shape=(n,), dtype='i2')
-
-    offset = 0
-    csv_rows = []
-    csv_columns = set()
     for i, population in enumerate(network.populations):
-        # note: this should include populations implicitly defined inside an Assembly
-        m = population.size
+
+        config["networks"]["nodes"].append({
+            "nodes_file": "$NETWORK_DIR/nodes_{}.h5".format(population.label),
+            "node_types_file": "$NETWORK_DIR/node_types_{}.csv".format(population.label)
+        })
+        node_type_path = Template(config["networks"]["nodes"][i]["node_types_file"]).substitute(NETWORK_DIR=network_dir)
+        nodes_path = Template(config["networks"]["nodes"][i]["nodes_file"]).substitute(NETWORK_DIR=network_dir)
+
+        n = population.size
+        population_label = asciify(population.label)
+        csv_rows = []
+        csv_columns = set()
         node_type_info = {
             "node_type_id": i,
         }
@@ -131,18 +132,23 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
                                                               population.celltype.__class__.__name__)
         else:
             raise NotImplementedError
+        group_label = 0  #"default"
         # todo: add "population" column
 
-        index = slice(offset, offset + m)
-        group_label = asciify(population.label)
-        default["node_id"][index] = population.all_cells.astype('i4')
-        default["node_type_id"][index] = i * np.ones((m,))
-        default["node_group_id"][index] = np.array([group_label] * m)
-        default["node_group_index"][index] = np.arange(m, dtype=int)
-
-        node_group = default.create_group(group_label)
+        # write HDF5 file
+        nodes_file = h5py.File(nodes_path, 'w')
+        nodes_file.attrs["version"] = (0, 1)  # ??? unclear what is the required format or the current version!
+        nodes_file.attrs["magic"] = MAGIC  # needs to be uint32
+        root = nodes_file.create_group("nodes")  # todo: add attribute with network name
+        default = root.create_group(population_label)  # we use a single node group for the full Population
+        default.create_dataset("node_id", data=population.all_cells.astype('i4'), dtype='i4')
+        default.create_dataset("node_type_id", data=i * np.ones((n,)), dtype='i2')
+        default.create_dataset("node_group_id", data=np.array([group_label] * n), dtype='i2')  #S32')  # todo: calculate the max label size
+                                                                          # required data type not specified. Optional?
+        default.create_dataset("node_group_index", data=np.arange(n, dtype=int), dtype='i2')
 
         # parameters
+        node_group = default.create_group(str(group_label))
         node_params_group = node_group.create_group("dynamics_params")
         for parameter_name in population.celltype.default_parameters:
             # we could make a single get call to get all params at once, at the expense
@@ -164,60 +170,43 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
 
         csv_rows.append(node_type_info)
         csv_columns.update(node_type_info.keys())
-        offset += m
 
-    nodes_file.close()
+        nodes_file.close()
 
-    # now write csv file
-    # todo: consider having one CSV per PyNN cell type
-    #       for now, we put NONE for parameters that don't apply
-    field_names = sorted(set.union(*(set(row) for row in csv_rows)))  # todo: `node_type_id` must be first
-    with open(node_type_path, 'w', newline='') as csv_file:
-        csv_writer = csv.DictWriter(csv_file,
-                                    fieldnames=field_names,
-                                    delimiter=' ',
-                                    quotechar='"')
-        csv_writer.writeheader()
-        for row in csv_rows:
-            print(row)
-            for column_name in csv_columns:
-                if column_name not in row:
-                    row[column_name] = "NONE"
-            csv_writer.writerow(row)
+        # now write csv file
+        field_names = sorted(set.union(*(set(row) for row in csv_rows)))  # todo: `node_type_id` must be first
+        with open(node_type_path, 'w', newline='') as csv_file:
+            csv_writer = csv.DictWriter(csv_file,
+                                        fieldnames=field_names,
+                                        delimiter=' ',
+                                        quotechar='"')
+            csv_writer.writeheader()
+            for row in csv_rows:
+                print(row)
+                for column_name in csv_columns:
+                    if column_name not in row:
+                        row[column_name] = "NONE"
+                csv_writer.writerow(row)
 
     # --- export edges ---
     # - we define a separate group and edge-type for each PyNN Projection
 
-    edge_type_path = Template(config["networks"]["edges"][0]["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
-    edges_path = Template(config["networks"]["edges"][0]["edges_file"]).substitute(NETWORK_DIR=network_dir)
-
-    edges_file = h5py.File(edges_path, 'w')
-
-    n = network.count_connections()
-    root = edges_file.create_group("edges")  # todo: add attribute with network name
-    default_edge_pop = root.create_group("default")  # for now, have a single "edge population"
-    default_edge_pop.create_dataset("source_node_id", shape=(n,), dtype='i4')
-    default_edge_pop.create_dataset("target_node_id", shape=(n,), dtype='i4')
-    default_edge_pop["source_node_id"].attrs["node_population"] = "default"
-    default_edge_pop["target_node_id"].attrs["node_population"] = "default"
-    default_edge_pop.create_dataset("edge_type_id", shape=(n,), dtype='i2')
-    default_edge_pop.create_dataset("edge_group_id", shape=(n,), dtype='S32')  # todo: calculate the max label size
-    default_edge_pop.create_dataset("edge_group_index", shape=(n,), dtype='i2')
-
-    offset = 0
-    csv_rows = []
     for i, projection in enumerate(network.projections):
-        m = projection.size()
+        projection_label = asciify(projection.label)
+        config["networks"]["edges"].append({
+            "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label.decode('utf-8')),
+            "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label.decode('utf-8'))
+        })
+        edge_type_path = Template(config["networks"]["edges"][i]["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
+        edges_path = Template(config["networks"]["edges"][i]["edges_file"]).substitute(NETWORK_DIR=network_dir)
+
+        n = projection.size()
+        csv_rows = []
         edge_type_info = {
             "edge_type_id": i,
             "model_template": "{}:{}".format(target.lower(),
-                                              projection.synapse_type.__class__.__name__)
+                                             projection.synapse_type.__class__.__name__)
         }
-        index = slice(offset, offset + m)
-        group_label = asciify(projection.label)
-
-        edge_group = default_edge_pop.create_group(group_label)
-
         parameter_names = list(projection.synapse_type.default_parameters)
         values = np.array(
             projection.get(parameter_names, format="list", gather=True, with_address=True)
@@ -226,13 +215,22 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         target_index = values[:, 1].astype(int)
         source_gids = projection.pre.all_cells[source_index].astype('i4')
         target_gids = projection.post.all_cells[target_index].astype('i4')
+        group_label = 0  # "default"
 
-        default_edge_pop["source_node_id"][index] = source_index.astype('i4')  # source_gids
-        default_edge_pop["target_node_id"][index] = target_index.astype('i4')  # target_gids
-        default_edge_pop["edge_type_id"][index] = i * np.ones((m,))
-        default_edge_pop["edge_group_id"][index] = np.array([group_label] * m)
-        default_edge_pop["edge_group_index"][index] = np.arange(m, dtype=int)
+        # Write HDF5 file
+        edges_file = h5py.File(edges_path, 'w')
+        root = edges_file.create_group("edges")  # todo: add attribute with network name
 
+        default_edge_pop = root.create_group(projection_label)
+        default_edge_pop.create_dataset("source_node_id", data=source_gids, dtype='i4')
+        default_edge_pop.create_dataset("target_node_id", data=target_gids, dtype='i4')
+        default_edge_pop["source_node_id"].attrs["node_population"] = asciify(projection.pre.label)  # todo: handle PopualtionViews
+        default_edge_pop["target_node_id"].attrs["node_population"] = asciify(projection.post.label)
+        default_edge_pop.create_dataset("edge_type_id", data=i * np.ones((n,)), dtype='i2')
+        default_edge_pop.create_dataset("edge_group_id", data=np.array([group_label] * n), dtype='i2') #S32')  # todo: calculate the max label size
+        default_edge_pop.create_dataset("edge_group_index", data=np.arange(n, dtype=int), dtype='i2')
+
+        edge_group = default_edge_pop.create_group(str(group_label))
         edge_params = edge_group.create_group("dynamics_params")
         for j, parameter_name in zip(range(2, values.shape[1]), parameter_names):
             if isinstance(values[:, j], np.ndarray):
@@ -244,20 +242,19 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
                 edge_type_info[parameter_name] = values[:, j]
 
         csv_rows.append(edge_type_info)
-        offset += m
 
-    edges_file.close()
+        edges_file.close()
 
-    # now write csv file
-    field_names = sorted(set.union(*(set(row) for row in csv_rows)))
-    with open(edge_type_path, 'w', newline='') as csv_file:
-        csv_writer = csv.DictWriter(csv_file,
-                                    fieldnames=field_names,
-                                    delimiter=' ',
-                                    quotechar='"')
-        csv_writer.writeheader()
-        for row in csv_rows:
-            csv_writer.writerow(row)
+        # now write csv file
+        field_names = sorted(set.union(*(set(row) for row in csv_rows)))
+        with open(edge_type_path, 'w', newline='') as csv_file:
+            csv_writer = csv.DictWriter(csv_file,
+                                        fieldnames=field_names,
+                                        delimiter=' ',
+                                        quotechar='"')
+            csv_writer.writeheader()
+            for row in csv_rows:
+                csv_writer.writerow(row)
 
     # --- write the config file ---
 
@@ -268,13 +265,23 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
     # todo
 
 
+def sonata_id_to_index(population, id):
+    # this relies on SONATA ids being sequential
+    if "first_sonata_id" in population.annotations:
+        offset = population.annotations["first_sonata_id"]
+    else:
+        raise Exception("Population not annotated with SONATA ids")
+    return id - offset
+
+
 def import_from_sonata(config_file, sim):
     """
-
     We map a SONATA population to a PyNN Assembly, since both allow heterogeneous cell types.
     We map a SONATA node group to a PyNN Population, since both have heterogeneous parameter
-    namespaces. This may not be entirely satisfactory, since a node group can have multiple
-    node types, but needs some experience with different models to figure out.
+    namespaces. This may not work in all cases, since a node group can have multiple
+    node types.
+    We map a SONATA edge group to a PyNN Projection, i.e. a SONATA edge population may
+    result in multiple PyNN Projections.
     """
     with open(config_file) as fp:
         config = json.load(fp)
@@ -350,7 +357,7 @@ def import_from_sonata(config_file, sim):
                 else:
                     raise NotImplementedError("todo...")
 
-                dynamics_params_group = nodes_file["nodes"][np_label][ng_label]['dynamics_params']
+                dynamics_params_group = nodes_file["nodes"][np_label][str(ng_label)]['dynamics_params']
                 group_mask = nodes_file["nodes"][np_label]['node_group_index'].value[mask]
                 for key in dynamics_params_group.keys():
                     assert key in cell_type_cls.default_parameters
@@ -362,8 +369,12 @@ def import_from_sonata(config_file, sim):
 
                 pop = sim.Population(node_group_size,
                                      cell_type_cls(**parameters),
-                                     label=ng_label.decode('utf-8'))
+                                     #label=ng_label.decode('utf-8'))
+                                     label=str(ng_label))
+
                 assembly += pop
+                assembly.annotations["first_sonata_id"] = nodes_file["nodes"][np_label]['node_id'].value.min()
+                print(assembly.annotations)
 
     for edges_config in config["networks"]["edges"]:
         edges_path = Template(edges_config["edges_file"]).substitute(NETWORK_DIR=network_dir)
@@ -388,19 +399,62 @@ def import_from_sonata(config_file, sim):
 
         for ep_label in edge_populations:
             source_node_ids = edges_file["edges"][ep_label]["source_node_id"].value
-            source_node_population = edges_file["edges"][ep_label]["source_node_id"].attrs["node_population"]
+            source_node_population = edges_file["edges"][ep_label]["source_node_id"].attrs["node_population"].decode('utf-8')
             target_node_ids = edges_file["edges"][ep_label]["target_node_id"].value
-            target_node_population = edges_file["edges"][ep_label]["target_node_id"].attrs["node_population"]
+            target_node_population = edges_file["edges"][ep_label]["target_node_id"].attrs["node_population"].decode('utf-8')
             edge_groups = np.unique(edges_file["edges"][ep_label]['edge_group_id'].value)
-            for eg_label in edge_groups:
-                print("EDGE GROUP {}".format(eg_label))
 
-            pre = net.get_component(source_node_population)[source_node_ids]
-            post = net.get_component(target_node_population)[target_node_ids]
+            pre = net.get_component(source_node_population)
+            post = net.get_component(target_node_population)
             print(pre)
             print(post)
-            #prj = sim.Projection()
-            #net.projections.add(prj)
+
+            synapse_params = {}
+            for eg_label in edge_groups:
+                print("EDGE GROUP {}".format(eg_label))
+                mask = edges_file["edges"][ep_label]['edge_group_id'].value == eg_label
+                source_ids = source_node_ids[mask]
+                target_ids = target_node_ids[mask]
+                source_index = sonata_id_to_index(pre, source_ids)
+                target_index = sonata_id_to_index(post, target_ids)
+
+                edge_type_array = edges_file["edges"][ep_label]['edge_type_id'][mask]
+                edge_types = np.unique(edge_type_array)
+                print("  edge_types: {}".format(edge_types))
+
+                synapse_types = set()
+                for edge_type_id in edge_types:
+                    edge_type_id = str(edge_type_id)
+                    prefix, synapse_type = edge_types_map[edge_type_id]["model_template"].split(":")
+                    if prefix.lower() != "pynn":
+                        raise NotImplementedError("Only PyNN networks currently supported.")
+                    synapse_types.add(synapse_type)
+
+                if len(synapse_types) != 1:
+                    raise Exception("Heterogeneous group, not currently supported.")
+                synapse_type_name = synapse_types.pop()
+                synapse_type_cls = getattr(sim, synapse_type_name)
+                print("  synapse_type: {}".format(synapse_type_cls))
+
+                params_group = edges_file["edges"][ep_label][str(eg_label)]['dynamics_params']
+                synapse_params[eg_label] = {}
+                for key in params_group.keys():
+                    synapse_params[eg_label][key] = edges_file["edges"][ep_label][str(eg_label)]['dynamics_params'][key].value
+
+                print(source_ids)
+                print(source_index)
+                print(target_ids)
+                print(target_index)
+                print(synapse_params)
+                conn_list = np.array((source_index,
+                                      target_index,
+                                      synapse_params[eg_label]["weight"],  # todo: also check for "syn_weight"
+                                      synapse_params[eg_label]["delay"])).transpose()
+                connector = sim.FromListConnector(conn_list)  # todo: handle other possible parameters
+                syn = synapse_type_cls()  # todo: handle parameters from csv file
+                prj = sim.Projection(pre, post, connector, syn,
+                                     label="{}-{}".format(ep_label, eg_label))
+                net.projections.add(prj)
 
     return net
 
