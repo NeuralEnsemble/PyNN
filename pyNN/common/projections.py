@@ -89,7 +89,9 @@ class Projection(object):
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
         self.post = postsynaptic_neurons  # } read-only
-        self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
+        self.receptor_type = receptor_type or 'excitatory'
+        # TO FIX: (1) if weights are negative, default should be 'inhibitory'
+        #         (2) default receptor type should depend on post-synaptic cell type
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
