@@ -19,6 +19,7 @@ PyNN: documentation
    parallel
    units
    examples
+   publications
    contributors
    release_notes
 
