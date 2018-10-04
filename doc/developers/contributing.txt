@@ -86,8 +86,8 @@ We try to stay fairly close to PEP8_. Please note in particular:
 Testing
 =======
 
-Running the PyNN test suite requires the *nose_* and *mock_* packages, and
-optionally the *coverage_* package. To run the entire test suite, in the
+Running the PyNN test suite requires the *nose_*, *mock_* and *nose-testconfig* packages,
+and optionally the *coverage_* package. To run the entire test suite, in the
 ``test`` subdirectory of the source tree::
 
     $ nosetests

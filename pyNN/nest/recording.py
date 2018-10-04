@@ -57,21 +57,32 @@ class RecordingDevice(object):
         ids = events['senders']
         values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         data = {}
-        for id in desired_ids:
-            data[id] = values[ids == id]
-            if variable != 'times':
+        recorded_ids = set(ids)
+        
+        for id in recorded_ids:
+            data[id]=[]
+
+        for id,v in zip(ids,values):
+            data[id].append(v)
+
+        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(recorded_ids)),numpy.array(desired_ids))
+        data = {k : data[k] for k in desired_and_existing_ids}
+
+        if variable != 'times':
+            for id in desired_ids:
                 # NEST does not record values at the zeroth time step, so we
                 # add them here.
                 if variable not in self._initial_values:
                     self._initial_values[variable] = {}
-                initial_value = self._initial_values[variable].get(id,
+                initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                data[id] = numpy.concatenate((numpy.hstack([initial_value]), data[id]))
+                data[int(id)] = [initial_value] + data.get(int(id),[])
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
                 if clear:
-                    self._initial_values[variable][id] = data[id][-1]
+                    self._initial_values[variable][int(id)] = data[int(id)][-1]
+
         return data
 
 
@@ -422,14 +433,14 @@ class Recorder(recording.Recorder):
         # Maybe we can reset them, rather than create new ones?
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
-
-    def _get_spiketimes(self, id):
-        return self._spike_detector.get_spiketimes([id])[id]  # hugely inefficient - to be optimized later
-
+    
+    def _get_spiketimes(self, ids):
+        return self._spike_detector.get_spiketimes(ids)  # hugely inefficient - to be optimized later
+    
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
-            return numpy.vstack([data[i] for i in ids]).T
+            return numpy.array([data[i] for i in ids]).T #JACOMMENT: this is very expensive but not sure how to get rid of it 
         else:
             return numpy.array([])
 

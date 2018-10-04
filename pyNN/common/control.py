@@ -116,8 +116,9 @@ def build_reset(simulator):
     def reset(annotations={}):
         """
         Reset the time to zero, neuron membrane potentials and synaptic weights to
-        their initial values, and delete any recorded data. The network structure
-        is not changed, nor is the specification of which neurons to record from.
+        their initial values, and begin a new Segment for recorded data. 
+        The network structure is not changed, nor are neuron/synapse parameters,
+        nor the specification of which neurons to record from.
         """
         for recorder in simulator.state.recorders:
             recorder.store_to_cache(annotations)

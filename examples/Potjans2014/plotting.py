@@ -16,7 +16,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     pop_list = ['E', 'I'] 
 
     for i in range(8):
-        layer = i / 2
+        layer = int(i / 2)
         pop = i % 2
         filestart = path + 'spikes_' + str(layer_list[layer]) + '_' + str(pop_list[pop]) + '*'
         filelist = glob.glob(filestart)
@@ -43,7 +43,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     id_count = 0
     print("Mean rates")
     for i in range(8)[::-1]:
-        layer = i / 2
+        layer = int(i / 2)
         pop = i % 2
         rate = 0.0
         t_spikes = spikes[i][:, 0]
