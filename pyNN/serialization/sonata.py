@@ -193,7 +193,7 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
 
         # now write csv file
         field_names = sorted(set.union(*(set(row) for row in csv_rows)))  # todo: `node_type_id` must be first
-        with open(node_type_path, 'w', newline='') as csv_file:
+        with open(node_type_path, 'w') as csv_file:
             csv_writer = csv.DictWriter(csv_file,
                                         fieldnames=field_names,
                                         delimiter=' ',
@@ -223,7 +223,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         edge_type_info = {
             "edge_type_id": i,
             "model_template": "{}:{}".format(target.lower(),
-                                             projection.synapse_type.__class__.__name__)
+                                             projection.synapse_type.__class__.__name__),
+            "receptor_type": projection.receptor_type
         }
         parameter_names = list(projection.synapse_type.default_parameters)
         values = np.array(
@@ -267,7 +268,7 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
 
         # now write csv file
         field_names = sorted(set.union(*(set(row) for row in csv_rows)))
-        with open(edge_type_path, 'w', newline='') as csv_file:
+        with open(edge_type_path, 'w') as csv_file:
             csv_writer = csv.DictWriter(csv_file,
                                         fieldnames=field_names,
                                         delimiter=' ',
@@ -762,195 +763,4 @@ def import_from_sonata(config_file, sim):
         projections = edge_population.to_projections(net, sim)
         net.projections.update(projections)
 
-    #         node_groups = np.unique(nodes_file["nodes"][np_label]['node_group_id'].value)
-
-    #         for ng_label in node_groups:
-    #             print("NODE GROUP {}".format(ng_label))
-    #             mask = nodes_file["nodes"][np_label]['node_group_id'].value == ng_label
-    #             node_group_size = mask.sum()
-    #             print("  size: {}".format(node_group_size))
-    #             node_type_array = nodes_file["nodes"][np_label]['node_type_id'][mask]
-    #             node_types = np.unique(node_type_array)
-    #             print("  node_types: {}".format(node_types))
-
-    #             cell_types = set()
-    #             for node_type_id in node_types:
-    #                 model_type = node_types_map[node_type_id]["model_type"]
-    #                 if model_type not in ("point_neuron", "point_process", "virtual"):
-    #                     raise NotImplementedError("Only point neurons currently supported.")
-
-    #                 if model_type == "virtual":
-    #                     cell_types.add("SpikeSourceArray")
-    #                 else:
-    #                     prefix, cell_type = node_types_map[node_type_id]["model_template"].split(":")
-    #                     if prefix.lower() not in ("pynn", "nrn"):
-    #                         raise NotImplementedError("Only PyNN and NEURON-native networks currently supported.")
-    #                     cell_types.add(cell_type)
-
-    #             if len(cell_types) != 1:
-    #                 raise Exception("Heterogeneous group, not currently supported.")
-    #             cell_type_name = cell_types.pop()
-    #             cell_type_cls = getattr(sim, cell_type_name)
-    #             print("  cell_type: {}".format(cell_type_cls))
-
-    #             parameters = {}
-
-    #             # parameters defined directly in node_types csv file
-    #             if len(node_types) == 1:  # special case for efficiency
-    #                 for parameter_name in cell_type_cls.default_parameters:
-    #                     value = node_types_map[node_types[0]].get(parameter_name, None)
-    #                     if value not in (None, "NONE"):
-    #                         parameters[parameter_name] = float(value)
-    #             else:
-    #                 for parameter_name in cell_type_cls.default_parameters:
-    #                     for node_type in node_types:
-    #                         node_type_mask = (node_type_array == node_type)
-    #                         value = node_types_map[node_type].get(parameter_name, None)
-    #                         if value not in (None, "NONE"):
-    #                             if parameter_name not in parameters:
-    #                                 parameters[parameter_name] = np.nan * np.ones_like(node_type_array, dtype=float)
-    #                             parameters[parameter_name][node_type_mask] = float(value)
-
-    #             # parameters defined in json files referenced from node_types.csv
-    #             for node_type, node_type_dict in node_types_map.items():
-    #                 if "dynamics_params" in node_type_dict:
-    #                     parameter_file_name = node_type_dict["dynamics_params"]
-    #                     parameter_file_path = join(config["components"]["point_neuron_models_dir"],
-    #                                                parameter_file_name)
-    #                     print(parameter_file_path)
-    #                     with open(parameter_file_path) as fp:
-    #                         dynamics_params = json.load(fp)
-    #                     node_type_mask = (node_type_array == int(node_type))
-    #                     for parameter_name in cell_type_cls.default_parameters:
-    #                         if parameter_name in dynamics_params:
-    #                             if parameter_name not in parameters:
-    #                                 parameters[parameter_name] = np.nan * np.ones_like(node_type_array, dtype=float)
-    #                             parameters[parameter_name][node_type_mask] = dynamics_params[parameter_name]
-
-    #             # parameters defined in .h5 files
-    #             h5_node_group = nodes_file["nodes"][np_label][str(ng_label)]
-    #             if 'dynamics_params' in h5_node_group:
-    #                 dynamics_params_group = h5_node_group['dynamics_params']
-    #                 group_mask = nodes_file["nodes"][np_label]['node_group_index'].value[mask]
-    #                 for key in dynamics_params_group.keys():
-    #                     assert key in cell_type_cls.default_parameters
-    #                     parameters[key] = dynamics_params_group[key].value[group_mask]
-
-    #             print(parameters)
-
-    #             # todo: handle spatial structure - nodes_file["nodes"][np_label][ng_label]['x'], etc.
-
-    #             pop = sim.Population(node_group_size,
-    #                                  cell_type_cls(**parameters),
-    #                                  #label=ng_label.decode('utf-8'))
-    #                                  label=str(ng_label))
-    #             # todo: create PopulationViews if multiple node_types
-
-    #             assembly += pop
-    #             assembly.annotations["first_sonata_id"] = nodes_file["nodes"][np_label]['node_id'].value.min()
-    #             print(assembly.annotations)
-
-    # for edges_config in config["networks"]["edges"]:
-    #     edges_path = Template(edges_config["edges_file"]).substitute(NETWORK_DIR=network_dir)
-    #     edge_types_file = Template(edges_config["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
-
-    #     with open(edge_types_file) as csv_file:
-    #         csv_reader = csv.DictReader(csv_file, delimiter=' ', quotechar='"')
-    #         edge_types_table = list(csv_reader)
-    #     edge_types_map = {}
-    #     for row in edge_types_table:
-    #         edge_types_map[row["edge_type_id"]] = row
-    #     print(edge_types_map)
-
-    #     edges_file = h5py.File(edges_path, 'r')
-    #     version = edges_file.attrs.get("version", None)
-    #     magic = edges_file.attrs.get("magic", None)
-    #     if magic is not None and magic != MAGIC:
-    #         # for now we assume that not all SONATA files will have the magic attribute set
-    #         raise Exception("Invalid SONATA file")
-
-    #     edge_populations = list(edges_file["edges"].keys())
-
-    #     for ep_label in edge_populations:
-    #         source_node_ids = edges_file["edges"][ep_label]["source_node_id"].value
-    #         source_node_population = edges_file["edges"][ep_label]["source_node_id"].attrs["node_population"].decode('utf-8')
-    #         target_node_ids = edges_file["edges"][ep_label]["target_node_id"].value
-    #         target_node_population = edges_file["edges"][ep_label]["target_node_id"].attrs["node_population"].decode('utf-8')
-    #         edge_groups = np.unique(edges_file["edges"][ep_label]['edge_group_id'].value)
-
-    #         pre = net.get_component(source_node_population)
-    #         post = net.get_component(target_node_population)
-    #         print(pre)
-    #         print(post)
-
-    #         for eg_label in edge_groups:
-    #             print("EDGE GROUP {}".format(eg_label))
-    #             mask = edges_file["edges"][ep_label]['edge_group_id'].value == eg_label
-    #             source_ids = source_node_ids[mask]
-    #             target_ids = target_node_ids[mask]
-    #             source_index = sonata_id_to_index(pre, source_ids)
-    #             target_index = sonata_id_to_index(post, target_ids)
-
-    #             edge_type_array = edges_file["edges"][ep_label]['edge_type_id'][mask]
-    #             edge_types = np.unique(edge_type_array)
-    #             print("  edge_types: {}".format(edge_types))
-
-    #             synapse_types = set()
-    #             for edge_type_id in edge_types:
-    #                 edge_type_id = str(edge_type_id)
-    #                 if "model_template" in edge_types_map[edge_type_id]:
-    #                     prefix, synapse_type = edge_types_map[edge_type_id]["model_template"].split(":")
-    #                     if prefix.lower() != "pynn":
-    #                         raise NotImplementedError("Only PyNN networks currently supported.")
-    #                 else:
-    #                     synapse_type = "StaticSynapse"
-    #                 synapse_types.add(synapse_type)
-
-    #             if len(synapse_types) != 1:
-    #                 raise Exception("Heterogeneous group, not currently supported.")
-    #             synapse_type_name = synapse_types.pop()
-    #             synapse_type_cls = getattr(sim, synapse_type_name)
-    #             print("  synapse_type: {}".format(synapse_type_cls))
-
-    #             for edge_type_id in edge_types:
-    #                 edge_type_id = str(edge_type_id)
-
-    #                 synapse_params = {}
-    #                 mask = slice(None)  # start by selecting all
-
-    #                 # parameters defined directly in edge_types csv file
-    #                 edge_params = edge_types_map[edge_type_id]
-    #                 if "target_query" in edge_params:
-    #                     mask =
-    #                 for param_name in ("syn_weight", "weight", "delay"):
-    #                     if param_name in edge_params:
-    #                         synapse_params[param_name][mask] = edge_params[param_name]
-
-    #             # parameters defined in json files referenced from edge_types.csv
-    #             # TODO
-
-    #             # parameters defined in .h5 files
-    #             h5_edge_group = edges_file["edges"][ep_label][str(eg_label)]
-    #             if "dynamics_params" in h5_edge_group:
-    #                 params_group = h5_edge_group['dynamics_params']
-    #                 for key in params_group.keys():
-    #                     synapse_params[key] = params_group[key].value
-
-    #             print(source_ids)
-    #             print(source_index)
-    #             print(target_ids)
-    #             print(target_index)
-    #             print(synapse_params)
-    #             conn_list = np.array((source_index,
-    #                                   target_index,
-    #                                   synapse_params["weight"],  # todo: also check for "syn_weight"
-    #                                   synapse_params["delay"])).transpose()
-    #             connector = sim.FromListConnector(conn_list)  # todo: handle other possible parameters
-    #             syn = synapse_type_cls()  # todo: handle parameters from csv file
-    #             prj = sim.Projection(pre, post, connector, syn,
-    #                                  #receptor_type=?
-    #                                  label="{}-{}".format(ep_label, eg_label))
-    #             net.projections.add(prj)
-
-    #return net
-    return net, sonata_node_populations, sonata_edge_populations
+    return net
