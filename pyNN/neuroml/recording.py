@@ -67,7 +67,14 @@ class Recorder(recording.Recorder):
             
 
     def _get_spiketimes(self, id):
-        return numpy.array([id, id+5], dtype=float) % self._simulator.state.t
+        
+        if hasattr(id, "__len__"):
+            spks = {}
+            for i in id:
+                spks[i] = numpy.array([i, i + 5], dtype=float) % self._simulator.state.t
+            return spks
+        else:
+            return numpy.array([id, id + 5], dtype=float) % self._simulator.state.t
 
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
