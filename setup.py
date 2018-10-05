@@ -6,7 +6,8 @@ try:
     from setuptools import version
     if version.__version__ > '20.5':
         tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
-                     'matplotlib;python_version>="3.4"', 'Cheetah3']
+                     'matplotlib;python_version>="3.4"', 'Cheetah3',
+                     'h5py']
     else:
         tests_req = ['mpi4py', 'Cheetah3']
 except ImportError:
@@ -126,7 +127,8 @@ setup(
     extras_require={
         'examples': ['matplotlib', 'scipy'],
         'plotting': ['matplotlib', 'scipy'],
-        'MPI': ['mpi4py']
+        'MPI': ['mpi4py'],
+        'sonata': ['h5py']
     },
     tests_require=tests_req
 )
