@@ -380,7 +380,7 @@ def issue_465_474(sim):
     4) Change in Vm begins at the immediate next time instant following current injection
     """
     sim_dt = 0.1
-    sim.setup(min_delay=1.0, timestep = sim_dt)
+    sim.setup(min_delay=1.0, timestep=sim_dt)
 
     v_rest = -60.0
     cells = sim.Population(4, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
@@ -537,7 +537,7 @@ def issue512(sim):
     assert_raises(ValueError, sim.StepCurrentSource,
                   times=[0.4, 0.2, 0.8], amplitudes=[0.5, -0.5, 0.5])
     # 1.3) Check mapping of time values and removal of duplicates
-    step = sim.StepCurrentSource(times=[0.41, 0.42, 0.85],
+    step = sim.StepCurrentSource(times=[0.41, 0.42, 0.86],
                                  amplitudes=[0.5, -0.5, 0.5])
     assert_equal(get_len(step.times), 2)
     assert_equal(get_len(step.amplitudes), 2)
@@ -574,14 +574,14 @@ def issue512(sim):
     assert_raises(ValueError, sim.StepCurrentSource,
                   times=[0.5, 0.4999, 0.8], amplitudes=[0.5, -0.5, 0.5])
     # 2.3) Check mapping of time values and removal of duplicates
-    step = sim.StepCurrentSource(times=[0.451, 0.452, 0.85],
+    step = sim.StepCurrentSource(times=[0.451, 0.452, 0.86],
                                  amplitudes=[0.5, -0.5, 0.5])
     assert_equal(get_len(step.times), 2)
     assert_equal(get_len(step.amplitudes), 2)
     if "pyNN.brian" in str(sim):
         # Brian requires time in seconds (s)
         assert_true (abs(step.times[0]-0.45*1e-3) < 1e-9)
-        assert_true (abs(step.times[1]-0.85*1e-3) < 1e-9)
+        assert_true (abs(step.times[1]-0.86*1e-3) < 1e-9)
         # Brain requires amplitudes in amperes (A)
         assert_true (step.amplitudes[0] == -0.5*1e-9)
         assert_true (step.amplitudes[1] == 0.5*1e-9)
@@ -595,10 +595,10 @@ def issue512(sim):
         # But NEST has time stamps reduced by min_delay
         if "pyNN.nest" in str(sim):
             assert_true (abs(step.times[0]-0.44) < 1e-9)
-            assert_true (abs(step.times[1]-0.84) < 1e-9)
+            assert_true (abs(step.times[1]-0.85) < 1e-9)
         else: # neuron
             assert_true (abs(step.times[0]-0.45) < 1e-9)
-            assert_true (abs(step.times[1]-0.85) < 1e-9)
+            assert_true (abs(step.times[1]-0.86) < 1e-9)
 
 
 if __name__ == '__main__':

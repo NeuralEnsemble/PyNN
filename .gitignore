@@ -82,3 +82,5 @@ examples/*.svg
 tmp
 /pynnpg.sh
 /cleanpynn.sh
+
+.eggs/

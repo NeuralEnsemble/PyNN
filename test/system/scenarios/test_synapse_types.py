@@ -44,7 +44,10 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
     assert_less(crossings[1].size, 0.6*spike_times.size)
     assert_greater(crossings[1].size, 0.4*spike_times.size)
     assert_equal(crossings[3].size, spike_times.size)
-    assert_not_equal(crossings[1], crossings[2])
+    try:
+        assert_not_equal(crossings[1], crossings[2])
+    except ValueError:
+        assert not (crossings[1] == crossings[2]).all()
     print(crossings[1].size / spike_times.size)
     return data
 

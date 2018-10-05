@@ -24,6 +24,9 @@ class NestCurrentSource(BaseCurrentSource):
         if parameters:
             self.parameter_space.update(**parameters)
 
+        self.min_delay = state.min_delay
+        self.timestep = state.dt  # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+
     def inject_into(self, cells):
         for id in cells:
             if id.local and not id.celltype.injectable:
@@ -38,7 +41,7 @@ class NestCurrentSource(BaseCurrentSource):
         """
         A change in a device requires a min_delay to take effect at the target
         """
-        corrected = value - state.min_delay
+        corrected = value - self.min_delay
         # set negative times to zero
         if isinstance(value, numpy.ndarray):
             corrected = numpy.where(corrected > 0, corrected, 0.0)
@@ -60,7 +63,7 @@ class NestCurrentSource(BaseCurrentSource):
         # To keep this consistent across simulators, we will have current
         # initiating at the electrode at t_start and effect on cell at next dt
         # This requires padding min_delay equivalent period with 0's
-        pad_length = int(state.min_delay/state.dt)
+        pad_length = int(self.min_delay/self.timestep)
         i_arr = numpy.insert(i_arr[:-pad_length], 0, [0]*pad_length)
         return t_arr, i_arr
 

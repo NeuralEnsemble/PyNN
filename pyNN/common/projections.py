@@ -270,8 +270,10 @@ class Projection(object):
         `format`:
             "list" or "array".
         `gather`:
-            if True, get connection information from all MPI nodes, otherwise
-            only from connections that exist in this node.
+            If True, node 0 gets connection information from all MPI nodes,
+            other nodes get information only from connections that exist in this node.
+            If 'all', all nodes will receive connection information from all other nodes.
+            If False, all nodes get only information about local connections.
 
         With list format, returns a list of tuples. By default, each tuple
         contains the indices of the pre- and post-synaptic cell followed by

@@ -2,13 +2,13 @@
 
 set -e  # stop execution in case of errors
 
-if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
+if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
     echo -e "\n========== Installing NEST ==========\n"
     # Specify which version of NEST to install
     #export NEST_VERSION="master"
     export NEST_VERSION="2.14.0"
 
-    pip install cython==0.23.4
+    pip install cython==0.28.1
 
     if [ "$NEST_VERSION" = "master" ]; then
       export NEST="nest-simulator-$NEST_VERSION"
@@ -26,11 +26,13 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.5" 
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
     export VENV=`python -c "import sys; print(sys.prefix)"`;
-    ln -s /opt/python/2.7.14/lib/libpython2.7.so $VENV/lib/libpython2.7.so;
-    ln -s /opt/python/3.5.4/lib/libpython3.5m.so $VENV/lib/libpython3.5.so;
-    export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}
-    if [ "$TRAVIS_PYTHON_VERSION" == "3.5" ]; then
-        export PYTHON_INCLUDE_DIR=${PYTHON_INCLUDE_DIR}m;
+    if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
+      ln -s /opt/python/2.7/lib/libpython2.7.so $VENV/lib/libpython2.7.so;
+      export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}
+    fi
+    if [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
+      ln -s /opt/python/3.6/lib/libpython3.6m.so $VENV/lib/libpython3.6.so;
+      export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}m
     fi
     cython --version;
     cmake --version;
