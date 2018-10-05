@@ -441,7 +441,7 @@ def condense(value, node_types_array):
         return value
     elif isinstance(value, dict):
         assert len(value) > 0
-        value_array = np.array(value.values())
+        value_array = np.array(list(value.values()))
         if np.all(value_array == value_array[0]):
             return value_array[0]
         else:
