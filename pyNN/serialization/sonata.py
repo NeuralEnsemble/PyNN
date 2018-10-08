@@ -11,13 +11,66 @@ from string import Template
 import csv
 from warnings import warn
 import json
-import h5py
-import numpy as np
-from pyNN.network import Network
 try:
     basestring
 except NameError:  # Python 3
     basestring = str
+
+import h5py
+import numpy as np
+from pyNN.network import Network
+from pyNN.parameters import Sequence
+
+#from neo.io import SonataIO
+import neo
+from neo.io.baseio import BaseIO
+
+class SonataIO(BaseIO):  # tmp
+
+    def __init__(self, base_dir,
+                 spikes_file="spikes.h5",
+                 spikes_sort_order=None):
+        self.base_dir = base_dir
+        self.spike_file = spikes_file
+        self.spikes_sort_order = spikes_sort_order
+
+    def read(self):
+        file_path = join(self.base_dir, self.spike_file)
+        block = neo.Block(file_origin=file_path)
+        segment = neo.Segment(file_origin=file_path)  # would be nice to get the time at the start of the recording, not the end
+        spikes_file = h5py.File(file_path, 'r')
+        for gid in np.unique(spikes_file['spikes']['gids']):
+            index = spikes_file['spikes']['gids'].value == gid
+            spike_times = spikes_file['spikes']['timestamps'][index]
+            segment.spiketrains.append(
+                neo.SpikeTrain(spike_times,
+                               t_stop = spike_times.max() + 1.0,
+                               t_start=0.0,
+                               units='ms',
+                               source_id=gid)
+            )
+        block.segments.append(segment)
+        return [block]
+
+    def write(self, blocks):
+        spike_file_path = join(self.base_dir, self.spike_file)
+        spikes_file = h5py.File(spike_file_path, 'w')
+        spike_trains = []
+        for block in blocks:
+            for segment in block.segments:
+                spike_trains.extend(segment.spiketrains)
+        n_spikes = sum(st.size for st in spike_trains)
+
+        spikes_group = spikes_file.create_group("spikes")
+        all_spike_times = np.hstack(st.rescale('ms').magnitude
+                                    for st in spike_trains).astype(np.float64)
+        gids = np.hstack(st.annotations["source_id"] * np.ones(st.shape, dtype=np.uint64)
+                         for st in spike_trains)
+        # todo: handle sorting
+        spikes_group.create_dataset("timestamps", data=all_spike_times, dtype=np.float64)
+        spikes_group.create_dataset("gids", data=gids, dtype=np.uint64)
+        spikes_file.close()
+        print("Wrote output to {}".format(spike_file_path))
 
 
 MAGIC = 0x0a7a
@@ -159,6 +212,7 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         nodes_file.attrs["magic"] = MAGIC  # needs to be uint32
         root = nodes_file.create_group("nodes")  # todo: add attribute with network name
         default = root.create_group(population_label)  # we use a single node group for the full Population
+        # todo: check and fix the dtypes in the following
         default.create_dataset("node_id", data=population.all_cells.astype('i4'), dtype='i4')
         default.create_dataset("node_type_id", data=i * np.ones((n,)), dtype='i2')
         default.create_dataset("node_group_id", data=np.array([group_label] * n), dtype='i2')  #S32')  # todo: calculate the max label size
@@ -669,7 +723,7 @@ def load_config(config_file):
         elif isinstance(obj, list):
             return [traverse(elem) for elem in obj]
         else:
-            if obj.startswith('$'):
+            if isinstance(obj, basestring) and obj.startswith('$'):
                 return Template(obj).substitute(**substitutions)
             else:
                 return obj
@@ -764,3 +818,103 @@ def import_from_sonata(config_file, sim):
         net.projections.update(projections)
 
     return net
+
+
+class SimulationPlan(object):
+    """ """
+
+    def __init__(self, run, inputs=None, output=None, reports=None,
+                 target_simulator=None, node_sets_file=None, conditions=None,
+                 manifest=None, **additional_sections):
+        self.run_config = run
+        self.inputs = inputs
+        self.output = output
+        self.reports = reports
+        self.target_simulator = target_simulator
+        self.node_sets_file = node_sets_file
+        self.conditions = conditions
+        self.manifest = manifest
+        self.additional_sections = additional_sections
+        if self.inputs is None:
+            self.inputs = {}
+        if self.reports is None:
+            self.reports = {}
+
+    def setup(self, sim):
+        self.sim = sim
+        sim.setup(timestep=self.run_config["dt"])
+
+    def _get_target(self, input_config, node_sets, net):
+        target = node_sets[input_config["node_set"]]
+        if "model_type" in target:
+            raise NotImplementedError()
+        if "location" in target:
+            raise NotImplementedError()
+        if "node_id" in target:
+            raise NotImplementedError()
+        if "gids" in target:
+            raise NotImplementedError()
+        if "population" in target:
+            return net.get_component(target["population"])
+
+    def _set_input_spikes(self, input_config, node_sets, net):
+        # determine which assembly the spikes are for
+        assembly = self._get_target(input_config, node_sets, net)
+        assert isinstance(assembly, self.sim.Assembly)
+
+        # load spike data from file
+        if input_config["module"] != "h5":
+            raise NotImplementedError()
+        io = SonataIO(base_dir="",
+                      spikes_file=input_config["input_file"])
+        data = io.read()
+        assert len(data) == 1
+        if "trial" in input_config:
+            raise NotImplementedError()
+            # assuming we can map trials to segments
+        assert len(data[0].segments) == 1
+        spiketrains = data[0].segments[0].spiketrains
+        if len(spiketrains) != assembly.size:
+            raise NotImplementedError()
+        # todo: map cell ids in spikes file to ids/index in the population
+        assembly.set(spike_times=[Sequence(st.times) for st in spiketrains])
+
+    def execute(self, net):
+        # create/configure inputs
+        if self.node_sets_file is not None:
+            with open(self.node_sets_file) as fp:
+                node_sets = json.load(fp)
+                # make all node set names lower case, needed by 300 IF neuron example
+                node_sets = {k.lower(): v for k, v in node_sets.items()}
+                # todo: handle compound node sets
+        for input_name, input_config in self.inputs.items():
+            if input_config["input_type"] != "spikes":
+                raise NotImplementedError()
+            self._set_input_spikes(input_config, node_sets, net)
+
+        # configure recording
+        net.record('spikes')  # SONATA requires that we record spikes from all nodes
+        for report_name, report_config in self.reports.items():
+            raise NotImplementedError("Reports not yet implemented")
+
+        # run simulation
+        self.sim.run(self.run_config["tstop"])
+
+        # write output
+        io = SonataIO(self.output["output_dir"],
+                      spikes_file=self.output.get("spikes_file", "spikes.h5"),
+                      spikes_sort_order=self.output["spikes_sort_order"])
+                      # todo: handle reports
+                      # todo: handle "overwrite_output_dir" parameter
+        net.write_data(io)
+
+    @classmethod
+    def from_config(cls, config):
+        obj = cls(**config)
+        return obj
+
+
+def load_sonata_simulation_plan(config_file):
+    config = load_config(config_file)
+    plan = SimulationPlan(**config)
+    return plan

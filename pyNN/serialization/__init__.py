@@ -1,1 +1,1 @@
-from .sonata import import_from_sonata, export_to_sonata, asciify
+from .sonata import import_from_sonata, export_to_sonata, asciify, load_sonata_simulation_plan
