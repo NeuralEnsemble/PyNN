@@ -134,18 +134,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
             "templates": "$COMPONENT_DIR/hoc_templates",
         },
         "networks": {
-            "nodes": [
-                #{
-                #    "nodes_file": "$NETWORK_DIR/nodes.h5",
-                #    "node_types_file": "$NETWORK_DIR/node_types.csv"
-                #}
-            ],
-            "edges":[
-                #{
-                #    "edges_file": "$NETWORK_DIR/edges.h5",
-                #    "edge_types_file": "$NETWORK_DIR/edge_types.csv"
-                #},
-            ]
+            "nodes": [],
+            "edges":[]
         }
     }
 
@@ -479,6 +469,12 @@ class NodeGroup(object):
                 annotations[name] = value
         # todo: handle spatial structure - nodes_file["nodes"][np_label][ng_label]['x'], etc.
 
+        # temporary hack to work around problem with 300 Intfire cell example
+        if cell_type_cls.__name__ == 'IntFire1':
+            parameters['tau'] *= 1000.0
+            parameters['refrac'] *= 1000.0
+        # end hack
+
         cell_type = cell_type_cls(**parameters)
         pop = sim.Population(self.size,
                              cell_type,
@@ -606,6 +602,8 @@ class EdgeGroup(object):
             # not sure the next bit is using `index` correctly
             for key in dynamics_params_group.keys():
                 parameters[key] = dynamics_params_group[key].value[index]
+        if 'nsyns' in h5_data:
+            parameters['nsyns'] = h5_data['nsyns'].value[index]
 
         obj.parameters = parameters
         print(parameters)
@@ -674,6 +672,12 @@ class EdgeGroup(object):
             # nor in the .mod file for IntFire1
             sign = condense(annotations["sign"], self.edge_types_array)
             parameters["weight"] *= sign
+
+        if "nsyns" in annotations:
+            # special case (?) from the 300 IF example, not mentioned in the SONATA spec
+            # nor in the .mod file for IntFire1
+            nsyns = condense(annotations["nsyns"], self.edge_types_array)
+            parameters["weight"] *= nsyns
 
         conn_list_args = [
             sonata_id_to_index(pre, self.source_ids),
@@ -901,11 +905,15 @@ class SimulationPlan(object):
         self.sim.run(self.run_config["tstop"])
 
         # write output
+        if "overwrite_output_dir" in self.run_config:
+            directory = self.output["output_dir"]
+            if exists(directory) and isdir(directory):
+                shutil.rmtree(directory)
+            os.makedirs(directory)
         io = SonataIO(self.output["output_dir"],
                       spikes_file=self.output.get("spikes_file", "spikes.h5"),
                       spikes_sort_order=self.output["spikes_sort_order"])
                       # todo: handle reports
-                      # todo: handle "overwrite_output_dir" parameter
         net.write_data(io)
 
     @classmethod
