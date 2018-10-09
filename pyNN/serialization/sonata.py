@@ -35,6 +35,7 @@ from string import Template
 import csv
 from warnings import warn
 import json
+import logging
 try:
     basestring
 except NameError:  # Python 3
@@ -118,11 +119,11 @@ class SonataIO(BaseIO):
         spikes_group.create_dataset("timestamps", data=all_spike_times, dtype=np.float64)
         spikes_group.create_dataset("gids", data=gids, dtype=np.uint64)
         spikes_file.close()
-        print("Wrote output to {}".format(spike_file_path))
+        logger.info("Wrote output to {}".format(spike_file_path))
 
 
 MAGIC = 0x0a7a
-
+logger = logging.getLogger("pyNN.serialization.sonata")
 
 # ----- utility functions, not intended for use outside this module ----------
 
@@ -155,7 +156,7 @@ def read_types_file(file_path, node_or_edge):
     id_label = "{}_type_id".format(node_or_edge)
     for row in types_table:
         types_map[int(row[id_label])] = row  # NodeType(**row)
-    print(types_map)
+    logger.info(types_map)
     return types_map
 
 
@@ -392,7 +393,7 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
                                         quotechar='"')
             csv_writer.writeheader()
             for row in csv_rows:
-                print(row)
+                logger.info(row)
                 for column_name in csv_columns:
                     if column_name not in row:
                         row[column_name] = "NONE"
@@ -590,7 +591,7 @@ class NodePopulation(object):
 
         for ng_label in np.unique(h5_data['node_group_id'].value):
             mask = h5_data['node_group_id'].value == ng_label
-            print("NODE GROUP {}, size {}".format(ng_label, mask.sum()))
+            logger.info("NODE GROUP {}, size {}".format(ng_label, mask.sum()))
 
             node_type_array = h5_data['node_type_id'][mask]
             node_group_index = h5_data['node_group_index'][mask]
@@ -685,7 +686,7 @@ class NodeGroup(object):
                 parameters[key] = dynamics_params_group[key].value[index]
 
         obj.parameters = parameters
-        print(parameters)
+        logger.info(parameters)
 
         return obj
 
@@ -713,7 +714,7 @@ class NodeGroup(object):
 
         cell_type_name = cell_types.pop()
         cell_type_cls = getattr(sim, cell_type_name)
-        print("  cell_type: {}".format(cell_type_cls))
+        logger.info("  cell_type: {}".format(cell_type_cls))
         return cell_type_cls
 
     def to_population(self, sim):
@@ -740,7 +741,7 @@ class NodeGroup(object):
                              cell_type,
                              label=self.id)
         pop.annotate(**annotations)
-        print("--------> {}".format(pop))
+        logger.info("--------> {}".format(pop))
         # todo: create PopulationViews if multiple node_types
         return pop
 
@@ -775,7 +776,7 @@ class EdgePopulation(object):
         obj.edge_groups = []
         for eg_label in np.unique(h5_data['edge_group_id'].value):
             mask = h5_data['edge_group_id'].value == eg_label
-            print("EDGE GROUP {}, size {}".format(eg_label, mask.sum()))
+            logger.info("EDGE GROUP {}, size {}".format(eg_label, mask.sum()))
 
             edge_type_array = h5_data['edge_type_id'][mask]
             edge_group_index = h5_data['edge_group_index'][mask]
@@ -874,7 +875,7 @@ class EdgeGroup(object):
             parameters['nsyns'] = h5_data['nsyns'].value[index]
 
         obj.parameters = parameters
-        print(parameters)
+        logger.info(parameters)
         return obj
 
     def __repr__(self):
@@ -918,8 +919,8 @@ class EdgeGroup(object):
             receptor_type = "default"  # temporary hack to make 300-cell example work, due to PyNN bug #597
                                        # value should really be None.
 
-        print("  synapse_type: {}".format(synapse_type_cls))
-        print("  receptor_type: {}".format(receptor_type))
+        logger.info("  synapse_type: {}".format(synapse_type_cls))
+        logger.info("  receptor_type: {}".format(receptor_type))
         return synapse_type_cls, receptor_type
 
     def to_projection(self, pre, post, edge_population_name, sim):
@@ -980,7 +981,7 @@ class EdgeGroup(object):
                              receptor_type=receptor_type,
                              label="{}-{}".format(edge_population_name, self.id))
         prj.annotate(**annotations)
-        print("--------> {}".format(prj))
+        logger.info("--------> {}".format(prj))
         return prj
 
 
@@ -1041,8 +1042,8 @@ class SimulationPlan(object):
         if len(spiketrains) != assembly.size:
             raise NotImplementedError()
         # todo: map cell ids in spikes file to ids/index in the population
-        #print("SETTING SPIKETIMES")
-        #print(spiketrains)
+        #logger.info("SETTING SPIKETIMES")
+        #logger.info(spiketrains)
         assembly.set(spike_times=[Sequence(st.times) for st in spiketrains])
 
     def execute(self, net):
