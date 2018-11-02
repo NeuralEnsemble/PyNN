@@ -16,8 +16,9 @@ the discussion.
 In case of disagreement with a decision, we will try to reach a consensus between maintainers,
 taking account of any input from the wider community.
 If consensus cannot be reached, decisions will be based on a majority vote among the maintainers,
-with the caveat that only one vote per institution is allowed (i.e. in the case where several
-maintainers belong to the same institution they will have to agree among themselves how to vote).
+with the caveats that (i) only one vote per institution is allowed (i.e. in the case where several
+maintainers belong to the same institution they will have to agree among themselves how to vote)
+and (ii) a quorum of three maintainers must be achieved.
 
 Maintainers
 ===========
