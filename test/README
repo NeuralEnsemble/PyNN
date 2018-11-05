@@ -5,4 +5,4 @@ PyNN testing is divided into several different types of test:
     * running the example scripts
     * doctests    
 
-For full documentation about testing, visit:http://neuralensemble.org/docs/PyNN/developers/contributing.html#testing
+For full documentation on testing, see:http://neuralensemble.org/docs/PyNN/developers/contributing.html#testing
