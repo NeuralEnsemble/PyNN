@@ -255,7 +255,7 @@ class Projection(object):
 
     # --- Methods for writing/reading information to/from file. ---------------
 
-    def get(self, attribute_names, format, gather=True, with_address=True,
+    def get(self, attribute_names, format, gather='all', with_address=True,
             multiple_synapses='sum'):
         """
         Get the values of a given attribute (weight or delay) for all
