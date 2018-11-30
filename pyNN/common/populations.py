@@ -962,6 +962,7 @@ class Assembly(object):
             self._insert(p)
         self.label = kwargs.get('label', 'assembly%d' % Assembly._count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
+        self.annotations = {}
         Assembly._count += 1
 
     def __repr__(self):

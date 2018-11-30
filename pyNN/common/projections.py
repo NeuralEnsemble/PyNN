@@ -89,7 +89,9 @@ class Projection(object):
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
         self.post = postsynaptic_neurons  # } read-only
-        self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
+        self.receptor_type = receptor_type or 'excitatory'
+        # TO FIX: (1) if weights are negative, default should be 'inhibitory'
+        #         (2) default receptor type should depend on post-synaptic cell type
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
@@ -105,6 +107,7 @@ class Projection(object):
             if self.pre.label and self.post.label:
                 self.label = u"%s→%s" % (self.pre.label, self.post.label)
         self.initial_values = {}
+        self.annotations = {}
         Projection._nProj += 1
 
     def __len__(self):
@@ -442,6 +445,9 @@ class Projection(object):
             max = weights.max()
         bins = numpy.linspace(min, max, nbins + 1)
         return numpy.histogram(weights, bins)  # returns n, bins
+
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
 
     def describe(self, template='projection_default.txt', engine='default'):
         """

@@ -608,4 +608,76 @@ class VectorSpikeSource(hclass(h.VecStim)):
         if end > 0:
             self._spike_times.remove(0, end - 1)  # range is inclusive
 
-    
+
+class ArtificialCell(object):
+    """Wraps NEURON 'ARTIFICIAL_CELL' models for PyNN"""
+
+    def __init__(self, mechanism_name, **parameters):
+        self.source = getattr(h, mechanism_name)()
+        for name, value in parameters.items():
+            setattr(self.source, name, value)
+        dummy = nrn.Section()
+
+        # needed for PyNN
+        self.source_section = dummy  # todo: only need a single dummy for entire network, not one per cell
+        self.parameter_names = ('tau', 'refrac')
+        self.traces = {}
+        self.spike_times = h.Vector(0)
+        self.rec = h.NetCon(self.source, None)
+        self.recording_time = False
+        self.default = self.source
+
+    def _set_tau(self, value):
+        self.source.tau = value
+    def _get_tau(self):
+        return self.source.tau
+    tau = property(fget=_get_tau, fset=_set_tau)
+
+    def _set_refrac(self, value):
+        self.source.refrac = value
+    def _get_refrac(self):
+        return self.source.refrac
+    refrac = property(fget=_get_refrac, fset=_set_refrac)
+
+    # ... gkbar and g_leak properties defined similarly
+
+    def memb_init(self):
+        self.source.m = self.m_init
+
+
+class IntFire1(NativeCellType):
+    default_parameters = {'tau': 10.0, 'refrac': 5.0}
+    default_initial_values = {'m': 0.0}
+    recordable = ['m']
+    units = {'m': 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire1"}
+
+
+class IntFire2(NativeCellType):
+    default_parameters = {'taum': 10.0, 'taus': 20.0, 'ib': 0.0}
+    default_initial_values = {'m': 0.0, 'i': 0.0}
+    recordable = ['m', 'i']
+    units = {'m' : 'dimensionless', 'i': 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire2"}
+
+
+class IntFire4(NativeCellType):
+    default_parameters = {
+        'taum': 50.0,
+        'taue': 5.0,
+        'taui1': 10.0,
+        'taui2': 20.0,
+    }
+    default_initial_values = {'m': 0.0, 'e': 0.0, 'i1': 0.0, 'i2': 0.0}
+    recordable = ['e', 'i1', 'i2', 'm']
+    units = {'e' : 'dimensionless',
+             'i1' : 'dimensionless',
+             'i2' : 'dimensionless',
+             'm' : 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire4"}
