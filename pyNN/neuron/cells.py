@@ -609,3 +609,5 @@ class VectorSpikeSource(hclass(h.VecStim)):
             self._spike_times.remove(0, end - 1)  # range is inclusive
         else:
             self._spike_times.resize(0)
+        # Vector is resized -> restart VecStim.play() to fix indexing
+        self.play(self._spike_times)
