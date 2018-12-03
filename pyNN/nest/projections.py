@@ -73,10 +73,12 @@ class Projection(common.Projection):
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        local_nodes = nest.GetNodes([0], local_only=True)[0]
-        local_connections = nest.GetConnections(target=local_nodes,
-                                                synapse_model=self.nest_synapse_model,
-                                                synapse_label=self.nest_synapse_label)
+        #Disabling the following method pending resolution of https://github.com/nest/nest-simulator/issues/1085
+        #local_nodes = nest.GetNodes([0], local_only=True)[0]
+        #local_connections = nest.GetConnections(target=local_nodes,
+        #                                        synapse_model=self.nest_synapse_model,
+        #                                        synapse_label=self.nest_synapse_label)
+        local_connections = self.nest_connections
         return len(local_connections)
 
     @property

@@ -111,7 +111,6 @@ public:
   check_connection( nest::Node& s,
     nest::Node& t,
     nest::rport receptor_type,
-    double,
     const CommonPropertiesType& )
   {
     ConnTestDummyNode dummy_target;
@@ -122,13 +121,9 @@ public:
    * Send an event to the receiver of this connection.
    * @param e The event to send
    * @param t Thread
-   * @param t_lastspike Point in time of last spike sent.
    * @param cp Common properties to all synapses.
    */
-  void send( nest::Event& e,
-    nest::thread t,
-    double t_lastspike,
-    const CommonPropertiesType& cp );
+  void send( nest::Event& e, nest::thread t, const CommonPropertiesType& cp );
 
   // The following methods contain mostly fixed code to forward the
   // corresponding tasks to corresponding methods in the base class and the w_
@@ -158,11 +153,9 @@ template < typename targetidentifierT >
 inline void
 SimpleStochasticConnection< targetidentifierT >::send( nest::Event& e,
   nest::thread t,
-  double t_lastspike,
   const CommonPropertiesType& props )
 {
-  const int vp = ConnectionBase::get_target( t )->get_vp();
-  if ( nest::kernel().rng_manager.get_rng( vp )->drand() < (1 - p_) )  // drop spike
+  if ( nest::kernel().rng_manager.get_rng( t )->drand() < (1 - p_) )  // drop spike
     return;
 
   // Even time stamp, we send the spike using the normal sending mechanism

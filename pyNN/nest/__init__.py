@@ -120,8 +120,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     common.setup(timestep, min_delay, **extra_params)
     simulator.state.clear()
-    for key in ("verbosity", "spike_precision", "recording_precision",
-                "threads"):
+    for key in ("threads", "verbosity", "spike_precision", "recording_precision"):
         if key in extra_params:
             setattr(simulator.state, key, extra_params[key])
     # set kernel RNG seeds

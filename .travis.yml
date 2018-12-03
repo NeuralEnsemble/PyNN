@@ -16,8 +16,8 @@ after_success:
   - coveralls
 cache:
   directories:
-    - $HOME/nest-2.14.0
+    - $HOME/nest-2.16.0
     - $HOME/nrn-7.5
-    - $HOME/build/nest-2.14.0
+    - $HOME/build/nest-2.16.0
     - $HOME/build/nrn-7.5
     - $HOME/.cache/pip
