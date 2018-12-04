@@ -10,6 +10,7 @@ include test/system/scenarios/*.py
 include test/unittests/*.py
 include examples/*.py
 include doc/*.txt
+include doc/*/*.txt
 include LICENSE
 include AUTHORS
 include README.rst

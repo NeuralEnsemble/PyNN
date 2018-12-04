@@ -86,7 +86,7 @@ class build(_build):
 
 setup(
     name="PyNN",
-    version="0.9.2",
+    version="0.9.3",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
