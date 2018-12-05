@@ -22,7 +22,7 @@ def run_command(path, working_directory):
     p = subprocess.Popen(path, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
-                         close_fds=True, cwd=working_directory)
+                         cwd=working_directory)
     result = p.wait()
     stdout = p.stdout.readlines()
     return result, stdout
@@ -87,7 +87,7 @@ class build(_build):
 
 setup(
     name="PyNN",
-    version="0.9.2",
+    version="0.9.3",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
