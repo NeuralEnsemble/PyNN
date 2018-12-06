@@ -8,7 +8,7 @@ Definition of cell classes for the brian module.
 
 
 import numpy
-import brian
+import brian2
 from pyNN.parameters import Sequence, simplify
 from pyNN import errors
 from . import simulator

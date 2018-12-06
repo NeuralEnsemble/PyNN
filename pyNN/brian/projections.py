@@ -6,8 +6,8 @@
 from itertools import chain
 from collections import defaultdict
 import numpy
-import brian
-from brian import uS, nA, mV, ms
+import brian2
+from brian2 import uS, nA, mV, ms
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import is_listlike

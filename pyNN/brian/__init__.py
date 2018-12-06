@@ -6,7 +6,7 @@ Brian implementation of the PyNN API.
 """
 
 import logging
-import brian
+import brian2
 from pyNN import common, space
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.connectors import *

@@ -7,7 +7,7 @@
 import logging
 import numpy
 import quantities as pq
-import brian
+import brian2
 from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator

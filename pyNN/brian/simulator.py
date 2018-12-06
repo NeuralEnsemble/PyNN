@@ -21,7 +21,7 @@ modules.
 """
 
 import logging
-import brian
+import brian2
 import numpy
 from pyNN import common
 

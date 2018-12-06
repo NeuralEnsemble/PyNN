@@ -1,6 +1,6 @@
 try:
     import pyNN.brian as sim
-    import brian
+    import brian2
 except ImportError:
     brian = False
 try:

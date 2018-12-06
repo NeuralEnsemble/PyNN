@@ -7,8 +7,8 @@ Standard cells for the Brian module.
 """
 
 from copy import deepcopy
-import brian
-from brian import mV, ms, nF, nA, uS, Hz, nS
+import brian2
+from brian2 import mV, ms, nF, nA, uS, Hz, nS
 from pyNN.standardmodels import cells, build_translations
 from ..cells import (ThresholdNeuronGroup, SpikeGeneratorGroup, PoissonGroup,
                      BiophysicalNeuronGroup, AdaptiveNeuronGroup, AdaptiveNeuronGroup2,

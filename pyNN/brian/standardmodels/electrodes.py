@@ -14,8 +14,8 @@ Classes:
 
 import logging
 import numpy
-import brian
-from brian import ms, nA, Hz, network_operation, amp as ampere
+import brian2
+from brian2 import ms, nA, Hz, network_operation, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from .. import simulator
