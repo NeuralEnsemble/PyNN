@@ -74,7 +74,7 @@ class Projection(common.Projection):
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
                                    
-        logger.info("Creating Projection: %s -> %s (%s)" % (presynaptic_population, postsynaptic_population, synapse_type))
+        logger.debug("Creating Projection: %s -> %s (%s)" % (presynaptic_population, postsynaptic_population, synapse_type))
         
         self.presynaptic_population = presynaptic_population
         self.postsynaptic_population = postsynaptic_population

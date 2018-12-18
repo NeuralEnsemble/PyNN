@@ -519,25 +519,27 @@ def import_from_sonata(config_file, sim):
         ])
 
     sonata_edge_populations = []
-    for edges_config in config["networks"]["edges"]:
+    
+    if "edges" in config["networks"]:
+        for edges_config in config["networks"]["edges"]:
 
-        # Load edge types into edge_types_map
-        edge_types_map = read_types_file(edges_config["edge_types_file"], 'edge')
+            # Load edge types into edge_types_map
+            edge_types_map = read_types_file(edges_config["edge_types_file"], 'edge')
 
-        # Open edges file, check it is valid
-        edges_file = h5py.File(edges_config["edges_file"], 'r')
-        version = edges_file.attrs.get("version", None)
-        magic = edges_file.attrs.get("magic", None)
-        if magic is not None and magic != MAGIC:
-            # for now we assume that not all SONATA files will have the magic attribute set
-            raise Exception("Invalid SONATA file")
+            # Open edges file, check it is valid
+            edges_file = h5py.File(edges_config["edges_file"], 'r')
+            version = edges_file.attrs.get("version", None)
+            magic = edges_file.attrs.get("magic", None)
+            if magic is not None and magic != MAGIC:
+                # for now we assume that not all SONATA files will have the magic attribute set
+                raise Exception("Invalid SONATA file")
 
-        # Read data about edge populations and groups
+            # Read data about edge populations and groups
 
-        sonata_edge_populations.extend([
-            EdgePopulation.from_data(ep_label, ep_data, edge_types_map, config)
-            for ep_label, ep_data in edges_file["edges"].items()
-        ])
+            sonata_edge_populations.extend([
+                EdgePopulation.from_data(ep_label, ep_data, edge_types_map, config)
+                for ep_label, ep_data in edges_file["edges"].items()
+            ])
 
     # Now map the SONATA data structures to PyNN ones
 
@@ -706,7 +708,8 @@ class NodeGroup(object):
             else:
                 prefix, cell_type = self.parameters["model_template"][node_type_id].split(":")
                 if prefix.lower() not in ("pynn", "nrn"):
-                    raise NotImplementedError("Only PyNN and NEURON-native networks currently supported.")
+                    raise NotImplementedError("Only PyNN and NEURON-native networks currently supported, not: %s (from %s)."% \
+                                    (prefix, self.parameters["model_template"][node_type_id]))
                 cell_types.add(cell_type)
 
         if len(cell_types) != 1:
