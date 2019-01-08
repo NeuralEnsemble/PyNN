@@ -485,18 +485,20 @@ class FromListConnector(Connector):
         self.conn_list = numpy.array(conn_list)
         if len(conn_list) > 0:
             n_columns = self.conn_list.shape[1]
-        if column_names is None:
-            if n_columns == 2:
-                self.column_names = ()
-            elif n_columns == 4:
-                self.column_names = ('weight', 'delay')
+            if column_names is None:
+                if n_columns == 2:
+                    self.column_names = ()
+                elif n_columns == 4:
+                    self.column_names = ('weight', 'delay')
+                else:
+                    raise TypeError("Argument 'column_names' is required.")
             else:
-                raise TypeError("Argument 'column_names' is required.")
+                self.column_names = column_names
+                if n_columns != len(self.column_names) + 2:
+                    raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
+                                    n_columns - 2, len(self.column_names)))
         else:
-            self.column_names = column_names
-            if n_columns != len(self.column_names) + 2:
-                raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
-                                 n_columns - 2, len(self.column_names)))
+            self.column_names = ()
 
 
     def connect(self, projection):
@@ -507,6 +509,8 @@ class FromListConnector(Connector):
             if name not in synapse_parameter_names:
                 raise ValueError("%s is not a valid parameter for %s" % (
                                  name, projection.synapse_type.__class__.__name__))
+        if self.conn_list.size == 0:
+            return
         if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
         # need to do some profiling, to figure out the best way to do this:

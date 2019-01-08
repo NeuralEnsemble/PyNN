@@ -479,6 +479,15 @@ class TestFromListConnector(unittest.TestCase):
                          [(0, 0, 0.1, 0.18)])
                          
     @register()
+    def test_connect_with_empty_list(self, sim=sim):
+        connection_list = []
+        C = connectors.FromListConnector(connection_list)
+        syn = sim.StaticSynapse()
+        prj = sim.Projection(self.p1, self.p2, C, syn)
+        self.assertEqual(prj.get(["weight", "delay"], format='list'),  
+                         [])
+
+    @register()
     def test_connect_with_valid_list(self, sim=sim):
         connection_list = [
             (0, 0, 0.1, 0.18),
