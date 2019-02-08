@@ -191,7 +191,7 @@ class MapConnector(Connector):
             # `source_mask` - boolean numpy array, indicating which of the pre-synaptic neurons should be connected to,
             #                 or a single boolean, meaning connect to all/none of the pre-synaptic neurons
             #                 It can also be an array of addresses
-            _proceed = False 
+            _proceed = False
             if source_mask is True or source_mask.any():
                 _proceed = True
             elif type(source_mask) == numpy.ndarray:
@@ -206,7 +206,7 @@ class MapConnector(Connector):
                     source_mask = numpy.arange(projection.pre.size, dtype=int)
                 elif source_mask.dtype == bool:
                     source_mask = source_mask.nonzero()[0]
-            
+
                 # Evaluate the lazy arrays containing the synaptic parameters
                 connection_parameters = {}
                 for name, map in parameter_space.items():
@@ -275,6 +275,10 @@ class AllToAllConnector(MapConnector):
     def connect(self, projection):
         if not self.allow_self_connections and projection.pre == projection.post:
             connection_map = LazyArray(lambda i, j: i != j, shape=projection.shape)
+            # there is a more complicated scenario, where we connect two different
+            # views of the same population. In this case, something other than i != j
+            # will be needed. It should at least be documented that we currently
+            # don't handle this situation.
         elif self.allow_self_connections == 'NoMutual' and projection.pre == projection.post:
             connection_map = LazyArray(lambda i, j: i > j, shape=projection.shape)
         else:
@@ -555,7 +559,7 @@ class FromFileConnector(FromListConnector):
 
                 # columns = ["i", "j", "weight", "delay", "U", "tau_rec"]
 
-            Note that the header requires `#` at the beginning of the line.            
+            Note that the header requires `#` at the beginning of the line.
 
         `distributed`:
             if this is True, then each node will read connections from a file
@@ -1011,7 +1015,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
 
         # Assume that targets are equally distributed over processes
         targets_per_process = int(len(projection.post) / num_processes)
-            
+
         # Calculate the number of synapses on each process
         bino = RandomDistribution('binomial',
                                   [self.n, targets_per_process / len(projection.post)],
@@ -1027,7 +1031,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             sum_dist += targets_per_process
             sum_partitions += num_conns_on_vp[k]
 
-        # Draw random sources and targets 
+        # Draw random sources and targets
         connections = [[] for i in range(projection.post.size)]
         possible_targets = numpy.arange(projection.post.size)[projection.post._mask_local]
         for i in range(num_conns_on_vp[rank]):

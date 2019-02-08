@@ -266,7 +266,7 @@ class BasePopulation(object):
         """
         Get the values of the given parameters for every local cell in the
         population, or, if gather=True, for all cells in the population.
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
@@ -429,7 +429,7 @@ class BasePopulation(object):
 
         If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
-        
+
         `sampling_interval` should be a value in milliseconds, and an integer
         multiple of the simulation timestep.
         """
@@ -479,7 +479,7 @@ class BasePopulation(object):
         simulated on that node.
 
         If `clear` is True, recorded data will be deleted from the `Population`.
-        
+
         `annotations` should be a dict containing simple data types such as
         numbers and strings. The contents will be written into the output data
         file as metadata.
@@ -533,7 +533,7 @@ class BasePopulation(object):
     def get_spike_counts(self, gather=True):
         """
         Returns a dict containing the number of spikes for each neuron.
-        
+
         The dict keys are neuron IDs, not indices.
         """
         # arguably, we should use indices
@@ -914,6 +914,25 @@ class PopulationView(BasePopulation):
             return self.parent.index_in_grandparent(indices_in_parent)
         else:
             return indices_in_parent
+
+    def __eq__(self, other):
+        """
+        Determine whether two views are the same.
+        """
+        return not self.__ne__(other)
+
+    def __ne__(self, other):
+        """
+        Determine whether two views are different.
+        """
+        # We can't use the self.mask, as different masks can select the same cells
+        # (e.g. slices vs arrays), therefore we have to use self.all_cells
+        if isinstance(other, PopulationView):
+            return self.parent != other.parent or not numpy.array_equal(self.all_cells, other.all_cells)
+        elif isinstance(other, Population):
+            return self.parent != other or not numpy.array_equal(self.all_cells, other.all_cells)
+        else:
+            return True
 
     def describe(self, template='populationview_default.txt', engine='default'):
         """
