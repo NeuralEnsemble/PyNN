@@ -206,8 +206,8 @@ def issue622(sim):
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
 
-    view1 = sim.PopulationView(pop , [2,3,4])
-    view2 = sim.PopulationView(pop , [2,3,4])
+    view1 = sim.PopulationView(pop, [2,3,4])
+    view2 = sim.PopulationView(pop, [2,3,4])
 
     proj1 = sim.Projection(view1, view2, sim.AllToAllConnector(allow_self_connections = False), sim.StaticSynapse(
         weight=0.015, delay=1.0), receptor_type='excitatory')
