@@ -57,6 +57,13 @@ simulation. This independence can be computationally costly, however, so it is
 possible to set *parallel_safe=False*, accepting that the results will be
 dependent on the number of nodes, in order to get better performace.
 
+.. note:: if you do not provide a seed, PyNN will provide one for you, the
+          same each time. This means that running the same simulation several
+          times will use identical random numbers each time, so if you want
+          to have different random numbers on different runs, you must
+          provide your own seed and change it (or randomly generate it)
+          each time.
+
 .. note:: *parallel_safe* may or may not have any effect when using
           a :class:`~pyNN.random.NativeRNG`, depending on the simulator.
 
@@ -133,6 +140,14 @@ arguments returns a single number, not an array:
 .. note:: the apparent difference in precision between the single number and
           the array is not real: NumPy only *displays* a limited number of
           digits but the numbers in the array have full precision.
+
+
+SpikeSourcePoisson
+==================
+
+The :class:`SpikeSourcePoisson` model is currently an exception to the situation outlined above.
+It ought to take an `rng` argument, but at present this is not supported, and the model uses the
+global random number generator seed, as set in the :func:`setup()` function.
 
 
 .. _`GNU Scientific Library random number generators`: http://pygsl.sourceforge.net/reference/pygsl/module-pygsl.rng.html
