@@ -229,9 +229,13 @@ class BasePopulation(object):
         return gen
 
     def _get_cell_initial_value(self, id, variable):
-        assert isinstance(self.initial_values[variable], LazyArray)
-        index = self.id_to_local_index(id)
-        return self.initial_values[variable][index]
+        if variable in self.initial_values:
+            assert isinstance(self.initial_values[variable], LazyArray)
+            index = self.id_to_local_index(id)
+            return self.initial_values[variable][index]
+        else:
+            logger.warning("Variable '{}' is not in initial values, returning 0.0".format(variable))
+            return 0.0
 
     def _set_cell_initial_value(self, id, variable, value):
         assert isinstance(self.initial_values[variable], LazyArray)
@@ -266,7 +270,7 @@ class BasePopulation(object):
         """
         Get the values of the given parameters for every local cell in the
         population, or, if gather=True, for all cells in the population.
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
@@ -418,6 +422,10 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
 
+    @property
+    def injectable(self):
+        return self.celltype.injectable
+
     def record(self, variables, to_file=None, sampling_interval=None):
         """
         Record the specified variable or variables for all cells in the
@@ -429,7 +437,7 @@ class BasePopulation(object):
 
         If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
-        
+
         `sampling_interval` should be a value in milliseconds, and an integer
         multiple of the simulation timestep.
         """
@@ -479,7 +487,7 @@ class BasePopulation(object):
         simulated on that node.
 
         If `clear` is True, recorded data will be deleted from the `Population`.
-        
+
         `annotations` should be a dict containing simple data types such as
         numbers and strings. The contents will be written into the output data
         file as metadata.
@@ -533,7 +541,7 @@ class BasePopulation(object):
     def get_spike_counts(self, gather=True):
         """
         Returns a dict containing the number of spikes for each neuron.
-        
+
         The dict keys are neuron IDs, not indices.
         """
         # arguably, we should use indices
@@ -1425,6 +1433,10 @@ class Assembly(object):
         """
         for p in self.populations:
             current_source.inject_into(p)
+
+    @property
+    def injectable(self):
+        return all(p.injectable for p in self.populations)
 
     def describe(self, template='assembly_default.txt', engine='default'):
         """

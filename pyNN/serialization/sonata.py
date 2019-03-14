@@ -66,10 +66,14 @@ class SonataIO(BaseIO):
 
     def __init__(self, base_dir,
                  spikes_file="spikes.h5",
-                 spikes_sort_order=None):
+                 spikes_sort_order=None,
+                 report_config=None,
+                 node_sets=None):
         self.base_dir = base_dir
         self.spike_file = spikes_file
         self.spikes_sort_order = spikes_sort_order
+        self.report_config = report_config
+        self.node_sets = node_sets
 
     def read(self):
         """
@@ -100,8 +104,8 @@ class SonataIO(BaseIO):
         """
         Write a list of Blocks to SONATA HDF5 files.
 
-        (Currently only spike data supported).
         """
+        # Write spikes
         spike_file_path = join(self.base_dir, self.spike_file)
         spikes_file = h5py.File(spike_file_path, 'w')
         spike_trains = []
@@ -113,13 +117,51 @@ class SonataIO(BaseIO):
         spikes_group = spikes_file.create_group("spikes")
         all_spike_times = np.hstack(st.rescale('ms').magnitude
                                     for st in spike_trains).astype(np.float64)
-        gids = np.hstack(st.annotations["source_id"] * np.ones(st.shape, dtype=np.uint64)
+        gids = np.hstack(st.annotations["source_index"] * np.ones(st.shape, dtype=np.uint64)
                          for st in spike_trains)
         # todo: handle sorting
         spikes_group.create_dataset("timestamps", data=all_spike_times, dtype=np.float64)
         spikes_group.create_dataset("gids", data=gids, dtype=np.uint64)
         spikes_file.close()
-        logger.info("Wrote output to {}".format(spike_file_path))
+        logger.info("Wrote spike output to {}".format(spike_file_path))
+
+        # Write signals
+        for report_name, report_metadata in self.report_config.items():
+            file_name = report_metadata.get("file_name", report_name + ".h5")
+            file_path = join(self.base_dir, file_name)
+
+            signal_file = h5py.File(file_path, 'w')
+            population_name = self.node_sets[report_metadata["cells"]]["population"]
+            node_ids = self.node_sets[report_metadata["cells"]]["node_id"]
+            for block in blocks:
+                if block.name == population_name:
+                    if len(block.segments) > 1:
+                        raise NotImplementedError()
+                    signal = block.segments[0].filter(name=report_metadata["variable_name"])
+                    if len(signal) != 1:
+                        raise NotImplementedError()
+
+                    report_group = signal_file.create_group("report")
+                    population_group = report_group.create_group(population_name)
+                    dataset = population_group.create_dataset("data", data=signal[0].magnitude)
+                    dataset.attrs["units"] = signal[0].units.dimensionality.string
+                    dataset.attrs["variable_name"] = report_metadata["variable_name"]
+                    n = dataset.shape[1]
+                    mapping_group = population_group.create_group("mapping")
+                    mapping_group.create_dataset("node_ids", data=node_ids)
+                    # "gids" not in the spec, but expected by some bmtk utils
+                    mapping_group.create_dataset("gids", data=node_ids)
+                    #mapping_group.create_dataset("index_pointers", data=np.zeros((n,)))
+                    mapping_group.create_dataset("index_pointer", data=np.arange(0, n+1))  # ??spec unclear
+                    mapping_group.create_dataset("element_ids", data=np.zeros((n,)))
+                    mapping_group.create_dataset("element_pos", data=np.zeros((n,)))
+                    time_ds = mapping_group.create_dataset("time",
+                                                           data=(float(signal[0].t_start),
+                                                                 float(signal[0].t_stop),
+                                                                 float(signal[0].sampling_period)))
+                    time_ds.attrs["units"] = "ms"
+                    logger.info("Wrote block {} to {}".format(block.name, file_path))
+            signal_file.close()
 
 
 MAGIC = 0x0a7a
@@ -491,12 +533,8 @@ def import_from_sonata(config_file, sim):
     """
     config = load_config(config_file)
 
-    if config.get("target_simulator", None) != "PyNN":
-        warn("`target_simulator` is not set to 'PyNN'. Proceeding with caution...")
-        # could also easily handle target_simulator="NEST" using native models
-        # NEURON also possible using native models, but a bit more involved
-        # seems that target_simulator is sometimes in the circuit_config
-
+    if config.get("target_simulator", None) not in  ("PyNN", "NEST"):
+        warn("`target_simulator` is not set to 'PyNN' or 'NEST'. Proceeding with caution...")
 
     sonata_node_populations = []
     for nodes_config in config["networks"]["nodes"]:
@@ -519,7 +557,7 @@ def import_from_sonata(config_file, sim):
         ])
 
     sonata_edge_populations = []
-    
+
     if "edges" in config["networks"]:
         for edges_config in config["networks"]["edges"]:
 
@@ -688,6 +726,7 @@ class NodeGroup(object):
                 parameters[key] = dynamics_params_group[key].value[index]
 
         obj.parameters = parameters
+        obj.config = config
         logger.info(parameters)
 
         return obj
@@ -704,19 +743,27 @@ class NodeGroup(object):
                 raise NotImplementedError("Only point neurons currently supported.")
 
             if model_type == "virtual":
-                cell_types.add("SpikeSourceArray")
+                if self.config.get("target_simulator") == "NEST":
+                    cell_types.add("nest:spike_generator")
+                else:
+                    cell_types.add("pyNN:SpikeSourceArray")
             else:
-                prefix, cell_type = self.parameters["model_template"][node_type_id].split(":")
-                if prefix.lower() not in ("pynn", "nrn"):
-                    raise NotImplementedError("Only PyNN and NEURON-native networks currently supported, not: %s (from %s)."% \
-                                    (prefix, self.parameters["model_template"][node_type_id]))
-                cell_types.add(cell_type)
+                cell_types.add(self.parameters["model_template"][node_type_id])
 
         if len(cell_types) != 1:
             raise Exception("Heterogeneous group, not currently supported.")
 
-        cell_type_name = cell_types.pop()
-        cell_type_cls = getattr(sim, cell_type_name)
+        cell_type = cell_types.pop()
+        prefix, cell_type_name = cell_type.split(":")
+        if prefix.lower() not in ("pynn", "nrn", "nest"):
+            raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported, not: %s (from %s)."% \
+                            (prefix, self.parameters["model_template"][node_type_id]))
+        if prefix.lower() == "nest":
+            cell_type_cls = sim.native_cell_type(cell_type_name)
+            if cell_type_name == "spike_generator":
+                cell_type_cls.uses_parrot = False
+        else:
+            cell_type_cls = getattr(sim, cell_type_name)
         logger.info("  cell_type: {}".format(cell_type_cls))
         return cell_type_cls
 
@@ -876,8 +923,11 @@ class EdgeGroup(object):
                 parameters[key] = dynamics_params_group[key].value[index]
         if 'nsyns' in h5_data:
             parameters['nsyns'] = h5_data['nsyns'].value[index]
+        if 'syn_weight' in h5_data:
+            parameters['syn_weight'] = h5_data['syn_weight'].value[index]
 
         obj.parameters = parameters
+        obj.config = config
         logger.info(parameters)
         return obj
 
@@ -893,19 +943,23 @@ class EdgeGroup(object):
         model_templates = self.parameters.get("model_template", None)
         if model_templates:
             for edge_type_id, model_template in model_templates.items():
-                prefix, syn_type = model_template.split(":")
-                if prefix.lower() not in ("pynn", "nrn"):
-                    raise NotImplementedError("Only PyNN and NEURON-native networks currently supported.")
-                synapse_types.add(syn_type)
+                synapse_types.add(model_template)
 
             if len(synapse_types) != 1:
                 raise Exception("Heterogeneous group, not currently supported.")
 
-            synapse_type_name = synapse_types.pop()
+            synapse_type = synapse_types.pop()
+            prefix, synapse_type_name = model_template.split(":")
+            if prefix.lower() not in ("pynn", "nrn", "nest"):
+                raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported.")
         else:
+            prefix = "pyNN"
             synapse_type_name = "StaticSynapse"
 
-        synapse_type_cls = getattr(sim, synapse_type_name)
+        if prefix == "nest":
+            synapse_type_cls = sim.native_synapse_type(synapse_type_name)
+        else:
+            synapse_type_cls = getattr(sim, synapse_type_name)
 
         receptor_types = self.parameters.get("receptor_type", None)
         if receptor_types:
@@ -1007,23 +1061,35 @@ class SimulationPlan(object):
             self.inputs = {}
         if self.reports is None:
             self.reports = {}
+        if self.node_sets_file is not None:
+            with open(self.node_sets_file) as fp:
+                self.node_sets = json.load(fp)
+                # make all node set names lower case, needed by 300 IF neuron example
+                self.node_sets = {k.lower(): v for k, v in self.node_sets.items()}
+                # todo: handle compound node sets
 
     def setup(self, sim):
         self.sim = sim
         sim.setup(timestep=self.run_config["dt"])
 
-    def _get_target(self, input_config, node_sets, net):
-        target = node_sets[input_config["node_set"]]
+    def _get_target(self, config, node_sets, net):
+        if "node_set" in config:  # input config
+            target = node_sets[config["node_set"]]
+        elif "cells" in config:  # recording config
+            # inconsistency in SONATA spec? Why not call this "node_set" also?
+            target = node_sets[config["cells"]]
         if "model_type" in target:
             raise NotImplementedError()
         if "location" in target:
             raise NotImplementedError()
-        if "node_id" in target:
-            raise NotImplementedError()
         if "gids" in target:
             raise NotImplementedError()
         if "population" in target:
-            return net.get_component(target["population"])
+            assembly = net.get_component(target["population"])
+        if "node_id" in target:
+            indices = target["node_id"]
+            assembly = assembly[indices]
+        return assembly
 
     def _set_input_spikes(self, input_config, node_sets, net):
         # determine which assembly the spikes are for
@@ -1047,25 +1113,20 @@ class SimulationPlan(object):
         # todo: map cell ids in spikes file to ids/index in the population
         #logger.info("SETTING SPIKETIMES")
         #logger.info(spiketrains)
-        assembly.set(spike_times=[Sequence(st.times) for st in spiketrains])
+        assembly.set(spike_times=[Sequence(st.times.rescale('ms').magnitude) for st in spiketrains])
 
     def execute(self, net):
         # create/configure inputs
-        if self.node_sets_file is not None:
-            with open(self.node_sets_file) as fp:
-                node_sets = json.load(fp)
-                # make all node set names lower case, needed by 300 IF neuron example
-                node_sets = {k.lower(): v for k, v in node_sets.items()}
-                # todo: handle compound node sets
         for input_name, input_config in self.inputs.items():
             if input_config["input_type"] != "spikes":
                 raise NotImplementedError()
-            self._set_input_spikes(input_config, node_sets, net)
+            self._set_input_spikes(input_config, self.node_sets, net)
 
         # configure recording
-        net.record('spikes')  # SONATA requires that we record spikes from all nodes
+        net.record('spikes', include_spike_source=False)  # SONATA requires that we record spikes from all non-virtual nodes
         for report_name, report_config in self.reports.items():
-            raise NotImplementedError("Reports not yet implemented")
+            assembly = self._get_target(report_config, self.node_sets, net)
+            assembly.record(report_config["variable_name"])
 
         # run simulation
         self.sim.run(self.run_config["tstop"])
@@ -1078,7 +1139,9 @@ class SimulationPlan(object):
             os.makedirs(directory)
         io = SonataIO(self.output["output_dir"],
                       spikes_file=self.output.get("spikes_file", "spikes.h5"),
-                      spikes_sort_order=self.output["spikes_sort_order"])
+                      spikes_sort_order=self.output["spikes_sort_order"],
+                      report_config=self.reports,
+                      node_sets=self.node_sets)
                       # todo: handle reports
         net.write_data(io)
 
@@ -1086,4 +1149,3 @@ class SimulationPlan(object):
     def from_config(cls, config):
         obj = cls(**config)
         return obj
-

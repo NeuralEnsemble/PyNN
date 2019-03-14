@@ -89,9 +89,12 @@ class Projection(object):
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
         self.post = postsynaptic_neurons  # } read-only
-        self.receptor_type = receptor_type or 'excitatory'
-        # TO FIX: (1) if weights are negative, default should be 'inhibitory'
-        #         (2) default receptor type should depend on post-synaptic cell type
+        if receptor_type == "default":
+            receptor_type = None
+        self.receptor_type = receptor_type or sorted(postsynaptic_neurons.receptor_types)[0]
+        # TO FIX: if weights are negative, default should be the first inhibitory receptor type,
+        #         not necessarily the first in alphabetical order.
+        #         Should perhaps explicitly specify the default type(s)
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0

@@ -49,9 +49,10 @@ class Network(object):
                 return obj
         return None
 
-    def record(self, variables, to_file=None, sampling_interval=None):
+    def record(self, variables, to_file=None, sampling_interval=None, include_spike_source=True):
         for obj in chain(self.populations, self.assemblies):
-            obj.record(variables, to_file=to_file, sampling_interval=sampling_interval)
+            if include_spike_source or obj.injectable:  # spike sources are not injectable
+                obj.record(variables, to_file=to_file, sampling_interval=sampling_interval)
 
     def get_data(self, variables='all', gather=True, clear=False, annotations=None):
         return [assembly.get_data(variables, gather, clear, annotations)
