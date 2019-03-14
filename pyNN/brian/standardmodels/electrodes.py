@@ -81,6 +81,9 @@ class BrianCurrentSource(StandardCurrentSource):
             object.__setattr__(self, name, value)
         self._reset()
 
+    def get_native_parameters(self):
+        return ParameterSpace(dict((k, self.__getattr__(k)) for k in self.get_native_names()))
+
     def _reset(self):
         # self.i reset to 0 only at the start of a new run; not for continuation of existing runs
         if not hasattr(self, 'running') or self.running == False:
@@ -100,14 +103,14 @@ class BrianCurrentSource(StandardCurrentSource):
 
     def _update_current(self):
         # check if current timestamp is within dt/2 of target time; Brian uses seconds as unit of time
-        if self.running and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0):
+        if self.running and abs(simulator.state.t - self._times[self.i] * 1e3) < (simulator.state.dt/2.0):
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
                     cell.parent.brian_group.i_inj[idx] = self.amplitudes[self.i] * ampere
                 else:
-                    cell.parent.brian_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
+                    cell.parent.brian_group.i_inj[idx] = self._compute(self._times[self.i]) * ampere
             self.i += 1
-            if self.i >= len(self.times):
+            if self.i >= len(self._times):
                 self.running = False
                 if self._is_playable:
                     # ensure that currents are set to 0 after t_stop
@@ -125,7 +128,7 @@ class BrianCurrentSource(StandardCurrentSource):
         device = self.i_state_monitor
         current_t_value = device.P.state_('t')[device.record]
         current_i_value = device.P.state_(device.varname)[device.record]
-        t_all_values = numpy.append(device.times, current_t_value)
+        t_all_values = numpy.append(device._times, current_t_value)
         i_all_values = numpy.append(device._values, current_i_value)
         return (t_all_values / ms, i_all_values / nA)
 
@@ -137,6 +140,7 @@ class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
         ('amplitudes', 'amplitudes', nA),
         ('times', 'times', ms)
     )
+
     _is_computed = False
     _is_playable = False
 
@@ -162,7 +166,7 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
     def _generate(self):
         # Note: Brian uses seconds as unit of time
         temp_num_t = len(numpy.arange(self.start, self.stop + simulator.state.dt * 1e-3, simulator.state.dt * 1e-3))
-        self.times = numpy.array([self.start+(i*simulator.state.dt*1e-3) for i in range(temp_num_t)])
+        self._times = numpy.array([self.start+(i*simulator.state.dt*1e-3) for i in range(temp_num_t)])
 
     def _compute(self, time):
         # Note: Brian uses seconds as unit of time; frequency is specified in Hz; thus no conversion required
@@ -186,14 +190,14 @@ class DCSource(BrianCurrentSource, electrodes.DCSource):
 
     def _generate(self):
         if self.start == 0:
-            self.times = [self.start, self.stop]
+            self._times = [self.start, self.stop]
             self.amplitudes = [self.amplitude, 0.0]
         else:
-            self.times = [0.0, self.start, self.stop]
+            self._times = [0.0, self.start, self.stop]
             self.amplitudes = [0.0, self.amplitude, 0.0]
         # ensures proper handling of changes in parameters on the fly
         if self.start < simulator.state.t*1e-3 < self.stop:
-            self.times.insert(-1, simulator.state.t*1e-3)
+            self._times.insert(-1, simulator.state.t*1e-3)
             self.amplitudes.insert(-1, self.amplitude)
             if (self.start==0 and self.i==2) or (self.start!=0 and self.i==3):
                 self.i -= 1
@@ -218,8 +222,8 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
 
     def _generate(self):
         temp_num_t = len(numpy.arange(self.start, self.stop, max(self.dt, simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start+(i*max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
-        self.times = numpy.append(self.times, self.stop)
+        self._times = numpy.array([self.start+(i*max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
+        self._times = numpy.append(self._times, self.stop)
 
     def _compute(self, time):
         return self.mean + self.stdev * numpy.random.randn()
