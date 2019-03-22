@@ -18,6 +18,7 @@ PyNN: documentation
    backends
    parallel
    units
+   import_export
    examples
    publications
    contributors

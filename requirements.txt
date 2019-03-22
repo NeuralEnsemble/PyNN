@@ -7,3 +7,4 @@ lazyarray>=0.3.2
 neo>=0.5.2
 setuptools>=20.5;python_version!="3.3"
 nose
+h5py;python_version!="3.3"
