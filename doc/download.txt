@@ -5,7 +5,7 @@ Downloads
 Source distributions
 --------------------
 
-The `latest stable version of PyNN`_ (0.9.3) may be downloaded from the
+The `latest stable version of PyNN`_ (0.9.4) may be downloaded from the
 `Python Package Index`_. This is recommended for
 anyone using PyNN for the first time.
 
