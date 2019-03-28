@@ -1144,7 +1144,7 @@ class Assembly(object):
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index - boundaries[pindex]]
         elif isinstance(index, (slice, tuple, list, numpy.ndarray)):
-            if isinstance(index, slice) or index.dtype == bool:
+            if isinstance(index, slice) or (hasattr(index, "dtype") and index.dtype == bool):
                 indices = numpy.arange(self.size)[index]
             else:
                 indices = numpy.array(index)
