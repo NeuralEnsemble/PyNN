@@ -15,19 +15,17 @@ Classes:
 import logging
 import numpy
 import brian2
-from brian2 import ms, nA, Hz, network_operation, amp as ampere
+from brian2 import ms, nA, Hz, NetworkOperation, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.brian2 import simulator
 
 logger = logging.getLogger("PyNN")
 
-
-@network_operation(when='start')
 def update_currents():
-    print ">>>>>>>>>>>>>>>>>>>>>>>>>>1"
     for current_source in simulator.state.current_sources:
         current_source._update_current()
+simulator.state.network.add(NetworkOperation(update_currents, when="start"))
 
 class Brian2CurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""
@@ -91,8 +89,6 @@ class Brian2CurrentSource(StandardCurrentSource):
 
     def inject_into(self, cell_list):
         __doc__ = StandardCurrentSource.inject_into.__doc__
-        print "**********************"
-        print "cell_list = ", cell_list
         for cell in cell_list:
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
@@ -117,7 +113,6 @@ class Brian2CurrentSource(StandardCurrentSource):
                         cell.parent.brian2_group.i_inj[idx] = 0
 
     def record(self):
-        # print "self.cell_list[0].parent.brian2_group[self.indices[0]:self.indices[0]+1] = ", self.cell_list[0].parent.brian2_group[self.indices[0]:self.indices[0]+1]
         self.i_state_monitor = brian2.StateMonitor(self.cell_list[0].parent.brian2_group[self.indices[0]:self.indices[0]+1], 'i_inj', record=0, when='start')
         simulator.state.network.add(self.i_state_monitor)
 
@@ -132,7 +127,7 @@ class Brian2CurrentSource(StandardCurrentSource):
         current_i_value = device.variables._variables["_source_i_inj"].get_value()
         t_all_values = numpy.append(t_values, current_t_value)
         i_all_values = numpy.append(i_values, current_i_value)
-        return (t_all_values / ms, i_all_values / nA)
+        return (t_all_values / ms.base, i_all_values / nA.base)
 
 
 class StepCurrentSource(Brian2CurrentSource, electrodes.StepCurrentSource):

@@ -84,35 +84,12 @@ class Recorder(recording.Recorder):
         # need to filter according to ids
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
-        print "device = ", device
-        # values = numpy.array(device._values)
-        print "variable = ", variable
-        print "ids = ", ids
-        values = eval('device.{}'.format(variable))[0]
-        vm = values
-        print "A >> len(vm) = ", len(vm), ", min = ", min(vm), ", max = ", max(vm)
-        # print "values = ", values
-        print "len(values) = ", len(values)
-        # print "device.varname = ", device.varname
-        print "device.record = ", device.record
-        print "device.variables = ", device.variables
-        print "device.record_variables = ", device.record_variables
-        print "device.variables['v'] = ", device.variables['v']
-        print "device.variables['v'].name = ", device.variables['v'].name
-        print "device.variables['v'].dim = ", device.variables['v'].dim
-        # print "device.variables['v'].get_value() = ", device.variables['v'].get_value()
-        vm = device.variables['v'].get_value()
-        print "B >> len(vm) = ", len(vm), ", min = ", min(vm), ", max = ", max(vm)
-        print "len(device.variables['v'].get_value()) = ", len(device.variables['v'].get_value())
-        # current_values = device.P.state_(device.varname)[device.record]
-        # all_values = numpy.vstack((values, current_values[numpy.newaxis, :]))
-        # logging.debug("@@@@ %s %s %s", id(device), values.shape, all_values.shape)
-        # varname = self.population.celltype.state_variable_translations[variable]['translated_name']
-        # all_values = eval(self.population.celltype.state_variable_translations[variable]['reverse_transform'], {}, {varname: all_values})
+        device.record_single_timestep()
+        values = getattr(device, variable)[0]
+        values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](values)
         if clear:
             self._devices[variable].reinit()
         return values
-        # return all_values
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

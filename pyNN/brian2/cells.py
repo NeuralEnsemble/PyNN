@@ -80,11 +80,8 @@ class BaseNeuronGroup(brian2.NeuronGroup):
 class ThresholdNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        print "parameters = ", parameters
         threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0])
-        print "threshold = ", threshold
         reset = 'v = {}*mV'.format(parameters.pop('v_reset')[0])
-        print "reset = ", reset
         refractory = parameters.pop('tau_refrac')*ms
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset,

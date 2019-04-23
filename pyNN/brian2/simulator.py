@@ -45,15 +45,14 @@ class State(common.control.BaseState):
         common.control.BaseState.__init__(self)
         self.mpi_rank = 0
         self.num_processes = 1
-        self.network = None
         self._min_delay = 'auto'
         self.current_sources = []
+        self.network = brian2.Network()
+        self.network.clock = brian2.Clock(0.1 * ms)
         self.clear()
 
     def run(self, simtime):
         self.running = True
-        print "self.network = ", self.network
-        print "self.network = ", self.network.objects
         self.network.run(simtime * ms)
 
     def run_until(self, tstop):
@@ -65,10 +64,8 @@ class State(common.control.BaseState):
         self.current_sources = []
         self.segment_counter = -1
         if self.network:
-            for item in self.network.groups + self.network._all_operations:
+            for item in self.network.objects:
                 del item
-        self.network = brian2.Network()
-        self.network.clock = brian2.Clock(0.1 * ms)    # defaults to 0.1 ms
         self.reset()
 
     def reset(self):
