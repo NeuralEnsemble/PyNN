@@ -217,7 +217,7 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
         self._generate()
 
     def _generate(self):
-        temp_num_t = len(numpy.arange(self.start, self.stop, max(self.dt, simulator.state.dt * 1e-3)))
+        temp_num_t = int(round((self.stop-self.start) / max(self.dt, simulator.state.dt * 1e-3)))
         self.times = numpy.array([self.start+(i*max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
         self.times = numpy.append(self.times, self.stop)
 
