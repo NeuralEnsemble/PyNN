@@ -15,7 +15,7 @@ March 2010
 
 from pyNN.utility import get_script_args
 
-make_plot = False
+make_plot = True
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
@@ -51,6 +51,7 @@ if simulator_name in var_names:
     hhcell.can_record = lambda x: True  # hack
     for native_name in var_names[simulator_name].values():
         hhcell.record(native_name)
+        hhcell.celltype.units[native_name] = ''
 
 run(20.0)
 

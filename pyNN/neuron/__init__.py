@@ -26,7 +26,7 @@ from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.populations import Population, PopulationView, Assembly
 from pyNN.neuron.projections import Projection
-from pyNN.neuron.cells import NativeCellType
+from pyNN.neuron.cells import NativeCellType, IntFire1, IntFire2, IntFire4
 try:
     from . import nineml
 except ImportError:
@@ -42,7 +42,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and 
+    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and
                                                            issubclass(obj, StandardCellType) and
                                                            obj is not StandardCellType)]
 

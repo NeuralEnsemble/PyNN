@@ -1,0 +1,57 @@
+========================
+PyNN 0.9.2 release notes
+========================
+
+November 22nd 2017
+
+Welcome to PyNN 0.9.2!
+
+
+Recording injected currents
+---------------------------
+
+It is now possible to record the injected current from :class:`CurrentSource` objects in PyNN, for example:
+
+.. code-block:: python
+
+    noise = sim.NoisyCurrentSource(mean=0.5, stdev=0.2, start=50.0, stop=450.0, dt=1.0)
+    noise.record()
+
+    sim.run(500.0)
+
+    signal = noise.get_data()
+
+The returned signal object is a Neo :class:`AnalogSignal`.
+
+Python 2.6
+----------
+
+As of this version, PyNN no longer supports Python 2.6.
+
+
+NEST 2.14.0 and NEURON 7.5
+--------------------------
+
+PyNN 0.9.1 now supports the latest versions of NEST and NEURON.
+NEURON 7.4 is also still supported.
+NEST 2.12.0 should still work in most circumstances,
+but current recording (see above) requires a more recent version.
+
+
+native_electrode_type
+---------------------
+
+It has been possible for some time to use native (NEST-specific) neuron and synapse models with :mod:`pyNN.nest`.
+It is now also possible to use native current generator models, e.g.:
+
+.. code-block:: python
+
+    noise = sim.native_electrode_type('noise_generator')(mean=500.0, std=200.0, start=50.0,
+                                                         stop=450.0, dt=1.0)
+
+Bug fixes
+---------
+
+A `number of bugs`_ have been fixed.
+
+.. _`number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aissue+milestone%3A0.9.2+is%3Aclosed

@@ -37,7 +37,7 @@ print("Process with rank %d running on %s" % (node, socket.gethostname()))
 print("[%d] Creating populations" % node)
 n_spikes = int(2 * tstop * input_rate / 1000.0)
 spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            {'beta': 1000.0 / input_rate}, mask_local=False))
+                                            {'beta': 1000.0 / input_rate}))
 
 input_population = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = sim.Population(20, sim.IF_curr_exp(**cell_params), label="output")

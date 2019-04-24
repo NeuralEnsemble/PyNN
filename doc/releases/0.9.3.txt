@@ -1,0 +1,105 @@
+========================
+PyNN 0.9.3 release notes
+========================
+
+December 4th 2018
+
+Welcome to PyNN 0.9.3!
+
+
+NEST 2.16.0
+-----------
+
+PyNN 0.9.3 now supports the latest version of NEST.
+
+
+Array-valued parameters
+-----------------------
+
+The generalized integrate-and-fire model (:class:`GIF_cond_exp`) was added in version 0.8.3.
+This model has multiple mechanisms, each with multiple time constants,
+e.g. `tau_eta1`, `tau_eta2`, `tau_eta3`.
+To simplify parameterisation of such models, we now allow array-valued parameters,
+specified as a tuple, e.g. instead of:
+
+.. code-block:: python
+
+    GIF_cond_exp(
+        ...
+        tau_eta1=1.0, tau_eta2=10.0, tau_eta3=100.0
+        ...
+    )
+
+we now write:
+
+.. code-block:: python
+
+    GIF_cond_exp(
+        ...
+        tau_eta=(1.0, 10.0, 100.0)
+    )
+
+As for other parameter types, we can also specify inhomogeneous values across a population
+using lists of tuples, or generator functions.
+
+Project governance and code of conduct
+--------------------------------------
+
+In an attempt to follow best practices in the governance of open source software projects,
+we have adopted some :doc:`rules and guidelines </developers/governance>` concerning the rights
+and obligations of contributors and of maintainers, and of how we decide who will be a maintainer.
+
+This includes a code of conduct for contributors and maintainers,
+aimed at fostering an open and welcoming environment.
+
+Simplified use of random number generators
+------------------------------------------
+
+Previously, a random number generator with `parallel_safe=False`
+would always draw a reduced number of values when run with >1 MPI processes,
+according to the number of processes, unless the `mask_local` parameter was set to False.
+
+Now, a mask must be explicitly provided if you want to draw a reduced number of values
+(i.e. only those values consumed on that node).
+
+If provided, the `mask` parameter (renamed from `mask_local`) should be a boolean or
+integer NumPy array, indicating that only a subset of the random numbers should be returned.
+
+Example::
+
+    rng.next(5, mask=np.array([True, False, True, False, True]))
+
+or::
+
+    rng.next(5, mask=np.array([0, 2, 4]))
+
+will each return only three values.
+
+If the rng is "parallel safe", an array of `n` values will be drawn from the rng,
+and the mask applied.
+If the rng is not parallel safe, the contents of the mask are disregarded, only its
+size (for an integer mask) or the number of True values (for a boolean mask)
+is used in determining how many values to draw.
+
+
+Support for NEURON "ARTIFICIAL_CELL" models
+-------------------------------------------
+
+When using the NEURON simulator through PyNN, it is now possible to use "ARTIFICIAL_CELL" models,
+such as :class:`IntFire1`, :class:`IntFire2` and :class:`IntFire4`:
+
+.. testcode:: nativemodel
+
+    from pyNN.neuron import setup, Population, IntFire1
+
+    setup()
+    p1 = Population(10, IntFire1(tau=10.0, refrac=2.5))
+    p1.record('m')
+
+
+Bug fixes and performance improvements
+--------------------------------------
+
+A `number of bugs`_ have been fixed, and some performance optimizations have been made.
+
+.. _`number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=is%3Aissue+milestone%3A0.9.3+is%3Aclosed

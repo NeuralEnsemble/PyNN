@@ -212,3 +212,22 @@ def test_tsodyks_markram_synapse():
     sim.run(100.0)
     tau_psc = numpy.array([c.weight_adjuster.tau_syn for c in prj.connections])
     assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+
+
+def test_artificial_cells():
+    if not have_neuron:
+        raise SkipTest
+    sim = pyNN.neuron
+    sim.setup()
+    input = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+    p1 = sim.Population(3, sim.IntFire1(tau=10, refrac=2))
+    p2 = sim.Population(3, sim.IntFire2())
+    p3 = sim.Population(3, sim.IntFire4())
+    projections = []
+    for p in (p1, p2, p3):
+        projections.append(
+            sim.Projection(input, p, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.1, delay=0.5),
+                           receptor_type="default")
+        )
+        p.record('m')
+    sim.run(100.0)

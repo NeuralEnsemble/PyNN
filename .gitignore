@@ -82,3 +82,6 @@ examples/*.svg
 tmp
 /pynnpg.sh
 /cleanpynn.sh
+
+.eggs/
+/test/system/tmp_serialization_test
