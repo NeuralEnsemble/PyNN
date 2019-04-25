@@ -6,16 +6,16 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.6" 
     echo -e "\n========== Installing NEST ==========\n"
     # Specify which version of NEST to install
     #export NEST_VERSION="master"
-    export NEST_VERSION="2.14.0"
+    export NEST_VERSION="2.16.0"
 
-    pip install cython==0.28.1
+    pip install cython  #==0.28.1
 
     if [ "$NEST_VERSION" = "master" ]; then
       export NEST="nest-simulator-$NEST_VERSION"
       wget https://github.com/nest/nest-simulator/archive/$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz;
     else
-      export NEST="nest-$NEST_VERSION"
-      wget https://github.com/nest/nest-simulator/releases/download/v$NEST_VERSION/nest-$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz
+      export NEST="nest-simulator-$NEST_VERSION"
+      wget https://github.com/nest/nest-simulator/archive/v$NEST_VERSION.tar.gz -O $HOME/$NEST.tar.gz;
     fi
 
     pushd $HOME;

@@ -1,0 +1,77 @@
+=============================================
+Importing from and exporting to other formats
+=============================================
+
+Other formats for representing spiking network models are also available.
+
+PyNN currently supports NeuroML_, NineML_ and SONATA_.
+
+NeuroML
+-------
+
+See section on :doc:`backends/NeuroML`.
+
+NineML
+------
+
+See section on :doc:`nineml`.
+
+.. _sec-sonata:
+
+SONATA
+------
+
+SONATA_ is a data format for representing/storing data-driven spiking neuronal network models,
+experimental protocols (injecting spikes, currents) and simulation outputs.
+
+In the network representation, all connections are represented explicity, as in PyNN's
+:class:`FromFileConnector` and :class:`FromListConnector`.
+
+A PyNN model/simulation script can be exported in SONATA format using:
+
+.. code-block:: python
+
+   from pyNN.network import Network
+   from pyNN.serialization import export_to_sonata
+
+   sim.setup()
+   ...
+   # create populations, projections, etc.
+   ...
+
+   # add populations and projections to a Network
+   net = Network(pop1, pop2, ...., prj1, prj2, ...)
+
+   export_to_sonata(net, "sonata_output_dir")
+
+
+A SONATA model/simulation can be read and executed through PyNN provided the cell types
+used in the model are compatible with PyNN, i.e. they must be point neurons.
+(SONATA also supports biophysically/morphologically detailed neuron models).
+
+.. code-block:: python
+
+    from pyNN.serialization import import_from_sonata, load_sonata_simulation_plan
+    import pyNN.neuron as sim
+
+    simulation_plan = load_sonata_simulation_plan("simulation_config.json")
+    simulation_plan.setup(sim)
+    net = import_from_sonata("circuit_config.json", sim)
+    simulation_plan.execute(net)
+
+Simulation results from such a simulation are stored in the SONATA outputs format.
+Support for this format will soon be added to Neo_, but for the time being you
+can read the results as follows:
+
+.. code-block:: python
+
+   from pyNN.serialization.sonata import SonataIO
+
+   data = SonataIO("sonata_output_dir").read()
+
+
+
+.. _NeuroML: http://neuroml.org
+.. _NineML: http://nineml.net
+.. _SONATA: https://github.com/AllenInstitute/sonata
+.. _Neo: http://neuralensemble.org/neo

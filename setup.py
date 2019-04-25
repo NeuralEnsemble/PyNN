@@ -6,7 +6,8 @@ try:
     from setuptools import version
     if version.__version__ > '20.5':
         tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
-                     'matplotlib;python_version>="3.4"', 'Cheetah3']
+                     'matplotlib;python_version>="3.4"', 'Cheetah3',
+                     'h5py']
     else:
         tests_req = ['mpi4py', 'Cheetah3']
 except ImportError:
@@ -21,7 +22,7 @@ def run_command(path, working_directory):
     p = subprocess.Popen(path, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
-                         close_fds=True, cwd=working_directory)
+                         cwd=working_directory)
     result = p.wait()
     stdout = p.stdout.readlines()
     return result, stdout
@@ -86,13 +87,13 @@ class build(_build):
 
 setup(
     name="PyNN",
-    version="0.9.2",
+    version="0.9.4",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.neuroml.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
-                'pyNN.utility', 'pyNN.nineml'],
+                'pyNN.utility', 'pyNN.nineml', 'pyNN.serialization'],
     package_data={'pyNN': ['neuron/nmodl/*.mod',
                            'nest/extensions/*.h',
                            'nest/extensions/*.cpp',
@@ -119,6 +120,7 @@ setup(
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: 3.6',
+                 'Programming Language :: Python :: 3.7',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build_py': build},
     install_requires=['numpy>=1.8.2', 'lazyarray>=0.3.2', 'neo>=0.5.2',
@@ -126,7 +128,8 @@ setup(
     extras_require={
         'examples': ['matplotlib', 'scipy'],
         'plotting': ['matplotlib', 'scipy'],
-        'MPI': ['mpi4py']
+        'MPI': ['mpi4py'],
+        'sonata': ['h5py']
     },
     tests_require=tests_req
 )
