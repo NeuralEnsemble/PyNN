@@ -161,7 +161,7 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
 
     def _generate(self):
         # Note: Brian uses seconds as unit of time
-        temp_num_t = len(numpy.arange(self.start, self.stop + simulator.state.dt * 1e-3, simulator.state.dt * 1e-3))
+        temp_num_t = int(round(((self.stop+simulator.state.dt*1e-3)-self.start) / (simulator.state.dt*1e-3)))
         self.times = numpy.array([self.start+(i*simulator.state.dt*1e-3) for i in range(temp_num_t)])
 
     def _compute(self, time):
