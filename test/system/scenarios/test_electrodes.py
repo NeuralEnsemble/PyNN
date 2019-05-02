@@ -607,6 +607,44 @@ def issue512(sim):
             assert_true (abs(step.times[1]-0.86) < 1e-9)
 
 
+@register()
+def issue631(sim):
+    """
+    Test to ensure that recording of multiple electrode currents do not
+    interfere with one another.
+    """
+    sim_dt = 0.1
+    sim.setup(timestep=sim_dt, min_delay=sim_dt)
+
+    cells = sim.Population(1, sim.IF_curr_exp(v_rest = -65.0, v_thresh=-55.0, tau_refrac=5.0))#, i_offset=-1.0*amp))
+    dc_source = sim.DCSource(amplitude=0.5, start=25, stop=50)
+    ac_source = sim.ACSource(start=75, stop=125, amplitude=0.5, offset=0.25, frequency=100.0, phase=0.0)
+    noisy_source = sim.NoisyCurrentSource(mean=0.5, stdev=0.05, start=150, stop=175, dt=1.0)
+    step_source = sim.StepCurrentSource(times=[200, 225, 250], amplitudes=[0.4, 0.6, 0.2])
+
+    cells[0].inject(dc_source)
+    cells[0].inject(ac_source)
+    cells[0].inject(noisy_source)
+    cells[0].inject(step_source)
+
+    dc_source.record()
+    ac_source.record()
+    noisy_source.record()
+    step_source.record()
+
+    sim.run(275.0)
+
+    i_dc = dc_source.get_data()
+    i_ac = ac_source.get_data()
+    i_noisy = noisy_source.get_data()
+    i_step = step_source.get_data()
+
+    assert_true (numpy.all(i_dc.magnitude[:int(25.0 / sim_dt) - 1:] == 0) and numpy.all(i_dc.magnitude[int(50.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_ac.magnitude[:int(75.0 / sim_dt) - 1:] == 0) and numpy.all(i_ac.magnitude[int(125.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_noisy.magnitude[:int(150.0 / sim_dt) - 1:] == 0) and numpy.all(i_noisy.magnitude[int(175.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -623,3 +661,4 @@ if __name__ == '__main__':
     issue_465_474_630(sim)
     issue497(sim)
     issue512(sim)
+    issue631(sim)
