@@ -78,8 +78,3 @@ def test_tsodyks_markram_synapse():
     sim.run(100.0)
     tau_psc = prj._brian_synapses[0][0].tau_syn.data * 1e3  # s --> ms
     assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
-
-def issue_634():
-    if not have_brian:
-        raise SkipTest
-        

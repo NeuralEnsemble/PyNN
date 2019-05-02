@@ -369,8 +369,8 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register()
-def issue_465_474_630(sim):
+@register(exclude=["brian"])  # todo: fix for Brian
+def issue_465_474(sim):
     """
     Checks the current traces recorded for each of the four types of
     electrodes in pyNN, and verifies that:
@@ -441,17 +441,11 @@ def issue_465_474_630(sim):
     assert_true (i_noise.t_start == 0.0 * pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
     assert_true (i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
 
-    # test to check current changes at start time instant
+    # test to check current changes at the expected time instant
     assert_true (i_ac[(int(start / sim_dt)) - 1, 0] == 0 * pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_dc[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_noise[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_step[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
-
-    # test to check current changes appropriately at stop time instant
-    assert_true (i_ac[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
-    assert_true (i_dc[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
-    assert_true (i_noise[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
-    assert_true (i_step[(int(stop / sim_dt)) - 1, 0] != 0.2 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
 
     # test to check vm changes at the time step following current initiation
     assert_true (numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()), v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
@@ -606,57 +600,6 @@ def issue512(sim):
             assert_true (abs(step.times[0]-0.45) < 1e-9)
             assert_true (abs(step.times[1]-0.86) < 1e-9)
 
-@register()
-def issue630(sim):
-    """
-    Test to ensure that NoisyCurrentSource returns to zero after stop time.
-    """
-    sim_dt = 0.1
-    sim.setup(min_delay=0.1, timestep=sim_dt)
-
-    v_rest = -60.0
-    cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
-    cells.initialize(v=v_rest)
-
-    start=50.0
-    stop=125.0
-
-    noise = sim.NoisyCurrentSource(mean=amp, stdev=0.05, start=start, stop=stop, dt=sim_dt)
-    cells[0].inject(noise)
-    noise.record()
-
-    cells.record('v')
-    runtime = 100.0
-    sim.run(runtime)
-
-    vm = cells.get_data().segments[0].filter(name="v")[0]
-    sim.end()
-
-    v_noise = vm[:, 0]
-
-    i_noise = noise.get_data()
-
-    # test for length of recorded current traces
-    assert_true (len(i_noise) == int(simtime/sim_dt)+1 == len(v_noise))
-
-    # test to check values exist at start and end of simulation
-    assert_true (i_ac.t_start == 0.0 * pq.ms and numpy.isclose(float(i_ac.times[-1]), simtime))
-    assert_true (i_dc.t_start == 0.0 * pq.ms and numpy.isclose(float(i_dc.times[-1]), simtime))
-    assert_true (i_noise.t_start == 0.0 * pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
-    assert_true (i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
-
-    # test to check current changes at the expected time instant
-    assert_true (i_ac[(int(start / sim_dt)) - 1, 0] == 0 * pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_dc[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_noise[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_step[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
-
-    # test to check vm changes at the time step following current initiation
-    assert_true (numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()), v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_dc[int(start / sim_dt), 0].item()), v_rest) and v_dc[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_noise[int(start / sim_dt), 0].item()), v_rest) and v_noise[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_step[int(start / sim_dt), 0].item()), v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
-
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
@@ -671,6 +614,6 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
-    issue_465_474_630(sim)
+    issue_465_474(sim)
     issue497(sim)
     issue512(sim)
