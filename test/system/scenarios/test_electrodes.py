@@ -369,8 +369,8 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register(exclude=["brian"])  # todo: fix for Brian
-def issue_465_474(sim):
+@register()
+def issue_465_474_630(sim):
     """
     Checks the current traces recorded for each of the four types of
     electrodes in pyNN, and verifies that:
@@ -441,11 +441,17 @@ def issue_465_474(sim):
     assert_true (i_noise.t_start == 0.0 * pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
     assert_true (i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
 
-    # test to check current changes at the expected time instant
+    # test to check current changes at start time instant
     assert_true (i_ac[(int(start / sim_dt)) - 1, 0] == 0 * pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_dc[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_noise[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_step[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
+
+    # test to check current changes appropriately at stop time instant - issue #630
+    assert_true (i_ac[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_dc[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_noise[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_step[(int(stop / sim_dt)) - 1, 0] != 0.2 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
 
     # test to check vm changes at the time step following current initiation
     assert_true (numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()), v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
@@ -614,6 +620,6 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
-    issue_465_474(sim)
+    issue_465_474_630(sim)
     issue497(sim)
     issue512(sim)
