@@ -15,7 +15,7 @@ Classes:
 import logging
 import numpy
 import brian2
-from brian2 import ms, nA, Hz, NetworkOperation, amp as ampere
+from brian2 import ms, second, nA, amp, Hz, NetworkOperation, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.brian2 import simulator
@@ -93,42 +93,58 @@ class Brian2CurrentSource(StandardCurrentSource):
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         self.cell_list.extend(cell_list)
+        self.prev_amp_dict = {}
         for cell in cell_list:
-            self.indices.extend([cell.parent.id_to_index(cell)])
+            cell_idx = cell.parent.id_to_index(cell)
+            self.indices.extend([cell_idx])
+            self.prev_amp_dict[cell_idx] = 0.0
 
     def _update_current(self):
         # check if current timestamp is within dt/2 of target time; Brian2 uses seconds as unit of time
         if self.running and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0):
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
-                    cell.parent.brian2_group.i_inj[idx] = self.amplitudes[self.i] * ampere
+                    cell.parent.brian2_group.i_inj[idx] += (self.amplitudes[self.i] - self.prev_amp_dict[idx]) * ampere
+                    self.prev_amp_dict[idx] = self.amplitudes[self.i]
                 else:
-                    cell.parent.brian2_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
+                    amp_val = self._compute(self.times[self.i])
+                    self.amplitudes = numpy.append(self.amplitudes, amp_val)
+                    cell.parent.brian2_group.i_inj[idx] += (amp_val - self.prev_amp_dict[idx]) * ampere
+                    self.prev_amp_dict[idx] = amp_val #* ampere
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False
                 if self._is_playable:
                     # ensure that currents are set to 0 after t_stop
                     for cell, idx in zip(self.cell_list, self.indices):
-                        cell.parent.brian2_group.i_inj[idx] = 0
+                        cell.parent.brian2_group.i_inj[idx] -= self.prev_amp_dict[idx] * ampere
 
     def record(self):
-        self.i_state_monitor = brian2.StateMonitor(self.cell_list[0].parent.brian2_group[self.indices[0]:self.indices[0]+1], 'i_inj', record=0, when='start')
-        simulator.state.network.add(self.i_state_monitor)
+        pass
 
     def _get_data(self):
-        # code based on brian2/recording.py:_get_all_signals()
-        # because we use `when='start'`, we need to add the
-        # value at the end of the final time step.
-        device = self.i_state_monitor
-        t_values = device.variables._variables["t"].get_value()
-        current_t_value = device.variables._variables["_clock_t"].get_value()
-        i_values = device.variables._variables["i_inj"].get_value()
-        current_i_value = device.variables._variables["_source_i_inj"].get_value()
-        t_all_values = numpy.append(t_values, current_t_value)
-        i_all_values = numpy.append(i_values, current_i_value)
-        return (t_all_values / ms.base, i_all_values / nA.base)
+        def find_nearest(array, value):
+            array = numpy.asarray(array)
+            return (numpy.abs(array - value)).argmin()
 
+        len_t = int(round((simulator.state.t * 1e-3) / (simulator.state.dt * 1e-3))) + 1
+        times = numpy.array([(i * simulator.state.dt * 1e-3) for i in range(len_t)])
+        amps = numpy.array([0.0] * len_t)
+
+        for idx, [t1, t2] in enumerate(zip(self.times, self.times[1:])):
+            if t2 < simulator.state.t * 1e-3:
+                idx1 = find_nearest(times, t1)
+                idx2 = find_nearest(times, t2)
+                amps[idx1:idx2] = [self.amplitudes[idx]] * len(amps[idx1:idx2])
+                if idx == len(self.times)-2:
+                    if not self._is_playable and not self._is_computed:
+                        amps[idx2:] = [self.amplitudes[idx+1]] * len(amps[idx2:])
+            else:
+                if t1 < simulator.state.t * 1e-3:
+                    idx1 = find_nearest(times, t1)
+                    amps[idx1:] = [self.amplitudes[idx]] * len(amps[idx1:])
+                break
+        return (times * second / ms, amps * amp / nA)
 
 class StepCurrentSource(Brian2CurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
@@ -161,8 +177,9 @@ class ACSource(Brian2CurrentSource, electrodes.ACSource):
 
     def _generate(self):
         # Note: Brian2 uses seconds as unit of time
-        temp_num_t = len(numpy.arange(self.start, self.stop + simulator.state.dt * 1e-3, simulator.state.dt * 1e-3))
-        self.times = numpy.array([self.start+(i*simulator.state.dt*1e-3) for i in range(temp_num_t)])
+        temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) - self.start) / (simulator.state.dt * 1e-3)))
+        self.times = numpy.array([self.start + (i * simulator.state.dt * 1e-3) for i in range(temp_num_t)])
+        self.amplitudes = numpy.zeros(0)
 
     def _compute(self, time):
         # Note: Brian2 uses seconds as unit of time; frequency is specified in Hz; thus no conversion required
@@ -217,9 +234,10 @@ class NoisyCurrentSource(Brian2CurrentSource, electrodes.NoisyCurrentSource):
         self._generate()
 
     def _generate(self):
-        temp_num_t = len(numpy.arange(self.start, self.stop, max(self.dt, simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start+(i*max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
+        temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt * 1e-3)))
+        self.times = numpy.array([self.start + (i * max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
         self.times = numpy.append(self.times, self.stop)
+        self.amplitudes = numpy.zeros(0)
 
     def _compute(self, time):
         return self.mean + self.stdev * numpy.random.randn()
