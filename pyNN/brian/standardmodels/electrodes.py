@@ -110,6 +110,7 @@ class BrianCurrentSource(StandardCurrentSource):
                     self.prev_amp_dict[idx] = self.amplitudes[self.i]
                 else:
                     amp_val = self._compute(self.times[self.i])
+                    self.amplitudes = numpy.append(self.amplitudes, amp_val)
                     cell.parent.brian_group.i_inj[idx] += amp_val - self.prev_amp_dict[idx]
                     self.prev_amp_dict[idx] = amp_val #* ampere
             self.i += 1
@@ -120,11 +121,11 @@ class BrianCurrentSource(StandardCurrentSource):
                     for cell, idx in zip(self.cell_list, self.indices):
                         cell.parent.brian_group.i_inj[idx] -= self.prev_amp_dict[idx]
 
-    def record(self):
+    def _record_old(self):
         self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0, when='start')
         simulator.state.network.add(self.i_state_monitor)
 
-    def _get_data(self):
+    def _get_data_old(self):
         # code based on brian/recording.py:_get_all_signals()
         # because we use `when='start'`, we need to add the
         # value at the end of the final time step.
@@ -135,6 +136,32 @@ class BrianCurrentSource(StandardCurrentSource):
         i_all_values = numpy.append(device._values, current_i_value)
         return (t_all_values / ms, i_all_values / nA)
 
+    def record(self):
+        pass
+
+    def _get_data(self):
+        def find_nearest(array, value):
+            array = numpy.asarray(array)
+            return (numpy.abs(array - value)).argmin()
+
+        len_t = int(round((simulator.state.t * 1e-3) / (simulator.state.dt * 1e-3))) + 1
+        times = numpy.array([(i * simulator.state.dt * 1e-3) for i in range(len_t)])
+        amps = numpy.array([0.0] * len_t)
+
+        for idx, [t1, t2] in enumerate(zip(self.times, self.times[1:])):
+            if t2 < simulator.state.t * 1e-3:
+                idx1 = find_nearest(times, t1)
+                idx2 = find_nearest(times, t2)
+                amps[idx1:idx2] = [self.amplitudes[idx]] * len(amps[idx1:idx2])
+                if idx == len(self.times)-2:
+                    if not self._is_playable and not self._is_computed:
+                        amps[idx2:] = [self.amplitudes[idx+1]] * len(amps[idx2:])
+            else:
+                if t1 < simulator.state.t * 1e-3:
+                    idx1 = find_nearest(times, t1)
+                    amps[idx1:] = [self.amplitudes[idx]] * len(amps[idx1:])
+                break
+        return (times / ms, amps / nA)
 
 class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
@@ -169,6 +196,7 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
         # Note: Brian uses seconds as unit of time
         temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) - self.start) / (simulator.state.dt * 1e-3)))
         self.times = self.start + (simulator.state.dt * 1e-3) * numpy.arange(temp_num_t)
+        self.amplitudes = numpy.zeros(0)
 
     def _compute(self, time):
         # Note: Brian uses seconds as unit of time; frequency is specified in Hz; thus no conversion required
@@ -226,6 +254,7 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt * 1e-3)))
         self.times = self.start + max(self.dt, simulator.state.dt * 1e-3) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)
+        self.amplitudes = numpy.zeros(0)
 
     def _compute(self, time):
         return self.mean + self.stdev * numpy.random.randn()
