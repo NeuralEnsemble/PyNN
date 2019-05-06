@@ -240,7 +240,7 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
         ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
         ## Otherwise should have a buffer mechanism
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt)))
-        self.times = self.start + max(self.dt, simulator.state.dt * 1e-3) * numpy.arange(temp_num_t)
+        self.times = self.start + max(self.dt, simulator.state.dt) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)
         self.amplitudes = self.mean + self.stdev * numpy.random.randn(len(self.times))
         self.amplitudes[-1] = 0.0
