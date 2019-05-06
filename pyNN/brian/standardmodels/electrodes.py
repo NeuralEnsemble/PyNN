@@ -162,7 +162,7 @@ class ACSource(BrianCurrentSource, electrodes.ACSource):
     def _generate(self):
         # Note: Brian uses seconds as unit of time
         temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) - self.start) / (simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start + (i * simulator.state.dt * 1e-3) for i in range(temp_num_t)])
+        self.times = self.start + (simulator.state.dt * 1e-3) * numpy.arange(temp_num_t)
 
     def _compute(self, time):
         # Note: Brian uses seconds as unit of time; frequency is specified in Hz; thus no conversion required
@@ -218,7 +218,7 @@ class NoisyCurrentSource(BrianCurrentSource, electrodes.NoisyCurrentSource):
 
     def _generate(self):
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start + (i * max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
+        self.times = self.start + (simulator.state.dt * 1e-3) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)
 
     def _compute(self, time):
