@@ -95,24 +95,30 @@ class BrianCurrentSource(StandardCurrentSource):
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         self.cell_list.extend(cell_list)
+        self.prev_amp_dict = {}
         for cell in cell_list:
-            self.indices.extend([cell.parent.id_to_index(cell)])
+            cell_idx = cell.parent.id_to_index(cell)
+            self.indices.extend([cell_idx])
+            self.prev_amp_dict[cell_idx] = 0.0
 
     def _update_current(self):
         # check if current timestamp is within dt/2 of target time; Brian uses seconds as unit of time
         if self.running and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0):
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
-                    cell.parent.brian_group.i_inj[idx] = self.amplitudes[self.i] * ampere
+                    cell.parent.brian_group.i_inj[idx] += self.amplitudes[self.i] - self.prev_amp_dict[idx] #* ampere
+                    self.prev_amp_dict[idx] = self.amplitudes[self.i]
                 else:
-                    cell.parent.brian_group.i_inj[idx] = self._compute(self.times[self.i]) * ampere
+                    amp_val = self._compute(self.times[self.i])
+                    cell.parent.brian_group.i_inj[idx] += amp_val - self.prev_amp_dict[idx]
+                    self.prev_amp_dict[idx] = amp_val #* ampere
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False
                 if self._is_playable:
                     # ensure that currents are set to 0 after t_stop
                     for cell, idx in zip(self.cell_list, self.indices):
-                        cell.parent.brian_group.i_inj[idx] = 0
+                        cell.parent.brian_group.i_inj[idx] -= self.prev_amp_dict[idx]
 
     def record(self):
         self.i_state_monitor = brian.StateMonitor(self.cell_list[0].parent.brian_group[self.indices[0]], 'i_inj', record=0, when='start')
