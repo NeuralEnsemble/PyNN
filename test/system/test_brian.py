@@ -78,3 +78,23 @@ def test_tsodyks_markram_synapse():
     sim.run(100.0)
     tau_psc = prj._brian_synapses[0][0].tau_syn.data * 1e3  # s --> ms
     assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+
+
+def test_issue_634():
+    if not have_brian:
+        raise SkipTest
+    sim = pyNN.brian
+    sim.setup()
+    cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=-60.0))
+    dc1_source = sim.DCSource(amplitude=0.5, start=25, stop=50)
+    dc2_source = sim.DCSource(amplitude=-0.5, start=40, stop=80)
+    cells[0].inject(dc1_source)
+    cells[0].inject(dc2_source)
+    dc1_source.record()
+    dc2_source.record()
+    dc1_source._record_old()
+    sim.run(100.0)
+    i_dc1 = dc1_source.get_data()
+    i_dc2 = dc2_source.get_data()
+    i_dc_total_times, i_dc_total = dc1_source._get_data_old()
+    assert_array_equal(numpy.squeeze(i_dc1.magnitude+i_dc2.magnitude), i_dc_total)
