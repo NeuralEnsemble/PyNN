@@ -211,8 +211,8 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
         # Not efficient at all... Is there a way to have those vectors computed on the fly ?
         # Otherwise should have a buffer mechanism
         temp_num_t = int(round(((self.stop + simulator.state.dt) - self.start) / simulator.state.dt))
-        self.times = numpy.array([self.start + (i * simulator.state.dt) for i in range(temp_num_t)])
-        tmp = numpy.array([i * simulator.state.dt for i in range(temp_num_t)])
+        tmp = simulator.state.dt * numpy.arange(temp_num_t)
+        self.times = tmp + self.start
         self.amplitudes = self.offset + self.amplitude * numpy.sin(tmp * 2 * numpy.pi * self.frequency / 1000. + 2 * numpy.pi * self.phase / 360)
         self.amplitudes[-1] = 0.0
 
@@ -240,7 +240,7 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
         ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
         ## Otherwise should have a buffer mechanism
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt)))
-        self.times = numpy.array([self.start + (i * max(self.dt, simulator.state.dt)) for i in range(temp_num_t)])
+        self.times = self.start + max(self.dt, simulator.state.dt) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)
         self.amplitudes = self.mean + self.stdev * numpy.random.randn(len(self.times))
         self.amplitudes[-1] = 0.0
