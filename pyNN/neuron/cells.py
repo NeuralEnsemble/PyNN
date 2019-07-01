@@ -581,10 +581,12 @@ class VectorSpikeSource(hclass(h.VecStim)):
     parameter_names = ('spike_times',)
 
     def __init__(self, spike_times=[]):
+        self.recording = False
         self.spike_times = spike_times
         self.source = self
         self.source_section = None
         self.rec = None
+        self._recorded_spikes = numpy.array([])
 
     def _set_spike_times(self, spike_times):
         # spike_times should be a Sequence object
@@ -595,6 +597,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
         if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
             raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
+        if self.recording:
+            self._recorded_spikes = numpy.hstack((self._recorded_spikes, spike_times.value))
 
     def _get_spike_times(self):
         return self._spike_times
@@ -602,11 +606,23 @@ class VectorSpikeSource(hclass(h.VecStim)):
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)
 
+    @property
+    def recording(self):
+        return self._recording
+
+    @recording.setter
+    def recording(self, value):
+        self._recording = value
+        if value:
+            # when we turn recording on, the cell may already have had its spike times assigned
+            self._recorded_spikes = numpy.hstack((self._recorded_spikes, self.spike_times))
+
+    def get_recorded_spike_times(self):
+        return self._recorded_spikes
+
     def clear_past_spikes(self):
         """If previous recordings are cleared, need to remove spikes from before the current time."""
-        end = self._spike_times.indwhere(">", h.t)
-        if end > 0:
-            self._spike_times.remove(0, end - 1)  # range is inclusive
+        self._recorded_spikes = self._recorded_spikes[self._recorded_spikes > h.t]
 
 
 class ArtificialCell(object):
