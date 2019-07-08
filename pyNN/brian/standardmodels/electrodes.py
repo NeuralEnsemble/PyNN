@@ -19,6 +19,8 @@ from brian import ms, nA, Hz, network_operation, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from .. import simulator
+import pdb
+import numpy as np
 
 logger = logging.getLogger("PyNN")
 
@@ -45,6 +47,7 @@ class BrianCurrentSource(StandardCurrentSource):
         self.set_native_parameters(parameter_space)
 
     def _check_step_times(self, _times, _amplitudes, resolution):
+        
         # change resolution from ms to s; as per brian convention
         resolution = resolution*1e-3
         # ensure that all time stamps are non-negative
@@ -65,9 +68,10 @@ class BrianCurrentSource(StandardCurrentSource):
                 step_amplitudes.append(amp0)
         step_times.append(_times[-1])
         step_amplitudes.append(_amplitudes[-1])
-        return step_times, step_amplitudes
+        return np.array(step_times), np.array(step_amplitudes)
 
     def set_native_parameters(self, parameters):
+        #pdb.set_trace()
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
             #if name == "_times" or name == "_amplitudes": # key used only by StepCurrentSource
@@ -171,11 +175,27 @@ class StepCurrentSource(BrianCurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
 
     translations = build_translations(
-        ('amplitudes', 'amplitudes', nA),
-        ('times', 'times', ms)
+        ('amplitudes', '_amplitudes', nA),
+        ('times', '_times', ms)
     )
     _is_computed = False
     _is_playable = False
+
+    def _get_times(self):
+        return self._times
+    
+    def _set_times(self, value):
+        self._times = value
+    
+    times = property(fget=_get_times, fset=_set_times)
+
+    def _get_amplitudes(self):
+        return self._amplitudes
+    
+    def _set_amplitudes(self, value):
+        self._amplitudes = value
+    
+    amplitudes = property(fget=_get_amplitudes, fset=_set_amplitudes)
 
 
 class ACSource(BrianCurrentSource, electrodes.ACSource):
