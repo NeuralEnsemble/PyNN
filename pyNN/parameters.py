@@ -17,6 +17,7 @@ from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution, NativeRNG
 from lazyarray import larray, partial_shape
+import numpy as np
 
 
 class LazyArray(larray):

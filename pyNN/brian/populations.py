@@ -8,6 +8,7 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
+import pdb
 
 
 class Assembly(common.Assembly):
@@ -24,6 +25,7 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
+            #pdb.set_trace()
             value = simplify(getattr(self.brian_group, name))
             if isinstance(value, numpy.ndarray):
                 value = value[self.mask]

@@ -11,6 +11,7 @@ import brian2
 from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
+import pdb
 
 mV = brian2.mV
 ms = brian2.ms
@@ -38,6 +39,7 @@ class Recorder(recording.Recorder):
             self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded) #TODO: Brian2 SpikeMonitor check exists
         else:
             varname = self.population.celltype.state_variable_translations[variable]['translated_name']
+            #pdb.set_trace()
             self._devices[variable] = brian2.StateMonitor(group, varname,
                                                          record=list(dict(self.recorded)[varname]),
                                                          clock=clock,
@@ -46,6 +48,7 @@ class Recorder(recording.Recorder):
         simulator.state.network.add(self._devices[variable])
 
     def _record(self, variable, new_ids, sampling_interval=None):
+        #pdb.set_trace()
         """Add the cells in `new_ids` to the set of recorded cells."""
         self.sampling_interval = sampling_interval or self._simulator.state.dt
         if variable not in self._devices:
@@ -54,8 +57,8 @@ class Recorder(recording.Recorder):
         if variable is not 'spikes':
             device = self._devices[variable]
             device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
-            device.record = dict((i, j) for i, j in zip(device.record,
-                                                             range(len(device.record))))
+            #device.record = dict((i, j) for i, j in zip(device.record,
+                 #                                       range(len(device.record))))                                     
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):
@@ -82,10 +85,12 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
+        #pdb.set_trace()
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
         device.record_single_timestep()
-        values = getattr(device, variable)[0]
+        #values = numpy.array(device._values)
+        values = getattr(device, variable)#[0] ####### LOOOOK HERE
         values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](values)
         if clear:
             self._devices[variable].reinit()

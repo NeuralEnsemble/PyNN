@@ -12,6 +12,7 @@ import brian
 from pyNN.parameters import Sequence, simplify
 from pyNN import errors
 from . import simulator
+import pdb
 
 mV = brian.mV
 ms = brian.ms
@@ -81,6 +82,7 @@ class BaseNeuronGroup(brian.NeuronGroup):
 class ThresholdNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
+        #pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.Reset(parameters.pop('v_reset'))
         refractory = parameters.pop('tau_refrac')

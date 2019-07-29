@@ -19,6 +19,7 @@ from pyNN import errors
 import neo
 from datetime import datetime
 import quantities as pq
+import pdb
 try:
     basestring
 except NameError:
@@ -243,7 +244,8 @@ class Recorder(object):
         else:
             return self.recorded[variable]
 
-    def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
+    def _get_current_segment(self, filter_ids, variables='all', clear=False): # filter_ids=None
+        #pdb.set_trace()
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
                               rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end

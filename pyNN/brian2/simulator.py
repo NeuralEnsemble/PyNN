@@ -24,6 +24,7 @@ import logging
 import brian2
 import numpy
 from pyNN import common
+import pdb
 
 name = "Brian2"
 logger = logging.getLogger("PyNN")
@@ -52,8 +53,9 @@ class State(common.control.BaseState):
         self.clear()
 
     def run(self, simtime):
+        #pdb.set_trace()
         self.running = True
-        self.network.run(simtime * ms)
+        self.network.run(simtime * ms) # previously simtime * ms
 
     def run_until(self, tstop):
         self.run(tstop - self.t)

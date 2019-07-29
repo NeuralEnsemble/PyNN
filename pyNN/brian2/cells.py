@@ -12,6 +12,7 @@ import brian2
 from pyNN.parameters import Sequence, simplify
 from pyNN import errors
 from pyNN.brian2 import simulator
+import pdb
 
 mV = brian2.mV
 ms = brian2.ms
@@ -31,7 +32,6 @@ def _new_property(obj_hierarchy, attr_name, units):
       e = _new_property('b.c', 'd')
     in the class definition of A makes A.e an alias for A.b.c.d
     """
-
     def set(self, value):
         if obj_hierarchy:
             obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
@@ -41,28 +41,31 @@ def _new_property(obj_hierarchy, attr_name, units):
 
     def get(self):
         if obj_hierarchy:
-            obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
+            obj = reduce(getattr, [self] + obj_hierarchy.split('.'))   ### ( getattr, ...)
         else:
             obj = self
+        #pdb.set_trace()    
         return getattr(obj, attr_name) / units
     return property(fset=set, fget=get)
 
 
 class BaseNeuronGroup(brian2.NeuronGroup):
-
-    def __init__(self, n, equations, threshold, reset='',
+    
+    def __init__(self, n, equations, threshold, reset=-20 * mV,
                  refractory=0 * ms, **parameters):
         if "tau_refrac" in parameters:
             max_refractory = parameters["tau_refrac"].max() * ms
         else:
             max_refractory = None
+        #pdb.set_trace()    
         brian2.NeuronGroup.__init__(self, n,
                                    model=equations,
                                    threshold=threshold,
                                    reset=reset,
-                                   refractory=refractory,
-                                   clock=simulator.state.network.clock)
+                                   refractory=refractory)
+                                   #clock=simulator.state.network.clock)
         for name, value in parameters.items():
+
             if not hasattr(self, name):
                 self.add_attribute(name)
             setattr(self, name, value)
@@ -80,17 +83,24 @@ class BaseNeuronGroup(brian2.NeuronGroup):
 class ThresholdNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0])
-        reset = 'v = {}*mV'.format(parameters.pop('v_reset')[0])
-        refractory = parameters.pop('tau_refrac')*ms
-        BaseNeuronGroup.__init__(self, n, equations,
-                                 threshold, reset,
-                                 refractory, **parameters)
-        #self._variable_refractory_time = True
-        #self._S0 = self._S[:, 0]
+        #pdb.set_trace()
+        threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0]*1000) 
+        self._resetvalue=parameters.pop('v_reset')[0]
+        reset = 'v = {}*mV'.format(self._resetvalue*1000)
 
-    tau_refrac = _new_property('', '_refractory_array', ms)
-    v_reset = _new_property('_resetfun', 'resetvalue', mV)
+        
+        BaseNeuronGroup.__init__(self, n, equations,
+                                 threshold, reset=reset,
+                                 refractory='refractory_period', **parameters)
+        #?#self.tau_refrac = parameters.pop('tau_refrac') * ms 
+        #  self.tau_refrac = parameters.pop('tau_refrac') * ms                        
+        #self._variable_refractory_time = True
+        #self._S0 = self._S[:, 0] 
+    #?#tau_refrac = _new_property('', 'refractory_period', ms)
+    #v_reset = _new_property('_resetfun', 'resetvalue', mV) ## ('_resetfun', 'resetvalue')
+    @property 
+    def v_reset (self):
+        return self._resetvalue
 
     # def check_threshold(self, v):
     #     return v >= self.v_thresh

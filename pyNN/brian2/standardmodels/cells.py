@@ -25,6 +25,7 @@ leaky_iaf = brian2.Equations('''
                 v_rest                  : volt
                 i_offset                : amp
                 i_inj                   : amp
+                refractory_period       : second
             ''')
 
 adexp_iaf = brian2.Equations('''
@@ -100,12 +101,12 @@ current_based_alpha_synapses = brian2.Equations('''
 
 leaky_iaf_translations = build_translations(
                 ('v_rest',     'v_rest',     lambda **p: p["v_rest"] * mV, lambda **p: p["v_rest"] / mV),
-                ('v_reset',    'v_reset',    mV),
-                ('cm',         'c_m',        lambda **p: p["cm"] * nF, lambda **p: p["cm"] / nF),
-                ('tau_m',      'tau_m',      lambda **p: p["tau_m"] * ms, lambda **p: p["tau_m"] / ms),
-                ('tau_refrac', 'tau_refrac', ms),
-                ('v_thresh',   'v_thresh',   mV),
-                ('i_offset',   'i_offset',   nA))
+                ('v_reset',    'v_reset',    lambda **p: p["v_reset"] * mV, lambda **p: p["v_reset"] / mV),
+                ('cm',         'c_m',        lambda **p: p["cm"] * nF, lambda **p: p["c_m"] / nF),
+                ('tau_m',      'tau_m',      lambda **p: p["tau_m"] * ms, lambda **p: p["tau_m"] / ms), ###p["tau_m"] * ms, p["tau_m"] /nF
+                ('tau_refrac', 'tau_refrac', lambda **p: p["tau_refrac"] * ms, lambda **p: p["tau_refrac"] / ms),
+                ('v_thresh',   'v_thresh',   lambda **p: p["v_thresh"] * mV, lambda **p: p["v_thresh"] / mV),
+                ('i_offset',   'i_offset',   lambda **p: p["i_offset"] * nA, lambda **p: p["i_offset"] / nA))
 
 adexp_iaf_translations = build_translations(
                 ('v_rest',     'v_rest',     mV),
@@ -143,8 +144,8 @@ conductance_based_synapse_translations = build_translations(
                 ('e_rev_I',    'e_rev_i',    mV))
 
 current_based_synapse_translations = build_translations(
-                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_E"] / ms),
-                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_I"] / ms))
+                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
+                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
 
 conductance_based_variable_translations = build_translations(
                 ('v', 'v', mV),
@@ -152,9 +153,9 @@ conductance_based_variable_translations = build_translations(
                 ('gsyn_inh', 'gi', uS))
 
 current_based_variable_translations = build_translations(
-                ('v', 'v', lambda p: p * mV, lambda p: p / mV),
-                ('isyn_exc', 'ie', nA),
-                ('isyn_inh', 'ii', nA))
+                ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
+                ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
+                ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):

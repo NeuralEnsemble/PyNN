@@ -8,7 +8,10 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
-
+import numpy as np
+from brian2.units import *
+from brian2.core.variables import *
+import pdb
 
 class Assembly(common.Assembly):
     _simulator = simulator
@@ -24,11 +27,19 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            value = simplify(getattr(self.brian2_group, name))
-            if isinstance(value, numpy.ndarray):
+            #pdb.set_trace()
+            #value = simplify(getattr(self.brian2_group, name))
+            value=getattr(self.brian2_group, name)
+            #value=np.asarray(value)
+
+            if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
                 value = value[self.mask]
+                value= simplify(value)
+            #else:
+                #raise Exception()
             parameter_dict[name] = value
-        return ParameterSpace(parameter_dict, shape=(self.size,))
+        #pdb.set_trace()    
+        return ParameterSpace(parameter_dict, shape=())
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
@@ -57,6 +68,7 @@ class Population(common.Population):
     _assembly_class = Assembly
 
     def _create_cells(self):
+        #pdb.set_trace()       ######
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
@@ -69,7 +81,7 @@ class Population(common.Population):
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
-
+        
         self.brian2_group = self.celltype.brian2_model(self.size,
                                                      self.celltype.eqs,
                                                      **parameter_space)
@@ -91,14 +103,14 @@ class Population(common.Population):
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
-
+    
     def _get_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
         """
         parameter_dict = {}
         for name in names:
-            value = simplify(getattr(self.brian2_group, name))
+            value = simplify(getattr(self.brian2_group, name)) ######problem
             parameter_dict[name] = value
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
