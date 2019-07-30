@@ -25,7 +25,7 @@ logger = logging.getLogger("PyNN")
 def update_currents():
     for current_source in simulator.state.current_sources:
         current_source._update_current()
-simulator.state.network.add(NetworkOperation(update_currents, when="start"))
+simulator.state.network.add(NetworkOperation(update_currents, when="start", clock=simulator.state.network.clock))
 
 class Brian2CurrentSource(StandardCurrentSource):
     """Base class for a source of current to be injected into a neuron."""

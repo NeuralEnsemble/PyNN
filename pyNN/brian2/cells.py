@@ -62,8 +62,8 @@ class BaseNeuronGroup(brian2.NeuronGroup):
                                    model=equations,
                                    threshold=threshold,
                                    reset=reset,
-                                   refractory=refractory)
-                                   #clock=simulator.state.network.clock)
+                                   refractory=refractory,
+                                   clock=simulator.state.network.clock)
         for name, value in parameters.items():
 
             if not hasattr(self, name):

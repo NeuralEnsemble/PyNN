@@ -29,7 +29,7 @@ class Recorder(recording.Recorder):
     def __init__(self, population=None, file=None):
         __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, population, file)
-        self._devices = {}  # defer creation until first call of record()
+        self._devices = {}  # defer creation until first call of run()
 
     def _create_device(self, group, variable):
         """Create a Brian2 recording device."""
@@ -40,25 +40,22 @@ class Recorder(recording.Recorder):
         else:
             varname = self.population.celltype.state_variable_translations[variable]['translated_name']
             #pdb.set_trace()
+            neurons_to_record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
-                                                         record=list(dict(self.recorded)[varname]),
+                                                          record=neurons_to_record,
                                                          clock=clock,
                                                          when='start')#,
                                                          #dt=int(round(self.sampling_interval / simulator.state.dt))*brian2.ms)
         simulator.state.network.add(self._devices[variable])
 
     def _record(self, variable, new_ids, sampling_interval=None):
-        #pdb.set_trace()
         """Add the cells in `new_ids` to the set of recorded cells."""
         self.sampling_interval = sampling_interval or self._simulator.state.dt
+
+    def _finalize(self):
+        for variable in self.recorded:
         if variable not in self._devices:
             self._create_device(self.population.brian2_group, variable)
-        # update StateMonitor.record and StateMonitor.record
-        if variable is not 'spikes':
-            device = self._devices[variable]
-            device.record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
-            #device.record = dict((i, j) for i, j in zip(device.record,
-                 #                                       range(len(device.record))))                                     
             logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):

@@ -54,6 +54,8 @@ class State(common.control.BaseState):
 
     def run(self, simtime):
         #pdb.set_trace()
+        for recorder in self.recorders:
+            recorder._finalize()
         self.running = True
         self.network.run(simtime * ms) # previously simtime * ms
 
