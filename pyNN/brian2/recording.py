@@ -43,9 +43,9 @@ class Recorder(recording.Recorder):
             neurons_to_record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
                                                           record=neurons_to_record,
-                                                         clock=clock,
-                                                         when='start')#,
-                                                         #dt=int(round(self.sampling_interval / simulator.state.dt))*brian2.ms)
+                                                          clock=clock,
+                                                          when='start')#,
+                                                          #dt=int(round(self.sampling_interval / simulator.state.dt))*brian2.ms)
         simulator.state.network.add(self._devices[variable])
 
     def _record(self, variable, new_ids, sampling_interval=None):
@@ -54,9 +54,9 @@ class Recorder(recording.Recorder):
 
     def _finalize(self):
         for variable in self.recorded:
-        if variable not in self._devices:
-            self._create_device(self.population.brian2_group, variable)
-            logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
+            if variable not in self._devices:
+                self._create_device(self.population.brian2_group, variable)
+                logger.debug("recording %s from %s" % (variable, self.recorded[variable]))
 
     def _reset(self):
         """Clear the list of cells to record."""
