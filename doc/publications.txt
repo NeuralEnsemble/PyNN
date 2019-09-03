@@ -1,0 +1,102 @@
+=============================================
+Publications about, relating to or using PyNN
+=============================================
+
+* Schmuker, Michael, Pfeil, Thomas and Nawrot, Martin Paul (2014) **A neuromorphic network for generic multivariate
+  data classification**
+  Proceedings of the National Academy of Sciences 111: 2081-2086. doi: 10.1073/pnas.1303053111
+  `[link] <http://www.pnas.org/content/111/6/2081.abstract>`_
+
+* Kaplan, BA, Khoei, MA, Lansner, A, & Perrinet, LU (2014) **Signature of an anticipatory response in area VI as modeled
+  by a probabilistic model and a spiking neural network.** In: Neural Networks (IJCNN), 2014 International Joint
+  Conference on (pp. 3205-3212). Beijing, China. IEEE. doi: 10.1109/IJCNN.2014.6889847
+  `[link] <http://ieeexplore.ieee.org/xpl/articleDetails.jsp?tp=&amp;arnumber=6889847>`_
+
+* Djurfeldt M., Davison A.P. and Eppler J.M. (2014) **Efficient generation of connectivity in neuronal networks from
+  simulator-independent descriptions.** Frontiers in Neuroinformatics 8:43: doi: 10.3389/fninf.2014.00043
+  `[link] <journal.frontiersin.org/Journal/10.3389/fninf.2014.00043/abstract>`_
+
+* Antolík J. and Davison A.P. (2013) **Integrated workflows for spiking neuronal network simulations.**
+  Frontiers in Neuroinformatics 7:34: 10.3389/fninf.2013.00034
+  `[link] <http://www.frontiersin.org/neuroinformatics/10.3389/fninf.2013.00034/abstract>`_
+
+* Pfeil, Thomas, Grübl, Andreas, Jeltsch, Sebastian, Müller, Eric, Müller, Paul, Petrovici, Mihai A., Schmuker, Michael,
+  Brüderle, Daniel, Schemmel, Johannes and Meier, Karlheinz (2013) **Six networks on a universal neuromorphic computing
+  substrate.** Frontiers in Neuroscience 7:11 doi: 10.3389/fnins.2013.00011
+  `[link] <http://arxiv.org/abs/1210.7083>`_
+
+* Kaplan BA, Lansner A, Masson GS and Perrinet LU (2013) **Anisotropic connectivity implements motion-based prediction in
+  a spiking neural network.** Front. Comput. Neurosci. 7:112. doi: 10.3389/fncom.2013.00112
+  `[link] <>`_
+
+* Brüderle D., Petrovici M.A., Vogginger B., Ehrlich M., Pfeil T., Millner S., Grübl A., Wendt K., Müller E.,
+  Schwartz M.O., Husmann de Oliveira D., Jeltsch S., Fieres J., Schilling M., Müller P., Breitwieser O., Petkov V.,
+  Muller L., Davison A.P., Krishnamurthy P., Kremkow J., Lundqvist M., Muller E., Partzsch J., Scholze S., Zühl L.,
+  Mayr C., Destexhe A., Diesmann M., Potjans T.C., Lansner A., Schüffny R., Schemmel J., Meier K. (2011)
+  **A Comprehensive Workflow for General-Purpose Neural Modeling with Highly Configurable Neuromorphic Hardware
+  Systems.** Biological Cybernetics 104: 263-296. doi: 10.1007/s00422-011-0435-9
+  `[link] <http://arxiv.org/abs/1011.2861>`_
+
+* Galluppi, Francesco, Rast, Alexander, Davies, Sergio and Furber, Steve (2010) **A general-purpose model translation
+  system for a universal neural chip.** Neural Information Processing. Theory and Algorithms; Lecture Notes in Computer
+  Science vol 6443, pp58-65
+  `[link] <http://dx.doi.org/10.1007/978-3-642-17537-4_8>`_
+
+* J. Nageswaran, N. Dutt, J. L. Krichmar, A. Nicolau, A. V. Veidenbaum (2009) **A configurable simulation environment
+  for the efficient simulation of large-scale spiking neural networks on graphics processors.**
+  Neural Networks 22:5-6, doi:10.1016/j.neunet.2009.06.028.
+  `[link] <http://www.sciencedirect.com/science/article/B6T08-4WNGW6V-4/2/1836146d5752dbc7a170f3aa19a436ca>`_
+
+* Davison AP, Hines M and Muller E (2009) **Trends in programming languages for neuroscience simulations.**
+  Front. Neurosci. doi:10.3389/neuro.01.036.2009.
+  `[link] <http://www.frontiersin.org/neuroscience/neuroscience/paper/10.3389/neuro.01/036.2009/>`_
+
+* Davison AP, Brüderle D, Eppler J, Kremkow J, Muller E, Pecevski D, Perrinet L and Yger P (2009) **PyNN: a
+  common interface for neuronal network simulators.** Front. Neuroinform. 2:11. doi:10.3389/neuro.11.011.2008.
+  `[link] <http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/011.2008/>`_
+
+* Brüderle D, Muller E, Davison A, Muller E, Schemmel J and Meier K (2009) **Establishing a novel modeling tool: a
+  python-based interface for a neuromorphic hardware system.**
+  Front. Neuroinform. 3:17. doi:10.3389/neuro.11.017.2009.
+  `[link] <http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/017.2009/>`_
+
+* Bednar JA (2009) **Topographica: building and analyzing map-level simulations from Python, C/C++, MATLAB, NEST, or
+  NEURON components.** Front. Neuroinform. 3:8. doi:10.3389/neuro.11.008.2009.
+  `[link] <http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2666198>`_
+
+* Goodman D and Brette R (2008) **Brian: a simulator for spiking neural networks in Python.**
+  Front. Neuroinform. 2:5. doi:10.3389/neuro.11.005.2008.
+  `[link] <http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2605403>`_
+
+* Pecevski D, Natschläger T and Schuch K (2009) **PCSIM: a parallel simulation environment for neural circuits fully
+  integrated with Python.** Front. Neuroinform. 3:11. doi:10.3389/neuro.11.011.2009.
+  `[link] <http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2698777>`_
+
+* Ray S and Bhalla US (2008) **PyMOOSE: interoperable scripting in Python for MOOSE.**
+  Front. Neuroinform. 2:6. doi:10.3389/neuro.11.006.2008.
+  `[link] <http://www.pubmedcentral.nih.gov/articlerender.fcgi?artid=2698777>`_
+
+* Sharon Crook, R Angus Silver and Padraig Gleeson (2009) **Describing and exchanging models of neurons and neuronal
+  networks with NeuroML.** BMC Neuroscience, 10(Suppl 1):L1doi:10.1186/1471-2202-10-S1-L1.
+  `[link] <http://www.biomedcentral.com/1471-2202/10/S1/L1>`_
+
+* D. Brüderle, A. Grübl, K. Meier, E. Muller and J. Schemmel (2007) **A Software Framework for Tuning the Dynamics of
+  Neuromorphic Silicon Towards Biology.** LNCS 4507. doi:10.1007/978-3-540-73007-1.
+  `[link] <http://www.springerlink.com/content/v151p3447442q623/>`_
+
+* B. Kaplan, D. Brüderle, J. Schemmel and K. Meier (2009) **High-Conductance States on a Neuromorphic Hardware System.**
+  Proceedings of IJCNN 2009.
+  `[link] <http://www.kip.uni-heidelberg.de/Veroeffentlichungen/details.php?id=1916>`_
+
+* D. Brüderle (2009) **Neuroscientific Modeling with a Mixed-Signal VLSI Hardware System.**
+  Doctoral Dissertation, Kirchhoff-Institute for Physics, University of Heidelberg.
+  `[link] <http://www.ub.uni-heidelberg.de/archiv/9656>`_
+
+* A. Davison, P. Yger, J. Kremkow, L. Perrinet and E. Muller (2007) **PyNN: towards a universal neural simulator API in
+  Python.** BMC Neuroscience 2007, 8(Suppl 2):P2. doi:10.1186/1471-2202-8-S2-P2.
+  `[link] <http://www.biomedcentral.com/1471-2202/8/S2/P2>`_
+
+* E. Muller, A. P. Davison, T. Brizzi, D. Bruederle, M. J. Eppler, J. Kremkow, D. Pecevski, L. Perrinet, M. Schmuker and
+  P. Yger (2009) **NeuralEnsemble.Org: Unifying neural simulators in Python to ease the model complexity bottleneck.**
+  Frontiers in Neuroinformatics Conference Abstract: Neuroinformatics 2009. doi: 10.3389/conf.neuro.11.2009.08.104.
+  `[link] <http://frontiersin.org/conferences/individual_abstract_listing.php?conferid=155&amp;pap=2137&amp;ind_abs=1&amp;q=98>`_

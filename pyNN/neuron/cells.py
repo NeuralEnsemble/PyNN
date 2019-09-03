@@ -442,10 +442,10 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
                  v_reset=-55.0,
                  tau_e=5, tau_i=5, e_e=0, e_i=-70,
                  vt_star=-48.0, dV=0.5, lambda0=1.0,
-                 tau_eta1=10.0, tau_eta2=50.0, tau_eta3=250.0,
-                 a_eta1=0.2, a_eta2=0.05, a_eta3=0.025,
-                 tau_gamma1=5.0, tau_gamma2=200.0, tau_gamma3=250.0,
-                 a_gamma1=15.0, a_gamma2=3.0, a_gamma3=1.0):
+                 tau_eta=(10.0, 50.0, 250.0),
+                 a_eta=(0.2, 0.05, 0.025),
+                 tau_gamma=(5.0, 200.0, 250.0),
+                 a_gamma=(15.0, 3.0, 1.0)):
 
         LeakySingleCompartmentNeuron.__init__(self, syn_type, syn_shape, tau_m,
                                               c_m, v_rest, i_offset,
@@ -458,26 +458,45 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
         self.parameter_names = ['c_m', 'tau_m', 'v_rest', 't_refrac',
                                 'i_offset', 'v_reset', 'tau_e', 'tau_i',
                                 'vt_star', 'dV', 'lambda0',
-                                'tau_eta1', 'tau_eta2', 'tau_eta3',
-                                'a_eta1', 'a_eta2', 'a_eta3',
-                                'tau_gamma1', 'tau_gamma2', 'tau_gamma3',
-                                'a_gamma1', 'a_gamma2', 'a_gamma3']
+                                'tau_eta', 'a_eta',
+                                'tau_gamma', 'a_gamma']
         if syn_type == 'conductance':
             self.parameter_names.extend(['e_e', 'e_i'])
         self.set_parameters(locals())
 
-    tau_eta1 = _new_property('gif_fun', 'tau_eta1')
-    tau_eta2 = _new_property('gif_fun', 'tau_eta2')
-    tau_eta3 = _new_property('gif_fun', 'tau_eta3')
-    a_eta1 = _new_property('gif_fun', 'a_eta1')
-    a_eta2 = _new_property('gif_fun', 'a_eta2')
-    a_eta3 = _new_property('gif_fun', 'a_eta3')
-    tau_gamma1 = _new_property('gif_fun', 'tau_gamma1')
-    tau_gamma2 = _new_property('gif_fun', 'tau_gamma2')
-    tau_gamma3 = _new_property('gif_fun', 'tau_gamma3')
-    a_gamma1 = _new_property('gif_fun', 'a_gamma1')
-    a_gamma2 = _new_property('gif_fun', 'a_gamma2')
-    a_gamma3 = _new_property('gif_fun', 'a_gamma3')
+    def __set_tau_eta(self, value):
+        self.gif_fun.tau_eta1, self.gif_fun.tau_eta2, self.gif_fun.tau_eta3 = value.value
+
+    def __get_tau_eta(self):
+        return self.gif_fun.tau_eta1, self.gif_fun.tau_eta2, self.gif_fun.tau_eta3
+
+    tau_eta = property(fset=__set_tau_eta, fget=__get_tau_eta)
+
+    def __set_a_eta(self, value):
+        self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3 = value.value
+
+
+    def __get_a_eta(self):
+        return self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3
+
+    a_eta = property(fset=__set_a_eta, fget=__get_a_eta)
+
+    def __set_tau_gamma(self, value):
+        self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3 = value.value
+
+
+    def __get_tau_gamma(self):
+        return self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3
+
+    tau_gamma = property(fset=__set_tau_gamma, fget=__get_tau_gamma)
+
+    def __set_a_gamma(self, value):
+        self.gif_fun.a_gamma1, self.gif_fun.a_gamma2, self.gif_fun.a_gamma3 = value.value
+
+    def __get_a_gamma(self):
+        return self.gif_fun.a_gamma1, self.gif_fun.a_gamma2, self.gif_fun.a_gamma3
+
+    a_gamma = property(fset=__set_a_gamma, fget=__get_a_gamma)
 
     v_reset = _new_property('gif_fun', 'Vr')
     t_refrac = _new_property('gif_fun', 'Tref')
@@ -562,10 +581,12 @@ class VectorSpikeSource(hclass(h.VecStim)):
     parameter_names = ('spike_times',)
 
     def __init__(self, spike_times=[]):
+        self.recording = False
         self.spike_times = spike_times
         self.source = self
         self.source_section = None
         self.rec = None
+        self._recorded_spikes = numpy.array([])
 
     def _set_spike_times(self, spike_times):
         # spike_times should be a Sequence object
@@ -576,6 +597,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
         if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
             raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
+        if self.recording:
+            self._recorded_spikes = numpy.hstack((self._recorded_spikes, spike_times.value))
 
     def _get_spike_times(self):
         return self._spike_times
@@ -583,10 +606,94 @@ class VectorSpikeSource(hclass(h.VecStim)):
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)
 
+    @property
+    def recording(self):
+        return self._recording
+
+    @recording.setter
+    def recording(self, value):
+        self._recording = value
+        if value:
+            # when we turn recording on, the cell may already have had its spike times assigned
+            self._recorded_spikes = numpy.hstack((self._recorded_spikes, self.spike_times))
+
+    def get_recorded_spike_times(self):
+        return self._recorded_spikes
+
     def clear_past_spikes(self):
         """If previous recordings are cleared, need to remove spikes from before the current time."""
-        end = self._spike_times.indwhere(">", h.t)
-        if end > 0:
-            self._spike_times.remove(0, end - 1)  # range is inclusive
+        self._recorded_spikes = self._recorded_spikes[self._recorded_spikes > h.t]
 
-    
+
+class ArtificialCell(object):
+    """Wraps NEURON 'ARTIFICIAL_CELL' models for PyNN"""
+
+    def __init__(self, mechanism_name, **parameters):
+        self.source = getattr(h, mechanism_name)()
+        for name, value in parameters.items():
+            setattr(self.source, name, value)
+        dummy = nrn.Section()
+
+        # needed for PyNN
+        self.source_section = dummy  # todo: only need a single dummy for entire network, not one per cell
+        self.parameter_names = ('tau', 'refrac')
+        self.traces = {}
+        self.spike_times = h.Vector(0)
+        self.rec = h.NetCon(self.source, None)
+        self.recording_time = False
+        self.default = self.source
+
+    def _set_tau(self, value):
+        self.source.tau = value
+    def _get_tau(self):
+        return self.source.tau
+    tau = property(fget=_get_tau, fset=_set_tau)
+
+    def _set_refrac(self, value):
+        self.source.refrac = value
+    def _get_refrac(self):
+        return self.source.refrac
+    refrac = property(fget=_get_refrac, fset=_set_refrac)
+
+    # ... gkbar and g_leak properties defined similarly
+
+    def memb_init(self):
+        self.source.m = self.m_init
+
+
+class IntFire1(NativeCellType):
+    default_parameters = {'tau': 10.0, 'refrac': 5.0}
+    default_initial_values = {'m': 0.0}
+    recordable = ['m']
+    units = {'m': 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire1"}
+
+
+class IntFire2(NativeCellType):
+    default_parameters = {'taum': 10.0, 'taus': 20.0, 'ib': 0.0}
+    default_initial_values = {'m': 0.0, 'i': 0.0}
+    recordable = ['m', 'i']
+    units = {'m' : 'dimensionless', 'i': 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire2"}
+
+
+class IntFire4(NativeCellType):
+    default_parameters = {
+        'taum': 50.0,
+        'taue': 5.0,
+        'taui1': 10.0,
+        'taui2': 20.0,
+    }
+    default_initial_values = {'m': 0.0, 'e': 0.0, 'i1': 0.0, 'i2': 0.0}
+    recordable = ['e', 'i1', 'i2', 'm']
+    units = {'e' : 'dimensionless',
+             'i1' : 'dimensionless',
+             'i2' : 'dimensionless',
+             'm' : 'dimensionless'}
+    receptor_types = ['default']
+    model = ArtificialCell
+    extra_parameters = {"mechanism_name": "IntFire4"}

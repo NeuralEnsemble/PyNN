@@ -229,9 +229,13 @@ class BasePopulation(object):
         return gen
 
     def _get_cell_initial_value(self, id, variable):
-        assert isinstance(self.initial_values[variable], LazyArray)
-        index = self.id_to_local_index(id)
-        return self.initial_values[variable][index]
+        if variable in self.initial_values:
+            assert isinstance(self.initial_values[variable], LazyArray)
+            index = self.id_to_local_index(id)
+            return self.initial_values[variable][index]
+        else:
+            logger.warning("Variable '{}' is not in initial values, returning 0.0".format(variable))
+            return 0.0
 
     def _set_cell_initial_value(self, id, variable, value):
         assert isinstance(self.initial_values[variable], LazyArray)
@@ -266,7 +270,7 @@ class BasePopulation(object):
         """
         Get the values of the given parameters for every local cell in the
         population, or, if gather=True, for all cells in the population.
-        
+
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
@@ -285,7 +289,7 @@ class BasePopulation(object):
             native_parameter_space = self._get_parameters(*native_names)
             parameter_space = self.celltype.reverse_translate(native_parameter_space)
         else:
-            parameter_space = self._get_parameters(*self.celltype.get_parameter_names())
+            parameter_space = self._get_parameters(*parameter_names)
         parameter_space.evaluate(simplify=simplify)  # what if parameter space is homogeneous on some nodes but not on others?
                                                      # this also causes problems if the population size matches the number of MPI nodes
         parameters = dict(parameter_space.items())
@@ -418,6 +422,10 @@ class BasePopulation(object):
         """Determine whether `variable` can be recorded from this population."""
         return self.celltype.can_record(variable)
 
+    @property
+    def injectable(self):
+        return self.celltype.injectable
+
     def record(self, variables, to_file=None, sampling_interval=None):
         """
         Record the specified variable or variables for all cells in the
@@ -429,13 +437,13 @@ class BasePopulation(object):
 
         If specified, `to_file` should be either a filename or a Neo IO instance and `write_data()`
         will be automatically called when `end()` is called.
-        
+
         `sampling_interval` should be a value in milliseconds, and an integer
         multiple of the simulation timestep.
         """
         if variables is None:  # reset the list of things to record
-                              # note that if record(None) is called on a view of a population
-                              # recording will be reset for the entire population, not just the view
+                               # note that if record(None) is called on a view of a population
+                               # recording will be reset for the entire population, not just the view
             self.recorder.reset()
         else:
             logger.debug("%s.record('%s')", self.label, variables)
@@ -479,7 +487,7 @@ class BasePopulation(object):
         simulated on that node.
 
         If `clear` is True, recorded data will be deleted from the `Population`.
-        
+
         `annotations` should be a dict containing simple data types such as
         numbers and strings. The contents will be written into the output data
         file as metadata.
@@ -533,7 +541,7 @@ class BasePopulation(object):
     def get_spike_counts(self, gather=True):
         """
         Returns a dict containing the number of spikes for each neuron.
-        
+
         The dict keys are neuron IDs, not indices.
         """
         # arguably, we should use indices
@@ -623,7 +631,7 @@ class Population(BasePopulation):
                      "You should import Population from a PyNN backend module, " \
                      "e.g. pyNN.nest or pyNN.neuron"
             raise Exception(errmsg)
-        if not isinstance(size, int):  # also allow a single integer, for a 1D population
+        if not isinstance(size, (int, numpy.integer)):  # also allow a single integer, for a 1D population
             assert isinstance(size, tuple), "`size` must be an integer or a tuple of ints. You have supplied a %s" % type(size)
             # check the things inside are ints
             for e in size:
@@ -962,6 +970,7 @@ class Assembly(object):
             self._insert(p)
         self.label = kwargs.get('label', 'assembly%d' % Assembly._count)
         assert isinstance(self.label, basestring), "label must be a string or unicode"
+        self.annotations = {}
         Assembly._count += 1
 
     def __repr__(self):
@@ -1135,7 +1144,7 @@ class Assembly(object):
             pindex = boundaries[1:].searchsorted(index, side='right')
             return self.populations[pindex][index - boundaries[pindex]]
         elif isinstance(index, (slice, tuple, list, numpy.ndarray)):
-            if isinstance(index, slice):
+            if isinstance(index, slice) or (hasattr(index, "dtype") and index.dtype == bool):
                 indices = numpy.arange(self.size)[index]
             else:
                 indices = numpy.array(index)
@@ -1424,6 +1433,10 @@ class Assembly(object):
         """
         for p in self.populations:
             current_source.inject_into(p)
+
+    @property
+    def injectable(self):
+        return all(p.injectable for p in self.populations)
 
     def describe(self, template='assembly_default.txt', engine='default'):
         """

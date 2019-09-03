@@ -18,7 +18,9 @@ PyNN: documentation
    backends
    parallel
    units
+   import_export
    examples
+   publications
    contributors
    release_notes
 

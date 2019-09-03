@@ -105,6 +105,7 @@ class _State(common.control.BaseState):
         return ogs and "off_grid" or "on_grid"
 
     def _set_spike_precision(self, precision):
+        self._spike_precision = precision
         if precision == 'off_grid':
             nest.SetKernelStatus({'off_grid_spiking': True})
             self.default_recording_precision = 15
@@ -155,6 +156,8 @@ class _State(common.control.BaseState):
         nest.ll_api.sr('clear')
         # reset the simulation kernel
         nest.ResetKernel()
+        # but this reverts some of the PyNN settings, so we have to repeat them (see NEST #716)
+        self.spike_precision = self._spike_precision
         # set tempdir
         tempdir = tempfile.mkdtemp()
         self.tempdirs.append(tempdir)  # append tempdir to tempdirs list

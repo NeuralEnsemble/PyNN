@@ -1,7 +1,19 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
-from distutils.command.build import build as _build
+try:
+    from setuptools import setup
+    from setuptools.command.build_py import build_py as _build
+    from setuptools import version
+    if version.__version__ > '20.5':
+        tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
+                     'matplotlib;python_version>="3.4"', 'Cheetah3',
+                     'h5py']
+    else:
+        tests_req = ['mpi4py', 'Cheetah3']
+except ImportError:
+    from distutils.core import setup
+    from distutils.command.build_py import build_py as _build
+
 import os
 import subprocess
 
@@ -10,7 +22,7 @@ def run_command(path, working_directory):
     p = subprocess.Popen(path, shell=True, stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
-                         close_fds=True, cwd=working_directory)
+                         cwd=working_directory)
     result = p.wait()
     stdout = p.stdout.readlines()
     return result, stdout
@@ -23,6 +35,7 @@ class build(_build):
         _build.run(self)
         # try to compile NEURON extensions
         nrnivmodl = self.find("nrnivmodl")
+
         if nrnivmodl:
             print("nrnivmodl found at", nrnivmodl)
             result, stdout = run_command(nrnivmodl,
@@ -53,7 +66,7 @@ class build(_build):
                     print("Unable to compile NEST extensions. Output was:")
                     print('  '.join([''] + stdout))
                 else:
-                    result, stdout = run_command("make install", nest_build_dir)
+                    result, stdout = run_command("make install", nest_build_dir)  # should really move this to install stage
                     if result != 0:
                         print("Unable to install NEST extensions. Output was:")
                         print('  '.join([''] + stdout))
@@ -71,15 +84,16 @@ class build(_build):
                 break
         return cmd
 
+
 setup(
     name="PyNN",
-    version="0.9.1",
+    version="0.9.4",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
                 'pyNN.brian', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.neuroml.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
-                'pyNN.utility', 'pyNN.nineml'],
+                'pyNN.utility', 'pyNN.nineml', 'pyNN.serialization'],
     package_data={'pyNN': ['neuron/nmodl/*.mod',
                            'nest/extensions/*.h',
                            'nest/extensions/*.cpp',
@@ -100,14 +114,22 @@ setup(
                  'Natural Language :: English',
                  'Operating System :: OS Independent',
                  'Programming Language :: Python :: 2',
-                 'Programming Language :: Python :: 2.6',
                  'Programming Language :: Python :: 2.7',
                  'Programming Language :: Python :: 3',
                  'Programming Language :: Python :: 3.3',
                  'Programming Language :: Python :: 3.4',
                  'Programming Language :: Python :: 3.5',
                  'Programming Language :: Python :: 3.6',
+                 'Programming Language :: Python :: 3.7',
                  'Topic :: Scientific/Engineering'],
-    cmdclass={'build': build},
+    cmdclass={'build_py': build},
+    install_requires=['numpy>=1.8.2', 'lazyarray>=0.3.2', 'neo>=0.5.2',
+                      'quantities>=0.12.1'],
+    extras_require={
+        'examples': ['matplotlib', 'scipy'],
+        'plotting': ['matplotlib', 'scipy'],
+        'MPI': ['mpi4py'],
+        'sonata': ['h5py']
+    },
+    tests_require=tests_req
 )
-

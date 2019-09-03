@@ -147,10 +147,65 @@ the same time:
 
 .. todo:: in the above, give current source examples, and Projection examples
 
-Time series parameters
-======================
+Time series and array-valued parameters
+=======================================
 
-.. todo:: discuss spike trains, current sources, Sequence class
+For certain neuron models (:class:`SpikeSourceArray`, :class:`GIF_cond_exp`)
+and current sources, the individual parameter values are not single numbers
+(with physical units), but arrays, e.g.:
+
+.. code-block:: python
+
+    celltype = SpikeSourceArray(np.array([5.0, 15.0, 45.0, 99.0]))
+
+to set the same spike times for the entire population.
+To set different spike times for each cell in the population requires an array of arrays.
+To avoid ambiguities in this situation, the inner arrays should be wrapped by the
+:class:`Sequence` class, e.g.:
+
+.. code-block:: python
+
+    celltype = SpikeSourceArray([Sequence([5.0, 15.0, 45.0, 99.0]),
+                                 Sequence([2.0, 5.3, 18.9]),
+                                 Sequence([17.8, 88.2, 100.1])
+                                ])
+
+Such an array-of-Sequences can also be provided by a generator function, e.g.:
+
+.. code-block:: python
+
+    number = int(2 * simtime * input_rate / 1000.0)
+
+    def generate_spike_times(i):
+        gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+        if hasattr(i, "__len__"):
+            return [gen() for j in i]
+        else:
+            return gen()
+
+    celltype = SpikeSourceArray(spike_times=generate_spike_times)
+
+
+As a generalization of :class:`Sequence`, some models require array-valued parameters,
+expressed as tuples or :class:`ArrayParameter` instances, e.g.:
+
+.. code-block:: python
+
+    cell_type = GIF_cond_exp(
+        ...
+        # this parameter has the same value in all neurons in the population
+        tau_gamma=(1.0, 10.0, 100.0),  # Time constants for spike-frequency adaptation in ms.
+        # the following parameter has different values for each neuron
+        a_eta=[(0.1, 0.1, 0.1),        # Post-spike increments for spike-triggered current in nA
+               (0.0, 0.0, 0.0),
+               (0.0, 0.0, 0.0),
+               (0.0, 0.0, 0.0)]
+        ...)
+
+.. note:: The reason for defining :class:`Sequence` and :class:`ArrayParameter`
+          rather than just using a plain NumPy array is to avoid the ambiguity of
+          "is a given array a single parameter value (e.g. a spike train for one cell)
+          or an array of parameter values (e.g. one number per cell)?".
 
 
 Setting initial values

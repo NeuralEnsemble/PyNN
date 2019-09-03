@@ -23,6 +23,8 @@ from pyNN.parameters import ParameterSpace
 import numpy
 from pyNN.core import is_listlike, itervalues
 from copy import deepcopy
+import neo
+import quantities as pq
 
 # ==============================================================================
 #   Standard cells
@@ -69,9 +71,12 @@ class StandardModelType(models.BaseModelType):
         """
         return self.translate(self.parameter_space)
 
-    def translate(self, parameters):
+    def translate(self, parameters, copy=True):
         """Translate standardized model parameters to simulator-specific parameters."""
-        _parameters = deepcopy(parameters)
+        if copy:
+            _parameters = deepcopy(parameters)
+        else:
+            _parameters = parameters
         cls = self.__class__
         if parameters.schema != self.get_schema():
             raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
@@ -180,7 +185,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         else:
             object.__setattr__(self, name, value)
 
-    def set_parameters(self, **parameters):
+    def set_parameters(self, copy=True, **parameters):
         """
         Set current source parameters, given as a sequence of parameter=value arguments.
         """
@@ -195,7 +200,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
             parameters = all_parameters
         else:
             parameters = ParameterSpace(parameters, self.get_schema(), (1,))
-        parameters = self.translate(parameters)
+        parameters = self.translate(parameters, copy=copy)
         self.set_native_parameters(parameters)
 
     def get_parameters(self):
@@ -209,6 +214,21 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
 
     def get_native_parameters(self):
         raise NotImplementedError
+
+    def _round_timestamp(self, value, resolution):
+        # todo: consider using decimals module, since rounding of floating point numbers is so horrible
+        return numpy.rint(value/resolution) * resolution
+
+    def get_data(self):
+        """Return the recorded current as a Neo signal object"""
+        t_arr, i_arr = self._get_data()
+        intervals = numpy.diff(t_arr)
+        if intervals.size > 0 and intervals.max() - intervals.min() < 1e-9:
+            signal = neo.AnalogSignal(i_arr, units="nA", t_start=t_arr[0] * pq.ms,
+                                      sampling_period=intervals[0] * pq.ms)
+        else:
+            signal = neo.IrregularlySampledSignal(t_arr, i_arr, units="nA", time_units="ms")
+        return signal
 
 
 class ModelNotAvailable(object):

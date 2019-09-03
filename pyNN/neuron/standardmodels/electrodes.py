@@ -84,13 +84,41 @@ class NeuronCurrentSource(StandardCurrentSource):
                 else:
                     amp_val = self._h_amplitudes.x[int(ind)-1]
                 self._h_times.insrt(ind, tstop)
-                self._h_amplitudes.insrt(ind, amp_val)                
+                self._h_amplitudes.insrt(ind, amp_val)
 
             self._h_amplitudes.play(iclamp._ref_amp, self._h_times)
+
+    def _check_step_times(self, times, amplitudes, resolution):
+        # ensure that all time stamps are non-negative
+        if not (times >= 0.0).all():
+            raise ValueError("Step current cannot accept negative timestamps.")
+        # ensure that times provided are of strictly increasing magnitudes
+        dt_times = numpy.diff(times)
+        if not all(dt_times>0.0):
+            raise ValueError("Step current timestamps should be monotonically increasing.")
+        # map timestamps to actual simulation time instants based on specified dt
+        for ind in range(len(times)):
+            times[ind] = self._round_timestamp(times[ind], resolution)
+        # remove duplicate timestamps, and corresponding amplitudes, after mapping
+        step_times = []
+        step_amplitudes = []
+        for ts0, amp0, ts1 in zip(times, amplitudes, times[1:]):
+            if ts0 != ts1:
+                step_times.append(ts0)
+                step_amplitudes.append(amp0)
+        step_times.append(times[-1])
+        step_amplitudes.append(amplitudes[-1])
+        return step_times, step_amplitudes
 
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
+            if name == "amplitudes": # key used only by StepCurrentSource
+                step_times = parameters["times"].value
+                step_amplitudes = parameters["amplitudes"].value
+                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
+                parameters["times"].value = step_times
+                parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):  # this shouldn't be necessary, but seems to prevent a segfault
                 value = value.value
             object.__setattr__(self, name, value)
@@ -116,7 +144,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self.record_times = h.Vector()
         self.record_times.record(h._ref_t)
 
-    def get_data(self):
+    def _get_data(self):
         # NEURON and pyNN have different concepts of current initiation times
         # To keep this consistent across simulators, pyNN will have current
         # initiating at the electrode at t_start and effect on cell at next dt.
@@ -182,8 +210,9 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
     def _generate(self):
         # Not efficient at all... Is there a way to have those vectors computed on the fly ?
         # Otherwise should have a buffer mechanism
-        self.times = numpy.arange(self.start, self.stop + simulator.state.dt, simulator.state.dt)
-        tmp = numpy.arange(0, self.stop - self.start, simulator.state.dt)
+        temp_num_t = int(round(((self.stop + simulator.state.dt) - self.start) / simulator.state.dt))
+        tmp = simulator.state.dt * numpy.arange(temp_num_t)
+        self.times = tmp + self.start
         self.amplitudes = self.offset + self.amplitude * numpy.sin(tmp * 2 * numpy.pi * self.frequency / 1000. + 2 * numpy.pi * self.phase / 360)
         self.amplitudes[-1] = 0.0
 
@@ -210,7 +239,8 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
     def _generate(self):
         ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
         ## Otherwise should have a buffer mechanism
-        self.times = numpy.arange(self.start, self.stop, max(self.dt, simulator.state.dt))
+        temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt)))
+        self.times = self.start + max(self.dt, simulator.state.dt) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)
         self.amplitudes = self.mean + self.stdev * numpy.random.randn(len(self.times))
         self.amplitudes[-1] = 0.0

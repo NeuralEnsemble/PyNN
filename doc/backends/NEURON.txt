@@ -28,7 +28,7 @@ If using *cvode*, there are two more optional parameters:
 
 .. testcode:: cvode
 
-    setup(cvode=True,
+    setup(use_cvode=True,
           rtol=0.001, # specify relative error tolerance
           atol=1e-4)  # specify absolute error tolerance
 
@@ -136,6 +136,16 @@ It is now straightforward to use this cell type in PyNN:
 If your model relies on other NMODL mechanisms, call the
 :func:`~pyNN.neuron.load_mechanisms` function with the path to the directory
 containing the :file:`.mod` files.
+
+It is also possible to use NEURON "ARTIFICIAL_CELL" models, such as :class:`IntFire1`,
+ :class:`IntFire2` and :class:`IntFire4`:
+
+.. testcode:: nativemodel
+
+    from pyNN.neuron import setup, Population, IntFire1
+    setup()
+    p1 = Population(10, IntFire1(tau=10.0, refrac=2.5))
+    p1.record('m')
 
 
 .. _`CVode documentation`: http://www.neuron.yale.edu/neuron/static/docs/help/neuron/neuron/classes/cvode.html

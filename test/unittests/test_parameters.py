@@ -91,14 +91,22 @@ def test_columnwise_iteration_with_structured_array():
 
 def test_columnwise_iteration_with_random_array_parallel_safe_no_mask():
     orig_get_mpi_config = random.get_mpi_config
+
+    # first, with a single MPI node
     random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
-    copy_input = random.RandomDistribution('normal', (0, 1), rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4, 3))
-    cols = [col for col in m.by_column()]
-    assert_array_equal(cols[0], copy_input.next(4, mask_local=False))
-    assert_array_equal(cols[1], copy_input.next(4, mask_local=False))
-    assert_array_equal(cols[2], copy_input.next(4, mask_local=False))
+    cols_np1 = [col for col in m.by_column()]
+
+    # now, on one node of two
+    random.get_mpi_config = lambda: (1, 2)
+    input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
+    m = LazyArray(input, shape=(4, 3))
+    cols_np2_1 = [col for col in m.by_column()]
+
+    for i in range(3):
+        assert_array_equal(cols_np1[i], cols_np2_1[i])
+
     random.get_mpi_config = orig_get_mpi_config
 
 
@@ -129,14 +137,32 @@ def test_columnwise_iteration_with_structured_array_and_mask():
 
 def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
     orig_get_mpi_config = random.get_mpi_config
+
+    mask = np.array([False, False, True])
+
+    # first, with a single MPI node
     random.get_mpi_config = lambda: (0, 2)
     input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
-    copy_input = random.RandomDistribution('gamma', (2, 3), rng=MockRNG(parallel_safe=True))
     m = LazyArray(input, shape=(4, 3))
-    mask = np.array([False, False, True])
-    cols = [col for col in m.by_column(mask=mask)]
-    assert_equal(len(cols), 1)
-    assert_array_almost_equal(cols[0], copy_input.next(12, mask_local=False)[8:], 15)
+    cols_np1 = [col for col in m.by_column(mask=mask)]
+
+    # now, on one node of two
+    random.get_mpi_config = lambda: (0, 2)
+    input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
+    m = LazyArray(input, shape=(4, 3))
+    cols_np2_0 = [col for col in m.by_column(mask=mask)]
+
+    # now, on the other node of two
+    random.get_mpi_config = lambda: (1, 2)
+    input = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(parallel_safe=True))
+    m = LazyArray(input, shape=(4, 3))
+    cols_np2_1 = [col for col in m.by_column(mask=mask)]
+
+    assert_equal(len(cols_np1), 1)
+    assert_equal(len(cols_np2_0), 1)
+    assert_equal(len(cols_np2_1), 1)
+    assert_array_equal(cols_np1[0], cols_np2_0[0])
+
     random.get_mpi_config = orig_get_mpi_config
 
 
