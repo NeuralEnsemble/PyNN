@@ -23,8 +23,8 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.hl_api.NESTError as e:
-        raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
+    except nest.kernel.NESTError as e:
+        raise nest.kernel.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 
 class RecordingDevice(object):
@@ -174,8 +174,8 @@ class Multimeter(RecordingDevice):
 #            device_parameters.update(to_file=True, to_memory=False)
 #        try:
 #            nest.SetStatus(self.device, device_parameters)
-#        except nest.hl_api.NESTError as e:
-#            raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
+#        except nest.kernel.NESTError as e:
+#            raise nest.kernel.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
 #
 #        self.record_from = []
 #        self._local_files_merged = False
@@ -417,7 +417,7 @@ class Recorder(recording.Recorder):
 
     def _get_sampling_interval(self):
         return nest.GetStatus(self._multimeter.device, "interval")[0]
-        
+
     def _set_sampling_interval(self, value):
         if value is not None:
             nest.SetStatus(self._multimeter.device, {"interval": value})

@@ -94,9 +94,9 @@ class SimpleStochasticSynapse(synapses.SimpleStochasticSynapse, NESTSynapseMixin
     translations = build_translations(
         ('weight', 'weight', 1000.0),
         ('delay', 'delay'),
-        ('p', 'p'),
+        ('p', 'p_transmit'),
     )
-    nest_name = 'simple_stochastic_synapse'
+    nest_name = 'bernoulli_synapse'
 
 
 class StochasticTsodyksMarkramSynapse(synapses.StochasticTsodyksMarkramSynapse, NESTSynapseMixin):

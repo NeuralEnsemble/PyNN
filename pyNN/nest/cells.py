@@ -30,7 +30,7 @@ def get_defaults(model_name):
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
               'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
               'thread_local_id', 'node_uses_wfr', 'supports_precise_spikes',
-              'synaptic_elements', 'y_0', 'y_1', 'allow_offgrid_spikes', 'shift_now_spikes']
+              'synaptic_elements', 'y_0', 'y_1', 'allow_offgrid_spikes', 'shift_now_spikes', 'post_trace']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():

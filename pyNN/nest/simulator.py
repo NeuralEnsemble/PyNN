@@ -43,7 +43,7 @@ def nest_property(name, dtype):
     def _set(self, val):
         try:
             nest.SetKernelStatus({name: dtype(val)})
-        except nest.NESTError as e:
+        except nest.kernel.NESTError as e:
             reraise(e, "%s = %s (%s)" % (name, val, type(val)))
     return property(fget=_get, fset=_set)
 
@@ -117,7 +117,7 @@ class _State(common.control.BaseState):
     spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
 
     def _set_verbosity(self, verbosity):
-        nest.sli_run("M_%s setverbosity" % verbosity.upper())
+        nest.set_verbosity('M_{}'.format(verbosity.upper()))
     verbosity = property(fset=_set_verbosity)
 
     def run(self, simtime):
@@ -153,7 +153,7 @@ class _State(common.control.BaseState):
         self.recording_devices = []
         self.recorders = set()
         # clear the sli stack, if this is not done --> memory leak cause the stack increases
-        nest.sr('clear')
+        nest.ll_api.sr('clear')
         # reset the simulation kernel
         nest.ResetKernel()
         # but this reverts some of the PyNN settings, so we have to repeat them (see NEST #716)

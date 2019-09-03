@@ -59,7 +59,7 @@ class TestPopulation(unittest.TestCase):
                                                       'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
 
     def test_create_native(self):
-        cell_type = sim.native_cell_type('iaf_neuron')
+        cell_type = sim.native_cell_type('iaf_psc_alpha')
         p = sim.Population(3, cell_type())
 
     def test__get_parameters(self):

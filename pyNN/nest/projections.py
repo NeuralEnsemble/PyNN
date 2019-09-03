@@ -171,7 +171,7 @@ class Projection(common.Projection):
                              [int(postsynaptic_cell)],
                              'all_to_all',
                              syn_dict)
-            except nest.NESTError as e:
+            except nest.kernel.NESTError as e:
                 errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
                             e, presynaptic_cells, postsynaptic_cell,
                             weights, delays, self.nest_synapse_model)

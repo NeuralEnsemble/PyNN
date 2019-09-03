@@ -133,7 +133,7 @@ class Population(common.Population, PopulationMixin):
                                    size=self.size)
         try:
             self.all_cells = nest.Create(nest_model, self.size, params=params)
-        except nest.NESTError as err:
+        except nest.kernel.NESTError as err:
             if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             if "Spike times must be sorted in non-descending order" in err.args[0]:
@@ -169,7 +169,7 @@ class Population(common.Population, PopulationMixin):
             local_values = value._partially_evaluate(self._mask_local, simplify=True)
         try:
             nest.SetStatus(self.local_cells.tolist(), variable, local_values)
-        except nest.NESTError as e:
+        except nest.kernel.NESTError as e:
             if "Unused dictionary items" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)
                 # should perhaps check whether value-to-be-set is the same as current value,
