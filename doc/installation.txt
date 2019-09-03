@@ -117,7 +117,7 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.16 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 2.18.0 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST may not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
 or at `<http://www.nest-simulator.org/installation/>`_.
@@ -130,7 +130,7 @@ Now try it out::
                  -- N E S T --
       Copyright (C) 2004 The NEST Initiative
 
-    Version: v2.16.0
+    Version: v2.18.0
 
     ...
     >>> nest.Models()
