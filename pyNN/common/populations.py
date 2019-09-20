@@ -24,6 +24,7 @@ from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
 from pyNN.recording import files
 
+
 deprecated = core.deprecated
 logger = logging.getLogger("PyNN")
 
@@ -295,7 +296,7 @@ class BasePopulation(object):
                 values = parameters[name]
                 if isinstance(values, numpy.ndarray):
                     all_values = {self._simulator.state.mpi_rank: values.tolist()}
-                    local_indices = numpy.arange(self.size)[self._mask_local].tolist()
+                    local_indices = numpy.arange(self.size,)[self._mask_local].tolist()
                     all_indices = {self._simulator.state.mpi_rank: local_indices}
                     all_values = recording.gather_dict(all_values)
                     all_indices = recording.gather_dict(all_indices)

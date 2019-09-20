@@ -82,7 +82,6 @@ class BaseNeuronGroup(brian.NeuronGroup):
 class ThresholdNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        #pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.Reset(parameters.pop('v_reset'))
         refractory = parameters.pop('tau_refrac')
@@ -114,6 +113,7 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
 class AdaptiveReset(object):
 
     def __init__(self, Vr=-70.6 * mV, b=0.0805 * nA):
+        pdb.set_trace()
         self.Vr = Vr
         self.b = b
 
@@ -125,8 +125,9 @@ class AdaptiveReset(object):
 class AdaptiveNeuronGroup(BaseNeuronGroup):
     
     def __init__(self, n, equations, **parameters):
+        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
-        period = simplify(parameters['tau_refrac'])
+        period = simplify(parameters['tau_refrac']) 
         assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
         reset = brian.SimpleCustomRefractoriness(
                     AdaptiveReset(parameters.pop('v_reset'),
@@ -164,6 +165,7 @@ class AdaptiveReset2(object):
 class AdaptiveNeuronGroup2(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
+        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         period = simplify(parameters['tau_refrac'])
         assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
@@ -203,6 +205,7 @@ class IzhikevichReset(object):
 class IzhikevichNeuronGroup(BaseNeuronGroup):
     
     def __init__(self, n, equations, **parameters):
+        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.SimpleCustomRefractoriness(
                     IzhikevichReset(parameters['v_reset'],

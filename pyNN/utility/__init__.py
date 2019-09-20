@@ -409,7 +409,6 @@ class forgetful_memoize(object):
         self.cached_value = None
 
     def __call__(self, *args):
-        import pdb; pdb.set_trace()
         if args == self.cached_args:
             print("using cached value")
             return self.cached_value

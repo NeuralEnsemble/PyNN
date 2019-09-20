@@ -15,6 +15,7 @@ from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
+import pdb
 
 
 class Connection(common.Connection):
@@ -99,7 +100,7 @@ class Projection(common.Projection):
                 syn_obj = brian.Synapses(pre.brian_group, post.brian_group,
                                          model=model, pre=pre_eqns,
                                          post=post_eqns,
-                                         code_namespace={"exp": numpy.exp})
+                                         code_namespace={"exp": numpy.exp})                       
                 self._brian_synapses[i][j] = syn_obj
                 simulator.state.network.add(syn_obj)
         # connect the populations
@@ -156,7 +157,7 @@ class Projection(common.Projection):
             return 0, index
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
-                            **connection_parameters):
+                            **connection_parameters):                  
         connection_parameters.pop("dendritic_delay_fraction", None)  # TODO: need to to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
         j_group, j = self._localize_index(postsynaptic_index)
@@ -185,7 +186,7 @@ class Projection(common.Projection):
 
     def _set_attributes(self, connection_parameters):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
-            raise NotImplementedError
+            raise NotImplementedError   
         syn_obj = self._brian_synapses[0][0]
         connection_parameters.evaluate()  # inefficient: would be better to evaluate using mask
         for name, value in connection_parameters.items():

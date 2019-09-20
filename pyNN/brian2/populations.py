@@ -10,7 +10,12 @@ from . import simulator
 from .recording import Recorder
 import numpy as np
 from brian2.units import *
+from quantities import *
 from brian2.core.variables import *
+import brian2
+from brian2.groups.neurongroup import *
+ms = brian2.ms
+mV = brian2.mV
 import pdb
 
 class Assembly(common.Assembly):
@@ -27,19 +32,17 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            #pdb.set_trace()
+      
             #value = simplify(getattr(self.brian2_group, name))
             value=getattr(self.brian2_group, name)
             #value=np.asarray(value)
 
-            if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
-                value = value[self.mask]
-                value= simplify(value)
-            #else:
-                #raise Exception()
-            parameter_dict[name] = value
-        #pdb.set_trace()    
-        return ParameterSpace(parameter_dict, shape=())
+            if isinstance(value,(Quantity, VariableView)) and ( name!='tau_refrac'):
+                if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
+                    value = value[self.mask]
+                    value= simplify(value)
+            parameter_dict[name] = value  
+        return ParameterSpace(parameter_dict, shape=(self.size))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
@@ -68,7 +71,6 @@ class Population(common.Population):
     _assembly_class = Assembly
 
     def _create_cells(self):
-        #pdb.set_trace()       ######
         id_range = numpy.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
@@ -81,7 +83,7 @@ class Population(common.Population):
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
-        
+
         self.brian2_group = self.celltype.brian2_model(self.size,
                                                      self.celltype.eqs,
                                                      **parameter_space)
@@ -94,7 +96,7 @@ class Population(common.Population):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
         if callable(D['forward_transform']):
-            pval = D['forward_transform'](value)
+            pval = D['forward_transform'](value) ### (value)
         else:
             pval = eval(D['forward_transform'], globals(), {variable: value})
         pval = pval.evaluate(simplify=False)
@@ -110,12 +112,38 @@ class Population(common.Population):
         """
         parameter_dict = {}
         for name in names:
-            value = simplify(getattr(self.brian2_group, name)) ######problem
-            parameter_dict[name] = value
+            #value = simplify(getattr(self.brian2_group, name)) ######problem
+            value=getattr(self.brian2_group, name)
+            '''
+            if (name=='tau_refrac'):
+                value=value / msecond
+            if (name=='v_reset'):
+                value = value / mvolt
+            '''
+            if (name=='v_thresh'):
+                #value=numpy.asarray(value)
+                value = value[slice(0,1,None)]
+                value= simplify(value)   
+            if isinstance(value,(Quantity, VariableView)) and ( name!='tau_refrac'):
+                if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
+                    #value=numpy.asarray(value)
+                    value = value[slice(0,1,None)]
+                    value= simplify(value)
+            parameter_dict[name] = value   
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
-            setattr(self.brian2_group, name, value)
+            if (name=="tau_refrac"):
+                value= value / ms
+                value= simplify(value)
+                #brian2.NeuronGroup.__setattr__(self.brian2_group, "_refractory", value)
+                self.brian2_group.tau_refrac=value
+            elif (name=="v_reset"):
+                value= value / mV
+                value= simplify(value)
+                self.brian2_group.v_reset=value    
+            else:
+                setattr(self.brian2_group, name, value)

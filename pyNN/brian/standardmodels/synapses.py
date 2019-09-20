@@ -22,7 +22,6 @@ class StaticSynapse(synapses.StaticSynapse):
     pre = "%(syn_var)s += weight"
     post = None
     initial_conditions = {}
-
     def __init__(self, **parameters):
         super(StaticSynapse, self).__init__(**parameters)
         # we have to define the translations on a per-instance basis because

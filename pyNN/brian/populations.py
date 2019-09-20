@@ -25,7 +25,6 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            #pdb.set_trace()
             value = simplify(getattr(self.brian_group, name))
             if isinstance(value, numpy.ndarray):
                 value = value[self.mask]
@@ -98,7 +97,7 @@ class Population(common.Population):
         parameter_dict = {}
         for name in names:
             value = simplify(getattr(self.brian_group, name))
-            parameter_dict[name] = value
+            parameter_dict[name] = value     
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):

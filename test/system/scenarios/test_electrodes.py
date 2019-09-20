@@ -454,7 +454,7 @@ def issue_465_474(sim):
     assert_true (numpy.isclose(float(v_step[int(start / sim_dt), 0].item()), v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
-@register(exclude=["brian"])
+@register(exclude=["brian", "brian2"])
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid

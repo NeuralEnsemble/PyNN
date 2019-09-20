@@ -11,7 +11,7 @@ from nose.tools import assert_equal, assert_less, assert_greater, assert_not_equ
 from .registry import register
 
 
-@register(exclude=['moose', 'nemo', 'brian'])
+@register(exclude=['moose', 'nemo', 'brian', 'brian2'])
 def test_simple_stochastic_synapse(sim, plot_figure=False):
     # in this test we connect
     sim.setup(min_delay=0.5)

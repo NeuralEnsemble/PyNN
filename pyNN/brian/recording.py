@@ -11,6 +11,7 @@ import brian
 from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
+import pdb
 
 
 mV = brian.mV
@@ -85,7 +86,6 @@ class Recorder(recording.Recorder):
             return self._devices['spikes'].spiketimes[i] / ms
 
     def _get_all_signals(self, variable, ids, clear=False):
-        #pdb.set_trace()
         # need to filter according to ids
         device = self._devices[variable]
         # because we use `when='start'`, need to add the value at the end of the final time step.
@@ -104,6 +104,8 @@ class Recorder(recording.Recorder):
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding = self.population.first_id
         indices = numpy.fromiter(filtered_ids, dtype=int) - padding
+        
         for i, id in zip(indices, filtered_ids):
             N[id] = len(self._devices['spikes'].spiketimes[i])
+        pdb.set_trace()
         return N

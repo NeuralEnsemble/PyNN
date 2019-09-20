@@ -37,7 +37,7 @@ class Brian2CurrentSource(StandardCurrentSource):
         simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
-                                         shape=(1,))
+                                         shape=(1))
         parameter_space.update(**parameters)
         parameter_space = self.translate(parameter_space)
         self.set_native_parameters(parameter_space)

@@ -24,6 +24,7 @@ import logging
 import brian2
 import numpy
 from pyNN import common
+from pyNN.parameters import  simplify
 import pdb
 
 name = "Brian2"
@@ -53,7 +54,6 @@ class State(common.control.BaseState):
         self.clear()
 
     def run(self, simtime):
-        #pdb.set_trace()
         for recorder in self.recorders:
             recorder._finalize()
         self.running = True
@@ -102,9 +102,10 @@ class State(common.control.BaseState):
     def _get_min_delay(self):
         if self._min_delay == 'auto':
             min_delay = numpy.inf
-            for item in self.network.groups:
+            for item in self.network.objects:
                 if isinstance(item, brian2.Synapses):
-                    min_delay = min(min_delay, item.delay.to_matrix().min())
+                    matrix=numpy.asarray(item.delay) *10000 
+                    min_delay = min(min_delay, matrix.min()) 
             if numpy.isinf(min_delay):
                 self._min_delay = self.dt
             else:

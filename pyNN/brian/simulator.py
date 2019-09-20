@@ -99,6 +99,8 @@ class State(common.control.BaseState):
     def _get_min_delay(self):
         if self._min_delay == 'auto':
             min_delay = numpy.inf
+            import pdb
+            pdb.set_trace()
             for item in self.network.groups:
                 if isinstance(item, brian.Synapses):
                     min_delay = min(min_delay, item.delay.to_matrix().min())

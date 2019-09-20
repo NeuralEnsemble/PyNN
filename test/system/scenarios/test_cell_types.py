@@ -66,7 +66,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
 test_HH_cond_exp.__test__ = False
 
 
-@register(exclude=['nemo', 'brian'])
+@register(exclude=['nemo', 'brian','brian2'])
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -148,7 +148,7 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
 test_SpikeSourcePoisson.__test__ = False
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian','brian2'])
 def test_SpikeSourceGamma(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
@@ -204,7 +204,7 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
 test_SpikeSourceGamma.__test__ = False
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian','brian2'])
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:
         from scipy.stats import kstest

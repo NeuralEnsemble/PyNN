@@ -15,7 +15,6 @@ optional arguments:
 
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.utility import get_script_args
-import pdb
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
@@ -31,7 +30,6 @@ sim.setup(timestep=0.01, min_delay=1.0)
 
 
 # === Build and instrument the network =======================================
-#pdb.set_trace()
 cuba_exp = sim.Population(1, sim.IF_curr_exp(i_offset=1.0), label="IF_curr_exp")
 hh = sim.Population(1, sim.HH_cond_exp(i_offset=0.2), label="HH_cond_exp")
 adexp = sim.Population(1, sim.EIF_cond_exp_isfa_ista(i_offset=1.0), label="EIF_cond_exp_isfa_ista")

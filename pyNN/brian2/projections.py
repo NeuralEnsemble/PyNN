@@ -7,14 +7,16 @@ from itertools import chain
 from collections import defaultdict
 import numpy
 import brian2
-from brian2 import uS, nA, mV, ms
+from brian2 import uS, nA, mV, ms, amp, siemens, second, namp
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import is_listlike
-from pyNN.parameters import ParameterSpace
+from pyNN.parameters import ParameterSpace, simplify
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
+from pyNN.brian2.dynamicarray import DynamicArray, DynamicArray1D
+import pdb
 
 
 class Connection(common.Connection):
@@ -86,7 +88,7 @@ class Projection(common.Projection):
                 if hasattr(post.celltype, "voltage_based_synapses") and post.celltype.voltage_based_synapses:
                     weight_units = mV
                 else:
-                    weight_units = post.celltype.conductance_based and uS or nA
+                    weight_units = post.celltype.conductance_based and siemens or amp #and uS or nA
                 self.synapse_type._set_target_type(weight_units)
                 equation_context = {"syn_var": psv, "weight_units": weight_units}
                 pre_eqns = self.synapse_type.pre % equation_context
@@ -94,16 +96,22 @@ class Projection(common.Projection):
                     post_eqns = self.synapse_type.post % equation_context
                 else:
                     post_eqns = None
-                model = self.synapse_type.eqs % equation_context
+                  
+                model = self.synapse_type.eqs % equation_context # units are being transformed for exemple from amp to A
+                #if (model=='weight : A'):
+                #    model= 'weight : amp' 
+
                 # create the brian2 Synapses object.
                 syn_obj = brian2.Synapses(pre.brian2_group, post.brian2_group,
-                                         model=model, pre=pre_eqns,
-                                         post=post_eqns,
-                                         code_namespace={"exp": numpy.exp})
+                                         model=model, on_pre=pre_eqns,
+                                         on_post=post_eqns)
+                                         #code_namespace={"exp": numpy.exp})                       
                 self._brian2_synapses[i][j] = syn_obj
                 simulator.state.network.add(syn_obj)
         # connect the populations
+        #syn_obj.connect() ##### 
         connector.connect(self)
+        #syn_obj.weight=0.3*nA
         # special-case: the Tsodyks-Markram short-term plasticity model takes
         #               a parameter value from the post-synaptic response model
         if isinstance(self.synapse_type, TsodyksMarkramSynapse):
@@ -156,49 +164,85 @@ class Projection(common.Projection):
             return 0, index
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
-                            **connection_parameters):
+                            **connection_parameters):               
         connection_parameters.pop("dendritic_delay_fraction", None)  # TODO: need to to handle this
         presynaptic_index_partitions = self._partition(presynaptic_indices)
         j_group, j = self._localize_index(postsynaptic_index)
         # specify which connections exist
         for i_group, i in enumerate(presynaptic_index_partitions):
             if i.size > 0:
-                self._brian2_synapses[i_group][j_group][i, j] = True
+                self._brian2_synapses[i_group][j_group].connect(i=i, j=j) #####"[i, j]
                 self._n_connections += i.size
         # set connection parameters
+       
         for name, value in chain(connection_parameters.items(),
-                                 self.synapse_type.initial_conditions.items()):
+                                 self.synapse_type.initial_conditions.items()):                                                        
             if name == 'delay':
                 scale = self._simulator.state.dt * ms
                 value /= scale                         # ensure delays are rounded to the
-                value = numpy.round(value) * scale     # nearest time step, rather than truncated
+                value = numpy.round(value) * scale     # nearest time step, rather than truncated   
             for i_group, i in enumerate(presynaptic_index_partitions):
                 if i.size > 0:
                     brian2_var = getattr(self._brian2_synapses[i_group][j_group], name)
                     if is_listlike(value):
                         for ii, v in zip(i, value):
-                            brian2_var[ii, j] = v
+                            if (name=="weight"):
+                                if(self.pre.conductance_based==True):
+                                    brian2_var[ii, j] = v * siemens
+                                else:
+                                    brian2_var[ii, j] = v * namp   
+                            else:
+                                brian2_var[ii, j] = v
                     else:
                         for ii in i:
-                            brian2_var[ii, j] = value
+                            if (name == "delay"):
+                                brian2_var[ii, j] = value * second
+                            if (name=="w_min" or name=="w_max"):    
+                                brian2_var[ii, j] = value * namp
+                            if (name=="weight"):
+                                if(self.pre.conductance_based==True):
+                                    brian2_var[ii, j] = value * siemens
+                                else:
+                                    brian2_var[ii, j] = value * namp    
+                            if (name=="tau_facil" or name=="tau_rec" or name=="tau_plus" or name=="tau_minus"):    
+                                brian2_var[ii, j] = value * second 
+                            if(name=="U" or name=="A_plus" or name=="A_minus"):
+                                brian2_var[ii, j] = value
                     ##brian2_var[i, j] = value  # doesn't work with multiple connections between a given neuron pair. Need to understand the internals of Synapses and SynapticVariable better
 
     def _set_attributes(self, connection_parameters):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
-            raise NotImplementedError
+            raise NotImplementedError  
         syn_obj = self._brian2_synapses[0][0]
+        slice_value= syn_obj.weight.shape[0]
         connection_parameters.evaluate()  # inefficient: would be better to evaluate using mask
         for name, value in connection_parameters.items():
             value = value.T
-            filtered_value = value[syn_obj.postsynaptic, syn_obj.presynaptic]
+            filtered_value= numpy.ravel(value)
+            filtered_value=filtered_value[0: slice_value]
+            if(name=='w_min' or name=='w_max'):
+                filtered_value= filtered_value * namp
+            if (name=="weight"):
+                if(self.pre.conductance_based==True):
+                    filtered_value = filtered_value * siemens
+                else:
+                    filtered_value = filtered_value * namp        
+            if(name=='delay'):
+                filtered_value= filtered_value * second   
+            if (name=="tau_facil" or name=="tau_rec" or name=="tau_plus" or name=="tau_minus"):
+                filtered_value= filtered_value * second 
+            if(name=="U" or name=="A_plus" or name=="A_minus"):
+                filtered_value= filtered_value        
+
             setattr(syn_obj, name, filtered_value)
 
     def _get_attributes_as_arrays(self, attribute_names, multiple_synapses='sum'):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         values = []
+        
         for name in attribute_names:
-            value = getattr(self._brian2_synapses[0][0], name).to_matrix(multiple_synapses=multiple_synapses)
+            value = getattr(self._brian2_synapses[0][0], name)#.to_matrix(multiple_synapses=multiple_synapses)
             if name == 'delay':
                 value *= self._simulator.state.dt * ms
             ps = self.synapse_type.reverse_translate(ParameterSpace({name: value}, shape=value.shape))  # should really use the translated name
@@ -208,17 +252,22 @@ class Projection(common.Projection):
         # todo: implement parameter translation
         return values  # should put NaN where there is no connection?
 
+
     def _get_attributes_as_list(self, attribute_names):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         values = []
+        slice_value= self._brian2_synapses[0][0].weight.shape[0]
+        print(self._brian2_synapses[0][0]._indices)
         for name in attribute_names:
             if name == "presynaptic_index":
-                value = self._brian2_synapses[0][0].presynaptic
+                value = self._brian2_synapses[0][0]._indices.synaptic_pre.get_value()
             elif name == "postsynaptic_index":
-                value = self._brian2_synapses[0][0].postsynaptic
+                value=self._brian2_synapses[0][0]._indices.synaptic_post.get_value()
             else:
-                data_obj = getattr(self._brian2_synapses[0][0], name).data
+                data_obj1 = getattr(self._brian2_synapses[0][0], name)
+                data_obj = data_obj1[slice(0,slice_value,None)]
+                
                 if hasattr(data_obj, "tolist"):
                     value = data_obj
                 else:
@@ -231,10 +280,19 @@ class Projection(common.Projection):
             #value = value.tolist()
             values.append(value)
         a = numpy.array(values)
+        
         return [tuple(x) for x in a.T]
 
     def _set_tau_syn_for_tsodyks_markram(self):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         tau_syn_var = self.synapse_type.tau_syn_var[self.receptor_type]
-        self._brian2_synapses[0][0].tau_syn = self.post.get(tau_syn_var) * brian2.ms  # assumes homogeneous and excitatory - to be fixed properly
+        #value1=self._brian2_synapses[0][0].tau_syn
+        #value1 = self.post.get(tau_syn_var) * brian2.ms  # assumes homogeneous and excitatory - to be fixed properly
+        #self._brian2_synapses[0][0].tau_syn=value1
+        self._brian2_synapses[0][0].tau_syn=self.post.get(tau_syn_var) * brian2.ms
+        self._brian2_synapses[0][0].tau_syn = self._brian2_synapses[0][0].tau_syn[slice(0,1,None)]
+        self._brian2_synapses[0][0].tau_syn= simplify(self._brian2_synapses[0][0].tau_syn)
+        
+       
+        
