@@ -104,7 +104,6 @@ class TestProjection(unittest.TestCase):
                              synapse_type=sim.TsodyksMarkramSynapse())
 
 
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_native_synapse(self):
         """
         Native synapse with array-like parameters and CommonProperties.
@@ -131,7 +130,6 @@ class TestProjection(unittest.TestCase):
         weights_array = prj.get("weight", format="array")
         self.assertTrue((weights_array > 0.).all())
 
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_homogeneous_common_properties(self):
         with self.assertRaises(ValueError):
             # create synapse type with heterogeneous common parameters
