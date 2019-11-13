@@ -46,13 +46,11 @@ from pyNN.nest.populations import Population, PopulationView, Assembly
 from pyNN.nest.projections import Projection
 
 logger = logging.getLogger("PyNN")
-if logger.level == logging.NOTSET:
-    logger.setLevel(logging.ERROR)
 
 try:
     nest.Install('pynn_extensions')
 except nest.kernel.NESTError as err:
-    warnings.warn("Unable to install NEST extensions. Certain models may not be available.\nFurther details: {}".format(err))
+    warnings.warn("Unable to install NEST extensions. Certain models may not be available.")
 
 
 # ==============================================================================
