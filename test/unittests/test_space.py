@@ -19,7 +19,8 @@ from math import sqrt
 
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
     if a.shape != b.shape:
-        raise unittest.TestCase.failureException("Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
+        raise unittest.TestCase.failureException(
+            "Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
     if not (abs(a - b) < threshold).all():
         err_msg = "%s != %s" % (a, b)
         err_msg += "\nlargest difference = %g" % abs(a - b).max()
@@ -84,8 +85,8 @@ class SpaceTest(unittest.TestCase):
 
     def test_generator_for_infinite_space_with_3D_distances(self):
         s = space.Space()
-        f = lambda i: self.ABCD[i]
-        g = lambda j: self.ABCD[j]
+        def f(i): return self.ABCD[i]
+        def g(j): return self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
                                numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         assert_arrays_equal(numpy.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
@@ -190,7 +191,7 @@ class Grid2D_Test(object):
             numpy.array([
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
-                ]).T,
+            ]).T,
             1e-15)
         assert_arrays_almost_equal(
             self.grid2.generate_positions(12),
@@ -232,7 +233,7 @@ class Grid3D_Test(object):
             numpy.array([
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
                 [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
-                ]).T,
+            ]).T,
             1e-15)
 
 
@@ -278,5 +279,3 @@ class TestRandomStructure(object):
         for axis in range(2):
             assert 3 < max(positions[axis, :]) < 3.5
             assert -1 > min(positions[axis, :]) > -1.5
-
-

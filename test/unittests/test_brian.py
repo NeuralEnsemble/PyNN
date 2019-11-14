@@ -46,5 +46,6 @@ class TestProjection(unittest.TestCase):
         self.assertEqual(prj._localize_index(5), (1, 1))
         self.assertEqual(prj._localize_index(7), (1, 3))
 
+
 if __name__ == '__main__':
     unittest.main()

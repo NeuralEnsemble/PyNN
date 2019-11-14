@@ -103,7 +103,6 @@ class TestProjection(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=sim.TsodyksMarkramSynapse())
 
-
     def test_create_with_native_synapse(self):
         """
         Native synapse with array-like parameters and CommonProperties.
