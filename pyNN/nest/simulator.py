@@ -82,9 +82,13 @@ class _State(common.control.BaseState):
         return nest.GetKernelStatus('min_delay')
 
     def set_delays(self, min_delay, max_delay):
+        # this assumes we never set max_delay without also setting min_delay
         if min_delay != 'auto':
             min_delay = float(min_delay)
-            max_delay = float(max_delay)
+            if max_delay == 'auto':
+                max_delay = 10.0
+            else:
+                max_delay = float(max_delay)
             nest.SetKernelStatus({'min_delay': min_delay,
                                   'max_delay': max_delay})
 

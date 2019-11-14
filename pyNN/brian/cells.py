@@ -56,6 +56,8 @@ class BaseNeuronGroup(brian.NeuronGroup):
             max_refractory = parameters["tau_refrac"].max() * ms
         else:
             max_refractory = None
+        if max_delay == "auto":
+            max_delay = 10.0
         brian.NeuronGroup.__init__(self, n,
                                    model=equations,
                                    threshold=threshold,
