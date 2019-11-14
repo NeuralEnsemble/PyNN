@@ -217,8 +217,8 @@ class Projection(common.Projection):
                                               synapse_model=self.nest_synapse_model,
                                               synapse_label=self.nest_synapse_label)
             for name, value in connection_parameters.items():
-                value = make_sli_compatible(value)
                 if name not in self._common_synapse_property_names:
+                    value = make_sli_compatible(value)
                     #logger.debug("Setting %s=%s for connections %s" % (name, value, connections))
                     if isinstance(value, numpy.ndarray):
                         # the str() is to work around a bug handling unicode names in SetStatus in NEST 2.4.1 when using Python 2
@@ -258,8 +258,8 @@ class Projection(common.Projection):
                 for name, value in connection_parameters.items():
                     if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
                         value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
-                    value = make_sli_compatible(value)
                     if name not in self._common_synapse_property_names:
+                        value = make_sli_compatible(value)
                         if len(source_mask) > 1:
                             nest.SetStatus(connections, name, value[source_mask])
                         elif isinstance(value, numpy.ndarray):  # OneToOneConnector
@@ -288,9 +288,19 @@ class Projection(common.Projection):
                         " Please call sim.nest.reset() to reset "
                         "your network and start over!".format(name))
         if hasattr(value, "__len__"):
-            value = value[0]
-        self._common_synapse_properties[name] = value
-        nest.SetDefaults(self.nest_synapse_model, name, value)
+            value1 = value[0]
+        else:
+            value1 = value
+        self._common_synapse_properties[name] = value1
+        # we delay make_sli_compatible until this late stage so that we can
+        # distinguish "parameter is an array consisting of scalar values" 
+        # (one value per connection) from
+        # "parameter is a scalar value containing an array"
+        # (one value for the entire projection)
+        # In the latter case the value is wrapped in a Sequence object,
+        # which is removed by make_sli_compatible
+        value2 = make_sli_compatible(value1)
+        nest.SetDefaults(self.nest_synapse_model, name, value2)
 
     #def saveConnections(self, file, gather=True, compatible_output=True):
     #    """
