@@ -584,10 +584,10 @@ def import_from_sonata(config_file, sim):
     net = Network()
     for node_population in sonata_node_populations:
         assembly = node_population.to_assembly(sim)
-        net.assemblies.add(assembly)
+        net.add(assembly)
     for edge_population in sonata_edge_populations:
         projections = edge_population.to_projections(net, sim)
-        net.projections.update(projections)
+        net.add(*projections)
 
     return net
 

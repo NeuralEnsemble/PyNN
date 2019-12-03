@@ -18,21 +18,40 @@ class Network(object):
     """
 
     def __init__(self, *components):
-        self.populations = set([])
-        self.views = set([])
-        self.assemblies = set([])
-        self.projections = set([])
+        self._populations = set([])
+        self._views = set([])
+        self._assemblies = set([])
+        self._projections = set([])
+        self.add(*components)
+
+    @property
+    def populations(self):
+        return frozenset(self._populations)
+
+    @property
+    def views(self):
+        return frozenset(self._views)
+    
+    @property
+    def assemblies(self):
+        return frozenset(self._assemblies)
+
+    @property
+    def projections(self):
+        return frozenset(self._projections)
+
+    def add(self, *components):
         for component in components:
             if isinstance(component, Population):
-                self.populations.add(component)
+                self._populations.add(component)
             elif isinstance(component, PopulationView):
-                self.views.add(component)
-                self.populations.add(component.parent)
+                self._views.add(component)
+                self._populations.add(component.parent)
             elif isinstance(component, Assembly):
-                self.assemblies.add(component)
-                self.populations.update(component.populations)
+                self._assemblies.add(component)
+                self._populations.update(component.populations)
             elif isinstance(component, Projection):
-                self.projections.add(component)
+                self._projections.add(component)
                 # todo: check that pre and post populations/views/assemblies have been added
             else:
                 raise TypeError()
