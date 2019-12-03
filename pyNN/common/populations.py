@@ -923,6 +923,25 @@ class PopulationView(BasePopulation):
         else:
             return indices_in_parent
 
+    def __eq__(self, other):
+        """
+        Determine whether two views are the same.
+        """
+        return not self.__ne__(other)
+
+    def __ne__(self, other):
+        """
+        Determine whether two views are different.
+        """
+        # We can't use the self.mask, as different masks can select the same cells
+        # (e.g. slices vs arrays), therefore we have to use self.all_cells
+        if isinstance(other, PopulationView):
+            return self.parent != other.parent or not numpy.array_equal(self.all_cells, other.all_cells)
+        elif isinstance(other, Population):
+            return self.parent != other or not numpy.array_equal(self.all_cells, other.all_cells)
+        else:
+            return True
+
     def describe(self, template='populationview_default.txt', engine='default'):
         """
         Returns a human-readable description of the population view.
@@ -1451,3 +1470,23 @@ class Assembly(object):
         context = {"label": self.label,
                    "populations": [p.describe(template=None) for p in self.populations]}
         return descriptions.render(engine, template, context)
+
+    def get_annotations(self, annotation_keys, simplify=True):
+        """
+        Get the values of the given annotations for each population in the Assembly.
+        """
+        if isinstance(annotation_keys, basestring):
+            annotation_keys = (annotation_keys,)
+        annotations = defaultdict(list)
+
+        for key in annotation_keys:
+            is_array_annotation = False
+            for p in self.populations:
+                annotation = p.annotations[key]
+                annotations[key].append(annotation)
+                is_array_annotation = isinstance(annotation, numpy.ndarray)
+            if is_array_annotation:
+                annotations[key] = numpy.hstack(annotations[key])
+            if simplify:
+                annotations[key] = simplify_parameter_array(numpy.array(annotations[key]))
+        return annotations
