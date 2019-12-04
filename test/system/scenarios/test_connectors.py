@@ -206,22 +206,39 @@ def issue622(sim):
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
 
-    view1 = sim.PopulationView(pop, [2,3,4])
-    view2 = sim.PopulationView(pop, [2,3,4])
+    view1 = sim.PopulationView(pop, [2, 3, 4])
+    view2 = sim.PopulationView(pop, [2, 3, 4])
 
-    proj1 = sim.Projection(view1, view2, sim.AllToAllConnector(allow_self_connections = False), sim.StaticSynapse(
-        weight=0.015, delay=1.0), receptor_type='excitatory')
-    proj2 = sim.Projection(view1, view1, sim.AllToAllConnector(allow_self_connections = False), sim.StaticSynapse(
-        weight=0.015, delay=1.0), receptor_type='excitatory')
-
+    proj1 = sim.Projection(view1, view2,
+                           sim.AllToAllConnector(allow_self_connections=False), 
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+    proj2 = sim.Projection(view1, view1, 
+                           sim.AllToAllConnector(allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
 
     w1 = proj1.get("weight", "list")
     w2 = proj2.get("weight", "list")
 
-    assert_equal(w1, w2)
-    assert_equal(sorted(w1),
-                 sorted([(0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (1.0, 0.0, 0.015),
-                         (1.0, 2.0, 0.015), (2.0, 0.0, 0.015), (2.0, 1.0, 0.015)]))
+    assert_equal(set(w1), set(w2))
+    assert_equal(set(w1),
+                 set([(0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (1.0, 0.0, 0.015),
+                      (1.0, 2.0, 0.015), (2.0, 0.0, 0.015), (2.0, 1.0, 0.015)]))
+
+    # partially overlapping views
+    print("Now with partial overlap")
+    view3 = sim.PopulationView(pop, [3, 4, 5, 6])
+
+    proj3 = sim.Projection(view1, view3, 
+                           sim.AllToAllConnector(allow_self_connections=False), 
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+    
+    w3 = proj3.get("weight", "list")
+    assert_equal(set(w3),
+                 set([
+                     (0.0, 0.0, 0.015), (0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (0.0, 3.0, 0.015),
+                                        (1.0, 1.0, 0.015), (1.0, 2.0, 0.015), (1.0, 3.0, 0.015),
+                     (2.0, 0.0, 0.015),                    (2.0, 2.0, 0.015), (2.0, 3.0, 0.015)
+                 ]))
 
 
 if __name__ == '__main__':
