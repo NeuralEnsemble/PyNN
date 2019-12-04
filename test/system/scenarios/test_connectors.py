@@ -201,7 +201,7 @@ def issue309(sim):
     sim.end()
 
 
-@register()
+@register(exclude=['brian'])
 def issue622(sim):
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
