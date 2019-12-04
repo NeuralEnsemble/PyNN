@@ -799,7 +799,7 @@ class NodeGroup(object):
         cell_type = cell_type_cls(**parameters)
         pop = sim.Population(self.size,
                              cell_type,
-                             label=self.id)
+                             label=str(self.id))
         pop.annotate(**annotations)
         logger.info("--------> {}".format(pop))
         # todo: create PopulationViews if multiple node_types
