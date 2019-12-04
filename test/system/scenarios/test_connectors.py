@@ -210,9 +210,9 @@ def issue622(sim):
     view2 = sim.PopulationView(pop, [2, 3, 4])
 
     proj1 = sim.Projection(view1, view2,
-                           sim.AllToAllConnector(allow_self_connections=False), 
+                           sim.AllToAllConnector(allow_self_connections=False),
                            sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
-    proj2 = sim.Projection(view1, view1, 
+    proj2 = sim.Projection(view1, view1,
                            sim.AllToAllConnector(allow_self_connections=False),
                            sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
 
@@ -228,16 +228,29 @@ def issue622(sim):
     print("Now with partial overlap")
     view3 = sim.PopulationView(pop, [3, 4, 5, 6])
 
-    proj3 = sim.Projection(view1, view3, 
-                           sim.AllToAllConnector(allow_self_connections=False), 
+    proj3 = sim.Projection(view1, view3,
+                           sim.AllToAllConnector(allow_self_connections=False),
                            sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
-    
+
     w3 = proj3.get("weight", "list")
     assert_equal(set(w3),
                  set([
                      (0.0, 0.0, 0.015), (0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (0.0, 3.0, 0.015),
                                         (1.0, 1.0, 0.015), (1.0, 2.0, 0.015), (1.0, 3.0, 0.015),
                      (2.0, 0.0, 0.015),                    (2.0, 2.0, 0.015), (2.0, 3.0, 0.015)
+                 ]))
+
+    view4 = sim.PopulationView(pop, [0, 1])
+    assmbl = view3 + view4
+    proj4 = sim.Projection(view1, assmbl,
+                           sim.FixedProbabilityConnector(p_connect=0.99999, allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+    w4 = proj4.get("weight", "list")
+    assert_equal(set(w4),
+                 set([
+                     (0, 0, 0.015), (0, 1, 0.015), (0, 2, 0.015), (0, 3, 0.015), (0, 4, 0.015), (0, 5, 0.015),
+                                    (1, 1, 0.015), (1, 2, 0.015), (1, 3, 0.015), (1, 4, 0.015), (1, 5, 0.015),
+                     (2, 0, 0.015),                (2, 2, 0.015), (2, 3, 0.015), (2, 4, 0.015), (2, 5, 0.015),
                  ]))
 
 

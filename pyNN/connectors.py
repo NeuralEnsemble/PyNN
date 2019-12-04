@@ -162,7 +162,7 @@ class MapConnector(Connector):
         todo: explain the argument `distance_map`.
         """
 
-        column_indices = numpy.arange(projection.post.size)
+        postsynaptic_indices = projection.post.id_to_index(projection.post.all_cells)
 
         if (projection.synapse_type.native_parameters.parallel_safe
             or hasattr(self, "rng") and self.rng.parallel_safe):
@@ -172,26 +172,27 @@ class MapConnector(Connector):
             # throw away the random numbers for the non-local nodes.
             logger.debug("Parallel-safe iteration.")
             components = (
-                column_indices,
+                postsynaptic_indices,
                 projection.post._mask_local,
                 connection_map_generator())
         else:
             # Otherwise, we only need to iterate over local post-synaptic cells.
             mask = projection.post._mask_local
             components = (
-                column_indices[mask],
+                postsynaptic_indices[mask],
                 repeat(True),
                 connection_map_generator(mask))
 
         parameter_space = self._parameters_from_synapse_type(projection, distance_map)
 
         # Loop over columns of the connection_map array (equivalent to looping over post-synaptic neurons)
-        for count, (col, local, source_mask) in enumerate(izip(*components)):
-            # `col`: index of the post-synaptic neuron
+        for col, (postsynaptic_index, local, source_mask) in enumerate(izip(*components)):
+            # `col`: column index
+            # `postsynaptic_index`: index of the post-synaptic neuron
             # `local`: boolean - does the post-synaptic neuron exist on this MPI node
-            # `source_mask` - boolean numpy array, indicating which of the pre-synaptic neurons should be connected to,
-            #                 or a single boolean, meaning connect to all/none of the pre-synaptic neurons
-            #                 It can also be an array of addresses
+            # `source_mask`: boolean numpy array, indicating which of the pre-synaptic neurons should be connected to,
+            #                or a single boolean, meaning connect to all/none of the pre-synaptic neurons
+            #                It can also be an array of addresses
             _proceed = False
             if source_mask is True or source_mask.any():
                 _proceed = True
@@ -227,10 +228,10 @@ class MapConnector(Connector):
 
                 if local:
                     # Connect the neurons
-                    #logger.debug("Connecting to %d from %s" % (col, source_mask))
-                    projection._convergent_connect(source_mask, col, **connection_parameters)
+                    #logger.debug("Connecting to %d from %s" % (postsynaptic_index, source_mask))
+                    projection._convergent_connect(source_mask, postsynaptic_index, **connection_parameters)
                     if self.callback:
-                        self.callback(count / projection.post.local_size)
+                        self.callback(col / projection.post.local_size)
 
     def _connect_with_map(self, projection, connection_map, distance_map=None):
         """

@@ -296,7 +296,7 @@ class Projection(common.Projection):
             value1 = value
         self._common_synapse_properties[name] = value1
         # we delay make_sli_compatible until this late stage so that we can
-        # distinguish "parameter is an array consisting of scalar values" 
+        # distinguish "parameter is an array consisting of scalar values"
         # (one value per connection) from
         # "parameter is a scalar value containing an array"
         # (one value for the entire projection)
@@ -352,9 +352,9 @@ class Projection(common.Projection):
                 scale_factors[names.index('weight')] *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
             values *= scale_factors
         if 'presynaptic_index' in names:
-            values[:, names.index('presynaptic_index')] -= self.pre.first_id
+            values[:, names.index('presynaptic_index')] = self.pre.id_to_index(values[:, names.index('presynaptic_index')])
         if 'postsynaptic_index' in names:
-            values[:, names.index('postsynaptic_index')] -= self.post.first_id
+            values[:, names.index('postsynaptic_index')] = self.post.id_to_index(values[:, names.index('postsynaptic_index')])
         values = values.tolist()
         for i in xrange(len(values)):
             values[i] = tuple(values[i])
