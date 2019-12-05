@@ -1,7 +1,7 @@
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_equal
 import numpy
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .scenarios.registry import registry
 
 try:
@@ -97,4 +97,4 @@ def test_issue_634():
     i_dc1 = dc1_source.get_data()
     i_dc2 = dc2_source.get_data()
     i_dc_total_times, i_dc_total = dc1_source._get_data_old()
-    assert_array_equal(numpy.squeeze(i_dc1.magnitude+i_dc2.magnitude), i_dc_total)
+    assert_array_almost_equal(numpy.squeeze(i_dc1.magnitude+i_dc2.magnitude), i_dc_total, decimal=6)
