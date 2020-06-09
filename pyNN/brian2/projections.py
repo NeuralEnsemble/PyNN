@@ -15,8 +15,6 @@ from pyNN.parameters import ParameterSpace, simplify
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
-from pyNN.brian2.dynamicarray import DynamicArray, DynamicArray1D
-import pdb
 
 
 class Connection(common.Connection):
