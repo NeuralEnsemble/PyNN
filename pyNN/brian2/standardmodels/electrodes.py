@@ -34,6 +34,7 @@ class Brian2CurrentSource(StandardCurrentSource):
         super(StandardCurrentSource, self).__init__(**parameters)
         self.cell_list = []
         self.indices = []
+        self.running = False
         simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
