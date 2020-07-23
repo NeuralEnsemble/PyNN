@@ -99,6 +99,12 @@ class Projection(common.Projection):
                 #if (model=='weight : A'):
                 #    model= 'weight : amp' 
 
+                # A for ampere and S for siemens not recognised
+                if model.find('weight : S') != -1:
+                    model = model.replace('weight : S', 'weight : siemens')
+                elif model.find('weight : A') != -1:
+                    model = model.replace('weight : A', 'weight : amp')
+
                 # create the brian2 Synapses object.
                 syn_obj = brian2.Synapses(pre.brian2_group, post.brian2_group,
                                          model=model, on_pre=pre_eqns,
