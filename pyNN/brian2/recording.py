@@ -11,7 +11,6 @@ import brian2
 from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
-import pdb
 
 mV = brian2.mV
 ms = brian2.ms
@@ -87,7 +86,8 @@ class Recorder(recording.Recorder):
         # because we use `when='start'`, need to add the value at the end of the final time step.
         device.record_single_timestep()
         #values = numpy.array(device._values)
-        values = getattr(device, variable)#[0] ####### LOOOOK HERE
+        varname = self.population.celltype.state_variable_translations[variable]['translated_name']
+        values = getattr(device, varname)[0]  # [0] ####### LOOOOK HERE
         values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](values)
         if clear:
             self._devices[variable].reinit()
