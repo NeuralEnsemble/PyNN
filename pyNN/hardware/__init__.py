@@ -10,7 +10,7 @@ be indeed submodules of hardware, even if they don't stand on the same directory
 
 """
 
-from aux import get_path_to_analog_hardware_backend, import_all_submodules
+from auxiliary import get_path_to_analog_hardware_backend, import_all_submodules
 
 __path__.append(get_path_to_analog_hardware_backend())
 import_all_submodules(__path__)
