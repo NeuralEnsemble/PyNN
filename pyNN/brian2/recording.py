@@ -65,7 +65,10 @@ class Recorder(recording.Recorder):
     def _clear_simulator(self):
         """Delete all recorded data, but retain the list of cells to record from."""
         for device in self._devices.values():
-            device.reinit()
+            try:
+                device.reinit()
+            except NotImplementedError:
+                pass
 
     def _get_spiketimes(self, id):
         if is_listlike(id):
@@ -90,7 +93,10 @@ class Recorder(recording.Recorder):
         values = getattr(device, varname)[0]  # [0] ####### LOOOOK HERE
         values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](values)
         if clear:
-            self._devices[variable].reinit()
+            try:
+                self._devices[variable].reinit()
+            except NotImplementedError:
+                pass
         return values
 
     def _local_count(self, variable, filter_ids=None):
