@@ -2,7 +2,7 @@
 """
 NEST v2 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -21,7 +21,7 @@ from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN
 
 try:
     nest.GetStatus([numpy.int32(0)])
-except nest.NESTError:
+except nest.kernel.NESTError:
     raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing NumPy.")
 
 #if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
@@ -46,13 +46,11 @@ from pyNN.nest.populations import Population, PopulationView, Assembly
 from pyNN.nest.projections import Projection
 
 logger = logging.getLogger("PyNN")
-if logger.level == logging.NOTSET:
-    logger.setLevel(logging.ERROR)
 
 try:
     nest.Install('pynn_extensions')
-except nest.NESTError as err:
-    warnings.warn("Unable to install NEST extensions. Certain models may not be available.\nFurther details: {}".format(err))
+except nest.kernel.NESTError as err:
+    warnings.warn("Unable to install NEST extensions. Certain models may not be available.")
 
 
 # ==============================================================================

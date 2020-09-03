@@ -369,8 +369,8 @@ def issue487(sim):
     assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register(exclude=["brian"])  # todo: fix for Brian
-def issue_465_474(sim):
+@register()
+def issue_465_474_630(sim):
     """
     Checks the current traces recorded for each of the four types of
     electrodes in pyNN, and verifies that:
@@ -441,11 +441,17 @@ def issue_465_474(sim):
     assert_true (i_noise.t_start == 0.0 * pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
     assert_true (i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
 
-    # test to check current changes at the expected time instant
+    # test to check current changes at start time instant
     assert_true (i_ac[(int(start / sim_dt)) - 1, 0] == 0 * pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_dc[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_noise[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
     assert_true (i_step[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
+
+    # test to check current changes appropriately at stop time instant - issue #630
+    assert_true (i_ac[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_dc[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_noise[(int(stop / sim_dt)) - 1, 0] != 0.0 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
+    assert_true (i_step[(int(stop / sim_dt)) - 1, 0] != 0.2 * pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA )
 
     # test to check vm changes at the time step following current initiation
     assert_true (numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()), v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
@@ -601,6 +607,44 @@ def issue512(sim):
             assert_true (abs(step.times[1]-0.86) < 1e-9)
 
 
+@register()
+def issue631(sim):
+    """
+    Test to ensure that recording of multiple electrode currents do not
+    interfere with one another.
+    """
+    sim_dt = 0.1
+    sim.setup(timestep=sim_dt, min_delay=sim_dt)
+
+    cells = sim.Population(1, sim.IF_curr_exp(v_rest = -65.0, v_thresh=-55.0, tau_refrac=5.0))#, i_offset=-1.0*amp))
+    dc_source = sim.DCSource(amplitude=0.5, start=25, stop=50)
+    ac_source = sim.ACSource(start=75, stop=125, amplitude=0.5, offset=0.25, frequency=100.0, phase=0.0)
+    noisy_source = sim.NoisyCurrentSource(mean=0.5, stdev=0.05, start=150, stop=175, dt=1.0)
+    step_source = sim.StepCurrentSource(times=[200, 225, 250], amplitudes=[0.4, 0.6, 0.2])
+
+    cells[0].inject(dc_source)
+    cells[0].inject(ac_source)
+    cells[0].inject(noisy_source)
+    cells[0].inject(step_source)
+
+    dc_source.record()
+    ac_source.record()
+    noisy_source.record()
+    step_source.record()
+
+    sim.run(275.0)
+
+    i_dc = dc_source.get_data()
+    i_ac = ac_source.get_data()
+    i_noisy = noisy_source.get_data()
+    i_step = step_source.get_data()
+
+    assert_true (numpy.all(i_dc.magnitude[:int(25.0 / sim_dt) - 1:] == 0) and numpy.all(i_dc.magnitude[int(50.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_ac.magnitude[:int(75.0 / sim_dt) - 1:] == 0) and numpy.all(i_ac.magnitude[int(125.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_noisy.magnitude[:int(150.0 / sim_dt) - 1:] == 0) and numpy.all(i_noisy.magnitude[int(175.0 / sim_dt):] == 0))
+    assert_true (numpy.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
@@ -614,6 +658,7 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
-    issue_465_474(sim)
+    issue_465_474_630(sim)
     issue497(sim)
     issue512(sim)
+    issue631(sim)

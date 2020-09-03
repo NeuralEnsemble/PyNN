@@ -1,7 +1,7 @@
 /*
  *  stochastic_stp_connection.h
  *
- *  :copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
@@ -188,7 +188,7 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
   {
     e.set_receiver( *get_target( thr ) );
     e.set_weight( weight_ );
-    e.set_delay( get_delay_steps() );
+    e.set_delay_steps( get_delay_steps() );
     e.set_rport( get_rport() );
     e();
   }

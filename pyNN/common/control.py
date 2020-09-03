@@ -8,11 +8,11 @@ This module contains:
     is intended to be reused)
   * function factories for generating backend-specific API functions.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-DEFAULT_MAX_DELAY = 10.0
+DEFAULT_MAX_DELAY = 'auto'
 DEFAULT_TIMESTEP = 0.1
 DEFAULT_MIN_DELAY = 'auto'
 
@@ -47,7 +47,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         if param in extra_params:
             raise Exception("%s is not a valid argument for setup()" % param)
     if min_delay != 'auto':
-        if min_delay > max_delay:
+        if max_delay != 'auto' and min_delay > max_delay:
             raise Exception("min_delay has to be less than or equal to max_delay.")
         if min_delay < timestep:
             raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))

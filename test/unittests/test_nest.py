@@ -59,7 +59,7 @@ class TestPopulation(unittest.TestCase):
                                                       'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
 
     def test_create_native(self):
-        cell_type = sim.native_cell_type('iaf_neuron')
+        cell_type = sim.native_cell_type('iaf_psc_alpha')
         p = sim.Population(3, cell_type())
 
     def test__get_parameters(self):
@@ -103,8 +103,6 @@ class TestProjection(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=sim.TsodyksMarkramSynapse())
 
-
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_native_synapse(self):
         """
         Native synapse with array-like parameters and CommonProperties.
@@ -131,7 +129,6 @@ class TestProjection(unittest.TestCase):
         weights_array = prj.get("weight", format="array")
         self.assertTrue((weights_array > 0.).all())
 
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_homogeneous_common_properties(self):
         with self.assertRaises(ValueError):
             # create synapse type with heterogeneous common parameters

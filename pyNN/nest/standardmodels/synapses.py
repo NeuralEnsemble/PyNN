@@ -1,7 +1,7 @@
 """
 Synapse Dynamics classes for nest
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -94,9 +94,9 @@ class SimpleStochasticSynapse(synapses.SimpleStochasticSynapse, NESTSynapseMixin
     translations = build_translations(
         ('weight', 'weight', 1000.0),
         ('delay', 'delay'),
-        ('p', 'p'),
+        ('p', 'p_transmit'),
     )
-    nest_name = 'simple_stochastic_synapse'
+    nest_name = 'bernoulli_synapse'
 
 
 class StochasticTsodyksMarkramSynapse(synapses.StochasticTsodyksMarkramSynapse, NESTSynapseMixin):

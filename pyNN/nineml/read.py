@@ -4,7 +4,7 @@ Enables creating neuronal network models in PyNN from a 9ML description.
 Classes:
     Network -- container for a network model.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

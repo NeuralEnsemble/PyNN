@@ -1,7 +1,7 @@
 """
 Connection method classes for nest
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -36,7 +36,7 @@ from .random import NativeRNG, NEST_RDEV_TYPES
 logger = logging.getLogger("PyNN")
 
 
-if not nest.sli_func("statusdict/have_libneurosim ::"):
+if not nest.ll_api.sli_func("statusdict/have_libneurosim ::"):
 
     print(("CSAConnector: libneurosim support not available in NEST.\n" +
            "Falling back on PyNN's default CSAConnector.\n" +
