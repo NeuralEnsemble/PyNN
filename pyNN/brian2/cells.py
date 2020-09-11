@@ -12,14 +12,13 @@ import brian2
 from pyNN.parameters import Sequence, simplify
 from pyNN import errors
 from pyNN.brian2 import simulator
-import pdb
 
 mV = brian2.mV
 ms = brian2.ms
 nA = brian2.nA
 uS = brian2.uS
 Hz = brian2.Hz
-nF= brian2.nF
+nF = brian2.nF
 ampere = brian2.amp
 second = brian2.second
 
@@ -89,7 +88,7 @@ class ThresholdNeuronGroup(BaseNeuronGroup):
         self._resetvalue=parameters.pop('v_reset')[0] 
         self._refracvalue=parameters.pop('tau_refrac')[0]
         reset = 'v = {}*mV'.format(self._resetvalue*1000)
-        refractory=self._refracvalue       
+        refractory = self._refracvalue
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset=reset,
                                  refractory=refractory, **parameters)
@@ -133,6 +132,7 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
         #self._resetvalue = resetvalue * mV
         self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
 
+
 class AdaptiveReset(object):
 
     def __init__(self, Vr=-70.7 * mV, b=0.0805 * nA):
@@ -167,7 +167,6 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
                                  threshold=threshold, reset=reset, refractory=refractory,
                                  **parameters)
 
-
     @property 
     def v_reset (self):
         return self._resetvalue
@@ -175,6 +174,7 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
     @property 
     def b (self):
         return self._bvalue
+
     @property 
     def tau_refrac (self):    
         return self._refractory    
@@ -189,9 +189,6 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
     def v_reset (self, resetvalue):
         #self._resetvalue = resetvalue * mV
         self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
-     
-
-   
 
 
 class AdaptiveReset2(object):
@@ -230,13 +227,16 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset=reset, refractory=refractory,
                                  **parameters)
-    @property 
+
+    @property
     def v_reset (self):
         return self._resetvalue
-    @property 
+
+    @property
     def q_r (self):
         return self._q_rvalue 
-    @property 
+
+    @property
     def q_s (self):
         return self._q_svalue  
 
@@ -253,9 +253,8 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
     @v_reset.setter
     def v_reset (self, resetvalue):
         #self._resetvalue = resetvalue * mV
-        self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
+        self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue)
 
- 
     '''
     tau_refrac = _new_property('', '_refractory_array', ms)
     v_reset = _new_property('_resetfun.resetfun', 'v_reset', mV)
@@ -265,6 +264,7 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
     def check_threshold(self, v):
         return v >= self.v_thresh
     '''
+
 
 class IzhikevichReset(object):
 
@@ -306,6 +306,7 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
     @property 
     def v_reset (self):
         return self._resetvalue
+
     @property 
     def d (self):
         return self._dvalue 
@@ -314,6 +315,7 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
     def v_reset (self, resetvalue):
         #self._resetvalue = resetvalue * mV
         self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)    
+
 
 class PoissonGroup(brian2.PoissonGroup):
 
@@ -345,24 +347,9 @@ class PoissonGroup(brian2.PoissonGroup):
 class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
 
     def __init__(self, n, indices, times):
-        """
-        Note that `equations` is not used: it is simply for compatibility with
-        other NeuronGroup subclasses.
-        """
-        #pdb.set_trace()
-        #print(_neuron_index)
-        #print(self._spike_time)
         self._check_spike_times(times)
-        #self._get_spike_times()
-        #indices= brian2.SpikeGeneratorGroup.neuron_index
-        #times = brian2.SpikeGeneratorGroup.spike_time
-        
-        #spiketimes = [(i, t) for i, seq in enumerate(times) for t in seq.value] * second
-        indices= numpy.array([])
-       # times=numpy.array([])* second
-        idx= [i for i, seq in enumerate(times)]
-        times = [ t for t in seq.value] * ms
-        brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=times)
+        indices, spiketimes = zip(*[(idx, spike) for idx, spikes in enumerate(times) for spike in spikes.value])
+        brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=spiketimes*ms)
 
     def _get_spike_times(self):
         values = [list() for i in range(self.N-1)]
