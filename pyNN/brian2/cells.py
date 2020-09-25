@@ -348,7 +348,11 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
 
     def __init__(self, n, indices, times):
         self._check_spike_times(times)
-        indices, spiketimes = zip(*[(idx, spike) for idx, spikes in enumerate(times) for spike in spikes.value])
+        try:
+            indices, spiketimes = zip(*[(idx, spike) for idx, spikes in enumerate(times) for spike in spikes.value])
+        except ValueError:
+            spiketimes = [spike for spikes in times for spike in spikes.value]
+            indices = numpy.zeros(len(spiketimes))
         brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=spiketimes*ms)
 
     def _get_spike_times(self):
