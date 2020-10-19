@@ -76,5 +76,5 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    tau_psc = prj._brian2_synapses[0][0].tau_syn.data * 1e3  # s --> ms
+    tau_psc = prj._brian2_synapses[0][0].tau_syn_ * 1e3  # s --> ms
     assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
