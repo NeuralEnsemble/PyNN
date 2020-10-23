@@ -16,7 +16,6 @@ import brian2
 from brian2.groups.neurongroup import *
 ms = brian2.ms
 mV = brian2.mV
-import pdb
 
 class Assembly(common.Assembly):
     _simulator = simulator
@@ -40,9 +39,10 @@ class PopulationView(common.PopulationView):
             if isinstance(value,(Quantity, VariableView)) and ( name!='tau_refrac'):
                 if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
                     value = value[self.mask]
-                    value= simplify(value)
-            parameter_dict[name] = value  
-        return ParameterSpace(parameter_dict, shape=(self.size))
+                    value = simplify(value)
+            parameter_dict[name] = value
+        # return ParameterSpace(parameter_dict, shape=(self.size))
+        return ParameterSpace(parameter_dict, shape=())
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
@@ -83,7 +83,6 @@ class Population(common.Population):
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
-
         self.brian2_group = self.celltype.brian2_model(self.size,
                                                      self.celltype.eqs,
                                                      **parameter_space)
@@ -105,31 +104,15 @@ class Population(common.Population):
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
-    
+
     def _get_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
         """
         parameter_dict = {}
         for name in names:
-            #value = simplify(getattr(self.brian2_group, name)) ######problem
-            value=getattr(self.brian2_group, name)
-            '''
-            if (name=='tau_refrac'):
-                value=value / msecond
-            if (name=='v_reset'):
-                value = value / mvolt
-            '''
-            if (name=='v_thresh'):
-                #value=numpy.asarray(value)
-                value = value[slice(0,1,None)]
-                value= simplify(value)   
-            if isinstance(value,(Quantity, VariableView)) and ( name!='tau_refrac'):
-                if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
-                    #value=numpy.asarray(value)
-                    value = value[slice(0,1,None)]
-                    value= simplify(value)
-            parameter_dict[name] = value   
+            value = getattr(self.brian2_group, name)[:]
+            parameter_dict[name] = value
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
