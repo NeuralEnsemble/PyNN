@@ -194,7 +194,9 @@ class Projection(common.Projection):
                                 if(self.pre.conductance_based==True):
                                     brian2_var[ii, j] = v * siemens
                                 else:
-                                    brian2_var[ii, j] = v * namp   
+                                    brian2_var[ii, j] = v * namp
+                            elif name == "tau_rec":  # find better solution here
+                                brian2_var[ii, j] = v * second
                             else:
                                 brian2_var[ii, j] = v
                     else:
@@ -256,7 +258,6 @@ class Projection(common.Projection):
         # todo: implement parameter translation
         return values  # should put NaN where there is no connection?
 
-
     def _get_attributes_as_list(self, attribute_names):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
@@ -291,12 +292,4 @@ class Projection(common.Projection):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         tau_syn_var = self.synapse_type.tau_syn_var[self.receptor_type]
-        #value1=self._brian2_synapses[0][0].tau_syn
-        #value1 = self.post.get(tau_syn_var) * brian2.ms  # assumes homogeneous and excitatory - to be fixed properly
-        #self._brian2_synapses[0][0].tau_syn=value1
-        self._brian2_synapses[0][0].tau_syn=self.post.get(tau_syn_var) * brian2.ms
-        self._brian2_synapses[0][0].tau_syn = self._brian2_synapses[0][0].tau_syn[slice(0,1,None)]
-        self._brian2_synapses[0][0].tau_syn= simplify(self._brian2_synapses[0][0].tau_syn)
-        
-       
-        
+        self._brian2_synapses[0][0].tau_syn = self.post.get(tau_syn_var)[self._brian2_synapses[0][0].j] * brian2.ms
