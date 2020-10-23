@@ -84,33 +84,12 @@ class BaseNeuronGroup(brian2.NeuronGroup):
 class ThresholdNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        threshold = 'v > {}*mV'.format(parameters["v_thresh"][0]*1000) 
-        self._resetvalue=parameters.pop('v_reset')[0] 
-        self._refracvalue=parameters.pop('tau_refrac')[0]
-        reset = 'v = {}*mV'.format(self._resetvalue*1000)
-        refractory = self._refracvalue
+        threshold = 'v > v_thresh'
+        reset = 'v = v_reset'
+        equations += '''v_thresh : volt (constant)
+                        v_reset  : volt (constant)'''
         BaseNeuronGroup.__init__(self, n, equations,
-                                 threshold, reset=reset,
-                                 refractory=refractory, **parameters)
-    @property 
-    def v_reset (self):
-        return self._resetvalue
-
-    @property 
-    def tau_refrac (self):  
-        return self._refractory 
-
-    @v_reset.setter
-    def v_reset (self, resetvalue):
-        self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
-
-    @tau_refrac.setter
-    def tau_refrac(self, tau_refrac_value): 
-        self._refractory = tau_refrac_value * ms
-          
-
-    # def check_threshold(self, v):
-    #     return v >= self.v_thresh
+                                 threshold, reset=reset, **parameters)
 
 
 class BiophysicalNeuronGroup(BaseNeuronGroup):
@@ -265,6 +244,9 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
         return v >= self.v_thresh
     '''
 
+# The below can be replaced by
+# reset = '''v = v_reset
+#            u += d'''
 
 class IzhikevichReset(object):
 
@@ -352,8 +334,9 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
             indices, spiketimes = zip(*[(idx, spike) for idx, spikes in enumerate(times) for spike in spikes.value])
         except ValueError:
             spiketimes = [spike for spikes in times for spike in spikes.value]
+            # spiketimes = numpy.array(times)
             indices = numpy.zeros(len(spiketimes))
-        brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=spiketimes*ms)
+        brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=spiketimes*second)
 
     def _get_spike_times(self):
         values = [list() for i in range(self.N-1)]

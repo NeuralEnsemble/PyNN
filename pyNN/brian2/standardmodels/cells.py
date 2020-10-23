@@ -14,7 +14,6 @@ from ..cells import (ThresholdNeuronGroup, SpikeGeneratorGroup, PoissonGroup,
                      BiophysicalNeuronGroup, AdaptiveNeuronGroup, AdaptiveNeuronGroup2,
                      IzhikevichNeuronGroup)
 import logging
-import pdb
 
 logger = logging.getLogger("PyNN")
 
@@ -27,7 +26,7 @@ leaky_iaf = brian2.Equations('''
                 i_offset                : amp
                 i_inj                   : amp
             ''')
-
+# give v_thresh a different name
 adexp_iaf = brian2.Equations('''
                 dv/dt = (delta_T*gL*exp((-v_thresh + v)/delta_T) + I + gL*(v_rest - v) - w )/ c_m : volt (unless refractory)
                 dw/dt = (a*(v-v_rest) - w)/tau_w  : amp (unless refractory)

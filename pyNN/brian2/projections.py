@@ -99,7 +99,7 @@ class Projection(common.Projection):
                 #if (model=='weight : A'):
                 #    model= 'weight : amp' 
 
-                # A for ampere and S for siemens not recognised
+                # A for ampere and S for siemens not recognised (temporary solution)
                 if model.find('weight : S') != -1:
                     model = model.replace('weight : S', 'weight : siemens')
                 elif model.find('weight : A') != -1:
