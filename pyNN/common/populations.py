@@ -579,7 +579,7 @@ class BasePopulation(object):
         Save positions to file. The output format is ``index x y z``
         """
         if isinstance(file, basestring):
-            file = recording.files.StandardTextFile(file, mode='w')
+            file = recording.files.StandardTextFile(file, mode='wb')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])
@@ -1310,7 +1310,7 @@ class Assembly(object):
         Save positions to file. The output format is id x y z
         """
         if isinstance(file, basestring):
-            file = files.StandardTextFile(file, mode='w')
+            file = files.StandardTextFile(file, mode='wb')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
         result[:, 0] = numpy.array([self.id_to_index(id) for id in cells])

@@ -18,7 +18,7 @@ def draw_rf(cell, positions, connections, color='k'):
     idx = numpy.where(connections[:, 1] == cell)[0]
     sources = connections[idx, 0]
     for src in sources:
-        plot([positions[cell, 1], positions[src, 1]], [positions[cell, 2], positions[src, 2]], c=color)
+        plot([positions[cell, 1], positions[int(src), 1]], [positions[cell, 2], positions[int(src), 2]], c=color)
 
 
 def distances(pos_1, pos_2, N):
@@ -73,28 +73,28 @@ def test(cases=[1]):
         synapse = StaticSynapse(weight=w, delay=delay)
         rng = NumpyRNG(23434, parallel_safe=parallel_safe)
 
-        if case is 1:
+        if case == 1:
             conn = DistanceDependentProbabilityConnector(d_expression, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "DistanceDependent_%s_np_%d.png" % (simulator_name, np)
-        elif case is 2:
+        elif case == 2:
             conn = FixedProbabilityConnector(0.02, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedProbability_%s_np_%d.png" % (simulator_name, np)
-        elif case is 3:
-            conn = AllToAllConnector(delays=delay, safe=safe, callback=callback, allow_self_connections=autapse)
+        elif case == 3:
+            conn = AllToAllConnector(safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "AllToAll_%s_np_%d.png" % (simulator_name, np)
-        elif case is 4:
+        elif case == 4:
             conn = FixedNumberPostConnector(50, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedNumberPost_%s_np_%d.png" % (simulator_name, np)
-        elif case is 5:
+        elif case == 5:
             conn = FixedNumberPreConnector(50, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedNumberPre_%s_np_%d.png" % (simulator_name, np)
-        elif case is 6:
+        elif case == 6:
             conn = OneToOneConnector(safe=safe, callback=callback)
             fig_name = "OneToOne_%s_np_%d.png" % (simulator_name, np)
-        elif case is 7:
-            conn = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, callback=callback, distributed=True)
+        elif case == 7:
+            conn = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='rb'), safe=safe, callback=callback, distributed=False)
             fig_name = "FromFile_%s_np_%d.png" % (simulator_name, np)
-        elif case is 8:
+        elif case == 8:
             conn = SmallWorldConnector(degree=0.1, rewiring=0., safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "SmallWorld_%s_np_%d.png" % (simulator_name, np)
 
@@ -110,7 +110,7 @@ def test(cases=[1]):
             if not(os.path.isdir('Results')):
                 os.mkdir('Results')
             print("Saving Connections....")
-            prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='w'), gather=True)
+            prj.save('all', files.NumpyBinaryFile('Results/connections.dat', mode='wb'), gather=True)
 
         mytime = timer.diff()
         print("Time to save the projection:", mytime, 's')
@@ -126,7 +126,7 @@ def test(cases=[1]):
             positions = numpy.loadtxt('Results/positions.dat')
             
             positions[:, 0] -= positions[:, 0].min()
-            connections = files.NumpyBinaryFile('Results/connections.dat', mode='r').read()
+            connections = files.NumpyBinaryFile('Results/connections.dat', mode='rb').read()
             print(positions.shape, connections.shape)
             connections[:, 0] -= connections[:, 0].min()
             connections[:, 1] -= connections[:, 1].min()
@@ -147,7 +147,7 @@ def test(cases=[1]):
             ids = numpy.random.permutation(positions[:, 0])[0:6]
             colors = ['k', 'r', 'b', 'g', 'c', 'y']
             for count, cell in enumerate(ids):
-                draw_rf(cell, positions, connections, colors[count])
+                draw_rf(int(cell), positions, connections, colors[int(count)])
             subplot(235)
             plot(d, connections[:, 2], '.')
 
