@@ -2,11 +2,11 @@
 
 set -e  # stop execution in case of errors
 
-if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
+if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
     echo -e "\n========== Installing NEST ==========\n"
     # Specify which version of NEST to install
     #export NEST_VERSION="master"
-    export NEST_VERSION="2.18.0"
+    export NEST_VERSION="2.20.0"
 
     pip install cython  #==0.28.1
 
@@ -30,8 +30,8 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ] || [ "$TRAVIS_PYTHON_VERSION" == "3.6" 
       ln -s /opt/python/2.7/lib/libpython2.7.so $VENV/lib/libpython2.7.so;
       export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}
     fi
-    if [ "$TRAVIS_PYTHON_VERSION" == "3.6" ]; then
-      ln -s /opt/python/3.6/lib/libpython3.6m.so $VENV/lib/libpython3.6.so;
+    if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+      ln -s /opt/python/3.7/lib/libpython3.7m.so $VENV/lib/libpython3.7.so;
       export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}m
     fi
     cython --version;
