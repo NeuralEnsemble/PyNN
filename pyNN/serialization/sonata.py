@@ -88,7 +88,7 @@ class SonataIO(BaseIO):
         segment = neo.Segment(file_origin=file_path)
         spikes_file = h5py.File(file_path, 'r')
         for gid in np.unique(spikes_file['spikes']['gids']):
-            index = spikes_file['spikes']['gids'].value == gid
+            index = spikes_file['spikes']['gids'][()] == gid
             spike_times = spikes_file['spikes']['timestamps'][index]
             segment.spiketrains.append(
                 neo.SpikeTrain(spike_times,
@@ -457,8 +457,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
     for i, projection in enumerate(network.projections):
         projection_label = asciify(projection.label)
         config["networks"]["edges"].append({
-            "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label.decode('utf-8')),
-            "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label.decode('utf-8'))
+            "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label),
+            "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label)
         })
         edge_type_path = Template(config["networks"]["edges"][i]["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
         edges_path = Template(config["networks"]["edges"][i]["edges_file"]).substitute(NETWORK_DIR=network_dir)
@@ -639,8 +639,9 @@ class NodePopulation(object):
         obj.node_groups = []
         obj.node_ids = h5_data['node_id']
 
-        for ng_label in np.unique(h5_data['node_group_id'].value):
-            mask = h5_data['node_group_id'].value == ng_label
+        node_group_ids = h5_data['node_group_id'][()]
+        for ng_label in np.unique(node_group_ids):
+            mask = node_group_ids == ng_label
             logger.info("NODE GROUP {}, size {}".format(ng_label, mask.sum()))
 
             node_type_array = h5_data['node_type_id'][mask]
@@ -665,7 +666,7 @@ class NodePopulation(object):
         The Assembly will contain one Population for each NodeGroup.
         """
         assembly = sim.Assembly(label=self.name)
-        assembly.annotations["first_sonata_id"] = self.node_ids.value.min()
+        assembly.annotations["first_sonata_id"] = self.node_ids[()].min()
         for node_group in self.node_groups:
             pop = node_group.to_population(sim)
             assembly += pop
@@ -733,7 +734,7 @@ class NodeGroup(object):
             dynamics_params_group = h5_data['dynamics_params']
             # not sure the next bit is using `index` correctly
             for key in dynamics_params_group.keys():
-                parameters[key] = dynamics_params_group[key].value[index]
+                parameters[key] = dynamics_params_group[key][index]
 
         obj.parameters = parameters
         obj.config = config
@@ -828,14 +829,14 @@ class EdgePopulation(object):
 
         obj = cls()
         obj.name = name
-        obj.source_node_ids = h5_data["source_node_id"].value
-        obj.source_node_population = h5_data["source_node_id"].attrs["node_population"].decode('utf-8')
-        obj.target_node_ids = h5_data["target_node_id"].value
-        obj.target_node_population = h5_data["target_node_id"].attrs["node_population"].decode('utf-8')
+        obj.source_node_ids = h5_data["source_node_id"][()]
+        obj.source_node_population = h5_data["source_node_id"].attrs["node_population"]
+        obj.target_node_ids = h5_data["target_node_id"][()]
+        obj.target_node_population = h5_data["target_node_id"].attrs["node_population"]
 
         obj.edge_groups = []
-        for eg_label in np.unique(h5_data['edge_group_id'].value):
-            mask = h5_data['edge_group_id'].value == eg_label
+        for eg_label in np.unique(h5_data['edge_group_id'][()]):
+            mask = h5_data['edge_group_id'][()] == eg_label
             logger.info("EDGE GROUP {}, size {}".format(eg_label, mask.sum()))
 
             edge_type_array = h5_data['edge_type_id'][mask]
@@ -930,11 +931,11 @@ class EdgeGroup(object):
             dynamics_params_group = h5_data['dynamics_params']
             # not sure the next bit is using `index` correctly
             for key in dynamics_params_group.keys():
-                parameters[key] = dynamics_params_group[key].value[index]
+                parameters[key] = dynamics_params_group[key][index]
         if 'nsyns' in h5_data:
-            parameters['nsyns'] = h5_data['nsyns'].value[index]
+            parameters['nsyns'] = h5_data['nsyns'][index]
         if 'syn_weight' in h5_data:
-            parameters['syn_weight'] = h5_data['syn_weight'].value[index]
+            parameters['syn_weight'] = h5_data['syn_weight'][index]
 
         obj.parameters = parameters
         obj.config = config
