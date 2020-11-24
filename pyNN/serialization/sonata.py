@@ -457,8 +457,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
     for i, projection in enumerate(network.projections):
         projection_label = asciify(projection.label)
         config["networks"]["edges"].append({
-            "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label.decode('utf-8')),
-            "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label.decode('utf-8'))
+            "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label),
+            "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label)
         })
         edge_type_path = Template(config["networks"]["edges"][i]["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
         edges_path = Template(config["networks"]["edges"][i]["edges_file"]).substitute(NETWORK_DIR=network_dir)
@@ -830,9 +830,9 @@ class EdgePopulation(object):
         obj = cls()
         obj.name = name
         obj.source_node_ids = h5_data["source_node_id"][()]
-        obj.source_node_population = h5_data["source_node_id"].attrs["node_population"].decode('utf-8')
+        obj.source_node_population = h5_data["source_node_id"].attrs["node_population"]
         obj.target_node_ids = h5_data["target_node_id"][()]
-        obj.target_node_population = h5_data["target_node_id"].attrs["node_population"].decode('utf-8')
+        obj.target_node_population = h5_data["target_node_id"].attrs["node_population"]
 
         obj.edge_groups = []
         for eg_label in np.unique(h5_data['edge_group_id'][()]):
