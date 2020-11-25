@@ -29,6 +29,10 @@ except ImportError:
     have_hdf5 = False
 from pyNN.core import iteritems
 
+try:
+    basestring
+except NameError:
+    basestring = str
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -61,7 +65,7 @@ def savez(file, *args, **kwds):
             raise ValueError("Cannot use un-named variables and keyword %s" % key)
         namedict[key] = val
 
-    zip = zipfile.ZipFile(file, mode="wb")
+    zip = zipfile.ZipFile(file, mode="w")
 
     # Place to write temporary .npy files
     #  before storing them in the zip. We need to path this to have a working
