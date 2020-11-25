@@ -183,14 +183,16 @@ def test_record_native_model():
 
     data = p1.get_data().segments[0].analogsignals
     assert_equal(len(data), 2)  # one array per variable
-    assert_equal(data[0].name, 'apical(1.0).v')
-    assert_equal(data[1].name, 'soma(0.5).ina')
-    assert_equal(data[0].sampling_rate, 10.0 * pq.kHz)
-    assert_equal(data[0].units, pq.mV)
-    assert_equal(data[1].units, pq.mA / pq.cm**2)
-    assert_equal(data[0].t_start, 0.0 * pq.ms)
-    assert_equal(data[0].t_stop, 250.1 * pq.ms)  # would prefer if it were 250.0, but this is a fundamental Neo issue
-    assert_equal(data[0].shape, (2501, 10))
+    names = set(sig.name for sig in data)
+    assert_equal(names, set(('apical(1.0).v', 'soma(0.5).ina')))
+    apical_v = [sig for sig in data if sig.name == 'apical(1.0).v'][0]
+    soma_i = [sig for sig in data if sig.name == 'soma(0.5).ina'][0]
+    assert_equal(apical_v.sampling_rate, 10.0 * pq.kHz)
+    assert_equal(apical_v.units, pq.mV)
+    assert_equal(soma_i.units, pq.mA / pq.cm**2)
+    assert_equal(apical_v.t_start, 0.0 * pq.ms)
+    assert_equal(apical_v.t_stop, 250.1 * pq.ms)  # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert_equal(apical_v.shape, (2501, 10))
     return data
 
 
