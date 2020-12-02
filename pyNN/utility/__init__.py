@@ -201,10 +201,10 @@ def normalized_filename(root, basename, extension, simulator, num_processes=None
     timestamp = datetime.now()
     if do_iso8601:
         date = timestamp.strftime("%Y-%m-%d")
-        date_time = timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+        date_time = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
     else:
         date = timestamp.strftime("%Y%m%d")
-        date_time = timestamp.strftime("%Y%m%d-%H%M%S"),
+        date_time = timestamp.strftime("%Y%m%d-%H%M%S")
 
     if num_processes:
         np = "_np%d" % num_processes
