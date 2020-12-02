@@ -189,25 +189,33 @@ def load_population(filename, sim):
     return population
 
 
-def normalized_filename(root, basename, extension, simulator, num_processes=None):
+def normalized_filename(root, basename, extension, simulator, num_processes=None, do_iso8601=False):
     """
     Generate a file path containing a timestamp and information about the
     simulator used and the number of MPI processes.
     
     The date is used as a sub-directory name, the date & time are included in the
     filename.
+    If do_iso8601 is True, follow https://en.wikipedia.org/wiki/ISO_8601
     """
     timestamp = datetime.now()
+    if do_iso8601:
+        date = timestamp.strftime("%Y-%m-%d")
+        date_time = timestamp.strftime("%Y-%m-%dT%H:%M:%S"),
+    else:
+        date = timestamp.strftime("%Y%m%d")
+        date_time = timestamp.strftime("%Y%m%d-%H%M%S"),
+
     if num_processes:
         np = "_np%d" % num_processes
     else:
         np = ""
     return os.path.join(root,
-                        timestamp.strftime("%Y%m%d"),
+                        date,
                         "%s_%s%s_%s.%s" % (basename,
                                            simulator,
                                            np,
-                                           timestamp.strftime("%Y%m%d-%H%M%S"),
+                                           date_time,
                                            extension))
 
 
