@@ -1,5 +1,5 @@
 
-
+from nose.plugins.skip import SkipTest
 from numpy.testing import assert_array_almost_equal
 
 import pyNN.nest as sim
@@ -7,8 +7,17 @@ from pyNN.random import RandomDistribution as RD
 from pyNN.network import Network
 from pyNN.serialization import export_to_sonata, import_from_sonata, asciify
 
+try:
+    import h5py
+    HAVE_H5PY = True
+except ImportError:
+    HAVE_H5PY = False
+
 
 def test():
+    if not HAVE_H5PY:
+        raise SkipTest
+
     sim.setup()
 
     p1 = sim.Population(10,

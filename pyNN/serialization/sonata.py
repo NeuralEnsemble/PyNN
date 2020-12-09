@@ -41,7 +41,11 @@ try:
 except NameError:  # Python 3
     basestring = str
 
-import h5py
+try:
+    import h5py
+    HAVE_H5PY = True
+except ImportError:
+    HAVE_H5PY = False
 import numpy as np
 from pyNN.network import Network
 from pyNN.parameters import Sequence
@@ -69,6 +73,8 @@ class SonataIO(BaseIO):
                  spikes_sort_order=None,
                  report_config=None,
                  node_sets=None):
+        if not HAVE_H5PY:
+            raise Exception("You need to install h5py to use SonataIO")
         self.base_dir = base_dir
         self.spike_file = spikes_file
         self.spikes_sort_order = spikes_sort_order
@@ -188,6 +194,12 @@ def cast(value):
         except ValueError:
             pass
     return value
+
+
+def to_string(s):
+    if isinstance(s, bytes):
+        s = s.decode('utf-8')
+    return s
 
 
 def read_types_file(file_path, node_or_edge):
@@ -317,6 +329,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
     as an implicit Assembly with a single member, at the cost of losing some information about
     the PyNN network structure. This approach could be improved in future.
     """
+    if not HAVE_H5PY:
+        raise Exception("You need to install h5py to use SONATA")
 
     # --- define directory layout ---
     config = {
@@ -541,6 +555,9 @@ def import_from_sonata(config_file, sim):
     We map a SONATA edge group to a PyNN Projection, i.e. a SONATA edge population may
     result in multiple PyNN Projections.
     """
+    if not HAVE_H5PY:
+        raise Exception("You need to install h5py to use SONATA")
+
     config = load_config(config_file)
 
     if config.get("target_simulator", None) not in  ("PyNN", "NEST"):
@@ -645,7 +662,7 @@ class NodePopulation(object):
             logger.info("NODE GROUP {}, size {}".format(ng_label, mask.sum()))
 
             node_type_array = h5_data['node_type_id'][mask]
-            node_group_index = h5_data['node_group_index'][mask]
+            node_group_index = h5_data['node_group_index'][mask].tolist()
             obj.node_groups.append(
                 NodeGroup.from_data(ng_label,
                                     node_type_array,
@@ -695,7 +712,7 @@ class NodeGroup(object):
         node_types_array : NumPy array
             Subset of the data from "/nodes/<population_name>/node_type_id"
             that applies to this group.
-        index : NumPy array
+        index : list
             Subset of the data from "/nodes/<population_name>/node_group_index"
             that applies to this group.
         h5_data : HDF5 Group
@@ -830,9 +847,9 @@ class EdgePopulation(object):
         obj = cls()
         obj.name = name
         obj.source_node_ids = h5_data["source_node_id"][()]
-        obj.source_node_population = h5_data["source_node_id"].attrs["node_population"]
+        obj.source_node_population = to_string(h5_data["source_node_id"].attrs["node_population"])
         obj.target_node_ids = h5_data["target_node_id"][()]
-        obj.target_node_population = h5_data["target_node_id"].attrs["node_population"]
+        obj.target_node_population = to_string(h5_data["target_node_id"].attrs["node_population"])
 
         obj.edge_groups = []
         for eg_label in np.unique(h5_data['edge_group_id'][()]):
@@ -840,7 +857,7 @@ class EdgePopulation(object):
             logger.info("EDGE GROUP {}, size {}".format(eg_label, mask.sum()))
 
             edge_type_array = h5_data['edge_type_id'][mask]
-            edge_group_index = h5_data['edge_group_index'][mask]
+            edge_group_index = h5_data['edge_group_index'][mask].tolist()
             source_ids = obj.source_node_ids[mask]
             target_ids = obj.target_node_ids[mask]
             # note: it may be more efficient in an MPI context
@@ -890,7 +907,7 @@ class EdgeGroup(object):
         node_types_array : NumPy array
             Subset of the data from "/edges/<population_name>/edge_type_id"
             that applies to this group.
-        index : NumPy array
+        index : list
             Subset of the data from "/edges/<population_name>/edge_group_index"
             that applies to this group.
         h5_data : HDF5 Group
