@@ -7,10 +7,10 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.7, 3.3-3.7)
+    * Python (version 2.7, 3.6+)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
-    * the Neo_ package (>= 0.5.0)
+    * the Neo_ package (>= 0.8.0)
     * at least one of the supported simulators: e.g. NEURON, NEST, or Brian.
 
 Optional dependencies are:
@@ -18,6 +18,7 @@ Optional dependencies are:
     * mpi4py_ (if you wish to run distributed simulations using MPI)
     * either Jinja2_ or Cheetah_ (templating engines)
     * the CSA_ library
+    * h5py (to use the SONATA format)
 
 Installing PyNN
 ===============
@@ -31,8 +32,8 @@ The easiest way to get PyNN is to use pip_::
 If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.9.5.tar.gz
-    $ cd PyNN-0.9.5
+    $ tar xzf PyNN-0.9.6.tar.gz
+    $ cd PyNN-0.9.6
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -77,7 +78,7 @@ you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmo
 Installing NEURON
 =================
 
-Download the sources for NEURON 7.4 or 7.5, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
+Download the sources for NEURON 7.4 or later, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
 Also download Interviews from the same location.
 
 Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_,
@@ -130,7 +131,7 @@ Now try it out::
                  -- N E S T --
       Copyright (C) 2004 The NEST Initiative
 
-    Version: v2.18.0
+    Version: v2.20.0
 
     ...
     >>> nest.Models()

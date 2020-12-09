@@ -80,7 +80,7 @@ We try to stay fairly close to PEP8_. Please note in particular:
     - some function/method names in PyNN use ``mixedCase``, but these will
       gradually be deprecated and replaced with ``lower_case_with_underscores``.
       Any new functions or methods should use the latter.
-    - we currently target versions 2.7 and 3.3-3.6
+    - we currently target versions 2.7 and 3.6+
 
 
 Testing
@@ -114,19 +114,19 @@ The suggested way to do this is to write test functions, in a separate file,
 that take a simulator module as an argument, and then call these functions from
 ``test_neuron.py``, ``test_nest.py``, etc.
 
-System tests defined in the scenarios directory are treated as a single test 
+System tests defined in the scenarios directory are treated as a single test
 (test_scenarios()) while running nosetests. To run only the tests within a file
 named 'test_electrodes' located inside system/scenarios, use::
 
     $ nosetests -s --tc=testFile:test_electrodes test_nest.py
 
-To run a single specific test named 'test_changing_electrode' located within 
+To run a single specific test named 'test_changing_electrode' located within
 some file (and added to registry) inside system/scenarios, use::
 
     $ nosetests -s --tc=testName:test_changing_electrode test_nest.py
 
 Note that this would also run the tests specified within the simulator specific
-files such as test_brian.py, test_nest.py and test_neuron.py. To avoid 
+files such as test_brian.py, test_nest.py and test_neuron.py. To avoid
 this, specify the 'test_scenarios function' on the command line::
 
     $ nosetests -s --tc=testName:test_changing_electrode test_nest.py:test_scenarios
@@ -220,7 +220,7 @@ where ``x.y.z`` is the release number. You should now upload the documentation
 to http://neuralensemble.org/docs/PyNN/ by running::
 
     $ make zip
-    
+
 in the :file:`doc` directory, and then unpacking the resulting archive on the
 NeuralEnsemble server.
 
