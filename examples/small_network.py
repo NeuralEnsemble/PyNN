@@ -3,7 +3,7 @@
 Small network created with the Population and Projection classes
 
 
-Usage: random_numbers.py [-h] [--plot-figure] [--debug DEBUG] simulator
+Usage: small_network.py [-h] [--plot-figure] [--debug DEBUG] simulator
 
 positional arguments:
   simulator      neuron, nest, brian or another backend simulator
@@ -24,7 +24,7 @@ sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a
                              ("--debug", "Print debugging information"))
 
 if options.debug:
-    init_logging(None, debug=True)    
+    init_logging(None, debug=True)
 
 
 # === Define parameters ========================================================

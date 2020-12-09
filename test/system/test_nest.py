@@ -73,9 +73,8 @@ def test_record_native_model():
 
 
 def test_native_stdp_model():
-    #if not have_nest:
-    if True:
-        raise SkipTest("Causes core dump with NEST master")
+    if not have_nest:
+        raise SkipTest
     nest = pyNN.nest
     from pyNN.utility import init_logging
 

@@ -7,8 +7,10 @@ try:
     have_scipy = True
 except ImportError:
     have_scipy = False
+from numpy.testing import assert_array_equal
 import quantities as pq
 from nose.tools import assert_greater, assert_less, assert_raises
+from pyNN.parameters import Sequence
 from pyNN.errors import InvalidParameterValueError
 
 from .registry import register
@@ -31,7 +33,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
         plt.plot(expected_spike_times, -40 * numpy.ones_like(expected_spike_times), "ro")
         plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
     diff = (data.spiketrains[0].rescale(pq.ms).magnitude - expected_spike_times) / expected_spike_times
-    assert abs(diff).max() < 0.01, abs(diff).max() 
+    assert abs(diff).max() < 0.01, abs(diff).max()
     sim.end()
     return data
 test_EIF_cond_alpha_isfa_ista.__test__ = False
@@ -262,7 +264,6 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
 test_SpikeSourcePoissonRefractory.__test__ = False
 
 
-
 @register()
 def issue511(sim):
     """Giving SpikeSourceArray an array of non-ordered spike times should produce an InvalidParameterValueError error"""
@@ -271,6 +272,25 @@ def issue511(sim):
     assert_raises(InvalidParameterValueError, sim.Population, 2, celltype)
 
 
+@register()
+def test_update_SpikeSourceArray(sim, plot_figure=False):
+    sim.setup()
+    sources = sim.Population(2, sim.SpikeSourceArray(spike_times=[]))
+    sources.record('spikes')
+    sim.run(10.0)
+    sources.set(spike_times=[
+        Sequence([12, 15, 18]),
+        Sequence([17, 19])
+    ])
+    sim.run(10.0)
+    sources.set(spike_times=[
+        Sequence([22, 25]),
+        Sequence([23, 27, 29])
+    ])
+    sim.run(10.0)
+    data = sources.get_data().segments[0].spiketrains
+    assert_array_equal(data[0].magnitude, numpy.array([12, 15, 18, 22, 25]))
+test_update_SpikeSourceArray.__test__ = False
 
 # todo: add test of Izhikevich model
 
@@ -287,3 +307,4 @@ if __name__ == '__main__':
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)
     issue511(sim)
+    test_update_SpikeSourceArray(sim, plot_figure=args.plot_figure)

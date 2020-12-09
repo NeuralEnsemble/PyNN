@@ -5,7 +5,7 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -15,6 +15,7 @@ import numpy
 import os
 from copy import copy
 from collections import defaultdict
+from warnings import warn
 from pyNN import errors
 import neo
 from datetime import datetime
@@ -87,7 +88,7 @@ def gather_blocks(data, ordered=True):
     D = gather_dict(D)
     blocks = list(D.values())
     merged = data
-    if mpi_comm.rank == MPI_ROOT:    
+    if mpi_comm.rank == MPI_ROOT:
         merged = blocks[0]
         for block in blocks[1:]:
             merged.merge(block)
@@ -256,14 +257,20 @@ class Recorder(object):
                 sids = sorted(self.filter_recorded('spikes', filter_ids))
                 data = self._get_spiketimes(sids)
 
-                segment.spiketrains = [
-                    neo.SpikeTrain(data.get(int(id),[]),
-                                   t_start=self._recording_start_time,
-                                   t_stop=t_stop,
-                                   units='ms',
-                                   source_population=self.population.label,
-                                   source_id=int(id),source_index=self.population.id_to_index(int(id)))
-                    for id in sids]
+                segment.spiketrains = []
+                for id in sids:
+                    times = pq.Quantity(data.get(int(id), []), pq.ms)
+                    if times.size > 0 and times.max() > t_stop:
+                        warn("Recorded at least one spike after t_stop")
+                        times = times[times <= t_stop]
+                    segment.spiketrains.append(
+                        neo.SpikeTrain(times,
+                                       t_start=self._recording_start_time,
+                                       t_stop=t_stop,
+                                       units='ms',
+                                       source_population=self.population.label,
+                                       source_id=int(id),source_index=self.population.id_to_index(int(id)))
+                    )
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)

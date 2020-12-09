@@ -1,7 +1,7 @@
 """
 Definition of NativeCellType class for NEST.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -15,6 +15,8 @@ from . import conversion
 UNITS_MAP = {
     'spikes': 'ms',
     'V_m': 'mV',
+    'I_syn_ex': 'pA',
+    'I_syn_in': 'pA'
 }
 
 
@@ -28,7 +30,7 @@ def get_defaults(model_name):
               'thread', 'vp', 'receptor_types', 'events', 'global_id',
               'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
               'thread_local_id', 'node_uses_wfr', 'supports_precise_spikes',
-              'synaptic_elements', 'y_0', 'y_1']
+              'synaptic_elements', 'y_0', 'y_1', 'allow_offgrid_spikes', 'shift_now_spikes', 'post_trace']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():

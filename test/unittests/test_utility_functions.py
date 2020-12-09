@@ -17,23 +17,23 @@ except NameError:
 
 
 class NotifyTests(unittest.TestCase):
-    
+
     def test_notify(self):
         utility.notify()
-        
+
 
 class GetArgTests(unittest.TestCase):
-    
+
     def test_get_script_args(self):
         utility.get_script_args(0)
 
-# fails with nose, passes with python       
+# fails with nose, passes with python
 #    def test_get_script_args1(self):
 #        self.assertRaises(Exception, utility.get_script_args, 1)
- 
-# fails with nose, passes with python       
-#class InitLoggingTests(unittest.TestCase):
-#    
+
+# fails with nose, passes with python
+# class InitLoggingTests(unittest.TestCase):
+#
 #    def test_initlogging_debug(self):
 #        utility.init_logging("test.log", debug=True, num_processes=2, rank=99)
 #        assert os.path.exists("test.log.99")
@@ -41,7 +41,7 @@ class GetArgTests(unittest.TestCase):
 
 
 class TimerTest(unittest.TestCase):
-    
+
     def test_timer(self):
         timer = utility.Timer()
         time.sleep(0.1)
@@ -59,7 +59,7 @@ class TimerTest(unittest.TestCase):
 
 
 class ProgressBarTest(unittest.TestCase):
-    
+
     def test_fixed(self):
         bar = utility.ProgressBar(width=12, mode='fixed')
         sys.stdout = StringIO()
@@ -86,6 +86,6 @@ class ProgressBarTest(unittest.TestCase):
                          "[ ########## ] 100% \r")
         sys.stdout = sys.__stdout__
 
+
 if __name__ == "__main__":
     unittest.main()
-

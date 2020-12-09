@@ -81,7 +81,7 @@ def main_pynest(parameters):
     nest.SetKernelStatus({"resolution": 0.1})
     timer.mark("setup")
 
-    p = nest.Create("iaf_neuron", n=P.n, params={"I_e": 1000.0})
+    p = nest.Create("iaf_psc_alpha", n=P.n, params={"I_e": 1000.0})
     timer.mark("build")
 
     # todo: add recording and data retrieval

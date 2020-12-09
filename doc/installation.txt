@@ -7,10 +7,10 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 2.7, 3.3-3.6)
+    * Python (version 2.7, 3.6+)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
-    * the Neo_ package (>= 0.5.0)
+    * the Neo_ package (>= 0.8.0)
     * at least one of the supported simulators: e.g. NEURON, NEST, or Brian.
 
 Optional dependencies are:
@@ -18,6 +18,7 @@ Optional dependencies are:
     * mpi4py_ (if you wish to run distributed simulations using MPI)
     * either Jinja2_ or Cheetah_ (templating engines)
     * the CSA_ library
+    * h5py (to use the SONATA format)
 
 Installing PyNN
 ===============
@@ -28,12 +29,11 @@ The easiest way to get PyNN is to use pip_::
 
     $ pip install pyNN
 
-If you are running Debian or Ubuntu, there are :doc:`binary packages <download>`
-available. If you would prefer to install manually, :doc:`download the latest
+If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.9.2.tar.gz
-    $ cd PyNN-0.9.2
+    $ tar xzf PyNN-0.9.6.tar.gz
+    $ cd PyNN-0.9.6
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -78,7 +78,7 @@ you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmo
 Installing NEURON
 =================
 
-Download the sources for NEURON 7.4 or 7.5, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
+Download the sources for NEURON 7.4 or later, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
 Also download Interviews from the same location.
 
 Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_,
@@ -118,7 +118,7 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.14 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 2.18.0 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST may not work with this version of PyNN.
 The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
 or at `<http://www.nest-simulator.org/installation/>`_.
@@ -128,10 +128,11 @@ Now try it out::
     $ cd ~
     $ python
     >>> import nest
-                  -- N E S T --
-
+                 -- N E S T --
       Copyright (C) 2004 The NEST Initiative
-      Version 2.14.0 Nov 21 2017 11:05:28
+
+    Version: v2.20.0
+
     ...
     >>> nest.Models()
     (u'ac_generator', u'aeif_cond_alpha', u'aeif_cond_alpha_RK5', u'aeif_cond_alpha_multisynapse',

@@ -193,12 +193,65 @@ def issue309(sim):
     synapse_type = sim.StaticSynapse(weight=0.1, delay="0.2+0.3*d")
     prj_a2a = sim.Projection(p, p, sim.AllToAllConnector(allow_self_connections=False), synapse_type)
     prj_fp1 = sim.Projection(p, p, sim.FixedProbabilityConnector(p_connect=1, allow_self_connections=False), synapse_type)
-    assert_equal(prj_a2a.get('weight', format='list', gather=False),
-                 prj_fp1.get('weight', format='list', gather=False))
-    assert_equal(prj_a2a.get('delay', format='list', gather=False),
-                 prj_fp1.get('delay', format='list', gather=False))
+    assert_equal(sorted(prj_a2a.get('weight', format='list', gather=False)),
+                 sorted(prj_fp1.get('weight', format='list', gather=False)))
+    assert_equal(sorted(prj_a2a.get('delay', format='list', gather=False)),
+                 sorted(prj_fp1.get('delay', format='list', gather=False)))
     assert_equal(prj_fp1.size(), 20)  # 20 rather than 25 because self-connections are excluded
     sim.end()
+
+
+@register(exclude=['brian'])
+def issue622(sim):
+    sim.setup()
+    pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
+
+    view1 = sim.PopulationView(pop, [2, 3, 4])
+    view2 = sim.PopulationView(pop, [2, 3, 4])
+
+    proj1 = sim.Projection(view1, view2,
+                           sim.AllToAllConnector(allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+    proj2 = sim.Projection(view1, view1,
+                           sim.AllToAllConnector(allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+
+    w1 = proj1.get("weight", "list")
+    w2 = proj2.get("weight", "list")
+
+    assert_equal(set(w1), set(w2))
+    assert_equal(set(w1),
+                 set([(0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (1.0, 0.0, 0.015),
+                      (1.0, 2.0, 0.015), (2.0, 0.0, 0.015), (2.0, 1.0, 0.015)]))
+
+    # partially overlapping views
+    print("Now with partial overlap")
+    view3 = sim.PopulationView(pop, [3, 4, 5, 6])
+
+    proj3 = sim.Projection(view1, view3,
+                           sim.AllToAllConnector(allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+
+    w3 = proj3.get("weight", "list")
+    assert_equal(set(w3),
+                 set([
+                     (0.0, 0.0, 0.015), (0.0, 1.0, 0.015), (0.0, 2.0, 0.015), (0.0, 3.0, 0.015),
+                                        (1.0, 1.0, 0.015), (1.0, 2.0, 0.015), (1.0, 3.0, 0.015),
+                     (2.0, 0.0, 0.015),                    (2.0, 2.0, 0.015), (2.0, 3.0, 0.015)
+                 ]))
+
+    view4 = sim.PopulationView(pop, [0, 1])
+    assmbl = view3 + view4
+    proj4 = sim.Projection(view1, assmbl,
+                           sim.FixedProbabilityConnector(p_connect=0.99999, allow_self_connections=False),
+                           sim.StaticSynapse(weight=0.015, delay=1.0), receptor_type='excitatory')
+    w4 = proj4.get("weight", "list")
+    assert_equal(set(w4),
+                 set([
+                     (0, 0, 0.015), (0, 1, 0.015), (0, 2, 0.015), (0, 3, 0.015), (0, 4, 0.015), (0, 5, 0.015),
+                                    (1, 1, 0.015), (1, 2, 0.015), (1, 3, 0.015), (1, 4, 0.015), (1, 5, 0.015),
+                     (2, 0, 0.015),                (2, 2, 0.015), (2, 3, 0.015), (2, 4, 0.015), (2, 5, 0.015),
+                 ]))
 
 
 if __name__ == '__main__':

@@ -11,6 +11,7 @@ from brian import uS, nA, mV, ms
 from pyNN import common
 from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
 from pyNN.core import is_listlike
+from .populations import PopulationView
 from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
@@ -140,7 +141,7 @@ class Projection(common.Projection):
         else:
             partitions = [indices]
         return partitions
-    
+
     def _localize_index(self, index):
         """determine which group the postsynaptic index belongs to """
         if isinstance(self.post, common.Assembly):
@@ -193,7 +194,7 @@ class Projection(common.Projection):
             value = value.T
             filtered_value = value[syn_obj.postsynaptic, syn_obj.presynaptic]
             setattr(syn_obj, name, filtered_value)
-    
+
     def _get_attributes_as_arrays(self, attribute_names, multiple_synapses='sum'):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
@@ -216,8 +217,12 @@ class Projection(common.Projection):
         for name in attribute_names:
             if name == "presynaptic_index":
                 value = self._brian_synapses[0][0].presynaptic
+                if isinstance(self.pre, PopulationView):
+                    value = self.pre.id_to_index(value)
             elif name == "postsynaptic_index":
                 value = self._brian_synapses[0][0].postsynaptic
+                if isinstance(self.post, PopulationView):
+                    value = self.post.id_to_index(value)
             else:
                 data_obj = getattr(self._brian_synapses[0][0], name).data
                 if hasattr(data_obj, "tolist"):

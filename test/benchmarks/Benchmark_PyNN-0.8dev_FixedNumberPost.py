@@ -137,10 +137,10 @@ times['t_connect_noise'] = timer.diff()
 
 # === Setup recording ==========================================================
 print("%s Setting up recording..." % node_id)
-exc_cells.record()
-inh_cells.record()
+exc_cells.record('spikes')
+inh_cells.record('spikes')
 cells_to_record = range(n_cells_to_record)
-exc_cells[cells_to_record].record_v()
+exc_cells[list(cells_to_record)].record_v()
 times['t_record'] = timer.diff()
 
 
@@ -162,13 +162,13 @@ times['t_run'] = timer.diff()
 
 
 # === Print(results to file ====================================================
-exc_spike_fn = "%s/VAbenchmark_%s_exc_%s_np%d_%d.ras" % (folder_name, benchmark, simulator_name, np, node_id)
+exc_spike_fn = "%s/VAbenchmark_%s_exc_%s_np%d_%d.pkl" % (folder_name, benchmark, simulator_name, np, node_id)
 exc_cells.printSpikes(exc_spike_fn, gather=gather)
 print("%d Print(inh spikes to file..." % node_id)
-inh_spike_fn = "%s/VAbenchmark_%s_inh_%s_np%d_%d.ras" % (folder_name, benchmark, simulator_name, np, node_id)
+inh_spike_fn = "%s/VAbenchmark_%s_inh_%s_np%d_%d.pkl" % (folder_name, benchmark, simulator_name, np, node_id)
 inh_cells.printSpikes(inh_spike_fn, gather=gather)
 print("%d Print(voltage to file..." % node_id)
-exc_cells[cells_to_record].print_v("%s/VAbenchmark_%s_exc_%s_np%d_%d.v" % (folder_name, benchmark, simulator_name, np, node_id), gather=gather)
+exc_cells[list(cells_to_record)].print_v("%s/VAbenchmark_%s_exc_%s_np%d_%d.pkl" % (folder_name, benchmark, simulator_name, np, node_id), gather=gather)
 times['t_printSpikes'] = timer.diff()
 
 # === Load spike file and calculate conductances ====================

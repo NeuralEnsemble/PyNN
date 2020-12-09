@@ -18,6 +18,7 @@ There are several ways to contribute to PyNN:
  * fixing bugs and other mistakes;
  * adding or maintaining a simulator backend;
  * major refactoring to improve performance, reduce code complexity, or both.
+ * becoming a maintainer
 
 The following sections contain guidelines for each of these.
 
@@ -26,8 +27,9 @@ The following sections contain guidelines for each of these.
 
    developers/bug_reports
    developers/contributing
-   
-   
+   developers/governance
+
+
 .. developers/adding_backend
 
 .. _`NeuralEnsemble Google Group`: http://groups.google.com/group/neuralensemble

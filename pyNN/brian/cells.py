@@ -1,7 +1,7 @@
 """
 Definition of cell classes for the brian module.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -57,6 +57,8 @@ class BaseNeuronGroup(brian.NeuronGroup):
             max_refractory = parameters["tau_refrac"].max() * ms
         else:
             max_refractory = None
+        if simulator.state.max_delay == "auto":
+            simulator.state.max_delay = 10.0
         brian.NeuronGroup.__init__(self, n,
                                    model=equations,
                                    threshold=threshold,
