@@ -37,7 +37,7 @@ from datetime import datetime
 import functools
 import numpy
 from importlib import import_module
-    
+
 from pyNN.core import deprecated
 
 
@@ -88,12 +88,12 @@ def get_simulator(*arguments):
     """
     Import and return a PyNN simulator backend module based on command-line
     arguments.
-    
+
     The simulator name should be the first positional argument. If your script
     needs additional arguments, you can specify them as (name, help_text) tuples.
     If you need more complex argument handling, you should use argparse
     directly.
-    
+
     Returns (simulator, command-line arguments)
     """
     import argparse
@@ -189,25 +189,33 @@ def load_population(filename, sim):
     return population
 
 
-def normalized_filename(root, basename, extension, simulator, num_processes=None):
+def normalized_filename(root, basename, extension, simulator, num_processes=None, use_iso8601=False):
     """
     Generate a file path containing a timestamp and information about the
     simulator used and the number of MPI processes.
-    
+
     The date is used as a sub-directory name, the date & time are included in the
     filename.
+    If use_iso8601 is True, follow https://en.wikipedia.org/wiki/ISO_8601
     """
     timestamp = datetime.now()
+    if use_iso8601:
+        date = timestamp.strftime("%Y-%m-%d")
+        date_time = timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+    else:
+        date = timestamp.strftime("%Y%m%d")
+        date_time = timestamp.strftime("%Y%m%d-%H%M%S")
+
     if num_processes:
         np = "_np%d" % num_processes
     else:
         np = ""
     return os.path.join(root,
-                        timestamp.strftime("%Y%m%d"),
+                        date,
                         "%s_%s%s_%s.%s" % (basename,
                                            simulator,
                                            np,
-                                           timestamp.strftime("%Y%m%d-%H%M%S"),
+                                           date_time,
                                            extension))
 
 
