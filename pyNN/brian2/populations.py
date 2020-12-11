@@ -9,11 +9,12 @@ from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
 import numpy as np
-from brian2.units import *
-from quantities import *
-from brian2.core.variables import *
+from brian2.units.fundamentalunits import Quantity
+#from brian2.units import *
+#from quantities import *
+from brian2.core.variables import VariableView
 import brian2
-from brian2.groups.neurongroup import *
+#from brian2.groups.neurongroup import *
 ms = brian2.ms
 mV = brian2.mV
 
@@ -31,25 +32,18 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-      
-            #value = simplify(getattr(self.brian2_group, name))
-            value=getattr(self.brian2_group, name)
-            #value=np.asarray(value)
-
-            if isinstance(value,(Quantity, VariableView)) and ( name!='tau_refrac'):
-                if isinstance(value,(Quantity, VariableView)) and ( name!='v_reset'):
-                    value = value[self.mask]
-                    value = simplify(value)
-            parameter_dict[name] = value
-        # return ParameterSpace(parameter_dict, shape=(self.size))
-        return ParameterSpace(parameter_dict, shape=())
+            value = getattr(self.brian2_group, name)
+            if hasattr(value, "shape") and value.shape:
+                value = value[self.mask]
+            parameter_dict[name] = simplify(value)
+        return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
-            if name == "spike_times":
-                self.brian2_group._set_spike_times(value, self.mask)
+            if name == "spike_time_sequences":
+                self.brian2_group._set_spike_time_sequences(value, self.mask)
             else:
                 getattr(self.brian2_group, name)[self.mask] = value
 
@@ -84,8 +78,8 @@ class Population(common.Population):
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
         self.brian2_group = self.celltype.brian2_model(self.size,
-                                                     self.celltype.eqs,
-                                                     **parameter_space)
+                                                       self.celltype.eqs,
+                                                       **parameter_space)
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size
@@ -111,7 +105,9 @@ class Population(common.Population):
         """
         parameter_dict = {}
         for name in names:
-            value = getattr(self.brian2_group, name)[:]
+            value = getattr(self.brian2_group, name)
+            if hasattr(value, "shape") and value.shape != ():
+                value = value[:]
             parameter_dict[name] = value
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
@@ -127,6 +123,6 @@ class Population(common.Population):
             elif (name=="v_reset"):
                 value= value / mV
                 value= simplify(value)
-                self.brian2_group.v_reset=value    
+                self.brian2_group.v_reset=value
             else:
                 setattr(self.brian2_group, name, value)

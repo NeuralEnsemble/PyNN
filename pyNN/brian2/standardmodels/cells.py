@@ -29,7 +29,7 @@ leaky_iaf = brian2.Equations('''
 # give v_thresh a different name
 adexp_iaf = brian2.Equations('''
                 dv/dt = (delta_T*gL*exp((-v_thresh + v)/delta_T) + I + gL*(v_rest - v) - w )/ c_m : volt (unless refractory)
-                dw/dt = (a*(v-v_rest) - w)/tau_w  : amp (unless refractory)
+                dw/dt = (a*(v-v_rest) - w)/tau_w  : amp
                 gL    =  c_m / tau_m    : siemens
                 I = i_syn + i_inj + i_offset : amp
                 a                       : siemens
@@ -59,7 +59,7 @@ adapt_iaf = brian2.Equations('''
                 E_r                     : volt
                 E_s                     : volt
 
-            ''')\
+            ''')
 
 
 conductance_based_exponential_synapses = brian2.Equations('''
@@ -112,7 +112,7 @@ leaky_iaf_translations = build_translations(
                 ('i_offset',   'i_offset',   lambda **p: p["i_offset"] * nA, lambda **p: p["i_offset"] / nA))
 
 adexp_iaf_translations = build_translations(
-                
+
                 ('v_rest',     'v_rest',     lambda **p: p["v_rest"] * mV, lambda **p: p["v_rest"] / mV),
                 ('v_reset',    'v_reset',   lambda **p: p["v_reset"] * mV, lambda **p: p["v_reset"] / mV),
                 ('cm',         'c_m',        lambda **p: p["cm"] * nF, lambda **p: p["c_m"] / nF),
@@ -156,7 +156,7 @@ conductance_based_variable_translations = build_translations(
                 ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
                 ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
 current_based_variable_translations = build_translations(
-               
+
                 ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
                 ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
                 ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
@@ -263,10 +263,10 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
         ('i_offset',   'i_offset',   lambda **p: p["i_offset"] * nA, lambda **p: p["i_offset"] / nA))
     eqs = brian2.Equations('''
-        dv/dt =  (g_leak*(e_rev_leak-v) - gbar_Na*(m*m*m)*h*(v-e_rev_Na) - gbar_K*(n*n*n*n)*(v-e_rev_K) + i_syn + i_offset + i_inj)/c_m : volt(unless refractory)
-        dm/dt  = (alpham*(1-m)-betam*m) : 1 (unless refractory)
-        dn/dt  = (alphan*(1-n)-betan*n) : 1 (unless refractory)
-        dh/dt  = (alphah*(1-h)-betah*h) : 1 (unless refractory)
+        dv/dt =  (g_leak*(e_rev_leak-v) - gbar_Na*(m*m*m)*h*(v-e_rev_Na) - gbar_K*(n*n*n*n)*(v-e_rev_K) + i_syn + i_offset + i_inj)/c_m : volt
+        dm/dt  = (alpham*(1-m)-betam*m) : 1
+        dn/dt  = (alphan*(1-n)-betan*n) : 1
+        dh/dt  = (alphah*(1-h)-betah*h) : 1
         alpham = (0.32/mV)*(13*mV-v+v_offset)/(exp((13*mV-v+v_offset)/(4*mV))-1.)/ms  : Hz
         betam  = (0.28/mV)*(v-v_offset-40*mV)/(exp((v-v_offset-40*mV)/(5*mV))-1)/ms   : Hz
         alphah = 0.128*exp((17*mV-v+v_offset)/(18*mV))/ms                                 : Hz
@@ -283,7 +283,6 @@ class HH_cond_exp(cells.HH_cond_exp):
         c_m                    : farad
         i_offset               : amp
         i_inj                  : amp
-        refractory_period      : second
     ''') + conductance_based_exponential_synapses
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'm','n','h']
     post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
@@ -328,9 +327,9 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
-        ('rate',     'firing_rate',       lambda **p: p["rate"] * Hz, lambda **p: p["firing_rate"] / Hz),
-        ('start',    'start',        lambda **p: p["start"] * ms, lambda **p: p["start"] / ms),
-        ('duration', 'duration',    lambda **p: p["duration"] * ms, lambda **p: p["duration"] / ms),
+        ('rate', 'firing_rate', lambda **p: p["rate"] * Hz, lambda **p: p["firing_rate"] / Hz),
+        ('start', 'start_time', lambda **p: p["start"] * ms, lambda **p: p["start_time"] / ms),
+        ('duration', 'duration', lambda **p: p["duration"] * ms, lambda **p: p["duration"] / ms),
     )
     eqs = None
     brian2_model = PoissonGroup
@@ -340,7 +339,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
-        ('spike_times', 'times', ms),
+        ('spike_times', 'spike_time_sequences', ms),
     )
     eqs = None
     brian2_model = SpikeGeneratorGroup

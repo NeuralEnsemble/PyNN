@@ -25,7 +25,7 @@ import brian2
 import numpy
 from pyNN import common
 from pyNN.parameters import  simplify
-import pdb
+
 
 name = "Brian2"
 logger = logging.getLogger("PyNN")
@@ -48,16 +48,19 @@ class State(common.control.BaseState):
         self.mpi_rank = 0
         self.num_processes = 1
         self._min_delay = 'auto'
-        self.current_sources = []
-        self.network = brian2.Network()
-        self.network.clock = brian2.Clock(0.1 * ms)
+        self.network = None
         self.clear()
 
     def run(self, simtime):
         for recorder in self.recorders:
             recorder._finalize()
+        if not self.running:
+            assert self.network.clock.t == 0 * ms
+            self.network.store("before-first-run")
+            # todo: handle the situation where new Populations or Projections are
+            #       created after the first run and then "reset" is called
         self.running = True
-        self.network.run(simtime * ms) # previously simtime * ms
+        self.network.run(simtime * ms)
 
     def run_until(self, tstop):
         self.run(tstop - self.t)
@@ -68,20 +71,21 @@ class State(common.control.BaseState):
         self.current_sources = []
         self.segment_counter = -1
         if self.network:
-            for item in self.network.objects:
+            for item in self.network.sorted_objects:
                 del item
+            del self.network
+        self.network = brian2.Network()
+        self.network.clock = brian2.Clock(0.1 * ms)
+        self.running = False
         self.reset()
 
     def reset(self):
         """Reset the state of the current network to time t = 0."""
-        # self.network.reinit() # Not required by Brian2
+        if self.running:
+            self.network.restore("before-first-run")
         self.running = False
         self.t_start = 0
         self.segment_counter += 1
-        for obj in self.network.objects:  # Brian2 `objects` instead of `groups`
-            if hasattr(obj, "initialize"):
-                logger.debug("Re-initalizing %s" % obj)
-                obj.initialize()
 
     def _get_dt(self):
         if self.network.clock is None:
@@ -102,10 +106,10 @@ class State(common.control.BaseState):
     def _get_min_delay(self):
         if self._min_delay == 'auto':
             min_delay = numpy.inf
-            for item in self.network.objects:
+            for item in self.network.sorted_objects:
                 if isinstance(item, brian2.Synapses):
-                    matrix=numpy.asarray(item.delay) *10000 
-                    min_delay = min(min_delay, matrix.min()) 
+                    matrix=numpy.asarray(item.delay) *10000
+                    min_delay = min(min_delay, matrix.min())
             if numpy.isinf(min_delay):
                 self._min_delay = self.dt
             else:

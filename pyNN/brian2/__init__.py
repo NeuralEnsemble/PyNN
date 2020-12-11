@@ -10,11 +10,10 @@ import brian2
 from pyNN import common, space
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.connectors import *
-# from pyNN.recording import *			# TODO: Required? n-Brian
 from pyNN.brian2 import simulator
-from pyNN.brian2.standardmodels.cells import *		# TODO: Include? y-Brian
-from pyNN.brian2.standardmodels.synapses import *		# TODO: Include? y-Brian
-from pyNN.brian2.standardmodels.electrodes import *		# TODO: Include? y-Brian
+from pyNN.brian2.standardmodels.cells import *
+from pyNN.brian2.standardmodels.synapses import *
+from pyNN.brian2.standardmodels.electrodes import *
 from pyNN.brian2.populations import Population, PopulationView, Assembly
 from pyNN.brian2.projections import Projection
 from pyNN.recording import get_io
@@ -41,8 +40,12 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.dt = timestep  # move to common.setup?
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = max_delay
-    simulator.state.mpi_rank = extra_params.get('rank', 0)
-    simulator.state.num_processes = extra_params.get('num_processes', 1)
+    simulator.state.mpi_rank = 0
+    simulator.state.num_processes = 1
+
+    simulator.state.network.add(
+        NetworkOperation(update_currents, when="start", clock=simulator.state.network.clock)
+    )
     return rank()
 
 

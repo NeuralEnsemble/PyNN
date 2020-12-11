@@ -28,30 +28,31 @@ class StaticSynapse(synapses.StaticSynapse):
         # we have to define the translations on a per-instance basis because
         # they depend on whether the synapses are current-, conductance- or voltage-based.
         self.translations = build_translations(
-                                ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
-                                ('delay', 'delay', ms))
+                                ('weight', 'weight'),
+                                ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms))
 
     def _get_minimum_delay(self):
         d = state.min_delay
         if d == 'auto':
             d = state.dt
         return d
+
     def _set_target_type(self, weight_units):
-        for key, value in self.translations.items():
-            for direction in ("forward_transform", "reverse_transform"):
-                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
+        self.translations["weight"]["forward_transform"] = lambda **P: P["weight"] * weight_units
+        self.translations["weight"]["reverse_transform"] = lambda **P: P["weight"] / weight_units
 
 
 class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
-                        ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
-                        ('delay', 'delay', ms),
+                        ('weight', 'weight'),
+                        ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
                         ('U', 'U'),
-                        ('tau_rec', 'tau_rec', ms),
-                        ('tau_facil', 'tau_facil', ms),
-                        ('tau_syn' , 'tau_syn',ms))
+                        ('tau_rec', 'tau_rec', lambda **P: P["tau_rec"] * ms, lambda **P: P["tau_rec"] / ms),
+                        ('tau_facil', 'tau_facil', lambda **P: P["tau_facil"] * ms, lambda **P: P["tau_facil"] / ms),
+                        ('tau_syn' , 'tau_syn', lambda **P: P["tau_syn"] * ms, lambda **P: P["tau_syn"] / ms)
+    )
     eqs = '''weight : %(weight_units)s
             U : 1
             tau_syn : second
@@ -61,15 +62,15 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
             dy/dt = -y/tau_syn  : 1 (event-driven)
             du/dt = -u/tau_facil : 1 (event-driven)
             x=1-y-z : 1
-            
+
             '''
     pre = '''
-            
+
             u +=  U*(1-u)
             u = int(u > U)*U + int(u <= U)*u
             %(syn_var)s += weight*x*u
             y += x*u
-            
+
              '''
     post = None
     initial_conditions = {"u": 0.0, "x": 1.0, "y": 0.0, "z": 0.0}
@@ -83,18 +84,16 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         return d
 
     def _set_target_type(self, weight_units):
-        for key, value in self.translations.items():
-            for direction in ("forward_transform", "reverse_transform"):
-                self.translations[key][direction] = value[direction].replace("weight_units",
-                                                                             str(float(weight_units)))
+        self.translations["weight"]["forward_transform"] = lambda **P: P["weight"] * weight_units
+        self.translations["weight"]["reverse_transform"] = lambda **P: P["weight"] / weight_units
 
 
 class STDPMechanism(synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
 
     base_translations = build_translations(
-                            ('weight', 'weight', "weight*weight_units", "weight/weight_units"),
-                            ('delay', 'delay', ms),
+                            ('weight', 'weight'),
+                            ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
                             ('dendritic_delay_fraction', 'dendritic_delay_fraction', 1)
                         )
     eqs = """weight : %(weight_units)s
@@ -138,9 +137,8 @@ class STDPMechanism(synapses.STDPMechanism):
         return d
 
     def _set_target_type(self, weight_units):
-        for key, value in self.translations.items():
-            for direction in ("forward_transform", "reverse_transform"):
-                self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
+        self.translations["weight"]["forward_transform"] = lambda **P: P["weight"] * weight_units
+        self.translations["weight"]["reverse_transform"] = lambda **P: P["weight"] / weight_units
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):

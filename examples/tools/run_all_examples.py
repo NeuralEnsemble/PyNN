@@ -26,7 +26,8 @@ exclude = {
     'NEURON': ["nineml_neuron.py"],
     'NEST': ["nineml_neuron.py", "nineml_brunel.py"],
     'Brian2': ["nineml_neuron.py", "nineml_brunel.py", "multiquantal_synapses.py", "random_numbers.py",
-               "gif_neuron.py", "stochastic_tsodyksmarkram.py"]  #"HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
+               "gif_neuron.py", "stochastic_tsodyksmarkram.py", "stochastic_deterministic_comparison.py",
+               "stochastic_synapses.py", "varying_poisson.py"]
 }
 
 extra_args = {

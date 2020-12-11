@@ -5,6 +5,7 @@
 """
 
 import logging
+from collections import defaultdict
 import numpy
 import quantities as pq
 import brian2
@@ -33,17 +34,15 @@ class Recorder(recording.Recorder):
     def _create_device(self, group, variable):
         """Create a Brian2 recording device."""
         # Brian2 records in the 'start' scheduling slot by default
-        clock = simulator.state.network.clock
         if variable == 'spikes':
-            self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded) #TODO: Brian2 SpikeMonitor check exists
+            self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded)
         else:
             varname = self.population.celltype.state_variable_translations[variable]['translated_name']
             neurons_to_record = numpy.sort(numpy.fromiter(self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
                                                           record=neurons_to_record,
-                                                          clock=clock,
-                                                          when='start')#,
-                                                          #dt=int(round(self.sampling_interval / simulator.state.dt))*brian2.ms)
+                                                          when='end',
+                                                          dt=self.sampling_interval * ms)
         simulator.state.network.add(self._devices[variable])
 
     def _record(self, variable, new_ids, sampling_interval=None):
@@ -58,17 +57,18 @@ class Recorder(recording.Recorder):
 
     def _reset(self):
         """Clear the list of cells to record."""
+        self._devices = {}
         for device in self._devices.values():
-            device.reinit()
-            device.record = False
+            del device
 
     def _clear_simulator(self):
         """Delete all recorded data, but retain the list of cells to record from."""
+        # for variable, device in self._devices.items():
+        #     group = device.source
+        #     self._create_device(group, variable)
+        #     del device
         for device in self._devices.values():
-            try:
-                device.reinit()
-            except NotImplementedError:
-                pass
+            device.resize(0)
 
     def _get_spiketimes(self, id):
         if is_listlike(id):
@@ -85,18 +85,25 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
+
+        # check that the requested ids have indeed been recorded
+        if not set(ids).issubset(self.recorded[variable]):
+            raise Exception("You are requesting data from neurons that have not been recorded")
         device = self._devices[variable]
-        # because we use `when='start'`, need to add the value at the end of the final time step.
-        device.record_single_timestep()
-        #values = numpy.array(device._values)
         varname = self.population.celltype.state_variable_translations[variable]['translated_name']
-        values = getattr(device, varname)[0]  # [0] ####### LOOOOK HERE
+        if len(ids) == len(self.recorded[variable]):
+            values = getattr(device, varname).T
+        else:
+            raise NotImplementedError  # todo - construct a mask to get only the desired signals
         values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](values)
+        # because we use `when='end'`, need to add the value at the beginning of the run
+        tmp = numpy.empty((values.shape[0] + 1, values.shape[1]))
+        tmp[1:, :] = values
+        population_mask = self.population.id_to_index(ids)
+        tmp[0, :] = self.population.initial_values[variable][population_mask]
+        values = tmp
         if clear:
-            try:
-                self._devices[variable].reinit()
-            except NotImplementedError:
-                pass
+            self._devices[variable].resize(0)
         return values
 
     def _local_count(self, variable, filter_ids=None):

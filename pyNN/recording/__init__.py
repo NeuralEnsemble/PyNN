@@ -244,7 +244,7 @@ class Recorder(object):
         else:
             return self.recorded[variable]
 
-    def _get_current_segment(self, filter_ids, variables='all', clear=False): # filter_ids=None
+    def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
                               rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end

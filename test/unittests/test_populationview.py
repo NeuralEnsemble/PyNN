@@ -559,6 +559,25 @@ class PopulationViewTest(unittest.TestCase):
         assert_array_equal(pv1.index_in_grandparent([2, 4, 6]), numpy.array([3, 6, 9]))
         assert_array_equal(pv2.index_in_grandparent([0, 1, 3]), numpy.array([3, 4, 9]))
 
+    def test_index_from_parent_index(self, sim=sim):
+        parent = sim.Population(20, sim.IF_cond_exp())
+
+        # test with slice mask
+        pv1 = parent[2:16:3]
+        assert_array_equal(
+            pv1.index_from_parent_index(numpy.array([2, 5, 8, 11, 14])),
+            numpy.array([0, 1, 2, 3, 4])
+        )
+        self.assertEqual(pv1.index_from_parent_index(11), 3)
+
+        # test with array mask
+        pv2 = parent[numpy.array([1, 2, 3, 5, 8, 13])]
+        assert_array_equal(
+            pv2.index_from_parent_index(numpy.array([2, 5, 13])),
+            numpy.array([1, 3, 5])
+        )
+
+
     def test_save_positions(self, sim=sim):
         import os
         p = sim.Population(7, sim.IF_cond_exp())

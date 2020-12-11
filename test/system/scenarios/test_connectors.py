@@ -201,7 +201,7 @@ def issue309(sim):
     sim.end()
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian', 'brian2'])  # need to implement projection.get() for pre/post assemblies in Brian
 def issue622(sim):
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
