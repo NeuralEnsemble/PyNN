@@ -37,7 +37,7 @@ simtime    = 1000.0      # (ms)
 
 # === Build the network ========================================================
 
-setup(timestep=dt, max_delay=syn_delay)
+setup(timestep=dt, min_delay=syn_delay, max_delay=syn_delay)
 
 cells = Population(n, IF_curr_alpha(**cell_params), initial_values={'v': 0.0}, label="cells")
 
@@ -46,7 +46,7 @@ numpy.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(numpy.add.accumulate(dt + numpy.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:

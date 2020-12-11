@@ -2,7 +2,7 @@
 
 import subprocess, glob, os, sys
 
-default_simulators = ['MOCK', 'NEST', 'NEURON', 'Brian']
+default_simulators = ['MOCK', 'NEST', 'NEURON', 'Brian2']
 simulator_names = sys.argv[1:]
 if len(simulator_names) > 0:
     for name in simulator_names:
@@ -22,10 +22,11 @@ for simulator in simulator_names:
         pass
 
 exclude = {
-    'MOCK': ["nineml_neuron.py"],
+    'MOCK': ["nineml_neuron.py", "nineml_brunel.py"],
     'NEURON': ["nineml_neuron.py"],
-    'NEST': ["nineml_neuron.py"],
-    'Brian': ["nineml_neuron.py", "HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
+    'NEST': ["nineml_neuron.py", "nineml_brunel.py"],
+    'Brian2': ["nineml_neuron.py", "nineml_brunel.py", "multiquantal_synapses.py", "random_numbers.py",
+               "gif_neuron.py", "stochastic_tsodyksmarkram.py"]  #"HH_cond_exp2.py", "HH_cond_exp.py", "simpleRandomNetwork_csa.py", "simpleRandomNetwork.py", "simple_STDP2.py", "simple_STDP.py"],
 }
 
 extra_args = {
@@ -33,6 +34,7 @@ extra_args = {
     "VAbenchmarks2.py": "CUBA",
     "VAbenchmarks2-csa.py": "CUBA",
     "VAbenchmarks3.py": "CUBA",
+    "nineml_brunel.py": "SR"
 }
 
 if not os.path.exists("Results"):
@@ -44,7 +46,7 @@ for simulator in simulator_names:
         for script in glob.glob("../*.py"):
             script_name = os.path.basename(script)
             if script_name not in exclude[simulator]:
-                cmd = "python %s %s" % (script, simulator.lower())
+                cmd = "%s %s %s" % (sys.executable, script, simulator.lower())
                 if script_name in extra_args:
                     cmd += " " + extra_args[script_name]
                 print(cmd, end='')
@@ -58,7 +60,7 @@ for simulator in simulator_names:
 
 print("\n\n\n================== Plotting results =================\n")
 for script in glob.glob("../*.py"):
-    cmd = "python plot_results.py %s" % os.path.basename(script)[:-3]
+    cmd = "%s plot_results.py %s" % (sys.executable, os.path.basename(script)[:-3])
     print(cmd)
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
     p.wait()

@@ -22,6 +22,8 @@ import ninemlcatalog
 cases = ['SR', 'SR2', 'SR3', 'SIfast', 'AI', 'SIslow']
 
 parser = argparse.ArgumentParser()
+parser.add_argument('simulator_name',
+                    help=("The simulator to use"))
 parser.add_argument('case',
                     help=("The simulation case to run, can be one of '{}'"
                           .format("', '".join(cases))))
@@ -36,7 +38,7 @@ sim.setup()
 
 if args.case not in cases:
     raise Exception("Unrecognised case '{}', allowed cases are '{}'"
-                    .format("', '".join(cases)))
+                    .format(args.case, "', '".join(cases)))
 
 document = ninemlcatalog.load('/network/Brunel2000/' + args.case)
 xml_file = document.url

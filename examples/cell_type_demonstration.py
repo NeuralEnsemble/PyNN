@@ -14,9 +14,6 @@ optional arguments:
 """
 
 from pyNN.utility import get_simulator, init_logging, normalized_filename
-from pyNN.utility import get_script_args
-simulator_name = get_script_args(1)[0]
-exec("from pyNN.%s import *" % simulator_name)
 
 # === Configure the simulator ================================================
 

@@ -61,7 +61,7 @@ input_conns = sim.Projection(spike_source, cells, sim.FixedProbabilityConnector(
 
 sim.run(simtime)
 
-filename = normalized_filename("Results", "small_network", "pkl",
+filename = normalized_filename("Results", "nrn_artificial_cell", "pkl",
                                "neuron", sim.num_processes())
 cells.write_data(filename, annotations={'script_name': __file__})
 
