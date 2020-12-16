@@ -93,7 +93,7 @@ setup(
                 'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
                 'pyNN.nest.standardmodels', 'pyNN.neuroml.standardmodels',
                 'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
-                'pyNN.brian2.standardmodels', 'pyNN.utility', 'pyNN.nineml'],
+                'pyNN.brian2.standardmodels', 'pyNN.utility', 'pyNN.nineml',
                 'pyNN.serialization'],
     package_data={'pyNN': ['neuron/nmodl/*.mod',
                            'nest/extensions/*.h',
