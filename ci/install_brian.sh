@@ -8,3 +8,8 @@ if [ "$TRAVIS_PYTHON_VERSION" == "2.7" ]; then
     pip install sympy;
     pip install brian;
 fi
+if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+    echo -e "\n========== Installing Brian 2 ==========\n"
+    pip install cython;
+    pip install brian2;
+fi
