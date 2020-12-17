@@ -8,7 +8,15 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
-
+import numpy as np
+from brian2.units.fundamentalunits import Quantity
+#from brian2.units import *
+#from quantities import *
+from brian2.core.variables import VariableView
+import brian2
+#from brian2.groups.neurongroup import *
+ms = brian2.ms
+mV = brian2.mV
 
 class Assembly(common.Assembly):
     _simulator = simulator
@@ -24,20 +32,20 @@ class PopulationView(common.PopulationView):
         """
         parameter_dict = {}
         for name in names:
-            value = simplify(getattr(self.brian_group, name))
-            if isinstance(value, numpy.ndarray):
+            value = getattr(self.brian2_group, name)
+            if hasattr(value, "shape") and value.shape:
                 value = value[self.mask]
-            parameter_dict[name] = value
+            parameter_dict[name] = simplify(value)
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
-            if name == "spike_times":
-                self.brian_group._set_spike_times(value, self.mask)
+            if name == "spike_time_sequences":
+                self.brian2_group._set_spike_time_sequences(value, self.mask)
             else:
-                getattr(self.brian_group, name)[self.mask] = value
+                getattr(self.brian2_group, name)[self.mask] = value
 
     def _set_initial_value_array(self, variable, initial_values):
         raise NotImplementedError
@@ -46,8 +54,8 @@ class PopulationView(common.PopulationView):
         return PopulationView(self, selector, label)
 
     @property
-    def brian_group(self):
-        return self.parent.brian_group
+    def brian2_group(self):
+        return self.parent.brian2_group
 
 
 class Population(common.Population):
@@ -69,22 +77,24 @@ class Population(common.Population):
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
-
-        self.brian_group = self.celltype.brian_model(self.size,
-                                                     self.celltype.eqs,
-                                                     **parameter_space)
+        self.brian2_group = self.celltype.brian2_model(self.size,
+                                                       self.celltype.eqs,
+                                                       **parameter_space)
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size
-        simulator.state.network.add(self.brian_group)
+        simulator.state.network.add(self.brian2_group)
 
     def _set_initial_value_array(self, variable, value):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
-        pval = eval(D['forward_transform'], globals(), {variable: value})
+        if callable(D['forward_transform']):
+            pval = D['forward_transform'](value) ### (value)
+        else:
+            pval = eval(D['forward_transform'], globals(), {variable: value})
         pval = pval.evaluate(simplify=False)
-        self.brian_group.initial_values[pname] = pval
-        self.brian_group.initialize()
+        self.brian2_group.initial_values[pname] = pval
+        self.brian2_group.initialize()
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -95,7 +105,9 @@ class Population(common.Population):
         """
         parameter_dict = {}
         for name in names:
-            value = simplify(getattr(self.brian_group, name))
+            value = getattr(self.brian2_group, name)
+            if hasattr(value, "shape") and value.shape != ():
+                value = value[:]
             parameter_dict[name] = value
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
@@ -103,4 +115,14 @@ class Population(common.Population):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
-            setattr(self.brian_group, name, value)
+            if (name=="tau_refrac"):
+                value= value / ms
+                value= simplify(value)
+                #brian2.NeuronGroup.__setattr__(self.brian2_group, "_refractory", value)
+                self.brian2_group.tau_refrac=value
+            elif (name=="v_reset"):
+                value= value / mV
+                value= simplify(value)
+                self.brian2_group.v_reset=value
+            else:
+                setattr(self.brian2_group, name, value)

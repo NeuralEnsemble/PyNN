@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 Implementation of the "low-level" functionality used by the common
-implementation of the API, for the Brian simulator.
+implementation of the API, for the Brian2 simulator.
 
 Classes and attributes usable by the common implementation:
 
@@ -15,20 +15,22 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import logging
-import brian
+import brian2
 import numpy
 from pyNN import common
+from pyNN.parameters import  simplify
 
-name = "Brian"
+
+name = "Brian2"
 logger = logging.getLogger("PyNN")
 
-ms = brian.ms
+ms = brian2.ms
 
 
 class ID(int, common.IDMixin):
@@ -45,12 +47,18 @@ class State(common.control.BaseState):
         common.control.BaseState.__init__(self)
         self.mpi_rank = 0
         self.num_processes = 1
-        self.network = None
         self._min_delay = 'auto'
-        self.current_sources = []
+        self.network = None
         self.clear()
 
     def run(self, simtime):
+        for recorder in self.recorders:
+            recorder._finalize()
+        if not self.running:
+            assert self.network.clock.t == 0 * ms
+            self.network.store("before-first-run")
+            # todo: handle the situation where new Populations or Projections are
+            #       created after the first run and then "reset" is called
         self.running = True
         self.network.run(simtime * ms)
 
@@ -63,22 +71,21 @@ class State(common.control.BaseState):
         self.current_sources = []
         self.segment_counter = -1
         if self.network:
-            for item in self.network.groups + self.network._all_operations:
+            for item in self.network.sorted_objects:
                 del item
-        self.network = brian.Network()
-        self.network.clock = brian.Clock()
+            del self.network
+        self.network = brian2.Network()
+        self.network.clock = brian2.Clock(0.1 * ms)
+        self.running = False
         self.reset()
 
     def reset(self):
         """Reset the state of the current network to time t = 0."""
-        self.network.reinit()
+        if self.running:
+            self.network.restore("before-first-run")
         self.running = False
         self.t_start = 0
         self.segment_counter += 1
-        for group in self.network.groups:
-            if hasattr(group, "initialize"):
-                logger.debug("Re-initalizing %s" % group)
-                group.initialize()
 
     def _get_dt(self):
         if self.network.clock is None:
@@ -88,7 +95,7 @@ class State(common.control.BaseState):
     def _set_dt(self, timestep):
         logger.debug("Setting timestep to %s", timestep)
         #if self.network.clock is None or timestep != self._get_dt():
-        #    self.network.clock = brian.Clock(dt=timestep*ms)
+        #    self.network.clock = brian2.Clock(dt=timestep*ms)
         self.network.clock.dt = timestep * ms
     dt = property(fget=_get_dt, fset=_set_dt)
 
@@ -99,9 +106,10 @@ class State(common.control.BaseState):
     def _get_min_delay(self):
         if self._min_delay == 'auto':
             min_delay = numpy.inf
-            for item in self.network.groups:
-                if isinstance(item, brian.Synapses):
-                    min_delay = min(min_delay, item.delay.to_matrix().min())
+            for item in self.network.sorted_objects:
+                if isinstance(item, brian2.Synapses):
+                    matrix=numpy.asarray(item.delay) *10000
+                    min_delay = min(min_delay, matrix.min())
             if numpy.isinf(min_delay):
                 self._min_delay = self.dt
             else:
@@ -111,6 +119,5 @@ class State(common.control.BaseState):
     def _set_min_delay(self, delay):
         self._min_delay = delay
     min_delay = property(fget=_get_min_delay, fset=_set_min_delay)
-
 
 state = State()

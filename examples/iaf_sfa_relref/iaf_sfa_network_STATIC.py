@@ -1,7 +1,7 @@
 """
 A PyNN version of the network architecture described in:
 Muller, E., Meier, K., & Schemmel, J. (2004). Methods for simulating
-high-conductance states in neural microcircuits. Proc. of BICS2004. 
+high-conductance states in neural microcircuits. Proc. of BICS2004.
 
 http://neuralensemble.org/people/eilifmuller/Publications/bics2004_mueller.pdf
 
@@ -9,9 +9,6 @@ Script written by Lucas Sinclair & Eilif Muller.
 LCN, EPFL - October 2009
 """
 
-## Debugger ##
-#import pdb
-# pdb.set_trace()
 
 ## Import modules ##
 import numpy, pylab, math, time, os, re
@@ -36,20 +33,20 @@ class LatticeConnector(connectors.Connector):
     For every connection that is made the delay is set proportional to
     the distance that separates the two neurons plus some random noise
     coming from a gamma distribution.
-    
+
     N cannot be drawn from a random distribution.
-    
+
     Self connections are always enabled.
     """
-    
+
     def __init__(self, weights=0.0, dist_factor=1.0, noise_factor=0.01, n=1.0):
         """
         Create a new connector.
-        
+
         `weights`      -- The weights of all the connections made.
         `dist_factor`  -- A factor to control the delay (conversion of
                           distance to milliseconds of delay).
-        `noise_factor` -- A factor to control the noise (scale of gamma 
+        `noise_factor` -- A factor to control the noise (scale of gamma
                           distribution).
         `n`            -- Number of connections to make for each neuron.
         """
@@ -57,7 +54,7 @@ class LatticeConnector(connectors.Connector):
         self.dist_factor = dist_factor
         self.noise_factor = noise_factor
         self.n = n
-        
+
     def connect(self, projection):
         """Connect-up a Projection."""
         # Timers
@@ -67,12 +64,12 @@ class LatticeConnector(connectors.Connector):
         timer2 = 0.0
         timer3 = 0.0
         timer4 = 0.0
-        
+
         # Recuperate variables #
         n = self.n
         dist_factor = self.dist_factor
         noise_factor = self.noise_factor
-        
+
         # Do some checking #
         assert dist_factor >= 0
         assert noise_factor >= 0
@@ -80,18 +77,18 @@ class LatticeConnector(connectors.Connector):
             assert n >= 0
         else:
             raise Exception("n must be an integer.")
-        
+
         # Get posts and pres #
         listPostIDs = projection.post.local_cells
         listPreIDs = projection.pre.all_cells
         countPost = len(listPostIDs)
-        countPre = len(listPreIDs)        
+        countPre = len(listPreIDs)
         listPreIndexes = numpy.arange(countPre)
         listPostIndexes = map(projection.post.id_to_index, listPostIDs)
 
         # Prepare all distances #
-        allDistances = self.space.distances(projection.post.positions, projection.pre.positions)            
-        
+        allDistances = self.space.distances(projection.post.positions, projection.pre.positions)
+
         # Get weights #
         weights = numpy.empty(n)
         weights[:] = self.weights
@@ -99,12 +96,12 @@ class LatticeConnector(connectors.Connector):
         weights = common.check_weight(weights, projection.synapse_type, is_conductance)
 
         numpy.random.seed(12345)
-        
+
         for i in xrange(len(listPostIDs)):
             currentPostIndex = listPostIndexes[i]
             currentPostID = listPostIDs[i]
             #currentPostIDAsList = [currentPostID]
-            
+
             # Pick n neurons at random in pre population
             myTimer = time.time()
             chosenPresIndexes = list(numpy.random.permutation(numpy.arange(countPre))[0:n])
@@ -113,22 +110,22 @@ class LatticeConnector(connectors.Connector):
             #    print(chosenPresIDs)
             #chosenPresIDs = chosenPresIDs.tolist()
             timer0 += time.time() - myTimer
-            
+
             # Get distances
             myTimer = time.time()
             #distances = allDistances[currentPostIndex,chosenPresIndexes]
             distances = allDistances[currentPostIndex, chosenPresIndexes]
             timer1 += time.time() - myTimer
-                        
+
             # Generate gamme noise
             noise = numpy.random.gamma(1.0, noise_factor, n)
-                
+
             # Create delays with distance and noise
             myTimer = time.time()
             delays = dist_factor * distances * (1.0 + noise)
             timer2 += time.time() - myTimer
             #delays[:] = 1.0
-                        
+
             # Check for small and big delays
             myTimer = time.time()
             delaysClipped = numpy.clip(delays, sim.get_min_delay(), sim.get_max_delay())
@@ -137,12 +134,12 @@ class LatticeConnector(connectors.Connector):
                 print("Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n))
             delaysClipped = delaysClipped.tolist()
             timer3 += time.time() - myTimer
-                
+
             # Connect everything up
             yTimer = time.time()
             projection._convergent_connect(chosenPresIDs, currentPostID, weights, delaysClipped)
             timer4 += time.time() - myTimer
-            
+
         # Print timings
         if rank == 0:
             print("\033[2;46m" + ("Timer 0: %5.4f seconds" % timer0).ljust(60) + "\033[m")
@@ -390,7 +387,7 @@ if rank == 0:
     highestIndexE = numpy.max(spikesE[:, 0])
     listNeuronsE = list(spikesE[:, 0])
     listTimesE = list(spikesE[:, 1])
-    listNeuronsI = list(spikesI[:, 0] + highestIndexE) 
+    listNeuronsI = list(spikesI[:, 0] + highestIndexE)
     listTimesI = list(spikesI[:, 1])
 
 ## Kill the bad dir ##
@@ -402,20 +399,20 @@ if rank == 0:
 #m = re.search('\nf(\w+)\n', theText)
 #theFD = m.group(1)
 #os.close(int(theFD))
-    
+
 ## Close the simulation ##
 sim.end()
 
 
 ###################### PLOTTING ###########################
 if rank == 0:
-    
+
 ## Graph Burst ##
     pylab.figure()
     allSpikes = listTimesE + listTimesI
     allNeurons = listNeuronsE + listNeuronsI
     pylab.plot(allSpikes, allNeurons, 'r.', markersize=1, label='Action potentials')
-    
+
     pylab.xlabel("Time [milliseconds]")
     pylab.ylabel("Neuron (first E, then I)")
     pylab.title(("$C_{E\\rightarrow E}=%.2f$, $C_{E\\rightarrow I}=%.2f$," +
@@ -423,7 +420,7 @@ if rank == 0:
                 (ICFactorE_E, ICFactorE_I, ICFactorI_E, ICFactorI_I))
     pylab.suptitle("Layer 4 model with Connection Factors:")
     #pylab.legend()
-    
+
     axisHeight = pylab.axis()[3]
     pylab.vlines(tinit, 0.0, axisHeight / 8, linewidth="4", color='k', linestyles='solid')
 

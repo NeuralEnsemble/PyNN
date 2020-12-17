@@ -24,6 +24,7 @@ from pyNN.models import BaseCellType
 from pyNN.parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
 from pyNN.recording import files
 
+
 deprecated = core.deprecated
 logger = logging.getLogger("PyNN")
 
@@ -299,7 +300,7 @@ class BasePopulation(object):
                 values = parameters[name]
                 if isinstance(values, numpy.ndarray):
                     all_values = {self._simulator.state.mpi_rank: values.tolist()}
-                    local_indices = numpy.arange(self.size)[self._mask_local].tolist()
+                    local_indices = numpy.arange(self.size,)[self._mask_local].tolist()
                     all_indices = {self._simulator.state.mpi_rank: local_indices}
                     all_values = recording.gather_dict(all_values)
                     all_indices = recording.gather_dict(all_indices)
@@ -830,7 +831,7 @@ class PopulationView(BasePopulation):
                     raise Exception("Boolean masks should have the size of Parent Population")
                 self.mask = numpy.arange(len(self.parent))[self.mask]
             if len(numpy.unique(self.mask)) != len(self.mask):
-                logging.warning("PopulationView can contain only once each ID, duplicated IDs are remove")
+                logging.warning("PopulationView can contain only once each ID, duplicated IDs are removed")
                 self.mask = numpy.unique(self.mask)
         self.all_cells = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
         idx = numpy.argsort(self.all_cells)
@@ -922,6 +923,31 @@ class PopulationView(BasePopulation):
             return self.parent.index_in_grandparent(indices_in_parent)
         else:
             return indices_in_parent
+
+    def index_from_parent_index(self, indices):
+        """
+        Given an index(indices) in the parent population, return
+        the index(indices) within this view.
+        """
+        # todo: add check that all indices correspond to cells that are in this view
+        if isinstance(self.mask, slice):
+            start = self.mask.start or 0
+            step = self.mask.step or 1
+            return (indices - start) / step
+        else:
+            if isinstance(indices, int):
+                return np.nonzero(self.mask == indices)[0][0]
+            elif isinstance(indices, numpy.ndarray):
+                # Lots of ways to do this. Some profiling is in order.
+                # - https://stackoverflow.com/questions/16992713/translate-every-element-in-numpy-array-according-to-key
+                # - https://stackoverflow.com/questions/3403973/fast-replacement-of-values-in-a-numpy-array
+                # - https://stackoverflow.com/questions/13572448/replace-values-of-a-numpy-index-array-with-values-of-a-list
+                parent_indices = self.mask  # assert mask is sorted
+                view_indices = numpy.arange(self.size)
+                index = numpy.digitize(indices, parent_indices, right=True)
+                return view_indices[index]
+            else:
+                raise ValueError("indices must be an integer or an array of integers")
 
     def __eq__(self, other):
         """

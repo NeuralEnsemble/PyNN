@@ -123,7 +123,7 @@ class AdaptiveReset(object):
 
 
 class AdaptiveNeuronGroup(BaseNeuronGroup):
-    
+
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         period = simplify(parameters['tau_refrac'])
@@ -201,7 +201,7 @@ class IzhikevichReset(object):
 
 
 class IzhikevichNeuronGroup(BaseNeuronGroup):
-    
+
     def __init__(self, n, equations, **parameters):
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.SimpleCustomRefractoriness(
@@ -221,10 +221,10 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
 
     def check_threshold(self, v):
         return v >= 30 * mV
-    
+
 
 class PoissonGroup(brian.PoissonGroup):
-    
+
     def __init__(self, n, equations, **parameters):
         for name, value in parameters.items():
             setattr(self, name, value)
@@ -249,7 +249,7 @@ class PoissonGroup(brian.PoissonGroup):
 
 
 class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
-    
+
     def __init__(self, n, equations, spike_times=None):
         """
         Note that `equations` is not used: it is simply for compatibility with

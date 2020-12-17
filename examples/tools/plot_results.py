@@ -25,7 +25,7 @@ example = sys.argv[1]
 
 blocks = {}
 for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
-    pattern = "Results/%s_*%s.*" % (example, simulator.lower())
+    pattern = "Results/%s_*%s*.*" % (example, simulator.lower())
     datafiles = glob.glob(pattern)
     if datafiles:
         for datafile in datafiles:
@@ -56,19 +56,21 @@ if len(blocks) > 0:
         plt.ylabel("Vm (mV)")
 
         plt.savefig("Results/%s.png" % name)
+        print("Results/%s.png" % name)
 
-        if blocks[name].values()[0].segments[0].filter(name="gsyn_exc"):
+        if list(blocks[name].values())[0].segments[0].filter(name="gsyn_exc"):
             plt.figure()
             lw = 2 * len(blocks[name]) - 1
             for simulator, block in blocks[name].items():
                 g_exc = block.segments[0].filter(name="gsyn_exc")[0]
-                g_inh = block.segments[0].filter(name="gsyn_inh")[0]            
+                g_inh = block.segments[0].filter(name="gsyn_inh")[0]
                 plt.plot(g_exc.times, g_exc[:, 0], label=simulator + "(exc)", linewidth=lw)
-                plt.plot(g_inh.times, g_inh[:, 0], label=simulator + "(inh)", linewidth=lw)            
+                plt.plot(g_inh.times, g_inh[:, 0], label=simulator + "(inh)", linewidth=lw)
                 lw -= 2
             plt.legend()
             plt.title(name)
             plt.xlabel("Time (ms)")
             plt.ylabel("Synaptic conductance (nS)")
-    
+
             plt.savefig("Results/%s_gsyn.png" % name)
+            print("Results/%s_gsyn.png" % name)

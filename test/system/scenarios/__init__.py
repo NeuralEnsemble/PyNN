@@ -1,8 +1,6 @@
 # encoding: utf-8
 from testconfig import config
 
-#import pdb
-#pdb.set_trace()
 
 if 'testFile' in config:
     file_name = config['testFile']

@@ -99,7 +99,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 test_record_vm_and_gsyn_from_assembly.__test__ = False
 
 
-@register(exclude='brian')  # brian does not support off_grid. To fix?
+@register(exclude=["brian", "brian2"])  # brian does not support off_grid. To fix?
 def issue259(sim):
     """
     A test that retrieving data with "clear=True" gives correct spike trains.
@@ -166,7 +166,7 @@ def test_mix_procedural_and_oo(sim):
 test_mix_procedural_and_oo.__test__ = False
 
 
-@register(exclude=['brian'])  # todo: known to fail with Brian, but should work
+@register(exclude=['brian', 'brian2'])  # todo: known to fail with Brian, but should work
 def test_record_with_filename(sim):
     """
     Test to ensure that Simulator and Population recording work properly

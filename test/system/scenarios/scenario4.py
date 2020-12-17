@@ -10,7 +10,7 @@ from .registry import register
 logger = logging.getLogger("TEST")
 
 
-@register(exclude=["nemo"])
+@register(exclude=["nemo", "brian2"])  # to fix for Brian 2
 def scenario4(sim):
     """
     Network with spatial structure

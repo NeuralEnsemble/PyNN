@@ -16,7 +16,10 @@ def is_listlike(obj):
 
     Maybe need to split into different functions, as don't always need length.
     """
-    return isinstance(obj, (list, numpy.ndarray, tuple, set))
+    return (
+        isinstance(obj, (list, tuple, set))
+        or (isinstance(obj, numpy.ndarray) and obj.ndim > 0)
+    )
 
 
 def iteritems(obj):

@@ -12,6 +12,7 @@ from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
 
+
 mV = brian.mV
 ms = brian.ms
 uS = brian.uS
@@ -102,6 +103,7 @@ class Recorder(recording.Recorder):
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding = self.population.first_id
         indices = numpy.fromiter(filtered_ids, dtype=int) - padding
+
         for i, id in zip(indices, filtered_ids):
             N[id] = len(self._devices['spikes'].spiketimes[i])
         return N

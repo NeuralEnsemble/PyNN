@@ -25,10 +25,10 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
-    expected_spike_times = numpy.array([10.02, 25.52, 43.18, 63.42, 86.67, 113.13, 142.69, 174.79])
+    expected_spike_times = numpy.array([10.015, 25.515, 43.168, 63.41, 86.649, 113.112, 142.663, 174.76])
     if plot_figure:
         import matplotlib.pyplot as plt
-        vm = data.analogsignals[0]
+        vm = data.filter(name="v")[0]
         plt.plot(vm.times, vm)
         plt.plot(expected_spike_times, -40 * numpy.ones_like(expected_spike_times), "ro")
         plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
@@ -62,13 +62,17 @@ def test_HH_cond_exp(sim, plot_figure=False):
     hhcell.record('v')
     sim.run(20.0)
     v = hhcell.get_data().segments[0].filter(name='v')[0]
+    if plot_figure:
+        import matplotlib.pyplot as plt
+        plt.plot(v.times, v)
+        plt.savefig("test_HH_cond_exp_%s.png" % sim.__name__)
     sim.end()
     first_spike = v.times[numpy.where(v > 0)[0][0]]
     assert first_spike / pq.ms - 2.95 < 0.01
 test_HH_cond_exp.__test__ = False
 
 
-@register(exclude=['nemo', 'brian'])
+@register(exclude=['nemo', 'brian', 'brian2'])  # see issue 370
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -150,7 +154,7 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
 test_SpikeSourcePoisson.__test__ = False
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian','brian2'])
 def test_SpikeSourceGamma(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
@@ -206,7 +210,7 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
 test_SpikeSourceGamma.__test__ = False
 
 
-@register(exclude=['brian'])
+@register(exclude=['brian','brian2'])
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
