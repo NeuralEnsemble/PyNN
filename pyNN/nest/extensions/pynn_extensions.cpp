@@ -24,6 +24,8 @@
 #include "kernel_manager.h"
 #include "model.h"
 #include "model_manager_impl.h"
+#include "nest.h"
+#include "nest_impl.h"
 #include "nestmodule.h"
 #include "target_identifier.h"
 
@@ -110,11 +112,7 @@ pynn::PyNNExtensions::init( SLIInterpreter* i )
      even further, but limits the number of available rports. Please see
      Kunkel et al, Front Neurofinfom 8:78 (2014), Sec 3.3.2, for details.
   */
-  nest::kernel()
-    .model_manager.register_connection_model< SimpleStochasticConnection< nest::
-        TargetIdentifierPtrRport > >( "simple_stochastic_synapse" );
-  nest::kernel()
-    .model_manager.register_connection_model< StochasticStpConnection< nest::
-        TargetIdentifierPtrRport > >( "stochastic_stp_synapse" );
+  nest::register_connection_model< SimpleStochasticConnection >( "simple_stochastic_synapse" );
+  nest::register_connection_model< StochasticStpConnection >( "stochastic_stp_synapse" );
 
 } // PyNNExtensions::init()
