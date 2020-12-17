@@ -281,6 +281,13 @@ class HH_cond_exp(cells.HH_cond_exp):
     ''') + conductance_based_exponential_synapses
     post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
     state_variable_translations = conductance_based_variable_translations
+    state_variable_translations.update(
+        build_translations(
+                ('m', 'm'),
+                ('h', 'h'),
+                ('n', 'n')
+        )
+    )
     brian_model = BiophysicalNeuronGroup
 
 
@@ -309,7 +316,7 @@ class Izhikevich(cells.Izhikevich):
                 ('v', 'v', mV),
                 ('u', 'u', mV / ms))
     brian_model = IzhikevichNeuronGroup
-    
+
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
@@ -321,7 +328,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     )
     eqs = None
     brian_model = PoissonGroup
-    
+
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__

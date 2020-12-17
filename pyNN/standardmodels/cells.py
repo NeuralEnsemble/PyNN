@@ -333,9 +333,9 @@ class HH_cond_exp(StandardCellType):
         'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
-        'h':            1.0,  
-        'm':            0.0,   
-        'n':            0.0,
+        'h': 1.0,
+        'm': 0.0,
+        'n': 0.0,
     }
     units = {
         'v': 'mV',
@@ -355,8 +355,8 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_I': 'ms',
         'i_offset': 'nA',
         'h': '',
-        'm':'',
-        'n':'',         
+        'm': '',
+        'n': '',
     }
 
 

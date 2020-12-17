@@ -10,7 +10,6 @@ import logging
 from brian2 import ms
 from pyNN.standardmodels import synapses, build_translations
 from ..simulator import state
-import pdb
 
 
 logger = logging.getLogger("PyNN")
