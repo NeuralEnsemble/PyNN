@@ -1,6 +1,6 @@
 The following people have contributed to PyNN. Their affiliations at the time of the contributions are shown below.
 
-* Andrew Davison [1]
+* Andrew Davison [1, 20]
 * Pierre Yger [1, 9]
 * Eilif Muller [7, 13]
 * Jens Kremkow [5,6]
@@ -22,11 +22,13 @@ The following people have contributed to PyNN. Their affiliations at the time of
 * Jannis Schücker [16]
 * Maximilian Schmidt [16]
 * Christian Roessert [13]
-* Shailesh Appukuttan [1]
+* Shailesh Appukuttan [1, 20]
 * Elodie Legouée [1]
 * Joffrey Gonin [1]
 * Ankur Sinha [18]
 * Håkon Mørk [19]
+* Andrei Moise [20]
+* Onur Ates [20]
 
 
 1.  Unité de Neuroscience, Information et Complexité, CNRS, Gif sur Yvette, France
@@ -48,3 +50,4 @@ The following people have contributed to PyNN. Their affiliations at the time of
 17. Okinawa Institute of Science and Technology (OIST), Onna-son, Okinawa, Japan
 18. Biocomputation group, University of Hertfordshire, Hatfield, United Kingdom.
 19. Norwegian University of Life Sciences, Ås, Norway
+20. Paris-Saclay Institute of Neuroscience, CNRS/Université Paris-Saclay, Gif sur Yvette, France
