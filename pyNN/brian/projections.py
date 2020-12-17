@@ -16,7 +16,6 @@ from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
-import pdb
 
 
 class Connection(common.Connection):

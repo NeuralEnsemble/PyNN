@@ -40,7 +40,7 @@ class ID(int, common.IDMixin):
 
 
 class State(common.control.BaseState):
-    
+
     def __init__(self):
         common.control.BaseState.__init__(self)
         self.mpi_rank = 0
@@ -49,14 +49,14 @@ class State(common.control.BaseState):
         self._min_delay = 'auto'
         self.current_sources = []
         self.clear()
-    
+
     def run(self, simtime):
         self.running = True
         self.network.run(simtime * ms)
-        
+
     def run_until(self, tstop):
         self.run(tstop - self.t)
-        
+
     def clear(self):
         self.recorders = set([])
         self.id_counter = 0
@@ -68,7 +68,7 @@ class State(common.control.BaseState):
         self.network = brian.Network()
         self.network.clock = brian.Clock()
         self.reset()
-        
+
     def reset(self):
         """Reset the state of the current network to time t = 0."""
         self.network.reinit()
@@ -79,7 +79,7 @@ class State(common.control.BaseState):
             if hasattr(group, "initialize"):
                 logger.debug("Re-initalizing %s" % group)
                 group.initialize()
-        
+
     def _get_dt(self):
         if self.network.clock is None:
             raise Exception("Simulation timestep not yet set. Need to call setup()")
@@ -99,8 +99,6 @@ class State(common.control.BaseState):
     def _get_min_delay(self):
         if self._min_delay == 'auto':
             min_delay = numpy.inf
-            import pdb
-            pdb.set_trace()
             for item in self.network.groups:
                 if isinstance(item, brian.Synapses):
                     min_delay = min(min_delay, item.delay.to_matrix().min())

@@ -12,7 +12,6 @@ import brian
 from pyNN.parameters import Sequence, simplify
 from pyNN import errors
 from . import simulator
-import pdb
 
 mV = brian.mV
 ms = brian.ms
@@ -115,7 +114,6 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
 class AdaptiveReset(object):
 
     def __init__(self, Vr=-70.6 * mV, b=0.0805 * nA):
-        pdb.set_trace()
         self.Vr = Vr
         self.b = b
 
@@ -125,11 +123,10 @@ class AdaptiveReset(object):
 
 
 class AdaptiveNeuronGroup(BaseNeuronGroup):
-    
+
     def __init__(self, n, equations, **parameters):
-        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
-        period = simplify(parameters['tau_refrac']) 
+        period = simplify(parameters['tau_refrac'])
         assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
         reset = brian.SimpleCustomRefractoriness(
                     AdaptiveReset(parameters.pop('v_reset'),
@@ -167,7 +164,6 @@ class AdaptiveReset2(object):
 class AdaptiveNeuronGroup2(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         period = simplify(parameters['tau_refrac'])
         assert not hasattr(period, "__len__"), "Brian does not support heterogenerous refractory periods with CustomRefractoriness"
@@ -205,9 +201,8 @@ class IzhikevichReset(object):
 
 
 class IzhikevichNeuronGroup(BaseNeuronGroup):
-    
+
     def __init__(self, n, equations, **parameters):
-        pdb.set_trace()
         threshold = brian.SimpleFunThreshold(self.check_threshold)
         reset = brian.SimpleCustomRefractoriness(
                     IzhikevichReset(parameters['v_reset'],
@@ -226,10 +221,10 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
 
     def check_threshold(self, v):
         return v >= 30 * mV
-    
+
 
 class PoissonGroup(brian.PoissonGroup):
-    
+
     def __init__(self, n, equations, **parameters):
         for name, value in parameters.items():
             setattr(self, name, value)
@@ -254,7 +249,7 @@ class PoissonGroup(brian.PoissonGroup):
 
 
 class SpikeGeneratorGroup(brian.SpikeGeneratorGroup):
-    
+
     def __init__(self, n, equations, spike_times=None):
         """
         Note that `equations` is not used: it is simply for compatibility with

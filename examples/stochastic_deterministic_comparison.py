@@ -80,7 +80,6 @@ if options.plot_figure:
             gsyn_mean.channel_index = neo.ChannelIndex(np.array([0]))
             gsyn_mean.name = 'gsyn_inh_mean'
             data[label].analogsignals.append(gsyn_mean)
-    #import pdb; pdb.set_trace()
 
     def make_panel(population, label):
         return Panel(population.get_data().segments[0].filter(name='gsyn_inh')[0],

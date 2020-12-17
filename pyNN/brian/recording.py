@@ -11,7 +11,6 @@ import brian
 from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
-import pdb
 
 
 mV = brian.mV
@@ -104,8 +103,7 @@ class Recorder(recording.Recorder):
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding = self.population.first_id
         indices = numpy.fromiter(filtered_ids, dtype=int) - padding
-        
+
         for i, id in zip(indices, filtered_ids):
             N[id] = len(self._devices['spikes'].spiketimes[i])
-        pdb.set_trace()
         return N

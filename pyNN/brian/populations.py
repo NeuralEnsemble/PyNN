@@ -8,7 +8,6 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
-import pdb
 
 
 class Assembly(common.Assembly):
@@ -36,7 +35,7 @@ class PopulationView(common.PopulationView):
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
             if name == "spike_times":
-                self.brian_group._set_spike_times(value, self.mask)    
+                self.brian_group._set_spike_times(value, self.mask)
             else:
                 getattr(self.brian_group, name)[self.mask] = value
 
@@ -45,7 +44,7 @@ class PopulationView(common.PopulationView):
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
-    
+
     @property
     def brian_group(self):
         return self.parent.brian_group
@@ -63,14 +62,14 @@ class Population(common.Population):
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
         self._mask_local = numpy.ones((self.size,), bool)  # all cells are local. This doesn't seem very efficient.
-        
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
-        
+
         self.brian_group = self.celltype.brian_model(self.size,
                                                      self.celltype.eqs,
                                                      **parameter_space)
@@ -78,7 +77,7 @@ class Population(common.Population):
             id.parent = self
         simulator.state.id_counter += self.size
         simulator.state.network.add(self.brian_group)
-    
+
     def _set_initial_value_array(self, variable, value):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
@@ -97,7 +96,7 @@ class Population(common.Population):
         parameter_dict = {}
         for name in names:
             value = simplify(getattr(self.brian_group, name))
-            parameter_dict[name] = value     
+            parameter_dict[name] = value
         return ParameterSpace(parameter_dict, shape=(self.size,))
 
     def _set_parameters(self, parameter_space):
