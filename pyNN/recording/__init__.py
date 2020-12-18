@@ -221,9 +221,7 @@ class Recorder(object):
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
-        if sampling_interval is not None:
-            if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
-                raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
+        self._check_sampling_interval(sampling_interval)
 
         ids = set([id for id in ids if id.local])
         for variable in normalize_variables_arg(variables):
@@ -232,6 +230,18 @@ class Recorder(object):
             new_ids = ids.difference(self.recorded[variable])
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids, sampling_interval)
+
+    def _check_sampling_interval(self, sampling_interval):
+        """
+        Check whether record() has been called previously with a different sampling interval
+        (we exclude recording of spikes, as the sampling interval does not apply in that case)
+        """
+        if sampling_interval is not None and sampling_interval != self.sampling_interval:
+            recorded_variables = list(self.recorded.keys())
+            if "spikes" in recorded_variables:
+                recorded_variables.remove("spikes")
+            if len(recorded_variables) > 0:
+                raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
 
     def reset(self):
         """Reset the list of things to be recorded."""
