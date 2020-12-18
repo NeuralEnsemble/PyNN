@@ -122,6 +122,8 @@ class ArrayParameter(object):
             self.value = value
         else:
             self.value = numpy.array(value, float)
+        if (self.value<0.).any(): 
+            print("Warning : Times are negative")
 
     # def __len__(self):
     #     This must not be defined, otherwise ArrayParameter is insufficiently different from NumPy array

@@ -51,7 +51,11 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
             raise Exception("min_delay has to be less than or equal to max_delay.")
         if min_delay < timestep:
             raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))
-
+        if timestep<0. or min_delay<0.:
+            raise Warning("Times are negative")
+    if min_delay == 'auto':
+        if timestep<0.:
+            raise Warning("Warning : Times are negative")
 
 def end(compatible_output=True):
     """Do any necessary cleaning up before exiting."""

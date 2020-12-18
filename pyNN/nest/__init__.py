@@ -136,6 +136,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     # Set min_delay and max_delay
     simulator.state.set_delays(min_delay, max_delay)
     nest.SetDefaults('spike_generator', {'precise_times': True})
+    if min_delay == 'auto':
+        print("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
+        return Warning("Warning due to the parrot neuron which introduces an exra delay. 'min_delay' must be reduced")
     return rank()
 
 
