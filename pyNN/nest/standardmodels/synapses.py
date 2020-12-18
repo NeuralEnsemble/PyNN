@@ -27,13 +27,13 @@ class StaticSynapse(synapses.StaticSynapse, NESTSynapseMixin):
 
 class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
     """Specification of STDP models."""
-    
+
     base_translations = build_translations(
         ('weight', 'weight', 1000.0),  # nA->pA, uS->nS
         ('delay', 'delay'),
         ('dendritic_delay_fraction', 'dendritic_delay_fraction')
     )  # will be extended by translations from timing_dependence, etc.
-    
+
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):

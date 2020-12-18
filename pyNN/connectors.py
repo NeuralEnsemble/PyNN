@@ -939,10 +939,8 @@ class CSAConnector(MapConnector):
             """
             Connector.__init__(self, safe=safe, callback=callback)
             self.cset = cset
-            if csa.arity(cset) == 0:
-                pass
-            else:
-                assert csa.arity(cset) == 2, 'must specify mask or connection-set with arity 2'
+            arity = csa.arity(cset)
+            assert arity in (0, 2), 'must specify mask or connection-set with arity 0 or 2'
     else:
         def __init__(self, cset, safe=True, callback=None):
             raise RuntimeError("CSAConnector not available---couldn't import csa module")

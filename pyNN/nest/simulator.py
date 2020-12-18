@@ -53,6 +53,11 @@ class _State(common.control.BaseState):
 
     def __init__(self):
         super(_State, self).__init__()
+        try:
+            nest.Install('pynn_extensions')
+            self.extensions_loaded = True
+        except nest.kernel.NESTError as err:
+            self.extensions_loaded = False
         self.initialized = False
         self.optimize = False
         self.spike_precision = "off_grid"
