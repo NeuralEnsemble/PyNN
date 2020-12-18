@@ -8,6 +8,7 @@ Definition of NativeSynapseType class for NEST
 import nest
 
 from pyNN.models import BaseSynapseType
+from pyNN.errors import NoModelAvailableError
 from .simulator import state
 from .conversion import make_pynn_compatible, make_sli_compatible
 
@@ -39,7 +40,15 @@ class NESTSynapseMixin(object):
                 synapse_defaults[name] = value.evaluate(simplify=True)
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
-        nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        try:
+            nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        except nest.lib.hl_api_exceptions.NESTError as err:
+            if not state.extensions_loaded:
+                raise NoModelAvailableError(
+                    f"{self.__class__.__name__} is not available."
+                    "There was a problem loading NEST extensions"
+                )
+            raise
         return self.nest_name + '_lbl'
 
     def _get_minimum_delay(self):

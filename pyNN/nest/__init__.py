@@ -47,11 +47,6 @@ from pyNN.nest.projections import Projection
 
 logger = logging.getLogger("PyNN")
 
-try:
-    nest.Install('pynn_extensions')
-except nest.kernel.NESTError as err:
-    warnings.warn("Unable to install NEST extensions. Certain models may not be available.")
-
 
 # ==============================================================================
 #   Utility functions
