@@ -61,7 +61,7 @@ class CSAConnector(DefaultCSAConnector):
         else:
             warn("Note: using the default CSAConnector. To use the accelerated version for NEST,\n"
                     "Please re-compile NEST using --with-libneurosim=PATH")
-            return super().connect(projection)
+            return super(CSAConnector, self).connect(projection)
 
     def cg_connect(self, projection):
         """Connect-up a Projection using the Connection Generator interface"""

@@ -45,8 +45,8 @@ class NESTSynapseMixin(object):
         except nest.lib.hl_api_exceptions.NESTError as err:
             if not state.extensions_loaded:
                 raise NoModelAvailableError(
-                    f"{self.__class__.__name__} is not available."
-                    "There was a problem loading NEST extensions"
+                    "{self.__class__.__name__} is not available."
+                    "There was a problem loading NEST extensions".format(self=self)
                 )
             raise
         return self.nest_name + '_lbl'
