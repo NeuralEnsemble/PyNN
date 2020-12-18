@@ -64,6 +64,7 @@ class _State(common.control.BaseState):
         self.tempdirs = []
         self.recording_devices = []
         self.populations = []  # needed for reset
+        self.stale_connection_cache = False
 
     @property
     def t(self):

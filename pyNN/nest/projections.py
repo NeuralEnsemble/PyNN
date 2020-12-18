@@ -83,7 +83,7 @@ class Projection(common.Projection):
 
     @property
     def nest_connections(self):
-        if self._connections is None:
+        if self._connections is None or self._simulator.state.stale_connection_cache:
             self._sources = numpy.unique(self._sources)
             if self._sources.size > 0:
                 self._connections = nest.GetConnections(self._sources.tolist(),
@@ -91,6 +91,7 @@ class Projection(common.Projection):
                                                         synapse_label=self.nest_synapse_label)
             else:
                 self._connections = []
+            self._simulator.state.stale_connection_cache = False
         return self._connections
 
     @property
@@ -119,6 +120,7 @@ class Projection(common.Projection):
         nest.Connect(self.pre.all_cells.astype(int).tolist(),
                      self.post.all_cells.astype(int).tolist(),
                      rule_params, syn_params)
+        self._simulator.state.stale_connection_cache = True
         self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model,
                                                                synapse_label=self.nest_synapse_label)]
 
@@ -196,9 +198,9 @@ class Projection(common.Projection):
 
                 nest.Connect([pre], [postsynaptic_cell], 'one_to_one', syn_dict)
 
-
         # Book-keeping
         self._connections = None  # reset the caching of the connection list, since this will have to be recalculated
+        self._simulator.state.stale_connection_cache = True
         self._sources.extend(presynaptic_cells)
 
         # Clean the connection parameters
