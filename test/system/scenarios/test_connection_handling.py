@@ -45,6 +45,28 @@ def connection_access_weight_and_delay(sim):
                        target)
 connection_access_weight_and_delay.__test__ = False
 
+@register()
+def issue672(sim):
+    """
+    Check that creating new Projections does not mess up existing ones.
+    """
+    sim.setup(verbosity="error")
+
+    p1 = sim.Population(5, sim.IF_curr_exp())
+    p2 = sim.Population(4, sim.IF_curr_exp())
+    p3 = sim.Population(6, sim.IF_curr_exp())
+
+    prj1 = sim.Projection(p2, p3, sim.AllToAllConnector(), sim.StaticSynapse(weight=lambda d: d))
+    # Get weight array of first Projection
+    wA = prj1.get("weight", format="array")
+    # Create a new Projection
+    prj2 = sim.Projection(p2, p3, sim.AllToAllConnector(), sim.StaticSynapse(weight=lambda w: 1))
+    # Get weight array of first Projection again
+    #   - incorrect use of caching could lead to this giving different results
+    wB = prj1.get("weight", format="array")
+
+    assert_array_equal(wA, wB)
+
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator

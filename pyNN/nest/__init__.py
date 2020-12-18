@@ -103,7 +103,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     `spike_precision`:
         should be "off_grid" (default) or "on_grid"
     `verbosity`:
-        INSERT DESCRIPTION OF POSSIBLE VALUES
+        one of: "all", "info", "deprecated", "warning", "error", "fatal"
     `recording_precision`:
         number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
     `threads`:
