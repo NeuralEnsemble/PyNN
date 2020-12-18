@@ -20,7 +20,8 @@ def get_synapse_defaults(model_name):
               'num_connectors', 'receptor_type', 'synapsemodel',
               'property_object', 'element_type', 'type', 'sizeof',
               'has_delay', 'synapse_model', 'requires_symmetric',
-              'weight_recorder']
+              'weight_recorder', 'init_flag', 'next_readout_time',
+              'synapse_id']
     default_params = {}
     for name, value in defaults.items():
         if name not in ignore:
