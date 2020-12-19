@@ -69,7 +69,7 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("dendritic_delay_fraction")
         synapse_defaults.pop("w_min_always_zero_in_NEST")
         # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-        synapse_defaults.pop("tau_minus")
+        synapse_defaults.pop("tau_minus", None)
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
         nest.SetDefaults(base_model + '_lbl', synapse_defaults)
