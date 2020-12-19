@@ -14,6 +14,10 @@ def scenario3(sim):
     the presynaptic neurons fires faster than the second half, so their
     connections should be potentiated more.
     """
+    try:
+        import scipy.stats
+    except ImportError:
+        raise SkipTest
 
     init_logging(logfile=None, debug=True)
     second = 1000.0
@@ -81,23 +85,15 @@ def scenario3(sim):
     expected_rate = (r1 + r2) / 2
     errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
     assert abs(actual_rate - expected_rate) < 1, errmsg
-    #assert abs(pre[:50].mean_spike_count()/duration - r1) < 1
-    #assert abs(pre[50:].mean_spike_count()/duration- r2) < 1
     final_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights[0, 0] != final_weights[0, 0]
 
-    try:
-        import scipy.stats
-    except ImportError:
-        raise SkipTest
-    t, p = scipy.stats.ttest_ind(initial_weights[:50, :].flat, initial_weights[50:, :].flat)
-    assert p > 0.05, p
     t, p = scipy.stats.ttest_ind(final_weights[:50, :].flat, final_weights[50:, :].flat)
     assert p < 0.01, p
     assert final_weights[:50, :].mean() < final_weights[50:, :].mean()
     sim.end()
     return initial_weights, final_weights, pre, post, connections
-    
+
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
