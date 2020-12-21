@@ -17,6 +17,7 @@ except NameError:  # Python 3
     xrange = range
 from pyNN import common, errors
 from pyNN.space import Space
+from pyNN.parameters import simplify
 from . import simulator
 from pyNN.random import RandomDistribution
 from .standardmodels.synapses import StaticSynapse
@@ -278,6 +279,9 @@ class Projection(common.Projection):
         self._simulator.state.stale_connection_cache = True
 
     def _set_attributes(self, parameter_space):
+        if "tau_minus" in parameter_space.keys() and not parameter_space["tau_minus"].is_homogeneous:
+            raise ValueError("tau_minus cannot be heterogeneous "
+                             "within a single Projection with NEST.")
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
         sources = numpy.unique(self._sources).tolist()
         if self._common_synapse_property_names is None:
@@ -293,7 +297,10 @@ class Projection(common.Projection):
                 for name, value in connection_parameters.items():
                     if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
                         value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
-                    if name not in self._common_synapse_property_names:
+                    if name == "tau_minus":  # set on the post-synaptic cell
+                        nest.SetStatus(self.post.local_cells.astype(int).tolist(),
+                                       {"tau_minus": simplify(value)})
+                    elif name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)
                         if len(source_mask) > 1:
                             nest.SetStatus(connections, name, value[source_mask])

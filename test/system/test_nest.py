@@ -271,7 +271,7 @@ def test_issue529():
     prj_plastic = sim.Projection(p1, p2, ee_connector, receptor_type='excitatory', synapse_type=stdp)
 
 
-def test_issue662():
+def test_issue662a():
     """Setting tau_minus to a random distribution fails..."""
     if not have_nest:
         raise SkipTest
@@ -296,6 +296,35 @@ def test_issue662():
                   synapse_type=syn, receptor_type='excitatory')
 
 
+def test_issue662b():
+    """Setting tau_minus to a random distribution fails..."""
+    if not have_nest:
+        raise SkipTest
+    import nest
+    sim = pyNN.nest
+
+    sim.setup(min_delay=0.5)
+    p1 = sim.Population(5, sim.SpikeSourcePoisson(rate=100.0))
+    p2 = sim.Population(10, sim.IF_cond_exp())
+
+    syn = sim.STDPMechanism(
+        timing_dependence=sim.SpikePairRule(
+            A_plus = 0.2,
+            A_minus = 0.1,
+            tau_minus = 30,
+            tau_plus = RandomDistribution('uniform', (10,20))
+        ),
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0.0, w_max=0.01),
+        weight=0.005
+    )
+
+    connections = sim.Projection(p1, p2, sim.AllToAllConnector(),
+                                 synapse_type=syn,
+                                 receptor_type='inhibitory')
+
+    connections.set(tau_minus=25)  #RandomDistribution('uniform', (20,40)))
+    # todo: check this worked
+    assert_raises(ValueError, connections.set, tau_minus=RandomDistribution('uniform', (20,40)))
 
 
 if __name__ == '__main__':
