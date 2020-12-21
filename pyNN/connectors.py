@@ -220,14 +220,21 @@ class MapConnector(Connector):
                     else:
                         connection_parameters[name] = map[source_mask, col]
 
-#                # Check that parameter values are valid
-#                if self.safe:
-#                    # (might be cheaper to do the weight and delay check before evaluating the larray)
-#                    weights = check_weights(weights, projection.synapse_type, is_conductance(projection.post.local_cells[0]))
-#                    delays = check_delays(delays,
-#                                          projection._simulator.state.min_delay,
-#                                          projection._simulator.state.max_delay)
-#                    # TODO: add checks for plasticity parameters
+                # Check that parameter values are valid
+                if self.safe:
+                    # it might be cheaper to do the weight and delay check before evaluating the larray,
+                    # however this is challenging to do if the base value is a function or if there are
+                    # a lot of operations, so for simplicity we do the check after evaluation
+                    syn = projection.synapse_type
+                    if hasattr(syn, "parameter_checks"):
+                        #raise Exception(f"{connection_parameters} {syn.parameter_checks}")
+                        for parameter_name, check in syn.parameter_checks.items():
+                            native_parameter_name = syn.translations[parameter_name]["translated_name"]
+                            # note that for delays we should also apply units scaling to the check values
+                            # since this currently only affects Brian we can probably handle that separately
+                            # (for weights the checks are all based on zero)
+                            if native_parameter_name in connection_parameters:
+                                check(connection_parameters[native_parameter_name], projection)
 
                 if local:
                     # Connect the neurons

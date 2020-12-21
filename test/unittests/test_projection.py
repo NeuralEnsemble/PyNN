@@ -26,7 +26,7 @@ except NameError:
 from .mocks import MockRNG
 import pyNN.mock as sim
 
-from pyNN import random, errors, space
+from pyNN import random, errors, space, standardmodels
 from pyNN.parameters import Sequence
 
 
@@ -289,3 +289,93 @@ class ProjectionTest(unittest.TestCase):
         n, bins = prj.weightHistogram(min=0.0, max=0.05)
         assert_array_equal(bins, numpy.linspace(0, 0.05, num=11))
         assert_array_equal(n, numpy.array([0, prj.size(), 0, 0, 0, 0, 0, 0, 0, 0]))
+
+
+class CheckTest(unittest.TestCase):
+
+    def setUp(self, sim=sim, **extra):
+        self.MIN_DELAY = 0.123
+        sim.setup(num_processes=2, rank=1, min_delay=self.MIN_DELAY, **extra)
+        self.p1 = sim.Population(7, sim.IF_cond_exp())
+        self.p2 = sim.Population(4, sim.IF_cond_exp())
+        self.p3 = sim.Population(5, sim.IF_curr_alpha())
+        self.projections = {
+            "cond": {},
+            "curr": {}
+        }
+        for psr, post in (("cond", self.p2), ("curr", self.p3)):
+            for rt in ("excitatory", "inhibitory"):
+                self.projections[psr][rt] = sim.Projection(
+                    self.p1, post, sim.AllToAllConnector(safe=True),
+                    sim.StaticSynapse(), receptor_type=rt
+                )
+
+    def test_check_weights_with_scalar(self, sim=sim):
+        # positive weight
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+        ]:
+            standardmodels.check_weights(4.3, prj)
+        for prj in [
+            self.projections["curr"]["inhibitory"],
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, 4.3, prj)
+
+        # negative weight
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, -4.3, prj)
+        for prj in [
+            self.projections["curr"]["inhibitory"],
+        ]:
+            standardmodels.check_weights(-4.3, prj)
+
+    def test_check_weights_with_array(self, sim=sim):
+        # all positive weights
+        w = numpy.arange(10)
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+        ]:
+            standardmodels.check_weights(w, prj)
+        for prj in [
+            self.projections["curr"]["inhibitory"],
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, w, prj)
+        # all negative weights
+        w = numpy.arange(-10, 0)
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, w, prj)
+        for prj in [
+            self.projections["curr"]["inhibitory"],
+        ]:
+            standardmodels.check_weights(w, prj)
+        # mixture of positive and negative weights
+        w = numpy.arange(-5, 5)
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+            self.projections["curr"]["inhibitory"]
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, w, prj)
+
+    def test_check_weights_with_invalid_value(self, sim=sim):
+        w = "butterflies"
+        for prj in [
+            self.projections["cond"]["excitatory"],
+            self.projections["curr"]["excitatory"],
+            self.projections["cond"]["inhibitory"],
+            self.projections["curr"]["inhibitory"]
+        ]:
+            self.assertRaises(errors.ConnectionError, standardmodels.check_weights, w, prj)

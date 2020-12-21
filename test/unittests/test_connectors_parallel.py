@@ -173,13 +173,13 @@ class TestAllToAllConnector(unittest.TestCase):
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False)[
                          0][3], prj._simulator.state.min_delay)
 
-    @unittest.skip('skipping this tests until I figure out how I want to refactor checks')
+    @unittest.skip('skipping this test until refactoring of delay checks is complete')
     def test_connect_with_delays_too_small(self, sim=sim):
-        C = connectors.AllToAllConnector()
+        C = connectors.AllToAllConnector(safe=True)
         syn = sim.StaticSynapse(weight=0.1, delay=0.0)
         self.assertRaises(errors.ConnectionError, sim.Projection, self.p1, self.p2, C, syn)
 
-    @unittest.skip('skipping this tests until I figure out how I want to refactor checks')
+    @unittest.skip('skipping this tests until refactoring of delay checks is complete')
     def test_connect_with_list_delays_too_small(self, sim=sim):
         delays = numpy.ones((self.p1.size, self.p2.size), float)
         delays[2, 3] = sim.Projection._simulator.state.min_delay - 0.01
@@ -918,71 +918,6 @@ class TestDisplacementDependentProbabilityConnector(unittest.TestCase):
                           (6, 6, 1.0, 2.0),
                           (1, 8, 1.0, 2.0),
                           (2, 8, 1.0, 2.0)])
-
-
-@unittest.skip('skipping these tests until I figure out how I want to refactor checks')
-class CheckTest(unittest.TestCase):
-
-    def setUp(self, sim=sim, **extra):
-        self.MIN_DELAY = 0.123
-        sim.setup(num_processes=2, rank=1, min_delay=0.123, **extra)
-
-    def test_check_weights_with_scalar(self, sim=sim):
-        self.assertEqual(4.3, connectors.check_weights(4.3, 'excitatory', is_conductance=True))
-        self.assertEqual(4.3, connectors.check_weights(4.3, 'excitatory', is_conductance=False))
-        self.assertEqual(4.3, connectors.check_weights(4.3, 'inhibitory', is_conductance=True))
-        self.assertEqual(-4.3, connectors.check_weights(-4.3, 'inhibitory', is_conductance=False))
-        self.assertEqual(connectors.DEFAULT_WEIGHT, connectors.check_weights(
-            None, 'excitatory', is_conductance=True))
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          4.3, 'inhibitory', is_conductance=False)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights, -
-                          4.3, 'inhibitory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights, -
-                          4.3, 'excitatory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights, -
-                          4.3, 'excitatory', is_conductance=False)
-
-    def test_check_weights_with_array(self, sim=sim):
-        w = numpy.arange(10)
-        assert_array_equal(w, connectors.check_weights(w, 'excitatory', is_conductance=True))
-        assert_array_equal(w, connectors.check_weights(w, 'excitatory', is_conductance=False))
-        assert_array_equal(w, connectors.check_weights(w, 'inhibitory', is_conductance=True))
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'inhibitory', is_conductance=False)
-        w = numpy.arange(-10, 0)
-        assert_array_equal(w, connectors.check_weights(w, 'inhibitory', is_conductance=False))
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'inhibitory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'excitatory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'excitatory', is_conductance=False)
-        w = numpy.arange(-5, 5)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'excitatory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'excitatory', is_conductance=False)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'inhibitory', is_conductance=True)
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          w, 'inhibitory', is_conductance=False)
-
-    def test_check_weights_with_invalid_value(self, sim=sim):
-        self.assertRaises(errors.ConnectionError, connectors.check_weights,
-                          "butterflies", 'excitatory', is_conductance=True)
-
-    def test_check_weight_is_conductance_is_None(self, sim=sim):
-        # need to check that a log message was created
-        self.assertEqual(4.3, connectors.check_weights(4.3, 'excitatory', is_conductance=None))
-
-    def test_check_delay(self, sim=sim):
-        self.assertEqual(connectors.check_delays(2 * self.MIN_DELAY,
-                                                 self.MIN_DELAY, 1e99), 2 * self.MIN_DELAY)
-        self.assertRaises(errors.ConnectionError, connectors.check_delays,
-                          0.5 * self.MIN_DELAY, self.MIN_DELAY, 1e99)
-        self.assertRaises(errors.ConnectionError, connectors.check_delays,
-                          3.0, self.MIN_DELAY, 2.0)
 
 
 class TestFixedTotalNumberConnector(unittest.TestCase):

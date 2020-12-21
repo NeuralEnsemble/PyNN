@@ -245,9 +245,10 @@ class ModelNotAvailable(object):
 
 
 def check_weights(weights, projection):
-    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-    synapse_sign = projection.receptor_type
-    is_conductance = projection.post.conductance_based
+    # if projection.post is an Assembly, some components might have cond-synapses, others curr,
+    # so need a more sophisticated check here. For now, skipping check and emitting a warning
+    if hasattr(projection.post, "_homogeneous_synapses") and not projection.post._homogeneous_synapses:
+        warnings.warn("Not checking weights due to due mixture of synapse types")
     if isinstance(weights, numpy.ndarray):
         all_negative = (weights <= 0).all()
         all_positive = (weights >= 0).all()
@@ -255,15 +256,19 @@ def check_weights(weights, projection):
             raise errors.ConnectionError("Weights must be either all positive or all negative")
     elif numpy.isreal(weights):
         all_positive = weights >= 0
-        all_negative = weights < 0
+        all_negative = weights <= 0
     else:
         raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    if is_conductance or synapse_sign == 'excitatory':
+    if projection.post.conductance_based or projection.receptor_type == 'excitatory':
         if not all_positive:
-            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance is False and synapse_sign == 'inhibitory':
+            raise errors.ConnectionError(
+                "Weights must be positive for conductance-based and/or excitatory synapses"
+            )
+    elif projection.post.conductance_based is False and projection.receptor_type == 'inhibitory':
         if not all_negative:
-            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
+            raise errors.ConnectionError(
+                "Weights must be negative for current-based, inhibitory synapses"
+            )
     else:  # This should never happen.
         raise Exception("Can't check weight, conductance status unknown.")
 
@@ -286,7 +291,7 @@ def check_delays(delays, projection):
 class StandardSynapseType(StandardModelType, models.BaseSynapseType):
     parameter_checks = {
         'weight': check_weights,
-        'delay': check_delays
+        #'delay': check_delays   # this needs to be revisited in the context of min_delay = "auto"
     }
 
     def get_schema(self):
