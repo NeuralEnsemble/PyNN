@@ -11,10 +11,6 @@ import numpy
 import nest
 import logging
 from itertools import repeat
-try:
-    xrange
-except NameError:  # Python 3
-    xrange = range
 from pyNN import common, errors
 from pyNN.space import Space
 from pyNN.parameters import simplify
@@ -149,10 +145,9 @@ class Projection(common.Projection):
                 if name not in self._common_synapse_property_names:
                     value = make_sli_compatible(value)
                     if isinstance(value, numpy.ndarray):
-                        # the str() is to work around a bug handling unicode names in SetStatus in NEST 2.4.1 when using Python 2
-                        syn_dict.update({str(name):numpy.array([value.tolist()])})
+                        syn_dict.update({name: numpy.array([value.tolist()])})
                     else:
-                        syn_dict.update({str(name):value})
+                        syn_dict.update({name: value})
         return syn_dict
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
@@ -351,7 +346,7 @@ class Projection(common.Projection):
     #    """
     #    import operator
     #
-    #    if isinstance(file, basestring):
+    #    if isinstance(file, str):
     #        file = recording.files.StandardTextFile(file, mode='w')
     #
     #    lines   = nest.GetStatus(self.nest_connections, ('source', 'target', 'weight', 'delay'))
@@ -395,7 +390,7 @@ class Projection(common.Projection):
         if 'postsynaptic_index' in names:
             values[:, names.index('postsynaptic_index')] = self.post.id_to_index(values[:, names.index('postsynaptic_index')])
         values = values.tolist()
-        for i in xrange(len(values)):
+        for i in range(len(values)):
             values[i] = tuple(values[i])
         return values
 

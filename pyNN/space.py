@@ -24,16 +24,15 @@ Classes:
 # There must be some Python package out there that provides most of this stuff.
 # Distance computations are provided by scipy.spatial, but scipy is a fairly heavy dependency.
 
-try:
-    reduce
-except NameError:
-    from functools import reduce
-import numpy
+from functools import reduce
 import math
 from operator import and_
+import logging
+import numpy
+
 from pyNN.random import NumpyRNG
 from pyNN import descriptions
-import logging
+
 
 logger = logging.getLogger("PyNN")
 

@@ -9,10 +9,6 @@ nrnpython implementation of the PyNN API.
 from copy import deepcopy
 import numpy
 import logging
-try:
-    from itertools import izip
-except ImportError:
-    izip = zip  # Python 3 zip returns an iterator already
 from itertools import repeat, chain
 from collections import defaultdict
 from pyNN import common, errors, core

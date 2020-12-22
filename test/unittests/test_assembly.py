@@ -6,10 +6,7 @@ backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import numpy
 import sys
 import quantities as pq
@@ -18,10 +15,6 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
-try:
-    basestring
-except NameError:
-    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 from pyNN.parameters import Sequence
@@ -46,13 +39,13 @@ class AssemblyTest(unittest.TestCase):
     def test_create_with_zero_populations(self, sim=sim):
         a = sim.Assembly()
         self.assertEqual(a.populations, [])
-        self.assertIsInstance(a.label, basestring)
+        self.assertIsInstance(a.label, str)
 
     def test_create_with_one_population(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p)
         self.assertEqual(a.populations, [p])
-        self.assertIsInstance(a.label, basestring)
+        self.assertIsInstance(a.label, str)
 
     def test_create_with_two_populations(self, sim=sim):
         p1 = sim.Population(11, sim.IF_cond_exp())
@@ -153,7 +146,7 @@ class AssemblyTest(unittest.TestCase):
         p1 = sim.Population(11, sim.IF_cond_exp())
         p2 = sim.Population(11, sim.IF_cond_exp())
         a = sim.Assembly(p1, p2)
-        self.assertIsInstance(a.describe(), basestring)
+        self.assertIsInstance(a.describe(), str)
         self.assertIsInstance(a.describe(template=None), dict)
 
     def test_get_population(self, sim=sim):

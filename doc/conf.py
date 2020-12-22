@@ -295,4 +295,4 @@ todo_include_todos = True
 
 # -- inter-Sphinx mapping options ----------------------------------------------
 
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
+intersphinx_mapping = {'python': ('http://docs.python.org/3.8', None)}

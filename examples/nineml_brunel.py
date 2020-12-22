@@ -8,7 +8,7 @@ runs a simulation using the pyNN.nineml module with the NEURON
 backend.
 
 """
-from __future__ import division
+
 import numpy as np
 from neo import AnalogSignal
 from quantities import ms, dimensionless

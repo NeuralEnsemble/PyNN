@@ -6,10 +6,7 @@ pyNN.mock backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import numpy
 import os
 import sys
@@ -19,10 +16,6 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
-try:
-    basestring
-except NameError:
-    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 
@@ -291,7 +284,7 @@ class ProjectionTest(unittest.TestCase):
     def test_describe(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=self.syn2)
-        self.assertIsInstance(prj.describe(engine='string'), basestring)
+        self.assertIsInstance(prj.describe(engine='string'), str)
         self.assertIsInstance(prj.describe(template=None), dict)
 
     def test_weightHistogram(self, sim=sim):

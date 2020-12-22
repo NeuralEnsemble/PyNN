@@ -1,5 +1,4 @@
 
-from __future__ import division
 import numpy
 from nose.plugins.skip import SkipTest
 try:

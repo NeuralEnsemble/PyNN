@@ -4,10 +4,7 @@ Unit tests for pyNN/random.py.
 
 import pyNN.random as random
 import numpy
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 try:
     from neuron import h

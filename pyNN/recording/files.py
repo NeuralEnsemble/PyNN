@@ -17,18 +17,13 @@ Classes:
 import numpy
 import os
 import shutil
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 try:
     import tables
     have_hdf5 = True
 except ImportError:
     have_hdf5 = False
-from pyNN.core import iteritems
-
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -50,7 +45,7 @@ def savez(file, *args, **kwds):
     import zipfile
     from numpy.lib import format
 
-    if isinstance(file, basestring):
+    if isinstance(file, str):
         if not file.endswith('.npz'):
             file = file + '.npz'
 
@@ -68,7 +63,7 @@ def savez(file, *args, **kwds):
     # function in parallel !
     import tempfile
     direc = tempfile.mkdtemp()
-    for key, val in iteritems(namedict):
+    for key, val in namedict.items():
         fname = key + '.npy'
         filename = os.path.join(direc, fname)
         fid = open(filename, 'wb')

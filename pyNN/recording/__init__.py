@@ -20,10 +20,6 @@ from pyNN import errors
 import neo
 from datetime import datetime
 import quantities as pq
-try:
-    basestring
-except NameError:
-    basestring = str
 
 logger = logging.getLogger("PyNN")
 
@@ -109,7 +105,7 @@ def mpi_sum(x):
 
 def normalize_variables_arg(variables):
     """If variables is a single string, encapsulate it in a list."""
-    if isinstance(variables, basestring) and variables != 'all':
+    if isinstance(variables, str) and variables != 'all':
         return [variables]
     else:
         return variables
@@ -347,7 +343,7 @@ class Recorder(object):
     def write(self, variables, file=None, gather=False, filter_ids=None,
               clear=False, annotations=None):
         """Write recorded data to a Neo IO"""
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = get_io(file)
         io = file or self.file
         if gather is False and self._simulator.state.num_processes > 1:

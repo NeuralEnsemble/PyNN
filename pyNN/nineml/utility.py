@@ -5,7 +5,6 @@
 :license: CeCILL, see LICENSE for details.
 """
 
-from __future__ import division
 from lazyarray import larray
 from pyNN import random
 from pyNN.parameters import Sequence
@@ -109,7 +108,7 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
                 value = int(value)
         if dimensionless:
             unit = "dimensionless"
-        elif isinstance(value, basestring):
+        elif isinstance(value, str):
             unit = None
         else:
             unit = infer_units(name)

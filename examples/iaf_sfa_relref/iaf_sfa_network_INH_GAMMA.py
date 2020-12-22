@@ -92,7 +92,7 @@ class LatticeConnector(connectors.Connector):
         is_conductance = common.is_conductance(projection.post[listPostIndexes[0]])
         weights = common.check_weight(weights, projection.synapse_type, is_conductance)
 
-        for i in xrange(len(listPostIDs)):
+        for i in range(len(listPostIDs)):
             currentPostIndex = listPostIndexes[i]
             currentPostID = listPostIDs[i]
             #currentPostIDAsList = [currentPostID]

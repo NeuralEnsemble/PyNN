@@ -36,10 +36,6 @@ import csv
 from warnings import warn
 import json
 import logging
-try:
-    basestring
-except NameError:  # Python 3
-    basestring = str
 
 try:
     import h5py
@@ -296,7 +292,7 @@ def load_config(config_file):
         elif isinstance(obj, list):
             return [traverse(elem) for elem in obj]
         else:
-            if isinstance(obj, basestring) and obj.startswith('$'):
+            if isinstance(obj, str) and obj.startswith('$'):
                 return Template(obj).substitute(**substitutions)
             else:
                 return obj

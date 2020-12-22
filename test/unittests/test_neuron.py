@@ -6,10 +6,6 @@ try:
 except ImportError:
     from mock import Mock
 try:
-    basestring
-except NameError:
-    basestring = str
-try:
     from neuron import h
     import pyNN.neuron as sim
     from pyNN.neuron.standardmodels import electrodes
@@ -19,10 +15,7 @@ except ImportError:
     h = Mock()
 
 from pyNN.common import populations
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import numpy
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
@@ -148,7 +141,7 @@ class TestFunctions(unittest.TestCase):
     def test_list_standard_models(self):
         cell_types = sim.list_standard_models()
         self.assertTrue(len(cell_types) > 10)
-        self.assertIsInstance(cell_types[0], basestring)
+        self.assertIsInstance(cell_types[0], str)
 
     def test_setup(self):
         sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0)

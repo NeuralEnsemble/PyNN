@@ -17,7 +17,6 @@ Constants:
 
 """
 
-from __future__ import absolute_import  # Not compatible with Python 2.4
 import logging
 from pyNN.nest.cells import NativeCellType
 

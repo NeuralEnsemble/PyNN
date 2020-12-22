@@ -5,10 +5,7 @@ Tests of the parameters module.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import operator
 import numpy as np
 from lazyarray import larray

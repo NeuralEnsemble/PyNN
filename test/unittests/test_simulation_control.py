@@ -6,10 +6,7 @@ the pyNN.mock backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import pyNN.mock as sim
 
 try:

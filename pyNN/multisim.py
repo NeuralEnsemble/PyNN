@@ -53,7 +53,7 @@ class MultiSim(object):
             self.result_queues[sim.__name__] = result_queue
 
     def __iter__(self):
-        return self.processes.itervalues()
+        return self.processes.values()
 
     def __getattr__(self, name):
         """

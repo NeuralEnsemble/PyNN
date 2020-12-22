@@ -8,10 +8,7 @@ from pyNN.parameters import Sequence
 from numpy.testing import assert_array_equal
 from numpy import nan_to_num
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -29,16 +26,16 @@ class HardwareTest(unittest.TestCase):
         if not have_hardware_brainscales:
             raise SkipTest
         extra = {
-            'loglevel': 0, 
-            'ignoreHWParameterRanges': True, 
-            'useSystemSim': True, 
+            'loglevel': 0,
+            'ignoreHWParameterRanges': True,
+            'useSystemSim': True,
             'hardware': sim.hardwareSetup['one-hicann']
             }
         sim.setup(**extra)
 
     def test_IF_cond_exp_default_values(self):
         ifcell = sim.IF_cond_exp()
-        
+
     def test_IF_cond_exp_default_values2(self):
         ifcell = sim.IF_cond_exp()
 
@@ -89,18 +86,18 @@ class HardwareTest(unittest.TestCase):
 #def test_scenarios():
     #extra = {'loglevel':0, 'useSystemSim': True}
     #extra['hardware'] = sim.hardwareSetup['small']
-    
+
     #for scenario in registry:
         #if "hardware.brainscales" not in scenario.exclude:
             #scenario.description = scenario.__name__
             #if have_hardware_brainscales:
                 #sim.setup(**extra)
                 #yield scenario, sim
-                #sim.end() 
+                #sim.end()
             #else:
                 #raise SkipTest
-                        
-            
+
+
 def test_restart_loop():
     if not have_hardware_brainscales:
         raise SkipTest
@@ -115,7 +112,7 @@ def test_restart_loop():
     sim.setup(**extra)
     sim.run(10.0)
     sim.end()
-    
+
 #def test_several_runs():
     if not have_hardware_brainscales:
         raise SkipTest
@@ -130,15 +127,15 @@ def test_sim_without_clearing():
     if not have_hardware_brainscales:
         raise SkipTest
     extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
-    sim.setup(**extra)    
-    
+    sim.setup(**extra)
+
 
 def test_sim_without_setup():
     if not have_hardware_brainscales:
         raise SkipTest
-    sim.end()   
-    
- 
+    sim.end()
+
+
 if __name__ == '__main__':
     #test_scenarios()
     #test_restart_loop()

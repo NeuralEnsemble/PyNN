@@ -11,6 +11,7 @@ package directly rather than trying to extend this module.
 
 """
 
+import sys
 from collections import defaultdict
 from numbers import Number
 from itertools import repeat
@@ -20,10 +21,6 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
 from neo import AnalogSignal, SpikeTrain
-try:
-    from sys import maxint
-except ImportError:  # Py3
-    from sys import maxsize as maxint
 
 
 DEFAULT_FIG_SETTINGS = {
@@ -101,7 +98,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     ax.set_xlim(0, spiketrains[0].t_stop / ms)
     handle_options(ax, options)
     max_index = 0
-    min_index = maxint
+    min_index = sys.maxsize
     for spiketrain in spiketrains:
         ax.plot(spiketrain,
                  np.ones_like(spiketrain) * spiketrain.annotations['source_index'],

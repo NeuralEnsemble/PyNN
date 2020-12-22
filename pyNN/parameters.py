@@ -5,12 +5,6 @@ Parameter set handling
 :license: CeCILL, see LICENSE for details.
 """
 
-try:  # Python 2
-    basestring
-    long
-except NameError:  # Python 3
-    basestring = str
-    long = int
 import numpy
 import collections
 from pyNN.core import is_listlike
@@ -35,7 +29,7 @@ class LazyArray(larray):
 
     Arguments:
         `value`:
-            may be an int, long, float, bool, NumPy array, iterator, generator
+            may be an int, float, bool, NumPy array, iterator, generator
             or a function, `f(i)` or `f(i,j)`, depending on the dimensions of
             the array. `f(i,j)` should return a single number when `i` and `j`
             are integers, and a 1D array when either `i` or `j` or both is a
@@ -50,7 +44,7 @@ class LazyArray(larray):
     # the plan is ultimately to move everything to lazyarray
 
     def __init__(self, value, shape=None, dtype=None):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             errmsg = "Value should be a string expressing a function of d. "
             try:
                 value = eval("lambda d: %s" % value)
@@ -65,7 +59,7 @@ class LazyArray(larray):
     def __setitem__(self, addr, new_value):
         self.check_bounds(addr)
         if (self.is_homogeneous
-            and isinstance(new_value, (int, long, float, bool))
+            and isinstance(new_value, (int, float, bool))
             and self.evaluate(simplify=True) == new_value):
             pass
         else:
@@ -188,7 +182,7 @@ class ArrayParameter(object):
         else:
             return self.__class__(self.value / val)
 
-    __truediv__ = __div__  # Python 3
+    __truediv__ = __div__
 
     def __eq__(self, other):
         if isinstance(other, ArrayParameter):
@@ -270,10 +264,7 @@ class ParameterSpace(object):
 
         Note that the values will all be :class:`LazyArray` objects.
         """
-        if hasattr(self._parameters, "iteritems"):
-            return self._parameters.iteritems()
-        else:
-            return self._parameters.items()
+        return self._parameters.items()
 
     def __repr__(self):
         return "<ParameterSpace %s, shape=%s>" % (", ".join(self.keys()), self.shape)

@@ -12,12 +12,7 @@ import numpy
 import logging
 import operator
 from itertools import chain
-try:
-    basestring
-    reduce
-except NameError:
-    basestring = str
-    from functools import reduce
+from functools import reduce
 from collections import defaultdict
 from pyNN import random, recording, errors, standardmodels, core, space, descriptions
 from pyNN.models import BaseCellType
@@ -277,7 +272,7 @@ class BasePopulation(object):
         """
         # if all the cells have the same value for a parameter, should
         # we return just the number, rather than an array?
-        if isinstance(parameter_names, basestring):
+        if isinstance(parameter_names, str):
             parameter_names = (parameter_names,)
             return_list = False
         else:
@@ -452,7 +447,7 @@ class BasePopulation(object):
                 self.recorder.record(variables, self.all_cells, sampling_interval)
             else:
                 self.recorder.record(variables, self._record_filter, sampling_interval)
-        if isinstance(to_file, basestring):
+        if isinstance(to_file, str):
             self.recorder.file = to_file
             self._simulator.state.write_on_end.append((self, variables, self.recorder.file))
 
@@ -579,7 +574,7 @@ class BasePopulation(object):
         """
         Save positions to file. The output format is ``index x y z``
         """
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = recording.files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
@@ -1014,7 +1009,7 @@ class Assembly(object):
         for p in populations:
             self._insert(p)
         self.label = kwargs.get('label', 'assembly%d' % Assembly._count)
-        assert isinstance(self.label, basestring), "label must be a string or unicode"
+        assert isinstance(self.label, str), "label must be a string"
         self.annotations = {}
         Assembly._count += 1
 
@@ -1256,7 +1251,7 @@ class Assembly(object):
         Get the values of the given parameters for every local cell in the
         Assembly, or, if gather=True, for all cells in the Assembly.
         """
-        if isinstance(parameter_names, basestring):
+        if isinstance(parameter_names, str):
             parameter_names = (parameter_names,)
             return_list = False
         else:
@@ -1336,7 +1331,7 @@ class Assembly(object):
         """
         Save positions to file. The output format is id x y z
         """
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = files.StandardTextFile(file, mode='w')
         cells = self.all_cells
         result = numpy.empty((len(cells), 4))
@@ -1450,7 +1445,7 @@ class Assembly(object):
 
         If `clear` is True, recorded data will be deleted from the `Population`.
         """
-        if isinstance(io, basestring):
+        if isinstance(io, str):
             io = recording.get_io(io)
         if gather is False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
@@ -1502,7 +1497,7 @@ class Assembly(object):
         """
         Get the values of the given annotations for each population in the Assembly.
         """
-        if isinstance(annotation_keys, basestring):
+        if isinstance(annotation_keys, str):
             annotation_keys = (annotation_keys,)
         annotations = defaultdict(list)
 

@@ -57,7 +57,7 @@ def resolve_parameters(nineml_component, random_distributions, resolve="properti
                 random_distributions[rd.name] = rand_distr
         elif p.value in ('True', 'False'):
             P[qname] = eval(p.value)
-        elif isinstance(p.value, basestring):
+        elif isinstance(p.value, str):
             P[qname] = p.value
         else:
             P[qname] = scale(p)
@@ -135,7 +135,7 @@ class Network(object):
         """
         global random_distributions
         self.sim = sim
-        if isinstance(nineml_model, basestring):
+        if isinstance(nineml_model, str):
             self.nineml_model = nineml.Network.read(nineml_model)
         elif isinstance(nineml_model, nineml.Network):
             self.nineml_model = nineml_model

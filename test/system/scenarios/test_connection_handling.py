@@ -3,7 +3,6 @@ Tests of the fine-grained connection API
 
 """
 
-from __future__ import division
 from nose.tools import assert_equal, assert_almost_equal, assert_is_instance
 from numpy.testing import assert_array_equal
 import numpy as np

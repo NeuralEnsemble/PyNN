@@ -9,6 +9,7 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+from functools import reduce
 import numpy
 from neuron import h, nrn, hclass
 
@@ -16,11 +17,6 @@ from pyNN import errors
 from pyNN.models import BaseCellType
 from .recording import recordable_pattern
 from .simulator import state
-
-try:
-    reduce
-except NameError:
-    from functools import reduce
 
 logger = logging.getLogger("PyNN")
 

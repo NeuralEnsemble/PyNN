@@ -24,7 +24,6 @@ optional arguments:
 
 """
 
-from __future__ import division
 from math import exp
 import numpy
 import neo

@@ -1,8 +1,5 @@
 from pyNN import utility
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import os
 import time
 import sys
@@ -10,10 +7,6 @@ try:
     from io import StringIO
 except ImportError:
     from StringIO import StringIO
-try:
-    basestring
-except NameError:
-    basestring = str
 
 
 class NotifyTests(unittest.TestCase):
@@ -46,7 +39,7 @@ class TimerTest(unittest.TestCase):
         timer = utility.Timer()
         time.sleep(0.1)
         assert timer.elapsed_time() > 0
-        assert isinstance(timer.elapsedTime(format='long'), basestring)
+        assert isinstance(timer.elapsedTime(format='long'), str)
         timer.reset()
 
     def test_diff(self):

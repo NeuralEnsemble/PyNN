@@ -8,7 +8,6 @@ for improved performance.
 :license: CeCILL, see LICENSE for details.
 """
 
-from __future__ import division
 from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG, get_mpi_config
 from pyNN.core import IndexBasedExpression
 from pyNN import errors, descriptions
@@ -17,14 +16,6 @@ from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
 from pyNN.common import Population
 import numpy
-try:
-    from itertools import izip
-except ImportError:  # python3.x
-    izip = zip
-try:
-    basestring
-except NameError:
-    basestring = str
 from itertools import repeat
 import logging
 from copy import copy, deepcopy
@@ -189,7 +180,7 @@ class MapConnector(Connector):
         parameter_space = self._parameters_from_synapse_type(projection, distance_map)
 
         # Loop over columns of the connection_map array (equivalent to looping over post-synaptic neurons)
-        for count, (col, postsynaptic_index, local, source_mask) in enumerate(izip(*components)):
+        for count, (col, postsynaptic_index, local, source_mask) in enumerate(zip(*components)):
             # `col`: column index
             # `postsynaptic_index`: index of the post-synaptic neuron
             # `local`: boolean - does the post-synaptic neuron exist on this MPI node
@@ -617,7 +608,7 @@ class FromFileConnector(FromListConnector):
         Create a new connector.
         """
         Connector.__init__(self, safe=safe, callback=callback)
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = files.StandardTextFile(file, mode='r')
         self.file = file
         self.distributed = distributed

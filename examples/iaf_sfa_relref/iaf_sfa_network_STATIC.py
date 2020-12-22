@@ -97,7 +97,7 @@ class LatticeConnector(connectors.Connector):
 
         numpy.random.seed(12345)
 
-        for i in xrange(len(listPostIDs)):
+        for i in range(len(listPostIDs)):
             currentPostIndex = listPostIndexes[i]
             currentPostID = listPostIDs[i]
             #currentPostIDAsList = [currentPostID]

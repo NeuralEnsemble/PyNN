@@ -7,14 +7,8 @@ backend-specific Projection classes.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    basestring
-    reduce
-    xrange
-except NameError:
-    basestring = str
-    from functools import reduce
-    xrange = range
+
+from functools import reduce
 import numpy
 import logging
 import operator
@@ -334,7 +328,7 @@ class Projection(object):
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
-        if isinstance(attribute_names, basestring):
+        if isinstance(attribute_names, str):
             attribute_names = (attribute_names,)
             return_single = True
         else:
@@ -370,7 +364,7 @@ class Projection(object):
                     values = self._get_attributes_as_arrays(attribute_names,
                                                             multiple_synapses=multiple_synapses)
                     tmp_values = numpy.array(tmp_values)
-                    for i in xrange(len(values)):
+                    for i in range(len(values)):
                         values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2 + i]
             else:
                 values = self._get_attributes_as_arrays(attribute_names,
@@ -426,7 +420,7 @@ class Projection(object):
         """
         if attribute_names in ('all', 'connections'):
             attribute_names = self.synapse_type.get_parameter_names()
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = recording.files.StandardTextFile(file, mode='wb')
         all_values = self.get(attribute_names, format=format, gather=gather, with_address=with_address)
         if format == 'array':
