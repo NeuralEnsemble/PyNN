@@ -18,6 +18,7 @@ except NameError:
 import numpy
 import logging
 import operator
+from copy import deepcopy
 from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
@@ -89,29 +90,49 @@ class Projection(object):
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
         self.post = postsynaptic_neurons  # } read-only
-        if receptor_type == "default":
-            receptor_type = None
-        self.receptor_type = receptor_type or sorted(postsynaptic_neurons.receptor_types)[0]
-        # TO FIX: if weights are negative, default should be the first inhibitory receptor type,
-        #         not necessarily the first in alphabetical order.
-        #         Should perhaps explicitly specify the default type(s)
+        self.label = label
+        self.space = space
+        self._connector = connector
+
+        self.synapse_type = synapse_type or self._static_synapse_class()
+        assert isinstance(self.synapse_type, models.BaseSynapseType), \
+              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
+
+        self.receptor_type = receptor_type
+        if self.receptor_type in ("default", None):
+            self._guess_receptor_type()
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
             errmsg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
             raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
-        self.label = label
-        self.space = space
-        self._connector = connector
-        self.synapse_type = synapse_type or self._static_synapse_class()
-        assert isinstance(self.synapse_type, models.BaseSynapseType), \
-              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
+
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = u"%s→%s" % (self.pre.label, self.post.label)
         self.initial_values = {}
         self.annotations = {}
         Projection._nProj += 1
+
+    def _guess_receptor_type(self):
+        """
+        If the receptor_type is not specified, we follow the convention that the first element
+        in the list of available post-synaptic receptor types is the default for excitatory
+        synapses and the second element is the default for inhibitory synapses.
+        """
+        if len(self.post.receptor_types) > 1:
+            ps = deepcopy(self.synapse_type.parameter_space)
+            ps = self._handle_distance_expressions(ps)
+            weights = ps["weight"]
+            if weights.shape is None:
+                weights.shape = self.shape
+            wl = weights[self.pre.size - 1, self.post.size - 1]
+            if wl >= 0:
+                self.receptor_type = self.post.receptor_types[0]
+            else:
+                self.receptor_type = self.post.receptor_types[1]
+        else:
+            self.receptor_type = self.post.receptor_types[0]
 
     def __len__(self):
         """Return the total number of local connections."""

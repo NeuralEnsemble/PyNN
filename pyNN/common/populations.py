@@ -1085,11 +1085,12 @@ class Assembly(object):
         Return a list of receptor types that are common to all populations
         within the assembly.
         """
-        rts = set(self.populations[0].celltype.receptor_types)
+        rts = self.populations[0].celltype.receptor_types
         if len(self.populations) > 1:
+            rts = set(rts)
             for p in self.populations[1:]:
                 rts = rts.intersection(set(p.celltype.receptor_types))
-        return rts
+        return list(rts)
 
     def find_units(self, variable):
         """
