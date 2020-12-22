@@ -4,7 +4,7 @@ from nose.tools import assert_equal
 from .registry import register
 
 
-@register(exclude=["moose", "nemo"])
+@register()
 def scenario2(sim):
     """
     Array of neurons, each injected with a different current.

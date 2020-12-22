@@ -3,7 +3,7 @@ import numpy
 from .registry import register
 
 
-@register(exclude=["nemo"])
+@register()
 def ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation

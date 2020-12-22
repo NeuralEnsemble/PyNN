@@ -14,7 +14,7 @@ except ImportError:
 from nose.plugins.skip import SkipTest
 
 
-@register(exclude=["nemo"])
+@register()
 def test_changing_electrode(sim):
     """
     Check that changing the values of the electrodes on the fly is taken into account
@@ -460,7 +460,7 @@ def issue_465_474_630(sim):
     assert_true (numpy.isclose(float(v_step[int(start / sim_dt), 0].item()), v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
-@register(exclude=["brian"])
+@register()
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid

@@ -90,7 +90,7 @@ def issue672(sim):
 #                        np.array([[0.01, 0.011], [0.012, 0.013], [0.014, 0.015]]))
 
 
-@register(exclude=["brian", "brian2"])
+@register(exclude=["brian2"])
 def issue652(sim):
     """Correctly handle A_plus = 0 in SpikePairRule."""
     sim.setup()
