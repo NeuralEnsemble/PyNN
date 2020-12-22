@@ -13,7 +13,7 @@ Functions:
 Constants:
     NMODL_DIR        - subdirectory to which NMODL mechanisms will be written
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -105,4 +105,3 @@ def nineml_cell_type(name, combined_model, weight_vars):
                                  {'combined_model': combined_model,
                                   'weight_variables': weight_vars,
                                   'builder': _compile_nmodl})
-

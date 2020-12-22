@@ -17,14 +17,14 @@ Base classes to be sub-classed by individual backends:
     PopulationView
     Assembly
     Projection
-    
+
 Function-factories to generate backend-specific API functions:
     build_reset()
     build_state_queries()
     build_create()
     build_connect()
     build_record()
-    
+
 Common implementation of API functions:
     set()
     initialize()
@@ -39,7 +39,7 @@ Global constants:
     DEFAULT_TIMESTEP
     DEFAULT_MIN_DELAY
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """

@@ -1,0 +1,33 @@
+========================
+PyNN 0.9.6 release notes
+========================
+
+December 17th 2020
+
+Welcome to PyNN 0.9.6!
+
+
+NEST 2.20.0
+-----------
+
+PyNN now supports the latest version of NEST_.
+
+Beta support for Brian 2
+------------------------
+
+PyNN now supports running simulations with `Brian 2`_.
+A few small bugs remain, so we regard this as a preview release for wider testing.
+
+End of support for Python 2.7 and Brian 1
+-----------------------------------------
+
+This is the last release with support for Python 2.7 (and therefore, for Brian 1).
+
+Bug fixes
+---------
+
+A `small number of bugs`_ have been fixed.
+
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.9.6+is%3Aclosed
+.. _NEST: https://www.nest-simulator.org
+.. _`Brian 2`: https://brian2.readthedocs.io

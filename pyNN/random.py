@@ -10,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -93,20 +93,20 @@ class AbstractRNG(object):
             * `n` is 0, return an empty array.
 
         If called with distribution=None, returns uniformly distributed floats in the range [0, 1)
-        
+
         If `mask` is provided, it should be a boolean or integer NumPy array,
         indicating that only a subset of the random numbers should be returned.
-        
+
         Example::
-            
+
             rng.next(5, mask=np.array([True, False, True, False, True]))
-            
+
         or::
-        
+
             rng.next(5, mask=np.array([0, 2, 4]))
-            
+
         will each return only three values.
-        
+
         If the rng is "parallel safe", an array of n values will be drawn from the rng,
         and the mask applied.
         If the rng is not parallel safe, the contents of the mask are disregarded, only its
@@ -419,10 +419,10 @@ class RandomDistribution(object):
     def lazily_evaluate(self, mask=None, shape=None):
         """
         Generate an array of random numbers of the requested shape.
-        
+
         If a mask is given, produce only enough numbers to fill the
         region defined by the mask (hence 'lazily').
-        
+
         This method is called by the lazyarray `evaluate()` and
         `_partially_evaluate()` methods.
         """

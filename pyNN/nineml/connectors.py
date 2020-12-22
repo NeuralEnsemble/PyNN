@@ -1,7 +1,7 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -26,7 +26,7 @@ class ConnectorMixin(object):
 
 
 class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConnector):
-    definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url 
+    definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url
     parameter_names = ('p_connect', 'allow_self_connections')
 
 

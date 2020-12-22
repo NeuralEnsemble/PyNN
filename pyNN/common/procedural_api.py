@@ -2,7 +2,7 @@
 """
 Alternative, procedural API for creating, connecting and recording from individual neurons
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -75,7 +75,7 @@ def build_record(simulator):
         # whether to write to a file.
         if not isinstance(source, (BasePopulation, Assembly)):
             if isinstance(source, (IDMixin)):
-                source = source.as_view()            
+                source = source.as_view()
         source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)

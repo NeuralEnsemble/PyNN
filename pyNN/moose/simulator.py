@@ -10,7 +10,7 @@ Functions and classes useable by the common implementation:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -29,7 +29,7 @@ in_ms = 1.0 / ms
 
 class _State(object):
     """Represent the simulator state."""
-    
+
     def __init__(self):
         self.ctx = moose.PyMooseBase.getContext()
         self.gid_counter = 0
@@ -41,7 +41,7 @@ class _State(object):
     @property
     def t(self):
         return self.ctx.getCurrentTime() * in_ms
-    
+
     def __get_dt(self):
         return self.ctx.getClocks()[0] * in_ms
 
@@ -67,16 +67,16 @@ def reset():
 
 class ID(int, common.IDMixin):
     __doc__ = common.IDMixin.__doc__
-    
+
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
-    
+
     def _build_cell(self, cell_model, cell_parameters):
         """
         Create a cell in MOOSE, and register its global ID.
-        
+
         `cell_model` -- one of the cell classes defined in the
                         `moose.cells` module (more generally, any class that
                         implements a certain interface, but I haven't
@@ -86,14 +86,14 @@ class ID(int, common.IDMixin):
         """
         id = int(self)
         self._cell = cell_model("neuron%d" % id, **cell_parameters)          # create the cell object
-        
+
 #    def get_native_parameters(self):
 #        """Return a dictionary of parameters for the NEURON cell model."""
 #        D = {}
 #        for name in self._cell.parameter_names:
 #            D[name] = getattr(self._cell, name)
 #        return D
-    
+
 #    def set_native_parameters(self, parameters):
 #        """Set parameters of the NEURON cell model from a dictionary."""
 #        for name, val in parameters.items():

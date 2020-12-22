@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -28,12 +28,12 @@ class IF_curr_alpha(cells.IF_curr_alpha):
     nest_name = {"on_grid": "iaf_psc_alpha",
                  "off_grid": "iaf_psc_alpha"}
     standard_receptor_type = True
-    
+
 
 class IF_curr_exp(cells.IF_curr_exp):
-    
-    __doc__ = cells.IF_curr_exp.__doc__    
-    
+
+    __doc__ = cells.IF_curr_exp.__doc__
+
     translations = build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
@@ -48,11 +48,11 @@ class IF_curr_exp(cells.IF_curr_exp):
     nest_name = {"on_grid": 'iaf_psc_exp',
                  "off_grid": 'iaf_psc_exp_ps'}
     standard_receptor_type = True
-    
+
 
 class IF_cond_alpha(cells.IF_cond_alpha):
 
-    __doc__ = cells.IF_cond_alpha.__doc__    
+    __doc__ = cells.IF_cond_alpha.__doc__
 
     translations = build_translations(
         ('v_rest',     'E_L'),
@@ -70,12 +70,12 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     nest_name = {"on_grid": "iaf_cond_alpha",
                  "off_grid": "iaf_cond_alpha"}
     standard_receptor_type = True
-        
+
 
 class IF_cond_exp(cells.IF_cond_exp):
 
-    __doc__ = cells.IF_cond_exp.__doc__    
-    
+    __doc__ = cells.IF_cond_exp.__doc__
+
     translations = build_translations(
         ('v_rest',     'E_L'),
         ('v_reset',    'V_reset'),
@@ -96,7 +96,7 @@ class IF_cond_exp(cells.IF_cond_exp):
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
-    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__    
+    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
 
     translations = build_translations(
         ('v_rest',     'E_L'),
@@ -123,10 +123,10 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
 
 class IF_facets_hardware1(cells.IF_facets_hardware1):
-    
-    __doc__ = cells.IF_facets_hardware1.__doc__        
 
-    # in 'iaf_cond_exp', the dimension of C_m is pF, 
+    __doc__ = cells.IF_facets_hardware1.__doc__
+
+    # in 'iaf_cond_exp', the dimension of C_m is pF,
     # while in the pyNN context, cm is given in nF
     translations = build_translations(
         ('v_reset',    'V_reset'),
@@ -148,17 +148,17 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
 
 
 class HH_cond_exp(cells.HH_cond_exp):
-    
-    __doc__ = cells.HH_cond_exp.__doc__    
-    
+
+    __doc__ = cells.HH_cond_exp.__doc__
+
     translations = build_translations(
-        ('gbar_Na',    'g_Na',  1000.0), # uS --> nS   
+        ('gbar_Na',    'g_Na',  1000.0), # uS --> nS
         ('gbar_K',     'g_K',   1000.0),
         ('g_leak',     'g_L',   1000.0),
         ('cm',         'C_m',   1000.0),  # nF --> pF
         ('v_offset',   'V_T'),
         ('e_rev_Na',   'E_Na'),
-        ('e_rev_K',    'E_K'), 
+        ('e_rev_K',    'E_K'),
         ('e_rev_leak', 'E_L'),
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
@@ -169,15 +169,15 @@ class HH_cond_exp(cells.HH_cond_exp):
     nest_name = {"on_grid": "hh_cond_exp_traub",
                  "off_grid": "hh_cond_exp_traub"}
     standard_receptor_type = True
-    
-   
+
+
 class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 
-    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__ 
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
 
     translations = build_translations(
         ('cm',         'C_m',       1000.0),  # nF -> pF
-        ('tau_refrac', 't_ref'), 
+        ('tau_refrac', 't_ref'),
         ('v_spike',    'V_peak'),
         ('v_reset',    'V_reset'),
         ('v_rest',     'E_L'),
@@ -200,7 +200,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
-    __doc__ = cells.SpikeSourcePoisson.__doc__ 
+    __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
         ('rate',     'rate'),
@@ -264,8 +264,8 @@ class SpikeSourceGamma(cells.SpikeSourceGamma):
 
 
 class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
-    
-    __doc__ = cells.SpikeSourceInhGamma.__doc__ 
+
+    __doc__ = cells.SpikeSourceInhGamma.__doc__
 
     translations = build_translations(
         ('a',        'a'),
@@ -317,12 +317,12 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 
 class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
-    
+
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
 
     translations = build_translations(
         ('cm',         'C_m',       1000.0),  # nF -> pF
-        ('tau_refrac', 't_ref'), 
+        ('tau_refrac', 't_ref'),
         ('v_spike',    'V_peak'),
         ('v_reset',    'V_reset'),
         ('v_rest',     'E_L'),
@@ -345,7 +345,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
-    
+
     translations = build_translations(
         ('a',        'a'),
         ('b',        'b'),

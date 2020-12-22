@@ -2,7 +2,7 @@
 """
 Standard cells for the Brian module.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -35,7 +35,7 @@ class StaticSynapse(synapses.StaticSynapse):
         if d == 'auto':
             d = state.dt
         return d
-    
+
     def _set_target_type(self, weight_units):
         for key, value in self.translations.items():
             for direction in ("forward_transform", "reverse_transform"):
@@ -76,7 +76,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     initial_conditions = {"u": 0.0, "x": 1.0, "y": 0.0, "z": 0.0}
     tau_syn_var = {"excitatory": "tau_syn_E",
                    "inhibitory": "tau_syn_I"}
-    
+
     def _get_minimum_delay(self):
         d = state.min_delay
         if d == 'auto':
@@ -144,7 +144,7 @@ class STDPMechanism(synapses.STDPMechanism):
         for key, value in self.translations.items():
             for direction in ("forward_transform", "reverse_transform"):
                 self.translations[key][direction] = value[direction].replace("weight_units", str(float(weight_units)))
-    
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__

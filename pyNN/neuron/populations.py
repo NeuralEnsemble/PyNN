@@ -2,7 +2,7 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -56,7 +56,7 @@ class PopulationMixin(object):
             if isinstance(initial_values.base_value, RandomDistribution) and initial_values.base_value.rng.parallel_safe:
                 local_values = initial_values.evaluate()[self._mask_local]
             else:
-                local_values = initial_values[self._mask_local]            
+                local_values = initial_values[self._mask_local]
             for cell, value in zip(self, local_values):
                 setattr(cell._cell, "%s_init" % variable, value)
 
@@ -99,7 +99,7 @@ class Population(common.Population, PopulationMixin):
         # perhaps should check for that
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + self.size - 1
-        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id + 1)], 
+        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id + 1)],
                                      simulator.ID)
 
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node

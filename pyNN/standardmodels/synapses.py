@@ -13,7 +13,7 @@ Classes for defining STDP rules:
     GutigWeightDependence
     SpikePairRule
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -40,7 +40,7 @@ class ElectricalSynapse(StandardSynapseType):
     """
     A bidirectional electrical synapse (gap junction) with fixed conductance
     """
-       
+
     default_parameters = {
         'weight': 0.0  # the (bidirectional) conductance of the gap junction (uS)
     }
@@ -64,7 +64,7 @@ class TsodyksMarkramSynapse(StandardSynapseType):
             depression time constant (ms).
         `tau_facil`:
             facilitation time constant (ms).
-    
+
     .. _`Tsodyks, Uziel and Markram (2000)`: http://www.jneurosci.org/content/20/1/RC50.long
     """
     default_parameters = {
@@ -176,7 +176,7 @@ class STDPMechanism(StandardSynapseType):
         self.weight = weight
         self.delay = delay or self._get_minimum_delay()
         self._build_translations()
-        
+
     def _build_translations(self):
         self.translations = self.__class__.base_translations  # weight and delay
         for component in (self.timing_dependence, self.weight_dependence, self.voltage_dependence):
@@ -418,17 +418,17 @@ class SpikePairRule(STDPTimingDependence):
 
 class Vogels2011Rule(STDPTimingDependence):
     """
-    Timing-dependence rule from 
+    Timing-dependence rule from
 
       Vogels TP, Sprekeler H, Zenke F, Clopath C, Gerstner W (2011)
       Inhibitory plasticity balances excitation and inhibition in sensory
       pathways and memory networks. Science 334:1569-73
       http://dx.doi.org/10.1126/science.1211095
-  
+
     Potentiation depends on the coincidence of pre- and post-synaptic spikes
     but not on their order. Pre-synaptic spikes in the absence of post-
     synaptic ones produce depression.
-    
+
     Also see http://senselab.med.yale.edu/modeldb/ShowModel.asp?model=143751
     """
 

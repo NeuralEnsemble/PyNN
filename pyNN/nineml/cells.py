@@ -1,7 +1,7 @@
 """
 Cell models generated from 9ML
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -118,4 +118,3 @@ class build_nineml_celltype(type):
         dct["builder"](flat_component, dct["weight_variables"], hierarchical_mode=True)
 
         return type.__new__(cls, name, bases, dct)
-

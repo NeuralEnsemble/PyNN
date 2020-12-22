@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -13,7 +13,7 @@ from pyNN.moose import simulator
 
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
-        
+
     def _record(self, new_ids):
         """Add the cells in `new_ids` to the set of recorded cells."""
         if self.variable == 'spikes':
@@ -28,20 +28,20 @@ class Recorder(recording.Recorder):
                 id._cell.record_gsyn("inhibitory")
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
-    
+
     def _reset(self):
         raise NotImplementedError("TO DO")
-    
+
     def _get(self, gather=False, compatible_output=True, filter=None):
         """Return the recorded data as a Numpy array."""
         # compatible_output is not used, but is needed for compatibility with the nest module.
-        # Does nest really need it?                
+        # Does nest really need it?
         if self.variable == 'spikes':
             data = numpy.empty((0, 2))
             for id in self.recorded:
                 spikes = 1e3 * numpy.array(id._cell.spike_table)  # convert from s to ms
                 spikes = spikes[spikes <= simulator.state.t + 1e-9]
-                if len(spikes) > 0:    
+                if len(spikes) > 0:
                     new_data = numpy.array([numpy.ones(spikes.shape) * id, spikes]).T
                     data = numpy.concatenate((data, new_data))
         elif self.variable == 'v':
@@ -56,20 +56,20 @@ class Recorder(recording.Recorder):
             for id in self.recorded:
                 ge = 1e6 * numpy.array(id._cell.gsyn_trace['excitatory'])  # convert from S to uS
                 gi = 1e6 * numpy.array(id._cell.gsyn_trace['inhibitory'])
-                t = simulator.state.dt * numpy.arange(0.0, ge.size)           
+                t = simulator.state.dt * numpy.arange(0.0, ge.size)
                 new_data = numpy.array([numpy.ones(ge.shape) * id, t, ge, gi]).T
                 data = numpy.concatenate((data, new_data))
         else:
             raise Exception("Recording of %s not implemented." % self.variable)
     #    if gather and simulator.state.num_processes > 1:
     #        data = recording.gather(data)
-    
+
         if filter is not None:
             filtered_ids = self.filter_recorded(filter)
             mask = reduce(numpy.add, (data[:, 0] == id for id in filtered_ids))
             data = data[mask]
         return data
-        
+
     def _local_count(self, filter=None):
         N = {}
         for id in self.filter_recorded(filter):

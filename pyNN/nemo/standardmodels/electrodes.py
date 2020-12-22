@@ -8,7 +8,7 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -24,7 +24,7 @@ from pyNN.common import Population, PopulationView, Assembly
 class NemoCurrentSource(StandardCurrentSource):
     """Base class for a nest source of current to be injected into a neuron."""
 
-    def __init__(self, parameters):    
+    def __init__(self, parameters):
         super(StandardCurrentSource, self).__init__(parameters)
         self.set_native_parameters(parameters)
 
@@ -36,13 +36,13 @@ class NemoCurrentSource(StandardCurrentSource):
         for key, value in parameters.items():
             self.parameters[key] = value
 
-    def get_native_parameters(self):    
+    def get_native_parameters(self):
         return self.parameters
-    
+
 
 class DCSource(ModelNotAvailable):
     pass
-    
+
 
 class ACSource(ModelNotAvailable):
     pass
@@ -54,4 +54,3 @@ class StepCurrentSource(ModelNotAvailable):
 
 class NoisyCurrentSource(ModelNotAvailable):
     pass
-

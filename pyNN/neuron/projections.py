@@ -2,7 +2,7 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -41,7 +41,7 @@ class Projection(common.Projection):
                                    space, label)
         self._connections = dict((index, defaultdict(list)) for index in self.post._mask_local.nonzero()[0])
         connector.connect(self)
-        self._presynaptic_components = dict((index, {}) for index in 
+        self._presynaptic_components = dict((index, {}) for index in
                                             self.pre._mask_local.nonzero()[0])
         if self.synapse_type.presynaptic_type:
             self._configure_presynaptic_components()
@@ -100,17 +100,17 @@ class Projection(common.Projection):
 
     def _configure_presynaptic_components(self):
         """
-        For gap junctions potentially other complex synapse types the presynaptic side of the 
+        For gap junctions potentially other complex synapse types the presynaptic side of the
         connection also needs to be initiated. This is a little tricky with sources distributed on
-        different nodes as the parameters need to be gathered to the node where the source is 
+        different nodes as the parameters need to be gathered to the node where the source is
         hosted before it can be set
         """
         # Get the list of all connections on all nodes
-        conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list', 
+        conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list',
                                                gather='all', with_address=True))
-        # Loop through each of the connections where the presynaptic index (first column) is on 
+        # Loop through each of the connections where the presynaptic index (first column) is on
         # the local node
-        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:, 0]), 
+        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:, 0]),
                                             numpy.nonzero(self.pre._mask_local)[0]), dtype=bool)
         for conn in conn_list[mask_local, :]:
             pre_idx = int(conn[0])
@@ -124,7 +124,7 @@ class Projection(common.Projection):
         if self.synapse_type.presynaptic_type:
             presyn_param_space = deepcopy(parameter_space)
             presyn_param_space.evaluate(mask=(slice(None), self.pre._mask_local))
-            for component, connection_parameters in zip(self._presynaptic_components.values(), 
+            for component, connection_parameters in zip(self._presynaptic_components.values(),
                                                         presyn_param_space.columns()):
                 for name, value in connection_parameters.items():
                     for index in component:

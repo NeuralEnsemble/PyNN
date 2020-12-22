@@ -2,7 +2,7 @@
 """
 Standard cells for the mock module.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -175,7 +175,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
-    
+
     translations = build_translations(
         ('a',        'a'),
         ('b',        'b'),
@@ -185,7 +185,7 @@ class Izhikevich(cells.Izhikevich):
     )
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
-    
+
 
 class MockCurrentSource(object):
 
@@ -264,7 +264,7 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('x0', 'X'),
         ('y0', 'Y')
     )
-    
+
     def _get_minimum_delay(self):
         d = state.min_delay
         if d == 'auto':
@@ -286,7 +286,7 @@ class STDPMechanism(synapses.STDPMechanism):
         if d == 'auto':
             d = state.dt
         return d
-    
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__

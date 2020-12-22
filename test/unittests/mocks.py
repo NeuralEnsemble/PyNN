@@ -1,7 +1,7 @@
 """
 Mock classes for unit tests
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -71,6 +71,6 @@ class MockRNG3(random.WrappedRNG):
         x.dtype = int
         x[0] = 1
         return x
-    
+
     def permutation(self, arr):
         return arr[::-1]

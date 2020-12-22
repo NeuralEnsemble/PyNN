@@ -2,7 +2,7 @@
 Base classes for cell and synapse models, whether "standard" (cross-simulator)
 or "native" (restricted to an individual simulator).
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -72,7 +72,7 @@ class BaseCellType(BaseModelType):
     receptor_types = []
     conductance_based = True  # override for cells with current-based synapses
     injectable = True  # override for spike sources
-    
+
     def can_record(self, variable):
         return variable in self.recordable
 
@@ -84,9 +84,9 @@ class BaseCurrentSource(BaseModelType):
 
 class BaseSynapseType(BaseModelType):
     """Base class for synapse model classes."""
-    
+
     connection_type = None  # override to specify a non-standard connection type (i.e. GapJunctions)
-    has_presynaptic_components = False  # override for synapses that include an active presynaptic components 
+    has_presynaptic_components = False  # override for synapses that include an active presynaptic components
 
     def __init__(self, **parameters):
         """

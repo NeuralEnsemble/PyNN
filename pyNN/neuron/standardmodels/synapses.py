@@ -1,7 +1,7 @@
 """
 Synapse Dynamics classes for the neuron module.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -43,7 +43,7 @@ class ElectricalSynapse(BaseSynapse, synapses.ElectricalSynapse):
     model = 'Gap'
 
     def _get_minimum_delay(self):
-        return state.min_delay    
+        return state.min_delay
 
 
 class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
@@ -200,7 +200,7 @@ class SpikePairRule(BaseSynapse, synapses.SpikePairRule):
 
 class Vogels2011Rule(synapses.Vogels2011Rule):
     __doc__ = synapses.Vogels2011Rule.__doc__
-    
+
     translations = build_translations(
         ('tau',  'tau'),
         ('eta', 'eta'),

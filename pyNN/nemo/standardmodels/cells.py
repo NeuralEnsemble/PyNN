@@ -2,7 +2,7 @@
 Standard cells for the nemo module
 
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -13,8 +13,8 @@ import numpy
 
 
 class Izhikevich(cells.Izhikevich):
-    
-    __doc__ = cells.Izhikevich.__doc__ 
+
+    __doc__ = cells.Izhikevich.__doc__
 
     translations = build_translations(
         ('a',    'a'),
@@ -31,8 +31,8 @@ class Izhikevich(cells.Izhikevich):
 
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson):
-    
-    __doc__ = cells.SpikeSourcePoisson.__doc__ 
+
+    __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
         ('rate', 'rate', 0.001),
@@ -47,7 +47,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
 
 class SpikeSourceArray(cells.SpikeSourceArray):
 
-    __doc__ = cells.SpikeSourceArray.__doc__    
+    __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
         ('spike_times', 'spike_times'),
@@ -55,9 +55,9 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     nemo_name = "Input"
 
     class spike_player(object):
-        
+
         def __init__(self, spike_times=[], precision=1):
-            self.spike_times = precision * numpy.round(spike_times / precision)        
+            self.spike_times = precision * numpy.round(spike_times / precision)
             self.spike_times = numpy.unique(numpy.sort(self.spike_times))
             self.cursor = 0
             self.N = len(self.spike_times)
@@ -68,7 +68,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
                 return self.spike_times[self.cursor]
             else:
                 return numpy.inf
-        
+
         def update(self):
             self.cursor += 1
 
@@ -79,7 +79,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
             self.cursor = 0
 
     def __init__(self, parameters):
-        cells.SpikeSourceArray.__init__(self, parameters)        
+        cells.SpikeSourceArray.__init__(self, parameters)
 
 
 class IF_cond_exp_gsfa_grr(ModelNotAvailable):
@@ -87,19 +87,19 @@ class IF_cond_exp_gsfa_grr(ModelNotAvailable):
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
-    
-    __doc__ = cells.IF_curr_alpha.__doc__    
+
+    __doc__ = cells.IF_curr_alpha.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
-        ('cm',         'cm'), 
+        ('cm',         'cm'),
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_refrac'),
         ('tau_syn_E',  'tau_syn_E'),
         ('tau_syn_I',  'tau_syn_I'),
         ('v_thresh',   'v_thresh'),
-        ('i_offset',   'i_offset'), 
+        ('i_offset',   'i_offset'),
     )
 
     indices = {
@@ -119,19 +119,19 @@ class IF_curr_alpha(cells.IF_curr_alpha):
 
 
 class IF_curr_exp(cells.IF_curr_exp):
-    
-    __doc__ = cells.IF_curr_exp.__doc__    
+
+    __doc__ = cells.IF_curr_exp.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
-        ('cm',         'cm'), 
+        ('cm',         'cm'),
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_refrac'),
         ('tau_syn_E',  'tau_syn_E'),
         ('tau_syn_I',  'tau_syn_I'),
         ('v_thresh',   'v_thresh'),
-        ('i_offset',   'i_offset'), 
+        ('i_offset',   'i_offset'),
     )
 
     indices = {
@@ -152,18 +152,18 @@ class IF_curr_exp(cells.IF_curr_exp):
 
 class IF_cond_alpha(cells.IF_cond_alpha):
 
-    __doc__ = cells.IF_cond_alpha.__doc__    
+    __doc__ = cells.IF_cond_alpha.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
-        ('cm',         'cm'), 
+        ('cm',         'cm'),
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_refrac'),
         ('tau_syn_E',  'tau_syn_E'),
         ('tau_syn_I',  'tau_syn_I'),
         ('v_thresh',   'v_thresh'),
-        ('i_offset',   'i_offset'), 
+        ('i_offset',   'i_offset'),
         ('e_rev_E',    'e_rev_E'),
         ('e_rev_I',    'e_rev_I')
     )
@@ -187,19 +187,19 @@ class IF_cond_alpha(cells.IF_cond_alpha):
 
 
 class IF_cond_exp(cells.IF_cond_exp):
-    
-    __doc__ = cells.IF_cond_exp.__doc__    
+
+    __doc__ = cells.IF_cond_exp.__doc__
 
     translations = build_translations(
         ('v_rest',     'v_rest'),
         ('v_reset',    'v_reset'),
-        ('cm',         'cm'), 
+        ('cm',         'cm'),
         ('tau_m',      'tau_m'),
         ('tau_refrac', 't_refrac'),
         ('tau_syn_E',  'tau_syn_E'),
         ('tau_syn_I',  'tau_syn_I'),
         ('v_thresh',   'v_thresh'),
-        ('i_offset',   'i_offset'), 
+        ('i_offset',   'i_offset'),
         ('e_rev_E',    'e_rev_E'),
         ('e_rev_I',    'e_rev_I')
     )
@@ -231,7 +231,7 @@ class EIF_cond_alpha_isfa_ista(ModelNotAvailable):
 
 
 class EIF_cond_exp_isfa_ista(ModelNotAvailable):
-    pass    
+    pass
 
 
 class HH_cond_exp(ModelNotAvailable):

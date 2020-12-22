@@ -8,7 +8,7 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -110,7 +110,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
                 assert isinstance(value, Sequence)
                 step_times = parameters["amplitude_times"].value
                 step_amplitudes = parameters["amplitude_values"].value
-                
+
                 step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, self.timestep)
                 parameters["amplitude_times"].value = step_times
                 parameters["amplitude_values"].value = step_amplitudes

@@ -2,7 +2,7 @@
 A small framework to make it easier to run the same model on multiple
 simulators.
 
-:copyright: Copyright 2006-2019 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -31,12 +31,12 @@ class MultiSim(object):
     Interface that runs a network model on different simulators, with each
     simulation in a separate process.
     """
-    
+
     def __init__(self, sim_list, network_model, parameters):
         """
         Build the model defined in the class `network_model`, with parameters
         `parameters`, for each of the simulator modules specified in `sim_list`.
-        
+
         The `network_model` constructor takes arguments `sim` and `parameters`.
         """
         self.processes = {}
@@ -51,10 +51,10 @@ class MultiSim(object):
             self.processes[sim.__name__] = p
             self.task_queues[sim.__name__] = task_queue
             self.result_queues[sim.__name__] = result_queue
-            
+
     def __iter__(self):
         return self.processes.itervalues()
-    
+
     def __getattr__(self, name):
         """
         Assumes `name` is a method of the `network_model` model.
@@ -68,11 +68,11 @@ class MultiSim(object):
                 retvals[sim_name] = self.result_queues[sim_name].get()
             return retvals
         return iterate_over_nets
-            
+
     def run(self, simtime, steps=1):  # , *callbacks):
         """
         Run the model for a time `simtime` in all simulators.
-        
+
         The run may be broken into a number of steps (each of equal duration).
         #Any functions in `callbacks` will be called after each step.
         """
@@ -82,7 +82,7 @@ class MultiSim(object):
                 self.task_queues[sim_name].put(('sim', 'run', [dt], {}))
             for sim_name in self.processes:
                 t = self.result_queues[sim_name].get()
-                
+
     def end(self):
         for sim_name in self.processes:
             self.task_queues[sim_name].put('STOP')
