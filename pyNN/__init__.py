@@ -70,6 +70,6 @@ Other modules:
 """
 
 __version__ = '0.9.6'
-__all__ = ["common", "random", "nest", "neuron", "brian",
+__all__ = ["common", "random", "nest", "neuron", "brian", "brian2",
            "recording", "errors", "space", "descriptions",
            "standardmodels", "parameters", "core", "serialization"]
