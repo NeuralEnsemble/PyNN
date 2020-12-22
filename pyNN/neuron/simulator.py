@@ -20,10 +20,6 @@ modules.
 
 """
 
-try:
-    xrange
-except NameError:
-    xrange = range
 from pyNN import __path__ as pyNN_path
 from pyNN import common
 import logging
@@ -85,7 +81,7 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0, 1]):
     """
     native_rng = h.Random(0 or rng.seed)
     rarr = [getattr(native_rng, distribution)(*parameters)]
-    rarr.extend([native_rng.repick() for j in xrange(n - 1)])
+    rarr.extend([native_rng.repick() for j in range(n - 1)])
     return numpy.array(rarr)
 
 

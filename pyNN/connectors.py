@@ -8,7 +8,6 @@ for improved performance.
 :license: CeCILL, see LICENSE for details.
 """
 
-from __future__ import division
 from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG, get_mpi_config
 from pyNN.core import IndexBasedExpression
 from pyNN import errors, descriptions
@@ -17,21 +16,13 @@ from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
 from pyNN.common import Population
 import numpy
-try:
-    from itertools import izip
-except ImportError:  # python3.x
-    izip = zip
-try:
-    basestring
-except NameError:
-    basestring = str
 from itertools import repeat
 import logging
 from copy import copy, deepcopy
 
 from lazyarray import arccos, arcsin, arctan, arctan2, ceil, cos, cosh, exp, \
-                      fabs, floor, fmod, hypot, ldexp, log, log10, modf, power, \
-                      sin, sinh, sqrt, tan, tanh, maximum, minimum
+    fabs, floor, fmod, hypot, ldexp, log, log10, modf, power, \
+    sin, sinh, sqrt, tan, tanh, maximum, minimum
 from numpy import e, pi
 
 try:
@@ -166,7 +157,7 @@ class MapConnector(Connector):
         postsynaptic_indices = projection.post.id_to_index(projection.post.all_cells)
 
         if (projection.synapse_type.native_parameters.parallel_safe
-            or hasattr(self, "rng") and self.rng.parallel_safe):
+                or hasattr(self, "rng") and self.rng.parallel_safe):
 
             # If any of the synapse parameters are based on parallel-safe random number generators,
             # we need to iterate over all post-synaptic cells, so we can generate then
@@ -189,7 +180,7 @@ class MapConnector(Connector):
         parameter_space = self._parameters_from_synapse_type(projection, distance_map)
 
         # Loop over columns of the connection_map array (equivalent to looping over post-synaptic neurons)
-        for count, (col, postsynaptic_index, local, source_mask) in enumerate(izip(*components)):
+        for count, (col, postsynaptic_index, local, source_mask) in enumerate(zip(*components)):
             # `col`: column index
             # `postsynaptic_index`: index of the post-synaptic neuron
             # `local`: boolean - does the post-synaptic neuron exist on this MPI node
@@ -239,7 +230,8 @@ class MapConnector(Connector):
                 if local:
                     # Connect the neurons
                     #logger.debug("Connecting to %d from %s" % (postsynaptic_index, source_mask))
-                    projection._convergent_connect(source_mask, postsynaptic_index, **connection_parameters)
+                    projection._convergent_connect(
+                        source_mask, postsynaptic_index, **connection_parameters)
                     if self.callback:
                         self.callback(count / projection.post.local_size)
 
@@ -269,15 +261,15 @@ class MapConnector(Connector):
             # this could be optimized by checking parent or component populations
             # but should handle both views and assemblies
             a = numpy.broadcast_to(projection.pre.all_cells,
-                                    (projection.post.size, projection.pre.size)).T
+                                   (projection.post.size, projection.pre.size)).T
             b = projection.post.all_cells
             connection_map = LazyArray(a != b, shape=projection.shape)
         return connection_map
 
     def _get_connection_map_no_mutual_connections(self, projection):
         if (isinstance(projection.pre, Population)
-              and isinstance(projection.post, Population)
-              and projection.pre == projection.post):
+            and isinstance(projection.post, Population)
+                and projection.pre == projection.post):
             connection_map = LazyArray(lambda i, j: i > j, shape=projection.shape)
         else:
             raise NotImplementedError("todo")
@@ -391,10 +383,13 @@ class DistanceDependentProbabilityConnector(MapConnector):
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         try:
             if isinstance(d_expression, str):
-                d = 0; assert 0 <= eval(d_expression), eval(d_expression)
-                d = 1e12; assert 0 <= eval(d_expression), eval(d_expression)
+                d = 0
+                assert 0 <= eval(d_expression), eval(d_expression)
+                d = 1e12
+                assert 0 <= eval(d_expression), eval(d_expression)
         except ZeroDivisionError as err:
-            raise ZeroDivisionError("Error in the distance expression %s. %s" % (d_expression, err))
+            raise ZeroDivisionError("Error in the distance expression %s. %s" %
+                                    (d_expression, err))
         self.d_expression = d_expression
         self.allow_self_connections = allow_self_connections
         self.distance_function = eval("lambda d: %s" % self.d_expression)
@@ -488,8 +483,8 @@ class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
     def __init__(self, disp_function, allow_self_connections=True,
                  rng=None, safe=True, callback=None):
         super(DisplacementDependentProbabilityConnector, self).__init__(
-                self.DisplacementExpression(disp_function),
-                allow_self_connections=allow_self_connections, rng=rng, callback=callback)
+            self.DisplacementExpression(disp_function),
+            allow_self_connections=allow_self_connections, rng=rng, callback=callback)
 
 
 class FromListConnector(Connector):
@@ -535,10 +530,9 @@ class FromListConnector(Connector):
                 self.column_names = column_names
                 if n_columns != len(self.column_names) + 2:
                     raise ValueError("connection list has %d parameter columns, but %d column names provided." % (
-                                    n_columns - 2, len(self.column_names)))
+                        n_columns - 2, len(self.column_names)))
         else:
             self.column_names = ()
-
 
     def connect(self, projection):
         """Connect-up a Projection."""
@@ -580,7 +574,7 @@ class FromListConnector(Connector):
                 connection_parameters.update(**{name: self.conn_list[l:r, col]})
             if isinstance(projection.synapse_type, StandardSynapseType):
                 connection_parameters = projection.synapse_type.translate(
-                                            connection_parameters)
+                    connection_parameters)
             connection_parameters.evaluate()
             projection._convergent_connect(sources, tgt, **connection_parameters)
 
@@ -617,7 +611,7 @@ class FromFileConnector(FromListConnector):
         Create a new connector.
         """
         Connector.__init__(self, safe=safe, callback=callback)
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = files.StandardTextFile(file, mode='r')
         self.file = file
         self.distributed = distributed
@@ -653,7 +647,8 @@ class FixedNumberConnector(MapConnector):
             assert n >= 0
         elif isinstance(n, RandomDistribution):
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
+            assert numpy.all(numpy.array(n.next(100)) >=
+                             0), "the random distribution produces negative numbers"
         else:
             raise TypeError("n must be an integer or a RandomDistribution object")
         self.rng = _get_rng(rng)
@@ -725,7 +720,8 @@ class FixedNumberPostConnector(FixedNumberConnector):
                 if not self.allow_self_connections and projection.pre == projection.post:
                     targets = self._rng_uniform_int_exclude(n, projection.post.size, source_index)
                 else:
-                    targets = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask=None)
+                    targets = self.rng.next(
+                        n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask=None)
             else:
                 all_cells = numpy.arange(projection.post.size)
                 if not self.allow_self_connections and projection.pre == projection.post:
@@ -811,7 +807,8 @@ class FixedNumberPreConnector(FixedNumberConnector):
                 def build_source_masks(mask=None):
                     n_pre = self._get_num_pre(projection.post.size, mask)
                     for n in n_pre:
-                        sources = self.rng.next(n, 'uniform_int', {"low": 0, "high": projection.pre.size}, mask=None)
+                        sources = self.rng.next(
+                            n, 'uniform_int', {"low": 0, "high": projection.pre.size}, mask=None)
                         assert sources.size == n
                         yield sources
             else:
@@ -824,7 +821,8 @@ class FixedNumberPreConnector(FixedNumberConnector):
                             yield sources
                     else:
                         # TODO: use mask to obtain indices i
-                        raise NotImplementedError("allow_self_connections=False currently requires a parallel safe RNG.")
+                        raise NotImplementedError(
+                            "allow_self_connections=False currently requires a parallel safe RNG.")
         else:
             if self.allow_self_connections or projection.pre != projection.post:
                 def build_source_masks(mask=None):
@@ -865,7 +863,8 @@ class FixedNumberPreConnector(FixedNumberConnector):
                             assert sources.size == n
                             yield sources
                     else:
-                        raise NotImplementedError("allow_self_connections=False currently requires a parallel safe RNG.")
+                        raise NotImplementedError(
+                            "allow_self_connections=False currently requires a parallel safe RNG.")
 
         self._standard_connect(projection, build_source_masks)
 
@@ -955,12 +954,14 @@ class CSAConnector(MapConnector):
     def connect(self, projection):
         """Connect-up a Projection."""
         # Cut out finite part
-        c = csa.cross((0, projection.pre.size - 1), (0, projection.post.size - 1)) * self.cset  # can't we cut out just the columns we want?
+        c = csa.cross((0, projection.pre.size - 1), (0, projection.post.size - 1)) * \
+            self.cset  # can't we cut out just the columns we want?
 
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
-                projection._convergent_connect([projection.pre[i]], projection.post[j], weight, delay)
+                projection._convergent_connect(
+                    [projection.pre[i]], projection.post[j], weight, delay)
         elif csa.arity(self.cset) == 0:
             # inefficient implementation as a starting point
             connection_map = numpy.zeros((projection.pre.size, projection.post.size), dtype=bool)
@@ -988,7 +989,7 @@ class CloneConnector(MapConnector):
 
     def connect(self, projection):
         if (projection.pre != self.reference_projection.pre or
-            projection.post != self.reference_projection.post):
+                projection.post != self.reference_projection.post):
             raise errors.ConnectionError("Pre and post populations must match between reference ({0}"
                                          "  and {1}) and clone projections ({2} and {3}) for "
                                          "CloneConnector"
@@ -1037,7 +1038,8 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             assert n >= 0
         elif isinstance(n, RandomDistribution):
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) >= 0), "the random distribution produces negative numbers"
+            assert numpy.all(numpy.array(n.next(100)) >=
+                             0), "the random distribution produces negative numbers"
         else:
             raise TypeError("n must be an integer or a RandomDistribution object")
         self.rng = _get_rng(rng)

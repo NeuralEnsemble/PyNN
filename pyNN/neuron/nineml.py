@@ -18,7 +18,6 @@ Constants:
 
 """
 
-from __future__ import absolute_import
 import logging
 import os
 import neuron
@@ -54,7 +53,8 @@ class NineMLCell(object):
             if name in self.type.receptor_types:
                 return self.source  # source is also target
             else:
-                raise AttributeError("'NineMLCell' object has no attribute or receptor type '%s'" % name)
+                raise AttributeError(
+                    "'NineMLCell' object has no attribute or receptor type '%s'" % name)
 
     def memb_init(self):
         # this is a bit of a hack
@@ -73,7 +73,8 @@ class NineMLCellType(BaseCellType):
         self.extra_parameters = {"type": self}  # self.__class__?
 
 
-def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None):  # weight variables should really be within component
+# weight variables should really be within component
+def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None):
     """
     Generate NMODL code for the 9ML component, run "nrnivmodl" and then load
     the mechanisms into NEURON.
@@ -88,8 +89,9 @@ def _compile_nmodl(nineml_component, weight_variables, hierarchical_mode=None): 
     logger.debug("Writing NineML component to %s" % xml_file)
     nineml_component.write(xml_file)
     mod_filename = nineml_component.name + ".mod"
-    write_nmodldirect(component=nineml_component, mod_filename=mod_filename, weight_variables=weight_variables)
-    #write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
+    write_nmodldirect(component=nineml_component, mod_filename=mod_filename,
+                      weight_variables=weight_variables)
+    # write_nmodl(xml_file, weight_variables) # weight variables should really come from xml file
 
     print("Running 'nrnivmodl' from %s" % wdir)
     call_nrnivmodl()

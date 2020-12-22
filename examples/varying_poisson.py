@@ -36,10 +36,10 @@ class SetRate(object):
         self.population = population
         self.interval = interval
         self.rate_generator = rate_generator
-        
+
     def __call__(self, t):
         try:
-          self.population.set(rate=next(rate_generator))
+            self.population.set(rate=next(rate_generator))
         except StopIteration:
             pass
         return t + self.interval
@@ -49,17 +49,17 @@ class MyProgressBar(object):
     """
     A callback which draws a progress bar in the terminal.
     """
-    
+
     def __init__(self, interval, t_stop):
         self.interval = interval
         self.t_stop = t_stop
         self.pb = ProgressBar(width=int(t_stop / interval), char=".")
-        
+
     def __call__(self, t):
         self.pb(t / self.t_stop)
         return t + self.interval
 
-    
+
 sim.setup()
 
 

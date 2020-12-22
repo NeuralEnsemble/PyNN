@@ -17,7 +17,6 @@ Functions:
 
 """
 
-from __future__ import print_function, division
 # If there is a settings.py file on the path, defaults will be
 # taken from there.
 try:
@@ -25,10 +24,7 @@ try:
 except ImportError:
     SMTPHOST = None
     EMAIL = None
-try:
-    unicode
-except NameError:
-    unicode = str
+
 import sys
 import logging
 import time
@@ -222,7 +218,7 @@ def normalized_filename(root, basename, extension, simulator, num_processes=None
 def connection_plot(projection, positive='O', zero='.', empty=' ', spacer=''):
     """ """
     connection_array = projection.get('weight', format='array')
-    image = numpy.zeros_like(connection_array, dtype=unicode)
+    image = numpy.zeros_like(connection_array, dtype=str)
     old_settings = numpy.seterr(invalid='ignore')  # ignore the complaint that x > 0 is invalid for NaN
     image[connection_array > 0] = positive
     image[connection_array == 0] = zero

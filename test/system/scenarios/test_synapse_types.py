@@ -1,4 +1,3 @@
-from __future__ import division
 
 import numpy as np
 try:
@@ -11,7 +10,7 @@ from nose.tools import assert_equal, assert_less, assert_greater, assert_not_equ
 from .registry import register
 
 
-@register(exclude=['moose', 'nemo', 'brian', 'brian2'])
+@register(exclude=['brian2'])
 def test_simple_stochastic_synapse(sim, plot_figure=False):
     # in this test we connect
     sim.setup(min_delay=0.5)
@@ -39,7 +38,7 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
     crossings = []
     for i in range(neurons.size):
         crossings.append(
-                gsyn.times[:-1][np.logical_and(gsyn.magnitude[:-1, i] < 0.4, 0.4 < gsyn.magnitude[1:, i])])
+            gsyn.times[:-1][np.logical_and(gsyn.magnitude[:-1, i] < 0.4, 0.4 < gsyn.magnitude[1:, i])])
     assert_equal(crossings[0].size, 0)
     assert_less(crossings[1].size, 0.6*spike_times.size)
     assert_greater(crossings[1].size, 0.4*spike_times.size)
@@ -53,7 +52,6 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
 
 
 test_simple_stochastic_synapse.__test__ = False
-
 
 
 if __name__ == '__main__':

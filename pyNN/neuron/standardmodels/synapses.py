@@ -70,7 +70,8 @@ class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
             # The best (only?) solution would be to create connections on the
             # node with the pre-synaptic neurons for ddf>0.5 and on the node
             # with the post-synaptic neuron (as is done now) for ddf<0.5
-            raise NotImplementedError("STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
+            raise NotImplementedError(
+                "STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
 
     def _get_minimum_delay(self):
         return state.min_delay

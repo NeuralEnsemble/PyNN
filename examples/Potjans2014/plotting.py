@@ -1,9 +1,9 @@
+import glob
+import os
+import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import os
-import glob
 
 
 def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
@@ -13,7 +13,7 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
 
     # Read out spikes for each population
     layer_list = ['L23', 'L4', 'L5', 'L6']
-    pop_list = ['E', 'I'] 
+    pop_list = ['E', 'I']
 
     for i in range(8):
         layer = int(i / 2)
@@ -76,4 +76,3 @@ def show_raster_bars(t_start, t_stop, n_rec, frac_to_plot, path):
     axarr[1].set_xlabel('rate (spikes/s)')
 
     plt.savefig(path + 'result.png')
-

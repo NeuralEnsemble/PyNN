@@ -27,7 +27,8 @@ def test_reset(sim):
     for segment in data.segments[1:]:
         assert_array_almost_equal(segment.analogsignals[0],
                                   data.segments[0].analogsignals[0], 10)
-        
+
+
 test_reset.__test__ = False
 
 
@@ -55,6 +56,8 @@ def test_reset_with_clear(sim):
         assert len(rec.segments) == 1
         assert_arrays_almost_equal(rec.segments[0].analogsignals[0],
                                    data[0].segments[0].analogsignals[0], 1e-11)
+
+
 test_reset_with_clear.__test__ = False
 
 
@@ -82,6 +85,8 @@ def test_setup(sim):
         signals = block.segments[0].analogsignals
         assert len(signals) == 1
         assert_array_equal(signals[0], data[0].segments[0].analogsignals[0])
+
+
 test_setup.__test__ = False
 
 
@@ -97,6 +102,8 @@ def test_run_until(sim):
     assert_almost_equal(sim.get_current_time(), 99.9, 10)
     assert_raises(ValueError, sim.run_until, 88.8)
     sim.end()
+
+
 test_run_until.__test__ = False
 
 

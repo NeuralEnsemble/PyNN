@@ -22,10 +22,6 @@ descriptions.DEFAULT_TEMPLATE_ENGINE = 'jinja2'
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    basestring
-except NameError:
-    basestring = str
 import string
 import os.path
 
@@ -50,7 +46,7 @@ def render(engine, template, context):
     else:
         if engine == 'default':
             engine = get_default_template_engine()
-        elif isinstance(engine, basestring):
+        elif isinstance(engine, str):
             engine = TEMPLATE_ENGINES[engine]
         assert issubclass(engine, TemplateEngine), str(engine)
         return engine.render(template, context)
@@ -114,6 +110,7 @@ class StringTemplateEngine(TemplateEngine):
         template = cls.get_template(template)
         return template.safe_substitute(context)
 
+
 TEMPLATE_ENGINES['string'] = StringTemplateEngine
 
 
@@ -124,7 +121,8 @@ try:
         """
         Interface to the Jinja2 template engine.
         """
-        env = jinja2.Environment(loader=jinja2.PackageLoader('pyNN.descriptions', 'templates/jinja2'))
+        env = jinja2.Environment(loader=jinja2.PackageLoader(
+            'pyNN.descriptions', 'templates/jinja2'))
 
         @classmethod
         def get_template(cls, template):
@@ -132,7 +130,7 @@ try:
             template may be either a string containing a template or the name of a
             file (relative to pyNN/descriptions/templates/jinja2/)
             """
-            assert isinstance(template, basestring)
+            assert isinstance(template, str)
             try:  # maybe template is a file
                 template = cls.env.get_template(template)
             except Exception:  # interpret template as a string

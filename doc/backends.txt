@@ -17,8 +17,6 @@ models within the PyNN framework.
    backends/NEURON
    backends/NEST
    backends/Brian
-   backends/NeMo
-   backends/MOOSE
    backends/NeuroML
    backends/NineML
    backends/neuromorphic

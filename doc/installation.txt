@@ -32,8 +32,8 @@ The easiest way to get PyNN is to use pip_::
 If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.9.6.tar.gz
-    $ cd PyNN-0.9.6
+    $ tar xzf PyNN-0.10.0.dev.tar.gz
+    $ cd PyNN-0.10.0.dev
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may
@@ -144,8 +144,8 @@ Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may
 Installing Brian
 ================
 
-Instructions for downloading and installing Brian_ are available from `<http://briansimulator.org/download/>`_.
-Note that this version of PyNN works with Brian 1.4, but not with Brian 2.
+Instructions for downloading and installing Brian_ are available from `<https://briansimulator.org/install/>`_.
+Note that this version of PyNN works with Brian 2. If you need to use Brian 1, try PyNN 0.9.6.
 
 
 .. _PyNN: http://neuralensemble.org/PyNN

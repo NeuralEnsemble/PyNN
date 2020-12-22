@@ -24,7 +24,6 @@ optional arguments:
 
 """
 
-from __future__ import division
 from math import exp
 import numpy
 import neo
@@ -54,8 +53,10 @@ delay = 3.0              # (ms) synaptic time delay
 # === Configure the simulator ===============================================
 
 sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file", {"action": "store_true"}),
-                             ("--fit-curve", "Calculate the best-fit curve to the weight-delta_t measurements", {"action": "store_true"}),
-                             ("--dendritic-delay-fraction", "What fraction of the total transmission delay is due to dendritic propagation", {"default": 1}),
+                             ("--fit-curve", "Calculate the best-fit curve to the weight-delta_t measurements",
+                              {"action": "store_true"}),
+                             ("--dendritic-delay-fraction",
+                              "What fraction of the total transmission delay is due to dendritic propagation", {"default": 1}),
                              ("--debug", "Print debugging information"))
 
 if options.debug:
@@ -77,6 +78,7 @@ def build_spike_sequences(period, duration, n, delta_t):
         return [Sequence(numpy.arange(period + j * delta_t, duration, period)) for j in (i - n // 2)]
     return spike_time_gen
 
+
 spike_sequence_generator = build_spike_sequences(firing_period, t_stop, n, delta_t)
 # presynaptic population
 p1 = sim.Population(n, sim.SpikeSourceArray(spike_times=spike_sequence_generator),
@@ -91,12 +93,12 @@ p3 = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(firing_peri
 # we set the initial weights to be very small, to avoid perturbing the firing times of the
 # postsynaptic neurons
 stdp_model = sim.STDPMechanism(
-                timing_dependence=sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0,
-                                                    A_plus=0.01, A_minus=0.012),
-                weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.0000001),
-                weight=0.00000005,
-                delay=delay,
-                dendritic_delay_fraction=float(options.dendritic_delay_fraction))
+    timing_dependence=sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0,
+                                        A_plus=0.01, A_minus=0.012),
+    weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.0000001),
+    weight=0.00000005,
+    delay=delay,
+    dendritic_delay_fraction=float(options.dendritic_delay_fraction))
 connections = sim.Projection(p1, p2, sim.AllToAllConnector(), stdp_model)
 
 # the connection weight from the driver neuron is very strong, to ensure the
@@ -131,6 +133,7 @@ class WeightRecorder(object):
                                   name="weight")
         signal.channel_index = neo.ChannelIndex(numpy.arange(len(self._weights[0])))
         return signal
+
 
 weight_recorder = WeightRecorder(sampling_interval=1.0, projection=connections)
 

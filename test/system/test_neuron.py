@@ -76,7 +76,7 @@ class SimpleNeuron(object):
     def _set_g_leak(self, value):
         for sec in (self.apical, self.basilar):
             for seg in sec:
-               seg.pas.g = value
+                seg.pas.g = value
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gl = value
@@ -114,7 +114,8 @@ if have_neuron:
     class SimpleNeuronType(NativeCellType):
         default_parameters = {'g_leak': 0.0002, 'gkbar': 0.036, 'gnabar': 0.12}
         default_initial_values = {'v': -65.0}
-        recordable = ['apical(1.0).v', 'soma(0.5).ina']  # this is not good - over-ride Population.can_record()?
+        # this is not good - over-ride Population.can_record()?
+        recordable = ['apical(1.0).v', 'soma(0.5).ina']
         units = {'apical(1.0).v': 'mV', 'soma(0.5).ina': 'mA/cm**2'}
         receptor_types = ['apical.ampa']
         model = SimpleNeuron
@@ -191,7 +192,8 @@ def test_record_native_model():
     assert_equal(apical_v.units, pq.mV)
     assert_equal(soma_i.units, pq.mA / pq.cm**2)
     assert_equal(apical_v.t_start, 0.0 * pq.ms)
-    assert_equal(apical_v.t_stop, 250.1 * pq.ms)  # would prefer if it were 250.0, but this is a fundamental Neo issue
+    # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert_equal(apical_v.t_stop, 250.1 * pq.ms)
     assert_equal(apical_v.shape, (2501, 10))
     return data
 
@@ -202,7 +204,8 @@ def test_tsodyks_markram_synapse():
     sim = pyNN.neuron
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
-    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
+    neurons = sim.Population(5, sim.IF_cond_exp(
+        e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
     synapse_type = sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
                                              tau_facil=1000.0, weight=0.01,
                                              delay=0.5)

@@ -10,7 +10,7 @@ from .registry import register
 import pickle
 
 
-@register(exclude=['nemo'])
+@register()
 def test_reset_recording(sim):
     """
     Check that record(None) resets the list of things to record.
@@ -43,7 +43,7 @@ def test_reset_recording(sim):
 test_reset_recording.__test__ = False
 
 
-@register(exclude=['moose', 'nemo'])
+@register()
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)
@@ -99,7 +99,7 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 test_record_vm_and_gsyn_from_assembly.__test__ = False
 
 
-@register(exclude=["brian", "brian2"])  # brian does not support off_grid. To fix?
+@register(exclude=["brian2"])  # brian does not support off_grid. To fix?
 def issue259(sim):
     """
     A test that retrieving data with "clear=True" gives correct spike trains.
@@ -166,7 +166,7 @@ def test_mix_procedural_and_oo(sim):
 test_mix_procedural_and_oo.__test__ = False
 
 
-@register(exclude=['brian', 'brian2'])  # todo: known to fail with Brian, but should work
+@register(exclude=['brian2'])  # todo: known to fail with Brian, but should work
 def test_record_with_filename(sim):
     """
     Test to ensure that Simulator and Population recording work properly

@@ -29,8 +29,6 @@ n_cells = 9
 sim.setup()
 
 cell_type = sim.IF_cond_exp(tau_m=10.0,
-#                            v_rest=lambda x, y, z: -60.0 - sqrt((x**2 + y**2)/100),
-#                            v_thresh=lambda x, y, z: -55.0 + x/10.0)
                             v_rest=lambda i: -60.0 + i,
                             v_thresh=lambda i: -55.0 + i)
 
@@ -64,7 +62,7 @@ connections = sim.Projection(spike_source, cells,
                              sim.FixedProbabilityConnector(0.5),
                              sim.StaticSynapse(weight='1/(1+d)',
                                                delay=0.5)
-                            )
+                             )
 
 print("weights:")
 print(str(connections.get('weight', format='array')).replace('nan', ' . '))

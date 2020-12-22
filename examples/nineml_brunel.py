@@ -8,7 +8,7 @@ runs a simulation using the pyNN.nineml module with the NEURON
 backend.
 
 """
-from __future__ import division
+
 import numpy as np
 from neo import AnalogSignal
 from quantities import ms, dimensionless
@@ -86,6 +86,7 @@ def instantaneous_firing_rate(segment, begin, end):
         hist += h
     return AnalogSignal(hist, sampling_period=0.1 * ms, units=dimensionless,
                         channel_index=0, name="Spike count")
+
 
 if args.plot:
     Figure(

@@ -73,7 +73,8 @@ class _State(common.control.BaseState):
 
     @property
     def t(self):
-        return max(nest.GetKernelStatus('time') - self.dt, 0.0)  # note that we always simulate one time step past the requested time
+        # note that we always simulate one time step past the requested time
+        return max(nest.GetKernelStatus('time') - self.dt, 0.0)
 
     dt = nest_property('resolution', float)
 
@@ -254,6 +255,7 @@ def generate_synapse_property(name):
     def _set(self, val):
         nest.SetStatus([self.id()], name, val)
     return property(_get, _set)
+
 
 setattr(Connection, 'U', generate_synapse_property('U'))
 setattr(Connection, 'tau_rec', generate_synapse_property('tau_rec'))

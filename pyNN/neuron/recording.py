@@ -11,7 +11,8 @@ import re
 from neuron import h
 
 
-recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
+recordable_pattern = re.compile(
+    r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 
 
 class Recorder(recording.Recorder):

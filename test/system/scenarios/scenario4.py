@@ -10,7 +10,7 @@ from .registry import register
 logger = logging.getLogger("TEST")
 
 
-@register(exclude=["nemo", "brian2"])  # to fix for Brian 2
+@register(exclude=["brian2"])  # to fix for Brian 2
 def scenario4(sim):
     """
     Network with spatial structure
@@ -49,7 +49,9 @@ def scenario4(sim):
     recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
                                            receptor_type='inhibitory',
                                            synapse_type=facilitating,
-                                           space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None)),  # should add "calculate_boundaries" method to Structure classes
+                                           # should add "calculate_boundaries" method to Structure classes
+                                           space=Space(periodic_boundaries=(
+                                               (-100.0, 100.0), (-100.0, 100.0), None)),
                                            label="recurrent connections")
     outputs.record('spikes')
     outputs.sample(10, rng=rng).record('v')

@@ -5,10 +5,7 @@ Tests of the Connector classes, using the pyNN.mock backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 from pyNN import connectors, random, errors, space, recording
 import numpy

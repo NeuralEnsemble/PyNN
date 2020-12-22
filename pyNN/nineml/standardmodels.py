@@ -41,7 +41,8 @@ class CellTypeMixin(object):
     def to_nineml(self, label, shape):
         inline_definition = False  # todo: get inline definitions to work
         components = [self.spiking_component_to_nineml(label, shape, inline_definition)] + \
-                     [self.synaptic_receptor_component_to_nineml(st, label, shape, inline_definition) for st in self.receptor_types]
+                     [self.synaptic_receptor_component_to_nineml(
+                         st, label, shape, inline_definition) for st in self.receptor_types]
         return components
 
     def spiking_component_to_nineml(self, label, shape, inline_definition=False):
@@ -54,9 +55,9 @@ class CellTypeMixin(object):
         else:
             definition = self.spiking_component_definition_url
         return nineml.SpikingNodeType(
-                    name="neuron type for population %s" % label,
-                    definition=nineml.Definition(definition, "dynamics"),
-                    parameters=build_parameter_set(self.spiking_component_parameters, shape))
+            name="neuron type for population %s" % label,
+            definition=nineml.Definition(definition, "dynamics"),
+            parameters=build_parameter_set(self.spiking_component_parameters, shape))
 
     def synaptic_receptor_component_to_nineml(self, receptor_type, label, shape, inline_definition=False):
         """
@@ -71,15 +72,15 @@ class CellTypeMixin(object):
         else:
             definition = self.synaptic_receptor_component_definition_urls[receptor_type]
         return nineml.SynapseType(
-                    name="%s post-synaptic response for %s" % (receptor_type, label),
-                    definition=nineml.Definition(definition, "dynamics"),
-                    parameters=build_parameter_set(self.synaptic_receptor_parameters[receptor_type], shape))
+            name="%s post-synaptic response for %s" % (receptor_type, label),
+            definition=nineml.Definition(definition, "dynamics"),
+            parameters=build_parameter_set(self.synaptic_receptor_parameters[receptor_type], shape))
 
 
-#class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
-#    
-#    __doc__ = cells.IF_curr_exp.__doc__      
-#    
+# class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
+#
+#    __doc__ = cells.IF_curr_exp.__doc__
+#
 #    translations = build_translations(
 #        ('tau_m',      'membraneTimeConstant'),
 #        ('cm',         'membraneCapacitance'),
@@ -107,7 +108,7 @@ class CellTypeMixin(object):
 
 class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
 
-    __doc__ = cells.IF_cond_exp.__doc__    
+    __doc__ = cells.IF_cond_exp.__doc__
 
     translations = build_translations(
         ('tau_m',      'tau_m'),
@@ -150,7 +151,7 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
                                           "v = v_reset",
                                           al.OutputEvent('spike_output')],
                                       to="refractory_regime"),
-                ),  
+                ),
                 al.Regime(
                     name="refractory_regime",
                     time_derivatives=["dv/dt = 0"],
@@ -159,14 +160,16 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
                 )
             ],
             state_variables=[
-                al.StateVariable('v'), #, dimension='[V]' # '[V]' should be an alias for [M][L]^2[T]^-3[I]^-1
-                al.StateVariable('t_spike'), #, dimension='[T]'
+                # , dimension='[V]' # '[V]' should be an alias for [M][L]^2[T]^-3[I]^-1
+                al.StateVariable('v'),
+                al.StateVariable('t_spike'),  # , dimension='[T]'
             ],
             analog_ports=[al.AnalogSendPort("v"),
                           al.AnalogReducePort("i_syn", reduce_op="+"), ],
             event_ports=[al.EventSendPort('spike_output'), ],
-            parameters=['cm', 'tau_refrac', 'tau_m', 'v_reset', 'v_rest', 'v_thresh', 'i_offset']  # add dimensions, or infer them from dimensions of variables
-                                                                                                   # in fact, we should be able to infer what are the parameters, without listing them
+            parameters=['cm', 'tau_refrac', 'tau_m', 'v_reset', 'v_rest', 'v_thresh',
+                        'i_offset']  # add dimensions, or infer them from dimensions of variables
+            # in fact, we should be able to infer what are the parameters, without listing them
         )
         return iaf
 
@@ -183,15 +186,17 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
                     transitions=al.On('spike_input', do=["g_syn=g_syn+q"]),
                 )
             ],
-            state_variables=[al.StateVariable('g_syn')],  #, dimension='[G]'  # alias [M]^-1[L]^-2[T]^3[I]^2
-            analog_ports=[al.AnalogReceivePort("v"), al.AnalogSendPort("i_syn"), al.AnalogReceivePort('q')],
+            # , dimension='[G]'  # alias [M]^-1[L]^-2[T]^3[I]^2
+            state_variables=[al.StateVariable('g_syn')],
+            analog_ports=[al.AnalogReceivePort("v"), al.AnalogSendPort(
+                "i_syn"), al.AnalogReceivePort('q')],
             parameters=['tau_syn', 'e_rev']
         )
         return coba
 
-        #iaf_2coba_model = al.ComponentClass(
-        #name="IF_cond_exp",
-        #subnodes={"cell": iaf,
+        # iaf_2coba_model = al.ComponentClass(
+        # name="IF_cond_exp",
+        # subnodes={"cell": iaf,
         #          "excitatory": coba,
         #          "inhibitory": coba})
         #iaf_2coba_model.connect_ports("cell.v", "excitatory.v")
@@ -199,13 +204,13 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
         #iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
         #iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
         #
-        #return iaf_2coba_model
+        # return iaf_2coba_model
 
 
-#class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
+# class IF_cond_alpha(cells.IF_cond_exp, CellTypeMixin):
 #
-#    __doc__ = cells.IF_cond_alpha.__doc__    
-#   
+#    __doc__ = cells.IF_cond_alpha.__doc__
+#
 #    translations = build_translations(
 #        ('tau_m',      'membraneTimeConstant'),
 #        ('cm',         'membraneCapacitance'),
@@ -235,7 +240,7 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
 
 class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
 
-    __doc__ = cells.SpikeSourcePoisson.__doc__     
+    __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
         ('start',    'start'),
@@ -267,17 +272,18 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson, CellTypeMixin):
                 al.Regime(name="after")
             ],
             state_variables=[
-                al.StateVariable('t_spike'), #, dimension='[T]'
+                al.StateVariable('t_spike'),  # , dimension='[T]'
             ],
             event_ports=[al.EventSendPort('spike_output'), ],
-            parameters=['start', 'rate', 'duration'],  # add dimensions, or infer them from dimensions of variables
+            # add dimensions, or infer them from dimensions of variables
+            parameters=['start', 'rate', 'duration'],
         )
         return source
 
 
 class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
 
-    __doc__ = cells.SpikeSourceArray.__doc__     
+    __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
         ('spike_times',    'spike_times'),
@@ -299,11 +305,12 @@ class SpikeSourceArray(cells.SpikeSourceArray, CellTypeMixin):
                 ),
             ],
             state_variables=[
-                al.StateVariable('t_spike'), #, dimension='[T]'
-                al.StateVariable('i'), #, dimension='[T]'
+                al.StateVariable('t_spike'),  # , dimension='[T]'
+                al.StateVariable('i'),  # , dimension='[T]'
             ],
             event_ports=[al.EventSendPort('spike_output'), ],
-            parameters=['start', 'rate', 'duration'],  # add dimensions, or infer them from dimensions of variables
+            # add dimensions, or infer them from dimensions of variables
+            parameters=['start', 'rate', 'duration'],
         )
         return source
 
@@ -313,10 +320,10 @@ class SynapseTypeMixin(object):
 
     def to_nineml(self):
         return nineml.ConnectionType(
-                            name="synapse type %d" % self.__class__.counter,
-                            definition=nineml.Definition("%s/connectiontypes/%s" % (catalog_url, self.definition_file),
-                                                         "dynamics"),
-                            parameters=build_parameter_set(self.parameters))
+            name="synapse type %d" % self.__class__.counter,
+            definition=nineml.Definition("%s/connectiontypes/%s" % (catalog_url, self.definition_file),
+                                         "dynamics"),
+            parameters=build_parameter_set(self.parameters))
 
 
 class StaticSynapse(SynapseTypeMixin, synapses.StaticSynapse):
@@ -347,10 +354,10 @@ class CurrentSourceMixin(object):
 
     def to_nineml(self):
         return nineml.CurrentSourceType(
-                            name="current source %d" % self.__class__.counter,
-                            definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
-                                                         "dynamics"),
-                            parameters=build_parameter_set(self.parameters))
+            name="current source %d" % self.__class__.counter,
+            definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
+                                         "dynamics"),
+            parameters=build_parameter_set(self.parameters))
 
 
 class DCSource(CurrentSourceMixin, electrodes.DCSource):

@@ -48,7 +48,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         Tweaks the value of phase supplied to NEST ACSource
         so as to remain consistent with other simulators
         """
-        phase_fix = ( (phase*numpy.pi/180) - (2*numpy.pi*freq*start/1000)) * 180/numpy.pi
+        phase_fix = ((phase*numpy.pi/180) - (2*numpy.pi*freq*start/1000)) * 180/numpy.pi
         phase_fix.shape = (1)
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
@@ -71,7 +71,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         Tweaks the value of phase supplied to NEST ACSource
         so as to remain consistent with other simulators
         """
-        phase_fix = ( (phase*numpy.pi/180) - (2*numpy.pi*freq*start/1000)) * 180/numpy.pi
+        phase_fix = ((phase*numpy.pi/180) - (2*numpy.pi*freq*start/1000)) * 180/numpy.pi
         phase_fix.shape = (1)
         phase_fix = phase_fix.evaluate()[0]
         nest.SetStatus(self._device, {'phase': phase_fix})
@@ -81,7 +81,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         if numpy.min(times) < 0:
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
-        if len(times)> 1 and numpy.min(numpy.diff(times)) <= 0:
+        if len(times) > 1 and numpy.min(numpy.diff(times)) <= 0:
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # NEST specific: subtract min_delay from times (set to 0.0, if result is negative)
         times = self._delay_correction(times)
@@ -93,14 +93,14 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
             times = times[ctr:]
             amplitudes = amplitudes[ctr:]
         # map timestamps to actual simulation time instants based on specified dt
-        #for ind in range(len(times)):
+        # for ind in range(len(times)):
         #    times[ind] = self._round_timestamp(times[ind], resolution)
-        times = self._round_timestamp(times,resolution)
+        times = self._round_timestamp(times, resolution)
         # remove duplicate timestamps, and corresponding amplitudes, after mapping
         step_times, step_indices = numpy.unique(times[::-1], return_index=True)
         step_times = step_times.tolist()
         step_indices = len(times)-step_indices-1
-        step_amplitudes = amplitudes[step_indices] #[amplitudes[i] for i in step_indices]
+        step_amplitudes = amplitudes[step_indices]  # [amplitudes[i] for i in step_indices]
         return step_times, step_amplitudes
 
     def set_native_parameters(self, parameters):
@@ -111,7 +111,8 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
                 step_times = parameters["amplitude_times"].value
                 step_amplitudes = parameters["amplitude_values"].value
 
-                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, self.timestep)
+                step_times, step_amplitudes = self._check_step_times(
+                    step_times, step_amplitudes, self.timestep)
                 parameters["amplitude_times"].value = step_times
                 parameters["amplitude_values"].value = step_amplitudes
                 nest.SetStatus(self._device, {key: step_amplitudes,

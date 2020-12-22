@@ -21,7 +21,7 @@ Classes:
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 import numpy
-from pyNN.core import is_listlike, itervalues
+from pyNN.core import is_listlike
 from copy import deepcopy
 import neo
 import quantities as pq
@@ -140,7 +140,7 @@ class StandardModelType(models.BaseModelType):
         if names:
             translations = (self.translations[name] for name in names)
         else:  # return all names
-            translations = itervalues(self.translations)
+            translations = self.translations.values()
         return [D['translated_name'] for D in translations]
 
 

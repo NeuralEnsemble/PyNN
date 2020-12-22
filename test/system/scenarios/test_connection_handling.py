@@ -3,7 +3,6 @@ Tests of the fine-grained connection API
 
 """
 
-from __future__ import division
 from nose.tools import assert_equal, assert_almost_equal, assert_is_instance
 from numpy.testing import assert_array_equal
 import numpy as np
@@ -16,11 +15,14 @@ def connections_attribute(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
-    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.7), sim.StaticSynapse(weight=0.05, delay=0.5))
+    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.7),
+                         sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
     assert_equal(len(connections), len(prj))
     assert_is_instance(connections[0], common.Connection)
+
+
 connections_attribute.__test__ = False
 
 
@@ -29,7 +31,8 @@ def connection_access_weight_and_delay(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
-    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.8), sim.StaticSynapse(weight=0.05, delay=0.5))
+    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.8),
+                         sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
     assert_almost_equal(connections[2].weight, 0.05, places=9)
@@ -43,7 +46,10 @@ def connection_access_weight_and_delay(sim):
     target[2, 1] = 1.0
     assert_array_equal(np.array(prj.get(('weight', 'delay'), format='list', with_address=False)),
                        target)
+
+
 connection_access_weight_and_delay.__test__ = False
+
 
 @register()
 def issue672(sim):
@@ -90,7 +96,7 @@ def issue672(sim):
 #                        np.array([[0.01, 0.011], [0.012, 0.013], [0.014, 0.015]]))
 
 
-@register(exclude=["brian", "brian2"])
+@register(exclude=["brian2"])
 def issue652(sim):
     """Correctly handle A_plus = 0 in SpikePairRule."""
     sim.setup()
@@ -113,8 +119,8 @@ def issue652(sim):
     )
 
     connection_to_input = sim.Projection(
-            neural_population1, neural_population2,
-            sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
+        neural_population1, neural_population2,
+        sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
     )
 
     a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
@@ -133,14 +139,13 @@ def issue652(sim):
     )
 
     connection_to_input = sim.Projection(
-            neural_population1, neural_population2,
-            sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
+        neural_population1, neural_population2,
+        sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
     )
 
     a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
     assert_equal(a_plus[~np.isnan(a_plus)][0], 0.0)
     assert_equal(a_minus[~np.isnan(a_minus)][0], 0.5)
-
 
 
 if __name__ == '__main__':

@@ -8,10 +8,6 @@ try:
     from unittest.mock import Mock
 except ImportError:
     from mock import Mock
-try:
-    basestring
-except NameError:
-    basestring = str
 import numpy
 
 
@@ -177,7 +173,7 @@ def test_describe():
         ('b', 'B', 1000.0),
         ('c', 'C', 'c + a', 'C - A'),
     )
-    assert isinstance(M().describe(), basestring)
+    assert isinstance(M().describe(), str)
 
 # test StandardCellType
 
@@ -189,7 +185,7 @@ def test_describe():
 def test_describe_synapse_type():
     StaticSynapse._get_minimum_delay = lambda self: 0.1
     sd = StaticSynapse()
-    assert isinstance(sd.describe(), basestring)
+    assert isinstance(sd.describe(), str)
     assert isinstance(sd.describe(template=None), dict)
     del StaticSynapse._get_minimum_delay
 

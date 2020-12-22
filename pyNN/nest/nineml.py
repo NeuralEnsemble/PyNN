@@ -17,7 +17,6 @@ Constants:
 
 """
 
-from __future__ import absolute_import  # Not compatible with Python 2.4
 import logging
 from pyNN.nest.cells import NativeCellType
 
@@ -70,8 +69,8 @@ class _nest_build_nineml_celltype(type):
 
         # Make the substitutions:
         flat_component.backsub_all()
-        #flat_component.backsub_aliases()
-        #flat_component.backsub_equations()
+        # flat_component.backsub_aliases()
+        # flat_component.backsub_equations()
 
         # Close any open reduce ports:
         component_modifiers.ComponentModifier.close_all_reduce_ports(component=flat_component)
@@ -92,7 +91,8 @@ class _nest_build_nineml_celltype(type):
             recv_event_ports = list(syn_component.query.event_recv_ports)
             # check there's only one
             if len(recv_event_ports) != 1:
-                raise ValueError("A synapse component has multiple recv ports.  Cannot dis-ambiguate")
+                raise ValueError(
+                    "A synapse component has multiple recv ports.  Cannot dis-ambiguate")
             synapse_ports.append(syn.namespace + '_' + recv_event_ports[0].name)
 
         # New:

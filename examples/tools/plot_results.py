@@ -11,6 +11,7 @@ e.g. python plot_results.py IF_curr_exp
 
 """
 
+from pprint import pprint
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ plt.ion()  # .rcParams['interactive'] = True
 example = sys.argv[1]
 
 blocks = {}
-for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
+for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian2':
     pattern = "Results/%s_*%s*.*" % (example, simulator.lower())
     datafiles = glob.glob(pattern)
     if datafiles:
@@ -39,7 +40,6 @@ for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian', 'MOOSE', 'Nemo':
 
 print("-" * 79)
 print(example)
-from pprint import pprint
 pprint(blocks)
 
 if len(blocks) > 0:

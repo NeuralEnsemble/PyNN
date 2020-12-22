@@ -5,7 +5,7 @@ from pyNN.utility import init_logging, assert_arrays_almost_equal
 from .registry import register
 
 
-@register(exclude=['nemo'])
+@register()
 def ticket195(sim):
     """
     Check that the `connect()` function works correctly with single IDs (see

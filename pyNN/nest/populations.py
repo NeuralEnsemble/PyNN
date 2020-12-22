@@ -44,7 +44,8 @@ class PopulationMixin(object):
             ids = [id.source for id in ids]
 
         if "spike_times" in names:
-            parameter_dict = {"spike_times": [Sequence(value) for value in nest.GetStatus(ids, names)]}
+            parameter_dict = {"spike_times": [Sequence(value)
+                                              for value in nest.GetStatus(ids, names)]}
         else:
             parameter_dict = {}
             for name in names:  # one name at a time, since some parameter values may be tuples
@@ -111,7 +112,8 @@ class Population(common.Population, PopulationMixin):
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
         self._deferred_parrot_connections = False
-        super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
+        super(Population, self).__init__(size, cellclass,
+                                         cellparams, structure, initial_values, label)
         self._simulator.state.populations.append(self)
 
     def _create_cells(self):

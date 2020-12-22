@@ -26,12 +26,13 @@ class BaseState(object):
         """Initialize the simulator."""
         self.running = False
         self.t_start = 0
-        self.write_on_end = []  # a list of (population, variable, filename) combinations that should be written to file on end()
+        # a list of (population, variable, filename) combinations that should be written to file on end()
+        self.write_on_end = []
         self.recorders = set([])
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
-           **extra_params):
+          **extra_params):
     """
     Initialises/reinitialises the simulator. Any existing network structure is
     destroyed.
@@ -50,7 +51,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         if max_delay != 'auto' and min_delay > max_delay:
             raise Exception("min_delay has to be less than or equal to max_delay.")
         if min_delay < timestep:
-            raise Exception("min_delay (%g) must be greater than timestep (%g)" % (min_delay, timestep))
+            raise Exception("min_delay (%g) must be greater than timestep (%g)" %
+                            (min_delay, timestep))
 
 
 def end(compatible_output=True):
@@ -88,7 +90,7 @@ def build_run(simulator):
                 next = min(next, time_point)
                 simulator.state.run_until(next)
                 callback_events.extend((callback(simulator.state.t), callback)
-                        for callback in active_callbacks)
+                                       for callback in active_callbacks)
         else:
             simulator.state.run_until(time_point)
         return simulator.state.t

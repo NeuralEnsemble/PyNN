@@ -236,7 +236,7 @@ class EIF_cond_alpha_isfa_ista(base_cells.EIF_cond_alpha_isfa_ista):
         ('v_rest',     'v_rest'),
         ('tau_m',      'tau_m'),
         ('i_offset',   'i_offset'),
-        ('a',          'A',        0.001), # nS --> uS
+        ('a',          'A',        0.001),  # nS --> uS
         ('b',          'B'),
         ('delta_T',    'delta'),
         ('tau_w',      'tau_w'),

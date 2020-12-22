@@ -13,7 +13,7 @@ compatible with, the GNU GPL license, but conforms to French law (and is also
 perfectly suited to international projects) - see
 `<http://www.cecill.info/index.en.html>`_ for more information. The choice
 of GPL-equivalence was made to match the licenses of other widely-used simulation
-software in computational neuroscience, such as NEURON (GPL) and Brian (CeCILL).
+software in computational neuroscience, such as NEURON (GPL), NEST (GPL) and Brian (CeCILL).
 
 If you are interested in using PyNN, but the choice of licence is a problem for you, please contact us to discuss dual-licensing.
 
@@ -31,4 +31,4 @@ grant agreement FETPI-015879 (FACETS), by the European Union Seventh Framework P
 under grant agreements no. 269921 (BrainScaleS) and no. 604102 (HBP),
 and by the European Union’s Horizon 2020 Framework Programme for
 Research and Innovation under the Specific Grant Agreements No. 720270 (Human Brain Project SGA1)
-and No. 785907 (Human Brain Project SGA2).
+, No. 785907 (Human Brain Project SGA2) and No. 945539 (Human Brain Project SGA3).

@@ -19,6 +19,7 @@ def test_sim(on_or_off_grid, sim_time):
     run(sim_time)
     return nrn.get_data().segments[0].analogsignals[0]
 
+
 sim_time = 10.0
 off = test_sim('off_grid', sim_time)
 on = test_sim('on_grid', sim_time)
@@ -34,6 +35,7 @@ def plot_data(pos, on, off, ylim, with_legend=False):
     ax.set_ylabel('V [mV]')
     if with_legend:
         plt.legend()
+
 
 plot_data(1, on, off, (-0.5, 21), with_legend=True)
 plot_data(2, on, off, (-0.05, 2.1))

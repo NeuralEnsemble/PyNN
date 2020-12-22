@@ -6,10 +6,6 @@
 import sys
 import inspect
 from itertools import chain
-try:
-    basestring
-except NameError:
-    basestring = str
 from neo.io import get_io
 from pyNN.common import Population, PopulationView, Projection, Assembly
 
@@ -33,7 +29,7 @@ class Network(object):
     @property
     def views(self):
         return frozenset(self._views)
-    
+
     @property
     def assemblies(self):
         return frozenset(self._assemblies)
@@ -100,9 +96,9 @@ class Network(object):
                 for assembly in self.assemblies]
 
     def write_data(self, io, variables='all', gather=True, clear=False, annotations=None):
-        if isinstance(io, basestring):
+        if isinstance(io, str):
             io = get_io(io)
         data = self.get_data(variables, gather, clear, annotations)
-        #if self._simulator.state.mpi_rank == 0 or gather is False:
+        # if self._simulator.state.mpi_rank == 0 or gather is False:
         if True:  # tmp. Need to handle MPI
             io.write(data)

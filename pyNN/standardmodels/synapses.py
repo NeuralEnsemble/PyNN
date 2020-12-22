@@ -17,10 +17,6 @@ Classes for defining STDP rules:
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    long
-except NameError:
-    long = int
 from pyNN import descriptions
 from pyNN.standardmodels import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
 from pyNN.parameters import ParameterSpace
@@ -167,7 +163,7 @@ class STDPMechanism(StandardSynapseType):
             assert isinstance(timing_dependence, STDPTimingDependence)
         if weight_dependence:
             assert isinstance(weight_dependence, STDPWeightDependence)
-        assert isinstance(dendritic_delay_fraction, (int, long, float))
+        assert isinstance(dendritic_delay_fraction, (int, float))
         assert 0 <= dendritic_delay_fraction <= 1
         self.timing_dependence = timing_dependence
         self.weight_dependence = weight_dependence

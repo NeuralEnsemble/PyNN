@@ -6,14 +6,7 @@ backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-try:
-    basestring
-except NameError:
-    basestring = str
+import unittest
 import numpy
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -47,7 +40,7 @@ class PopulationTest(unittest.TestCase):
     def test_create_with_standard_cell_simple(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
         self.assertEqual(p.size, 11)
-        self.assertIsInstance(p.label, basestring)
+        self.assertIsInstance(p.label, str)
         self.assertIsInstance(p.celltype, sim.IF_cond_exp)
         self.assertIsInstance(p._structure, space.Line)
         self.assertEqual(p._positions, None)
@@ -601,7 +594,7 @@ class PopulationTest(unittest.TestCase):
 
     def test_describe(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        self.assertIsInstance(p.describe(), basestring)
+        self.assertIsInstance(p.describe(), str)
         self.assertIsInstance(p.describe(template=None), dict)
 
     def test_save_positions(self, sim=sim):

@@ -6,7 +6,8 @@ from nose.tools import assert_equal
 from .registry import register
 
 
-@register(exclude="neuron")  # for NEURON, this only works when run with MPI and more than one process
+# for NEURON, this only works when run with MPI and more than one process
+@register(exclude="neuron")
 def issue231(sim):
     sim.setup(min_delay='auto')
 

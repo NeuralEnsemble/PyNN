@@ -6,10 +6,7 @@ pyNN.mock backend.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 import numpy
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -18,10 +15,6 @@ try:
     from unittest.mock import Mock, patch
 except ImportError:
     from mock import Mock, patch
-try:
-    basestring
-except NameError:
-    basestring = str
 from .mocks import MockRNG
 import pyNN.mock as sim
 from pyNN import random, errors, space
@@ -550,7 +543,7 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_describe(self, sim=sim):
         pv = sim.Population(11, sim.IF_cond_exp())[::4]
-        self.assertIsInstance(pv.describe(), basestring)
+        self.assertIsInstance(pv.describe(), str)
         self.assertIsInstance(pv.describe(template=None), dict)
 
     def test_index_in_grandparent(self, sim=sim):
@@ -576,7 +569,6 @@ class PopulationViewTest(unittest.TestCase):
             pv2.index_from_parent_index(numpy.array([2, 5, 13])),
             numpy.array([1, 3, 5])
         )
-
 
     def test_save_positions(self, sim=sim):
         import os

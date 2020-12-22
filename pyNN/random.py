@@ -17,13 +17,10 @@ Classes:
 
 from copy import deepcopy
 import logging
-import numpy.random
-try:
-    reduce
-except NameError:
-    from functools import reduce
+from functools import reduce
 import operator
 import time
+import numpy.random
 
 try:
     import pygsl.rng
@@ -153,7 +150,8 @@ class WrappedRNG(AbstractRNG):
         if not isinstance(rarr, numpy.ndarray):
             rarr = numpy.array(rarr)
         if self.parallel_safe and mask is not None:
-            rarr = rarr[mask]  # strip out the random numbers that should be used on other processors.
+            # strip out the random numbers that should be used on other processors.
+            rarr = rarr[mask]
         if n is None:
             return rarr[0]
         else:

@@ -5,12 +5,6 @@ Parameter set handling
 :license: CeCILL, see LICENSE for details.
 """
 
-try:  # Python 2
-    basestring
-    long
-except NameError:  # Python 3
-    basestring = str
-    long = int
 import numpy
 import collections
 from pyNN.core import is_listlike
@@ -35,7 +29,7 @@ class LazyArray(larray):
 
     Arguments:
         `value`:
-            may be an int, long, float, bool, NumPy array, iterator, generator
+            may be an int, float, bool, NumPy array, iterator, generator
             or a function, `f(i)` or `f(i,j)`, depending on the dimensions of
             the array. `f(i,j)` should return a single number when `i` and `j`
             are integers, and a 1D array when either `i` or `j` or both is a
@@ -50,7 +44,7 @@ class LazyArray(larray):
     # the plan is ultimately to move everything to lazyarray
 
     def __init__(self, value, shape=None, dtype=None):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             errmsg = "Value should be a string expressing a function of d. "
             try:
                 value = eval("lambda d: %s" % value)
@@ -65,7 +59,7 @@ class LazyArray(larray):
     def __setitem__(self, addr, new_value):
         self.check_bounds(addr)
         if (self.is_homogeneous
-            and isinstance(new_value, (int, long, float, bool))
+            and isinstance(new_value, (int, float, bool))
             and self.evaluate(simplify=True) == new_value):
             pass
         else:
@@ -140,7 +134,8 @@ class ArrayParameter(object):
         element `i` of val.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value + val)
 
@@ -154,7 +149,8 @@ class ArrayParameter(object):
         element `i` of val subtracted from it.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value - val)
 
@@ -168,7 +164,8 @@ class ArrayParameter(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value * val)
 
@@ -184,11 +181,12 @@ class ArrayParameter(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value / val)
 
-    __truediv__ = __div__  # Python 3
+    __truediv__ = __div__
 
     def __eq__(self, other):
         if isinstance(other, ArrayParameter):
@@ -240,6 +238,7 @@ class ParameterSpace(object):
 
     .. _`lazy array`: https://lazyarray.readthedocs.org/
     """
+
     def __init__(self, parameters, schema=None, shape=None, component=None):
         """
 
@@ -270,10 +269,7 @@ class ParameterSpace(object):
 
         Note that the values will all be :class:`LazyArray` objects.
         """
-        if hasattr(self._parameters, "iteritems"):
-            return self._parameters.iteritems()
-        else:
-            return self._parameters.items()
+        return self._parameters.items()
 
     def __repr__(self):
         return "<ParameterSpace %s, shape=%s>" % (", ".join(self.keys()), self.shape)
@@ -311,9 +307,11 @@ class ParameterSpace(object):
                     self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
                 except (TypeError, errors.InvalidParameterValueError):
-                    raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
+                    raise errors.InvalidParameterValueError(
+                        "For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
                 except ValueError as err:
-                    raise errors.InvalidDimensionsError(err)  # maybe put the more specific error classes into lazyarray
+                    # maybe put the more specific error classes into lazyarray
+                    raise errors.InvalidDimensionsError(err)
         else:
             for name, value in parameters.items():
                 self._parameters[name] = LazyArray(value, shape=self._shape)
@@ -426,7 +424,8 @@ class ParameterSpace(object):
                         D[name] = value[:, j]
                     else:
                         D[name] = value
-                    assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+                    # should all have been evaluated by now
+                    assert not isinstance(D[name], LazyArray)
                 yield D
 
     def __eq__(self, other):
@@ -482,7 +481,7 @@ def simplify(value):
     else:
         return value
     # alternative - need to benchmark
-    #if numpy.any(arr != arr[0]):
+    # if numpy.any(arr != arr[0]):
     #    return arr
-    #else:
+    # else:
     #    return arr[0]

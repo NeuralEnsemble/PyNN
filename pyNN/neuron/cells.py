@@ -9,6 +9,7 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+from functools import reduce
 import numpy
 from neuron import h, nrn, hclass
 
@@ -16,11 +17,6 @@ from pyNN import errors
 from pyNN.models import BaseCellType
 from .recording import recordable_pattern
 from .simulator import state
-
-try:
-    reduce
-except NameError:
-    from functools import reduce
 
 logger = logging.getLogger("PyNN")
 
@@ -121,7 +117,8 @@ class SingleCompartmentNeuron(BaseSingleCompartmentNeuron):
         self.syn_shape = syn_shape
 
         # insert synapses
-        assert syn_type in ('current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
+        assert syn_type in (
+            'current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
         assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
         synapse_model = self.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
@@ -174,8 +171,9 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         self.v_init = v_rest  # default value
 
     def __set_tau_m(self, value):
-        #print("setting tau_m to", value, "cm =", self.seg.cm))
-        self.seg.pas.g = 1e-3 * self.seg.cm / value  # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        # print("setting tau_m to", value, "cm =", self.seg.cm))
+        # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        self.seg.pas.g = 1e-3 * self.seg.cm / value
 
     def __get_tau_m(self):
         #print("tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm)
@@ -194,9 +192,9 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     v_rest = _new_property('seg.pas', 'e')
     tau_m = property(fget=__get_tau_m, fset=__set_tau_m)
     c_m = property(fget=__get_cm, fset=__set_cm)  # if the property were called 'cm'
-                                                    # it would never get accessed as the
-                                                    # built-in Section.cm would always
-                                                    # be used first
+    # it would never get accessed as the
+    # built-in Section.cm would always
+    # be used first
 
 
 class StandardIF(LeakySingleCompartmentNeuron):
@@ -257,7 +255,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     t_refrac = _new_property('adexp', 'trefrac')
     B = _new_property('adexp', 'b')
     A = _new_property('adexp', 'a')
-    ## using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
+    # using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
     tau_w = _new_property('adexp', 'tauw')
     delta = _new_property('adexp', 'delta')
 
@@ -270,7 +268,8 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     v_spike = property(fget=__get_v_spike, fset=__set_v_spike)
 
     def __set_tau_m(self, value):
-        self.seg.pas.g = 1e-3 * self.seg.cm / value  # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
+        self.seg.pas.g = 1e-3 * self.seg.cm / value
         self.adexp.GL = self.seg.pas.g * self.area() * 1e-2  # S/cm2 to uS
 
     def __get_tau_m(self):
@@ -324,7 +323,7 @@ class Izhikevich_(BaseSingleCompartmentNeuron):
     b = _new_property('izh', 'b')
     c = _new_property('izh', 'c')
     d = _new_property('izh', 'd')
-    ## using 'a_' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
+    # using 'a_' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
 
     def get_threshold(self):
         return self.izh.vthresh
@@ -475,7 +474,6 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
     def __set_a_eta(self, value):
         self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3 = value.value
 
-
     def __get_a_eta(self):
         return self.gif_fun.a_eta1, self.gif_fun.a_eta2, self.gif_fun.a_eta3
 
@@ -483,7 +481,6 @@ class GIFNeuron(LeakySingleCompartmentNeuron):
 
     def __set_tau_gamma(self, value):
         self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3 = value.value
-
 
     def __get_tau_gamma(self):
         return self.gif_fun.tau_gamma1, self.gif_fun.tau_gamma2, self.gif_fun.tau_gamma3
@@ -529,7 +526,8 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         self.rec = h.NetCon(self, None)
         self.switch = h.NetCon(None, self)
         self.source_section = None
-        self.seed(state.mpi_rank + state.native_rng_baseseed)  # should allow user to set specific seeds somewhere, e.g. in setup()
+        # should allow user to set specific seeds somewhere, e.g. in setup()
+        self.seed(state.mpi_rank + state.native_rng_baseseed)
 
     def _set_interval(self, value):
         self.switch.weight[0] = -1
@@ -595,7 +593,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
         except (RuntimeError, AttributeError):
             raise errors.InvalidParameterValueError("spike_times must be an array of floats")
         if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
-            raise errors.InvalidParameterValueError("Spike times given to SpikeSourceArray must be in increasing order")
+            raise errors.InvalidParameterValueError(
+                "Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
         if self.recording:
             self._recorded_spikes = numpy.hstack((self._recorded_spikes, spike_times.value))
@@ -645,12 +644,14 @@ class ArtificialCell(object):
 
     def _set_tau(self, value):
         self.source.tau = value
+
     def _get_tau(self):
         return self.source.tau
     tau = property(fget=_get_tau, fset=_set_tau)
 
     def _set_refrac(self, value):
         self.source.refrac = value
+
     def _get_refrac(self):
         return self.source.refrac
     refrac = property(fget=_get_refrac, fset=_set_refrac)
@@ -675,7 +676,7 @@ class IntFire2(NativeCellType):
     default_parameters = {'taum': 10.0, 'taus': 20.0, 'ib': 0.0}
     default_initial_values = {'m': 0.0, 'i': 0.0}
     recordable = ['m', 'i']
-    units = {'m' : 'dimensionless', 'i': 'dimensionless'}
+    units = {'m': 'dimensionless', 'i': 'dimensionless'}
     receptor_types = ['default']
     model = ArtificialCell
     extra_parameters = {"mechanism_name": "IntFire2"}
@@ -690,10 +691,10 @@ class IntFire4(NativeCellType):
     }
     default_initial_values = {'m': 0.0, 'e': 0.0, 'i1': 0.0, 'i2': 0.0}
     recordable = ['e', 'i1', 'i2', 'm']
-    units = {'e' : 'dimensionless',
-             'i1' : 'dimensionless',
-             'i2' : 'dimensionless',
-             'm' : 'dimensionless'}
+    units = {'e': 'dimensionless',
+             'i1': 'dimensionless',
+             'i2': 'dimensionless',
+             'm': 'dimensionless'}
     receptor_types = ['default']
     model = ArtificialCell
     extra_parameters = {"mechanism_name": "IntFire4"}

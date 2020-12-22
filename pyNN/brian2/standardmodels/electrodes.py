@@ -22,6 +22,7 @@ from pyNN.brian2 import simulator
 
 logger = logging.getLogger("PyNN")
 
+
 def update_currents():
     for current_source in simulator.state.current_sources:
         current_source._update_current()
@@ -51,7 +52,7 @@ class Brian2CurrentSource(StandardCurrentSource):
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
         dt_times = numpy.diff(times)
-        if not all(dt_times>0.0):
+        if not all(dt_times > 0.0):
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # map timestamps to actual simulation time instants based on specified dt
         times = self._round_timestamp(times, resolution)
@@ -69,10 +70,11 @@ class Brian2CurrentSource(StandardCurrentSource):
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
-            if name == "amplitudes": # key used only by StepCurrentSource
+            if name == "amplitudes":  # key used only by StepCurrentSource
                 step_times = parameters["times"].value
                 step_amplitudes = parameters["amplitudes"].value
-                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
+                step_times, step_amplitudes = self._check_step_times(
+                    step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
                 parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):
@@ -105,13 +107,15 @@ class Brian2CurrentSource(StandardCurrentSource):
         if self.running and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0):
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
-                    cell.parent.brian2_group.i_inj[idx] += (self.amplitudes[self.i] - self.prev_amp_dict[idx]) * ampere
+                    cell.parent.brian2_group.i_inj[idx] += (
+                        self.amplitudes[self.i] - self.prev_amp_dict[idx]) * ampere
                     self.prev_amp_dict[idx] = self.amplitudes[self.i]
                 else:
                     amp_val = self._compute(self.times[self.i])
                     self.amplitudes = numpy.append(self.amplitudes, amp_val)
-                    cell.parent.brian2_group.i_inj[idx] += (amp_val - self.prev_amp_dict[idx]) * ampere
-                    self.prev_amp_dict[idx] = amp_val #* ampere
+                    cell.parent.brian2_group.i_inj[idx] += (amp_val -
+                                                            self.prev_amp_dict[idx]) * ampere
+                    self.prev_amp_dict[idx] = amp_val  # * ampere
             self.i += 1
             if self.i >= len(self.times):
                 self.running = False
@@ -147,6 +151,7 @@ class Brian2CurrentSource(StandardCurrentSource):
                 break
         return (times * second / ms, amps * amp / nA)
 
+
 class StepCurrentSource(Brian2CurrentSource, electrodes.StepCurrentSource):
     __doc__ = electrodes.StepCurrentSource.__doc__
 
@@ -178,8 +183,10 @@ class ACSource(Brian2CurrentSource, electrodes.ACSource):
 
     def _generate(self):
         # Note: Brian2 uses seconds as unit of time
-        temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) - self.start) / (simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start + (i * simulator.state.dt * 1e-3) for i in range(temp_num_t)])
+        temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) -
+                                self.start) / (simulator.state.dt * 1e-3)))
+        self.times = numpy.array([self.start + (i * simulator.state.dt * 1e-3)
+                                  for i in range(temp_num_t)])
         self.amplitudes = numpy.zeros(0)
 
     def _compute(self, time):
@@ -213,7 +220,7 @@ class DCSource(Brian2CurrentSource, electrodes.DCSource):
         if self.start < simulator.state.t*1e-3 < self.stop:
             self.times.insert(-1, simulator.state.t*1e-3)
             self.amplitudes.insert(-1, self.amplitude)
-            if (self.start==0 and self.i==2) or (self.start!=0 and self.i==3):
+            if (self.start == 0 and self.i == 2) or (self.start != 0 and self.i == 3):
                 self.i -= 1
 
 
@@ -236,7 +243,8 @@ class NoisyCurrentSource(Brian2CurrentSource, electrodes.NoisyCurrentSource):
 
     def _generate(self):
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt * 1e-3)))
-        self.times = numpy.array([self.start + (i * max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
+        self.times = numpy.array(
+            [self.start + (i * max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
         self.times = numpy.append(self.times, self.stop)
         self.amplitudes = numpy.zeros(0)
 
