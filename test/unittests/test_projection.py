@@ -81,6 +81,17 @@ class ProjectionTest(unittest.TestCase):
                           self.p1, "foo", connector=self.all2all,
                           synapse_type=self.syn2)
 
+    def test_create_with_default_receptor_type(self, sim=sim):
+        prj = sim.Projection(self.p1, self.p3, connector=self.all2all,
+                             synapse_type=sim.StaticSynapse())
+        self.assertEqual(prj.receptor_type, "excitatory")
+        prj = sim.Projection(self.p1, self.p3, connector=self.all2all,
+                             synapse_type=sim.TsodyksMarkramSynapse(weight=0.5))
+        self.assertEqual(prj.receptor_type, "excitatory")
+        prj = sim.Projection(self.p1, self.p3, connector=self.all2all,
+                             synapse_type=sim.StaticSynapse(weight=lambda d: -0.1 * d))
+        self.assertEqual(prj.receptor_type, "inhibitory")
+
     def test_size_with_gather(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         self.assertEqual(prj.size(gather=True), self.p1.size * self.p2.size)
