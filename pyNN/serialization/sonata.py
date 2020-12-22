@@ -400,14 +400,17 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         node_type_info = {
             "node_type_id": i,
         }
-        if target.lower() == "neuron":
-            node_type_info["model_type"] = "single_compartment"
-        elif target.lower() in ("pynn", "nest"):
-            node_type_info["model_type"] = "point_neuron"
-            node_type_info["model_template"] = "{}:{}".format(target.lower(),
-                                                              population.celltype.__class__.__name__)
+        if "SpikeSource" in population.celltype.__class__.__name__:
+            node_type_info["model_type"] = "virtual"
         else:
-            raise NotImplementedError
+            if target.lower() == "neuron":
+                node_type_info["model_type"] = "single_compartment"
+            elif target.lower() in ("pynn", "nest"):
+                node_type_info["model_type"] = "point_neuron"
+                node_type_info["model_template"] = "{}:{}".format(target.lower(),
+                                                                population.celltype.__class__.__name__)
+            else:
+                raise NotImplementedError
         group_label = 0  #"default"
         # todo: add "population" column
 
@@ -428,16 +431,19 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         node_group = default.create_group(str(group_label))
         node_params_group = node_group.create_group("dynamics_params")
         for parameter_name in population.celltype.default_parameters:
-            # we could make a single get call to get all params at once, at the expense
-            # of higher memory usage. To profile...
-            values = population.get(parameter_name, gather=True, simplify=True)
-            if isinstance(values, np.ndarray):
-                # array, put into the HDF5 file and put 'NONE' in the CSV file
-                node_params_group.create_dataset(parameter_name, data=values)
-                node_type_info[parameter_name] = "NONE"
+            if parameter_name == "spike_times":
+                warn("spike times should be added manually to simulation_config")
             else:
-                # scalar, put into the CSV file
-                node_type_info[parameter_name] = values
+                # we could make a single get call to get all params at once, at the expense
+                # of higher memory usage. To profile...
+                values = population.get(parameter_name, gather=True, simplify=True)
+                if isinstance(values, np.ndarray):
+                    # array, put into the HDF5 file and put 'NONE' in the CSV file
+                    node_params_group.create_dataset(parameter_name, data=values)
+                    node_type_info[parameter_name] = "NONE"
+                else:
+                    # scalar, put into the CSV file
+                    node_type_info[parameter_name] = values
 
         # positions in space
         x, y, z = population.positions
