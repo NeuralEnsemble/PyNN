@@ -131,7 +131,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 0.0,
         'mu_minus': 0.0
@@ -150,7 +150,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 1.0,
         'mu_minus': 1.0
@@ -169,7 +169,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 0.0,
         'mu_minus': 1.0
@@ -190,7 +190,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'mu_plus'),
         ('mu_minus',  'mu_minus'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
 
     def __init__(self, w_min=0.0, w_max=1.0, mu_plus=0.5, mu_minus=0.5):
         if w_min != 0:
@@ -211,6 +211,7 @@ def _translate_A_minus_forwards(**parameters):
         alpha = A_minus / A_plus
     return alpha
 
+
 def _translate_A_minus_reverse(**parameters):
     alpha = parameters["alpha"]
     lambda_ = parameters["lambda"]
@@ -226,9 +227,9 @@ class SpikePairRule(synapses.SpikePairRule):
 
     translations = build_translations(
         ('tau_plus',  'tau_plus'),
-        ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
+        ('tau_minus', 'tau_minus'),  # defined in post-synaptic neuron
         ('A_plus',    'lambda'),
         ('A_minus',   'alpha', _translate_A_minus_forwards, _translate_A_minus_reverse),
 
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])

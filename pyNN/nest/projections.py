@@ -21,6 +21,7 @@ from .conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
 
+
 def listify(obj):
     if isinstance(obj, numpy.ndarray):
         return obj.astype(float).tolist()
@@ -229,18 +230,19 @@ class Projection(common.Projection):
             # (non-common) parameters.
             if self._common_synapse_property_names is None:
                 nest.Connect(presynaptic_cells,
-                                postsynaptic_cell_id,
-                                'all_to_all',
-                                syn_dict)
+                             postsynaptic_cell_id,
+                             'all_to_all',
+                             syn_dict)
                 self._identify_common_synapse_properties()
 
                 # Retrieve connections so that we can set additional
                 # parameters using nest.SetStatus
                 connections = nest.GetConnections(source=presynaptic_cells,
-                                                    target=postsynaptic_cell_id,
-                                                    synapse_model=self.nest_synapse_model,
-                                                    synapse_label=self.nest_synapse_label)
-                sort_indices = numpy.argsort(presynaptic_cells)  # not sure why we need to sort here
+                                                  target=postsynaptic_cell_id,
+                                                  synapse_model=self.nest_synapse_model,
+                                                  synapse_label=self.nest_synapse_label)
+                # not sure why we need to sort here
+                sort_indices = numpy.argsort(presynaptic_cells)
                 for name, value in connection_parameters.items():
                     if name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)
@@ -255,9 +257,9 @@ class Projection(common.Projection):
                 # parameters directly in the nest.Connect call
                 syn_dict = self._update_syn_params(syn_dict, connection_parameters)
                 nest.Connect(presynaptic_cells,
-                                postsynaptic_cell_id,
-                                'all_to_all',
-                                syn_dict)
+                             postsynaptic_cell_id,
+                             'all_to_all',
+                             syn_dict)
                 # and then set the common parameters
                 for name, value in connection_parameters.items():
                     if name in self._common_synapse_property_names:
@@ -265,8 +267,8 @@ class Projection(common.Projection):
 
         except nest.kernel.NESTError as e:
             errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                        e, presynaptic_cells, postsynaptic_cell,
-                        weights, delays, self.nest_synapse_model)
+                e, presynaptic_cells, postsynaptic_cell,
+                weights, delays, self.nest_synapse_model)
             raise errors.ConnectionError(errmsg)
 
         # Reset the caching of the connection list, since this will have to be recalculated
@@ -277,7 +279,8 @@ class Projection(common.Projection):
         if "tau_minus" in parameter_space.keys() and not parameter_space["tau_minus"].is_homogeneous:
             raise ValueError("tau_minus cannot be heterogeneous "
                              "within a single Projection with NEST.")
-        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
+        # only columns for connections that exist on this machine
+        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
         sources = numpy.unique(self._sources).tolist()
         if self._common_synapse_property_names is None:
             self._identify_common_synapse_properties()
@@ -320,10 +323,10 @@ class Projection(common.Projection):
                 raise_error = unequal
             if raise_error:
                 raise ValueError("{} cannot be heterogeneous "
-                        "within a single Projection. Warning: "
-                        "Projection was only partially initialized."
-                        " Please call sim.nest.reset() to reset "
-                        "your network and start over!".format(name))
+                                 "within a single Projection. Warning: "
+                                 "Projection was only partially initialized."
+                                 " Please call sim.nest.reset() to reset "
+                                 "your network and start over!".format(name))
         if hasattr(value, "__len__"):
             value1 = value[0]
         else:
@@ -339,7 +342,7 @@ class Projection(common.Projection):
         value2 = make_sli_compatible(value1)
         nest.SetDefaults(self.nest_synapse_model, name, value2)
 
-    #def saveConnections(self, file, gather=True, compatible_output=True):
+    # def saveConnections(self, file, gather=True, compatible_output=True):
     #    """
     #    Save connections to file in a format suitable for reading in with a
     #    FromFileConnector.
@@ -383,12 +386,15 @@ class Projection(common.Projection):
             scale_factors = numpy.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
             if self.receptor_type == 'inhibitory' and self.post.conductance_based:
-                scale_factors[names.index('weight')] *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
+                # NEST uses negative values for inhibitory weights, even if these are conductances
+                scale_factors[names.index('weight')] *= -1
             values *= scale_factors
         if 'presynaptic_index' in names:
-            values[:, names.index('presynaptic_index')] = self.pre.id_to_index(values[:, names.index('presynaptic_index')])
+            values[:, names.index('presynaptic_index')] = self.pre.id_to_index(
+                values[:, names.index('presynaptic_index')])
         if 'postsynaptic_index' in names:
-            values[:, names.index('postsynaptic_index')] = self.post.id_to_index(values[:, names.index('postsynaptic_index')])
+            values[:, names.index('postsynaptic_index')] = self.post.id_to_index(
+                values[:, names.index('postsynaptic_index')])
         values = values.tolist()
         for i in range(len(values)):
             values[i] = tuple(values[i])

@@ -30,7 +30,8 @@ def test_ticket235():
     p2 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
     p1.record('spikes', to_file=False)
     p2.record('spikes', to_file=False)
-    prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(), pynnn.StaticSynapse(weight=10.0), receptor_type='excitatory')
+    prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(
+    ), pynnn.StaticSynapse(weight=10.0), receptor_type='excitatory')
     # we note that the connectivity is as expected: a uniform diagonal
     prj1_2.get('weight', format='array')
     src = pynnn.DCSource(amplitude=70)
@@ -66,7 +67,8 @@ def test_tsodyks_markram_synapse():
     sim = pyNN.brian2
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
-    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
+    neurons = sim.Population(5, sim.IF_cond_exp(
+        e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
     synapse_type = sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
                                              tau_facil=1000.0, weight=0.01,
                                              delay=0.5)

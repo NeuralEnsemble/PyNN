@@ -19,7 +19,7 @@ examples = (
     # "VAbenchmarks.py",
     # "brunel.py",
     "cell_type_demonstration.py",
-    #"connections.py",
+    # "connections.py",
     # "distrib_example.py",
     # "inhomogeneous_network.py",
     # "nineml_neuron.py",
@@ -95,6 +95,7 @@ def list_files(filter):
                 for filename in x[2]
                 if filter in filename])
 
+
 print("Running examples in {}".format(tmp_dir))
 for example in examples:
     new_files = run(example, next(simulators))
@@ -119,8 +120,8 @@ new_files = list_files("VAbenchmarks").difference(files_initial)
 files_initial = list_files(".png")
 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 p = subprocess.Popen("python %s/tools/VAbenchmark_graphs.py -o Results/VAbenchmarks_%s_%s.png %s" % (
-                         examples_dir, cell_type, timestamp, " ".join(new_files)),
-                     shell=True, cwd=tmp_dir)
+    examples_dir, cell_type, timestamp, " ".join(new_files)),
+    shell=True, cwd=tmp_dir)
 p.wait()
 img_path, = list_files(".png").difference(files_initial)
 shutil.copy(img_path, image_dir)

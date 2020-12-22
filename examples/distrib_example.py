@@ -1,11 +1,11 @@
 
+from mpi4py import MPI
 from pyNN.utility import get_script_args
 
 import sys
 import numpy
 
 simulator = get_script_args(1)[0]
-from mpi4py import MPI    
 exec("import pyNN.%s as sim" % simulator)
 
 
@@ -57,6 +57,8 @@ def gather(data):
     gdata = numpy.empty(sum(sizes))
     comm.Gatherv([data, size, MPI.DOUBLE], [gdata, (sizes, displacements), MPI.DOUBLE], root=0)
     return gdata
+
+
 data3g = gather(data3)
 if comm.rank == 0:
     print("gathered (3, again):", data3g)

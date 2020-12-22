@@ -236,7 +236,11 @@ class Grid2D(BaseStructure):
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.rng = rng
-        self.dx = dx; self.dy = dy; self.x0 = x0; self.y0 = y0; self.z = z
+        self.dx = dx
+        self.dy = dy
+        self.x0 = x0
+        self.y0 = y0
+        self.z = z
 
     def calculate_size(self, n):
         """docstring goes here"""
@@ -253,7 +257,8 @@ class Grid2D(BaseStructure):
         x = self.x0 + self.dx * x.flatten()
         y = self.y0 + self.dy * y.flatten()
         z = self.z + z.flatten()
-        positions = numpy.array((x, y, z))  # use column_stack, if we decide to switch from (3,n) to (n,3)
+        # use column_stack, if we decide to switch from (3,n) to (n,3)
+        positions = numpy.array((x, y, z))
         if self.fill_order == 'sequential':
             return positions
         else:  # random
@@ -290,8 +295,12 @@ class Grid3D(BaseStructure):
         assert fill_order in ('sequential', 'random')
         self.fill_order = fill_order
         self.rng = rng
-        self.dx = dx; self.dy = dy; self.dz = dz
-        self.x0 = x0; self.y0 = y0; self.z0 = z0
+        self.dx = dx
+        self.dy = dy
+        self.dz = dz
+        self.x0 = x0
+        self.y0 = y0
+        self.z0 = z0
 
     def calculate_size(self, n):
         """docstring goes here"""

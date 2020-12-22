@@ -87,6 +87,7 @@ def instantaneous_firing_rate(segment, begin, end):
     return AnalogSignal(hist, sampling_period=0.1 * ms, units=dimensionless,
                         channel_index=0, name="Spike count")
 
+
 if args.plot:
     Figure(
         Panel(stim_data.spiketrains, markersize=0.2, xlim=args.limits),

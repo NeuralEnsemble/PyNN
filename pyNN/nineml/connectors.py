@@ -18,10 +18,10 @@ class ConnectorMixin(object):
         for name in self.__class__.parameter_names:
             connector_parameters[name] = getattr(self, name)
         connection_rule = nineml.ConnectionRuleComponent(
-                                    name="connection rule for projection %s" % label,
-                                    definition=nineml.Definition(self.definition_url,
-                                                                 "connection_generator"),
-                                    parameters=build_parameter_set(connector_parameters))
+            name="connection rule for projection %s" % label,
+            definition=nineml.Definition(self.definition_url,
+                                         "connection_generator"),
+            parameters=build_parameter_set(connector_parameters))
         return connection_rule
 
 

@@ -110,6 +110,7 @@ class StringTemplateEngine(TemplateEngine):
         template = cls.get_template(template)
         return template.safe_substitute(context)
 
+
 TEMPLATE_ENGINES['string'] = StringTemplateEngine
 
 
@@ -120,7 +121,8 @@ try:
         """
         Interface to the Jinja2 template engine.
         """
-        env = jinja2.Environment(loader=jinja2.PackageLoader('pyNN.descriptions', 'templates/jinja2'))
+        env = jinja2.Environment(loader=jinja2.PackageLoader(
+            'pyNN.descriptions', 'templates/jinja2'))
 
         @classmethod
         def get_template(cls, template):

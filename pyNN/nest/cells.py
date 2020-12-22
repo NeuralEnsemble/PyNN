@@ -40,7 +40,8 @@ def get_defaults(model_name):
             if isinstance(value, valid_types):
                 default_params[name] = conversion.make_pynn_compatible(value)
             else:
-                warnings.warn("Ignoring parameter '%s' since PyNN does not support %s" % (name, type(value)))
+                warnings.warn("Ignoring parameter '%s' since PyNN does not support %s" %
+                              (name, type(value)))
     return default_params, default_initial_values
 
 

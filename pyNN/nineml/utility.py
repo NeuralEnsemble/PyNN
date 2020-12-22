@@ -39,7 +39,8 @@ def reverse_map(D):
     E = {}
     for k, v in D.items():
         if v in E:
-            raise KeyError("Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
+            raise KeyError(
+                "Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
         E[v] = k
     return E
 
@@ -77,7 +78,8 @@ def build_random_distribution(random_distribution_component):
     rd_params = [rd.property(rdp_name).value for rdp_name in rd_param_names]
     if rd_name == 'exponential':
         # temporary hack - need to implement a proper translation mechanism
-        rd_params[0] = 1000.0 / rd_params[0]   # UncertML uses rate in Hz, PyNN uses beta (1/rate) in ms
+        # UncertML uses rate in Hz, PyNN uses beta (1/rate) in ms
+        rd_params[0] = 1000.0 / rd_params[0]
     rand_distr = random.RandomDistribution(rd_name, rd_params)
     return rand_distr
 
@@ -96,7 +98,8 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
             elif isinstance(value, random.RandomDistribution):
                 rand_distr = value
                 value = nineml.RandomDistributionComponent(
-                    name="%s(%s)" % (rand_distr.name, ",".join(str(p) for p in rand_distr.parameters)),
+                    name="%s(%s)" % (rand_distr.name, ",".join(str(p)
+                                                               for p in rand_distr.parameters)),
                     definition=nineml.Definition(random_distribution_url_map[rand_distr.name],
                                                  "random"),
                     parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),

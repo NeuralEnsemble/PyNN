@@ -49,7 +49,9 @@ def scenario4(sim):
     recurrent_connections = sim.Projection(outputs, outputs, recurrent_connectivity,
                                            receptor_type='inhibitory',
                                            synapse_type=facilitating,
-                                           space=Space(periodic_boundaries=((-100.0, 100.0), (-100.0, 100.0), None)),  # should add "calculate_boundaries" method to Structure classes
+                                           # should add "calculate_boundaries" method to Structure classes
+                                           space=Space(periodic_boundaries=(
+                                               (-100.0, 100.0), (-100.0, 100.0), None)),
                                            label="recurrent connections")
     outputs.record('spikes')
     outputs.sample(10, rng=rng).record('v')

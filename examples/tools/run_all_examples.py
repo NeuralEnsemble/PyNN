@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-import subprocess, glob, os, sys
+import subprocess
+import glob
+import os
+import sys
 
 default_simulators = ['MOCK', 'NEST', 'NEURON', 'Brian2']
 simulator_names = sys.argv[1:]
@@ -53,7 +56,8 @@ for simulator in simulator_names:
                 print(cmd, end='')
                 sys.stdout.flush()
                 logfile = open("Results/%s_%s.log" % (os.path.basename(script), simulator), 'w')
-                p = subprocess.Popen(cmd, shell=True, stdout=logfile, stderr=subprocess.PIPE, close_fds=True)
+                p = subprocess.Popen(cmd, shell=True, stdout=logfile,
+                                     stderr=subprocess.PIPE, close_fds=True)
                 retval = p.wait()
                 print(retval == 0 and " - ok" or " - fail")
     else:
@@ -63,5 +67,6 @@ print("\n\n\n================== Plotting results =================\n")
 for script in glob.glob("../*.py"):
     cmd = "%s plot_results.py %s" % (sys.executable, os.path.basename(script)[:-3])
     print(cmd)
-    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, close_fds=True)
     p.wait()

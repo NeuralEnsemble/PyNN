@@ -94,7 +94,7 @@ class NeuronCurrentSource(StandardCurrentSource):
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
         dt_times = numpy.diff(times)
-        if not all(dt_times>0.0):
+        if not all(dt_times > 0.0):
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # map timestamps to actual simulation time instants based on specified dt
         for ind in range(len(times)):
@@ -113,10 +113,11 @@ class NeuronCurrentSource(StandardCurrentSource):
     def set_native_parameters(self, parameters):
         parameters.evaluate(simplify=True)
         for name, value in parameters.items():
-            if name == "amplitudes": # key used only by StepCurrentSource
+            if name == "amplitudes":  # key used only by StepCurrentSource
                 step_times = parameters["times"].value
                 step_amplitudes = parameters["amplitudes"].value
-                step_times, step_amplitudes = self._check_step_times(step_times, step_amplitudes, simulator.state.dt)
+                step_times, step_amplitudes = self._check_step_times(
+                    step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
                 parameters["amplitudes"].value = step_amplitudes
             if isinstance(value, Sequence):  # this shouldn't be necessary, but seems to prevent a segfault
@@ -237,8 +238,8 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
         self._generate()
 
     def _generate(self):
-        ## Not efficient at all... Is there a way to have those vectors computed on the fly ?
-        ## Otherwise should have a buffer mechanism
+        # Not efficient at all... Is there a way to have those vectors computed on the fly ?
+        # Otherwise should have a buffer mechanism
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt)))
         self.times = self.start + max(self.dt, simulator.state.dt) * numpy.arange(temp_num_t)
         self.times = numpy.append(self.times, self.stop)

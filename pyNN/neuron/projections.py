@@ -35,7 +35,8 @@ class Projection(common.Projection):
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
-        self._connections = dict((index, defaultdict(list)) for index in self.post._mask_local.nonzero()[0])
+        self._connections = dict((index, defaultdict(list))
+                                 for index in self.post._mask_local.nonzero()[0])
         connector.connect(self)
         self._presynaptic_components = dict((index, {}) for index in
                                             self.pre._mask_local.nonzero()[0])
@@ -82,7 +83,8 @@ class Projection(common.Projection):
         #logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
         postsynaptic_cell = self.post[postsynaptic_index]
         if not isinstance(postsynaptic_cell, int) or not (0 <= postsynaptic_cell <= simulator.state.gid_counter):
-            errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (postsynaptic_cell, simulator.state.gid_counter)
+            errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (
+                postsynaptic_cell, simulator.state.gid_counter)
             raise errors.ConnectionError(errmsg)
         for name, value in connection_parameters.items():
             if isinstance(value, (float, int)):
@@ -90,7 +92,7 @@ class Projection(common.Projection):
         assert postsynaptic_cell.local
         for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
-            #logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
+            # logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx].append(
                 self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters))
 
@@ -103,7 +105,7 @@ class Projection(common.Projection):
         """
         # Get the list of all connections on all nodes
         conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list',
-                                               gather='all', with_address=True))
+                                         gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on
         # the local node
         mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:, 0]),
@@ -113,7 +115,7 @@ class Projection(common.Projection):
             post_idx = int(conn[1])
             params = dict(zip(self.synapse_type.get_parameter_names(), conn[2:]))
             self._presynaptic_components[pre_idx][post_idx] = \
-                                self.synapse_type.presynaptic_type(self, pre_idx, post_idx, **params)
+                self.synapse_type.presynaptic_type(self, pre_idx, post_idx, **params)
 
     def _set_attributes(self, parameter_space):
         # If synapse has pre-synaptic components evaluate the parameters for them
@@ -126,7 +128,8 @@ class Projection(common.Projection):
                     for index in component:
                         setattr(component[index], name, value[index])
         # Evaluate the parameters for the post-synaptic components (typically the "Connection" object)
-        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))  # only columns for connections that exist on this machine
+        # only columns for connections that exist on this machine
+        parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
         for connection_group, connection_parameters in zip(self._connections.values(),
                                                            parameter_space.columns()):
             for name, value in connection_parameters.items():

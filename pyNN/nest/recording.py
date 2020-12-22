@@ -14,7 +14,8 @@ from pyNN.nest import simulator
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
                 'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
 REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
-SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001,
+                 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
 
 logger = logging.getLogger("PyNN")
 
@@ -55,18 +56,20 @@ class RecordingDevice(object):
         nest_variable = VARIABLE_MAP.get(variable, variable)
         events = nest.GetStatus(self.device, 'events')[0]
         ids = events['senders']
-        values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
+        # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
+        values = events[nest_variable] * scale_factor
         data = {}
         recorded_ids = set(ids)
 
         for id in recorded_ids:
-            data[id]=[]
+            data[id] = []
 
-        for id,v in zip(ids,values):
+        for id, v in zip(ids, values):
             data[id].append(v)
 
-        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(recorded_ids)),numpy.array(desired_ids))
-        data = {k : data[k] for k in desired_and_existing_ids}
+        desired_and_existing_ids = numpy.intersect1d(
+            numpy.array(list(recorded_ids)), numpy.array(desired_ids))
+        data = {k: data[k] for k in desired_and_existing_ids}
 
         if variable != 'times':
             for id in desired_ids:
@@ -76,7 +79,7 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                data[int(id)] = [initial_value] + data.get(int(id),[])
+                data[int(id)] = [initial_value] + data.get(int(id), [])
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
@@ -154,7 +157,7 @@ class Multimeter(RecordingDevice):
         _set_status(self.device, {'record_from': list(current_variables)})
 
 
-#class RecordingDevice(object):
+# class RecordingDevice(object):
 #    scale_factors = {'V_m': 1, 'g_ex': 0.001, 'g_in': 0.001}
 #
 #    def __init__(self, device_type, to_memory=False):
@@ -435,24 +438,26 @@ class Recorder(recording.Recorder):
         self._spike_detector = SpikeDetector()
 
     def _get_spiketimes(self, ids):
-        return self._spike_detector.get_spiketimes(ids)  # hugely inefficient - to be optimized later
+        # hugely inefficient - to be optimized later
+        return self._spike_detector.get_spiketimes(ids)
 
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
-            return numpy.array([data[i] for i in ids]).T #JACOMMENT: this is very expensive but not sure how to get rid of it
+            # JACOMMENT: this is very expensive but not sure how to get rid of it
+            return numpy.array([data[i] for i in ids]).T
         else:
             return numpy.array([])
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
         #N = {}
-        #if self._device.in_memory():
+        # if self._device.in_memory():
         #    events = nest.GetStatus(self._device.device, 'events')[0]
         #    for id in self.filter_recorded(filter):
         #        mask = events['senders'] == int(id)
         #        N[int(id)] = len(events['times'][mask])
-        #else:
+        # else:
         #    spikes = self._get(gather=False, compatible_output=False,
         #                       filter=filter)
         #    for id in self.filter_recorded(filter):
@@ -463,7 +468,7 @@ class Recorder(recording.Recorder):
         #    right = numpy.searchsorted(ids, idx, 'right')
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
-        #return N
+        # return N
         return self._spike_detector.get_spike_counts(self.filter_recorded('spikes', filter_ids))
 
     def _clear_simulator(self):

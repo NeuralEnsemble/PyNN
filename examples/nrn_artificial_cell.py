@@ -74,7 +74,7 @@ if plot_figure:
     data = cells.get_data().segments[0]
     m = data.filter(name="m")[0]
     Figure(
-        Panel(m, ylabel="Membrane potential (dimensionless)", yticks=True, ylim=(0,1)),
+        Panel(m, ylabel="Membrane potential (dimensionless)", yticks=True, ylim=(0, 1)),
         Panel(data.spiketrains, xlabel="Time (ms)", xticks=True),
         annotations="Simulated with NEURON"
     ).save(figure_filename)

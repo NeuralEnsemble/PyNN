@@ -35,7 +35,8 @@ class Assembly(common.Assembly):
     def get_synaptic_response_components(self, synaptic_mechanism_name):
         components = set([])
         for p in self.populations:
-            components.add(p.celltype.synaptic_receptor_component_to_nineml(synaptic_mechanism_name, self.label))
+            components.add(p.celltype.synaptic_receptor_component_to_nineml(
+                synaptic_mechanism_name, self.label))
         return components
 
     def to_nineml(self):
@@ -59,11 +60,11 @@ class PopulationView(BasePopulation, common.PopulationView):
         else:
             ids = str(self.mask.tolist())
         selection = nineml.Selection(self.label,
-                        nineml.All(
-                            nineml.Eq("population[@name]", self.parent.label),
-                            nineml.In("population[@id]", ids)
-                        )
-                    )
+                                     nineml.All(
+                                         nineml.Eq("population[@name]", self.parent.label),
+                                         nineml.In("population[@id]", ids)
+                                     )
+                                     )
         return selection
 
 
@@ -76,7 +77,7 @@ class Population(BasePopulation, common.Population):
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         common.Population.__init__(self, size, cellclass, cellparams, structure,
-                                   initial_values, label) 
+                                   initial_values, label)
         self._simulator.state.net.populations.append(self)
 
     def _create_cells(self):
@@ -110,16 +111,16 @@ class Population(BasePopulation, common.Population):
     def to_nineml(self):
         if self.structure:
             structure = nineml.Structure(
-                                    name="structure for %s" % self.label,
-                                    definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__),
-                                                                 "structure"),
-                                    parameters=build_parameter_set(self.structure.get_parameters())
-                                    )
+                name="structure for %s" % self.label,
+                definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__),
+                                             "structure"),
+                parameters=build_parameter_set(self.structure.get_parameters())
+            )
         else:
             structure = None
         population = nineml.Population(
-                                name=self.label,
-                                number=len(self),
-                                prototype=self.celltype.to_nineml(self.label, (self.size,))[0],
-                                positions=nineml.PositionList(structure=structure))
+            name=self.label,
+            number=len(self),
+            prototype=self.celltype.to_nineml(self.label, (self.size,))[0],
+            positions=nineml.PositionList(structure=structure))
         return population

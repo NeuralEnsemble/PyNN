@@ -73,4 +73,3 @@ for i, case in enumerate(cases):
         plt.xlim(xlim)
 
 plt.savefig("Results/random_distributions.png")
-

@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys
+import os
 
 
 if True:  # mock NEURON
@@ -50,10 +51,7 @@ if False:  # mock NEST
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
-              'sphinx.ext.viewcode',
-              #'sphinx.ext.intersphinx',
-#              'matplotlib.sphinxext.only_directives',
-#              'matplotlib.sphinxext.plot_directive'
+              'sphinx.ext.viewcode'
               ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -208,8 +206,8 @@ htmlhelp_basename = 'PyNNdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyNN.tex', u'PyNN Documentation',
-   authors, 'manual'),
+    ('index', 'PyNN.tex', u'PyNN Documentation',
+     authors, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

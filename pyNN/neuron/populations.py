@@ -130,5 +130,6 @@ class Population(common.Population, PopulationMixin):
         assert isinstance(rand_distr.rng, NativeRNG)
         rng = simulator.h.Random(rand_distr.rng.seed or 0)
         native_rand_distr = getattr(rng, rand_distr.name)
-        rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size - 1)]
+        rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick()
+                                                              for i in range(self.all_cells.size - 1)]
         self.tset(parametername, rarr)

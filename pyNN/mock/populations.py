@@ -53,7 +53,7 @@ class Population(common.Population):
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
-        
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:
@@ -61,7 +61,7 @@ class Population(common.Population):
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(mask=self._mask_local, simplify=False)
         self._parameters = parameter_space.as_dict()
-        
+
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size

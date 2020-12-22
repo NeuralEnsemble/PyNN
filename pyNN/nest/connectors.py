@@ -60,7 +60,7 @@ class CSAConnector(DefaultCSAConnector):
             return self.cg_connect(projection)
         else:
             warn("Note: using the default CSAConnector. To use the accelerated version for NEST,\n"
-                    "Please re-compile NEST using --with-libneurosim=PATH")
+                 "Please re-compile NEST using --with-libneurosim=PATH")
             return super(CSAConnector, self).connect(projection)
 
     def cg_connect(self, projection):
@@ -72,12 +72,13 @@ class CSAConnector(DefaultCSAConnector):
         if csa.arity(self.cset) == 2:
             param_map = {'weight': 0, 'delay': 1}
             nest.CGConnect(presynaptic_cells, postsynaptic_cells, self.cset,
-                            param_map, projection.nest_synapse_model)
+                           param_map, projection.nest_synapse_model)
         else:
             nest.CGConnect(presynaptic_cells, postsynaptic_cells, self.cset,
-                            model=projection.nest_synapse_model)
+                           model=projection.nest_synapse_model)
 
-        projection._connections = None  # reset the caching of the connection list, since this will have to be recalculated
+        # reset the caching of the connection list, since this will have to be recalculated
+        projection._connections = None
         projection._sources.extend(presynaptic_cells)
 
 
@@ -91,7 +92,8 @@ class NESTConnectorMixin(object):
                 continue
             if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
                 if isinstance(value.base_value.rng, NativeRNG):
-                    logger.warning("Random values will be created inside NEST with NEST's own RNGs")
+                    logger.warning(
+                        "Random values will be created inside NEST with NEST's own RNGs")
                     params[name] = value.evaluate().repr()
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
@@ -100,12 +102,15 @@ class NESTConnectorMixin(object):
                 if value.is_homogeneous:
                     params[name] = value.evaluate(simplify=True)
                 elif value.shape:
-                    params[name] = value.evaluate().flatten()  # If parameter is given as an array or function
+                    # If parameter is given as an array or function
+                    params[name] = value.evaluate().flatten()
                 else:
                     value.shape = (1, 1)
-                    params[name] = float(value.evaluate())  # If parameter is given as a single number. Checking of the dimensions should be done in NEST
+                    # If parameter is given as a single number. Checking of the dimensions should be done in NEST
+                    params[name] = float(value.evaluate())
                 if name == "weight" and projection.receptor_type == 'inhibitory' and self.post.conductance_based:
-                    params[name] *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
+                    # NEST wants negative values for inhibitory weights, even if these are conductances
+                    params[name] *= -1
         return params
 
 
@@ -129,7 +134,8 @@ class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs:  # or projection.synapse_type.native_parameters.non_random:  TODO
+        # or projection.synapse_type.native_parameters.non_random:  TODO
+        if projection.synapse_type.native_parameters.has_native_rngs:
             return self.native_connect(projection)
         else:
             return super(AllToAllConnector, self).connect(projection)
@@ -142,7 +148,7 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
         projection._connect(rule_params, syn_params)
 
 
-#class OneToOneConnector():
+# class OneToOneConnector():
 #
 #    def __init__(self, allow_self_connections=True, with_replacement=True, safe=True,
 #                 callback=None):
@@ -158,7 +164,7 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 #        projection._connect(rule_params, syn_params)
 #
 #
-#class FixedNumberPreConnector():
+# class FixedNumberPreConnector():
 #
 #    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
 #                 callback=None, rng=None):
@@ -176,7 +182,7 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 #        projection._connect(rule_params, syn_params)
 #
 #
-#class FixedNumberPostConnector():
+# class FixedNumberPostConnector():
 #
 #    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
 #                 callback=None, rng=None):
@@ -194,7 +200,7 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 #        projection._connect(rule_params, syn_params)
 #
 #
-#class FixedTotalNumberConnector():
+# class FixedTotalNumberConnector():
 #
 #    def __init__(self, n, allow_self_connections=True, with_replacement=True, safe=True,
 #                 callback=None):

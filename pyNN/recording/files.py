@@ -268,7 +268,8 @@ if have_hdf5:
                     else:
                         node = self.fileobj.createArray(self.fileobj.root, "data", data)
                 except tables.HDF5ExtError as e:
-                    raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" % (e, data.shape, metadata))
+                    raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" %
+                                              (e, data.shape, metadata))
                 for name, value in metadata.items():
                     setattr(node.attrs, name, value)
                 self.fileobj.close()

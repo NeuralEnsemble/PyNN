@@ -66,7 +66,8 @@ class build(_build):
                     print("Unable to compile NEST extensions. Output was:")
                     print('  '.join([''] + stdout))
                 else:
-                    result, stdout = run_command("make install", nest_build_dir)  # should really move this to install stage
+                    # should really move this to install stage
+                    result, stdout = run_command("make install", nest_build_dir)
                     if result != 0:
                         print("Unable to install NEST extensions. Output was:")
                         print('  '.join([''] + stdout))
@@ -89,10 +90,10 @@ setup(
     name="PyNN",
     version="0.10.0.dev",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
-              'pyNN.brian', 'pyNN.brian2', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
+              'pyNN.brian2', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
               'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
               'pyNN.nest.standardmodels', 'pyNN.neuroml.standardmodels',
-              'pyNN.neuron.standardmodels', 'pyNN.brian.standardmodels',
+              'pyNN.neuron.standardmodels',
               'pyNN.brian2.standardmodels', 'pyNN.utility', 'pyNN.nineml',
               'pyNN.serialization'],
     package_data={'pyNN': ['neuron/nmodl/*.mod',

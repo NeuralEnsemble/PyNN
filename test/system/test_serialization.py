@@ -33,17 +33,16 @@ def test():
                         label="population_two")
 
     prj = sim.Projection(p1, p2,
-                        sim.FixedProbabilityConnector(p_connect=0.5),
-                        synapse_type=sim.StaticSynapse(weight=RD('uniform', [0.0, 0.1]),
+                         sim.FixedProbabilityConnector(p_connect=0.5),
+                         synapse_type=sim.StaticSynapse(weight=RD('uniform', [0.0, 0.1]),
                                                         delay=0.5),
-                        receptor_type='excitatory')
+                         receptor_type='excitatory')
 
     net = Network(p1, p2, prj)
 
     export_to_sonata(net, "tmp_serialization_test", overwrite=True)
 
     net2 = import_from_sonata("tmp_serialization_test/circuit_config.json", sim)
-
 
     for orig_population in net.populations:
         imp_population = net2.get_component(orig_population.label)

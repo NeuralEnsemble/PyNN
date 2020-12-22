@@ -94,7 +94,7 @@ class SonataIO(BaseIO):
             spike_times = spikes_file['spikes']['timestamps'][index]
             segment.spiketrains.append(
                 neo.SpikeTrain(spike_times,
-                               t_stop = spike_times.max() + 1.0,
+                               t_stop=spike_times.max() + 1.0,
                                t_start=0.0,
                                units='ms',
                                source_id=gid)
@@ -158,12 +158,14 @@ class SonataIO(BaseIO):
                         # "gids" not in the spec, but expected by some bmtk utils
                         mapping_group.create_dataset("gids", data=node_ids)
                         #mapping_group.create_dataset("index_pointers", data=np.zeros((n,)))
-                        mapping_group.create_dataset("index_pointer", data=np.arange(0, n+1))  # ??spec unclear
+                        mapping_group.create_dataset(
+                            "index_pointer", data=np.arange(0, n+1))  # ??spec unclear
                         mapping_group.create_dataset("element_ids", data=np.zeros((n,)))
                         mapping_group.create_dataset("element_pos", data=np.zeros((n,)))
                         time_ds = mapping_group.create_dataset("time",
                                                                data=(float(signal[0].t_start.rescale('ms')),
-                                                                     float(signal[0].t_stop.rescale('ms')),
+                                                                     float(
+                                                                         signal[0].t_stop.rescale('ms')),
                                                                      float(signal[0].sampling_period.rescale('ms'))))
                         time_ds.attrs["units"] = "ms"
                         logger.info("Wrote block {} to {}".format(block.name, file_path))
@@ -174,6 +176,7 @@ MAGIC = 0x0a7a
 logger = logging.getLogger("pyNN.serialization.sonata")
 
 # ----- utility functions, not intended for use outside this module ----------
+
 
 def asciify(label):
     """To be safe, we will use only ascii for strings inside HDF5"""
@@ -263,7 +266,8 @@ def condense(value, types_array):
                 new_value[types_array == node_type_id] = val
             return new_value
     else:
-        raise TypeError("Unexpected type. Expected Numpy array or dict, got {}".format(type(value)))
+        raise TypeError(
+            "Unexpected type. Expected Numpy array or dict, got {}".format(type(value)))
 
 
 def load_config(config_file):
@@ -346,7 +350,7 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         },
         "networks": {
             "nodes": [],
-            "edges":[]
+            "edges": []
         }
     }
 
@@ -386,8 +390,10 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
             "nodes_file": "$NETWORK_DIR/nodes_{}.h5".format(population.label),
             "node_types_file": "$NETWORK_DIR/node_types_{}.csv".format(population.label)
         })
-        node_type_path = Template(config["networks"]["nodes"][i]["node_types_file"]).substitute(NETWORK_DIR=network_dir)
-        nodes_path = Template(config["networks"]["nodes"][i]["nodes_file"]).substitute(NETWORK_DIR=network_dir)
+        node_type_path = Template(config["networks"]["nodes"][i]
+                                  ["node_types_file"]).substitute(NETWORK_DIR=network_dir)
+        nodes_path = Template(config["networks"]["nodes"][i]
+                              ["nodes_file"]).substitute(NETWORK_DIR=network_dir)
 
         n = population.size
         population_label = asciify(population.label)
@@ -404,23 +410,26 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
             elif target.lower() in ("pynn", "nest"):
                 node_type_info["model_type"] = "point_neuron"
                 node_type_info["model_template"] = "{}:{}".format(target.lower(),
-                                                                population.celltype.__class__.__name__)
+                                                                  population.celltype.__class__.__name__)
             else:
                 raise NotImplementedError
-        group_label = 0  #"default"
+        group_label = 0  # "default"
         # todo: add "population" column
 
         # write HDF5 file
         nodes_file = h5py.File(nodes_path, 'w')
-        nodes_file.attrs["version"] = (0, 1)  # ??? unclear what is the required format or the current version!
+        # ??? unclear what is the required format or the current version!
+        nodes_file.attrs["version"] = (0, 1)
         nodes_file.attrs["magic"] = MAGIC  # needs to be uint32
         root = nodes_file.create_group("nodes")  # todo: add attribute with network name
-        default = root.create_group(population_label)  # we use a single node group for the full Population
+        # we use a single node group for the full Population
+        default = root.create_group(population_label)
         # todo: check and fix the dtypes in the following
         default.create_dataset("node_id", data=population.all_cells.astype('i4'), dtype='i4')
         default.create_dataset("node_type_id", data=i * np.ones((n,)), dtype='i2')
-        default.create_dataset("node_group_id", data=np.array([group_label] * n), dtype='i2')  # todo: calculate the max label size
-                                                                          # required data type not specified. Optional?
+        default.create_dataset("node_group_id", data=np.array(
+            [group_label] * n), dtype='i2')  # todo: calculate the max label size
+        # required data type not specified. Optional?
         default.create_dataset("node_group_index", data=np.arange(n, dtype=int), dtype='i2')
 
         # parameters
@@ -453,7 +462,8 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         nodes_file.close()
 
         # now write csv file
-        field_names = sorted(set.union(*(set(row) for row in csv_rows)))  # todo: `node_type_id` must be first
+        field_names = sorted(set.union(*(set(row) for row in csv_rows))
+                             )  # todo: `node_type_id` must be first
         with open(node_type_path, 'w') as csv_file:
             csv_writer = csv.DictWriter(csv_file,
                                         fieldnames=field_names,
@@ -476,8 +486,10 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
             "edges_file": "$NETWORK_DIR/edges_{}.h5".format(projection_label),
             "edge_types_file": "$NETWORK_DIR/edge_types_{}.csv".format(projection_label)
         })
-        edge_type_path = Template(config["networks"]["edges"][i]["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
-        edges_path = Template(config["networks"]["edges"][i]["edges_file"]).substitute(NETWORK_DIR=network_dir)
+        edge_type_path = Template(config["networks"]["edges"][i]
+                                  ["edge_types_file"]).substitute(NETWORK_DIR=network_dir)
+        edges_path = Template(config["networks"]["edges"][i]
+                              ["edges_file"]).substitute(NETWORK_DIR=network_dir)
 
         n = projection.size()
         csv_rows = []
@@ -504,11 +516,16 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
         default_edge_pop = root.create_group(projection_label)
         default_edge_pop.create_dataset("source_node_id", data=source_gids, dtype='i4')
         default_edge_pop.create_dataset("target_node_id", data=target_gids, dtype='i4')
-        default_edge_pop["source_node_id"].attrs["node_population"] = asciify(projection.pre.label)  # todo: handle PopualtionViews
-        default_edge_pop["target_node_id"].attrs["node_population"] = asciify(projection.post.label)
+        default_edge_pop["source_node_id"].attrs["node_population"] = asciify(
+            projection.pre.label)  # todo: handle PopualtionViews
+        default_edge_pop["target_node_id"].attrs["node_population"] = asciify(
+            projection.post.label)
         default_edge_pop.create_dataset("edge_type_id", data=i * np.ones((n,)), dtype='i2')
-        default_edge_pop.create_dataset("edge_group_id", data=np.array([group_label] * n), dtype='i2') #S32')  # todo: calculate the max label size
-        default_edge_pop.create_dataset("edge_group_index", data=np.arange(n, dtype=int), dtype='i2')
+        # S32')  # todo: calculate the max label size
+        default_edge_pop.create_dataset(
+            "edge_group_id", data=np.array([group_label] * n), dtype='i2')
+        default_edge_pop.create_dataset(
+            "edge_group_index", data=np.arange(n, dtype=int), dtype='i2')
 
         edge_group = default_edge_pop.create_group(str(group_label))
         edge_params = edge_group.create_group("dynamics_params")
@@ -562,7 +579,7 @@ def import_from_sonata(config_file, sim):
 
     config = load_config(config_file)
 
-    if config.get("target_simulator", None) not in  ("PyNN", "NEST"):
+    if config.get("target_simulator", None) not in ("PyNN", "NEST"):
         warn("`target_simulator` is not set to 'PyNN' or 'NEST'. Proceeding with caution...")
 
     sonata_node_populations = []
@@ -786,8 +803,8 @@ class NodeGroup(object):
         cell_type = cell_types.pop()
         prefix, cell_type_name = cell_type.split(":")
         if prefix.lower() not in ("pynn", "nrn", "nest"):
-            raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported, not: %s (from %s)."% \
-                            (prefix, self.parameters["model_template"][node_type_id]))
+            raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported, not: %s (from %s)." %
+                                      (prefix, self.parameters["model_template"][node_type_id]))
         if prefix.lower() == "nest":
             cell_type_cls = sim.native_cell_type(cell_type_name)
             if cell_type_name == "spike_generator":
@@ -875,7 +892,6 @@ class EdgePopulation(object):
                                     edge_types_map,
                                     config)
             )
-
 
         return obj
 
@@ -981,7 +997,8 @@ class EdgeGroup(object):
             synapse_type = synapse_types.pop()
             prefix, synapse_type_name = model_template.split(":")
             if prefix.lower() not in ("pynn", "nrn", "nest"):
-                raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported.")
+                raise NotImplementedError(
+                    "Only PyNN, NEST and NEURON-native networks currently supported.")
         else:
             prefix = "pyNN"
             synapse_type_name = "StaticSynapse"
@@ -1004,7 +1021,7 @@ class EdgeGroup(object):
             receptor_type = receptor_types.pop()
         else:
             receptor_type = "default"  # temporary hack to make 300-cell example work, due to PyNN bug #597
-                                       # value should really be None.
+            # value should really be None.
 
         logger.info("  synapse_type: {}".format(synapse_type_cls))
         logger.info("  receptor_type: {}".format(receptor_type))
@@ -1134,7 +1151,8 @@ class SimulationPlan(object):
         if len(spiketrains) != assembly.size:
             raise NotImplementedError()
         # todo: map cell ids in spikes file to ids/index in the population
-        assembly.set(spike_times=[Sequence(st.times.rescale('ms').magnitude) for st in spiketrains])
+        assembly.set(spike_times=[Sequence(st.times.rescale('ms').magnitude)
+                                  for st in spiketrains])
 
     def _set_input_currents(self, input_config, net):
         # determine which assembly the currents are for
@@ -1210,7 +1228,8 @@ class SimulationPlan(object):
                 raise NotImplementedError("Only 'spikes' and 'current_clamp' supported")
 
         # configure recording
-        net.record('spikes', include_spike_source=False)  # SONATA requires that we record spikes from all non-virtual nodes
+        # SONATA requires that we record spikes from all non-virtual nodes
+        net.record('spikes', include_spike_source=False)
         for report_name, report_config in self.reports.items():
             targets = self._get_target(report_config, net)
             for (base_assembly, mask) in targets:
@@ -1231,7 +1250,7 @@ class SimulationPlan(object):
                       spikes_sort_order=self.output["spikes_sort_order"],
                       report_config=self.reports,
                       node_sets=self.node_set_map)
-                      # todo: handle reports
+        # todo: handle reports
         net.write_data(io)
 
     @classmethod

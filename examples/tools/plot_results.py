@@ -11,6 +11,7 @@ e.g. python plot_results.py IF_curr_exp
 
 """
 
+from pprint import pprint
 import sys
 import os
 import matplotlib.pyplot as plt
@@ -39,7 +40,6 @@ for simulator in 'MOCK', 'NEST', 'NEURON', 'Brian2':
 
 print("-" * 79)
 print(example)
-from pprint import pprint
 pprint(blocks)
 
 if len(blocks) > 0:

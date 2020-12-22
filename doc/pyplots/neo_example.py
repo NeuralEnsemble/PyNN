@@ -45,6 +45,7 @@ def plot_signal(signal, index, colour='b'):
     plt.setp(plt.gca().get_xticklabels(), visible=False)
     plt.legend()
 
+
 n_panels = sum(a.shape[1] for a in data_out.segments[0].analogsignals) + 2
 plt.subplot(n_panels, 1, 1)
 plot_spiketrains(spikes_in.segments[0])

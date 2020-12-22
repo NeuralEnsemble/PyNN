@@ -1,5 +1,6 @@
 
-import glob, os
+import glob
+import os
 from nose.tools import assert_equal
 from pyNN.random import NumpyRNG, RandomDistribution
 from .registry import register

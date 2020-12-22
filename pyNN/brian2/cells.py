@@ -33,6 +33,7 @@ def _new_property(obj_hierarchy, attr_name, units):
       e = _new_property('b.c', 'd')
     in the class definition of A makes A.e an alias for A.b.c.d
     """
+
     def set(self, value):
         if obj_hierarchy:
             obj = reduce(getattr, [self] + obj_hierarchy.split('.'))
@@ -42,7 +43,7 @@ def _new_property(obj_hierarchy, attr_name, units):
 
     def get(self):
         if obj_hierarchy:
-            obj = reduce(getattr, [self] + obj_hierarchy.split('.'))   ### ( getattr, ...)
+            obj = reduce(getattr, [self] + obj_hierarchy.split('.'))  # ( getattr, ...)
         else:
             obj = self
         return getattr(obj, attr_name) / units
@@ -74,9 +75,9 @@ class BaseNeuronGroup(brian2.NeuronGroup):
                 self.tau_refrac = value
             else:
                 setattr(self, name, value)
-        #self._S0 = self._S[:, 0]  # store parameter values in case of reset.
-                                 # TODO: update this when parameters are modified
-                                 # TODO: Brian2 does not have _S0a
+        # self._S0 = self._S[:, 0]  # store parameter values in case of reset.
+                # TODO: update this when parameters are modified
+                # TODO: Brian2 does not have _S0a
         self.add_attribute('initial_values')
         self.initial_values = {}
 
@@ -105,7 +106,7 @@ class BiophysicalNeuronGroup(BaseNeuronGroup):
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold=threshold, reset=reset, refractory=refractory,
                                  **parameters)
-                                 # implicit=True, compile=False,
+        # implicit=True, compile=False,
 
 
 class AdaptiveReset(object):
@@ -128,14 +129,13 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
         threshold = 'v > {}*mV'.format(Vcut*1000)
         self._resetvalue = parameters.pop('v_reset')[0]
         self._bvalue = parameters.pop('b')[0]
-        #period = simplify(parameters['tau_refrac'])*1000 ##### problem here with the refractory
+        # period = simplify(parameters['tau_refrac'])*1000 ##### problem here with the refractory
         self._refracvalue = parameters.pop('tau_refrac')[0]
-        reset = 'v = {}*mV; w+={}* amp'.format(self._resetvalue*10**3 ,self._bvalue)
-        #refractory=None
-        refractory= self._refracvalue
-        #refractory=period
-        #parameters['tau_refrac']=parameters['tau_refrac']/ms
-
+        reset = 'v = {}*mV; w+={}* amp'.format(self._resetvalue*10**3, self._bvalue)
+        # refractory=None
+        refractory = self._refracvalue
+        # refractory=period
+        # parameters['tau_refrac']=parameters['tau_refrac']/ms
 
         #refractory = 0*ms
         BaseNeuronGroup.__init__(self, n, equations,
@@ -143,15 +143,15 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
                                  method="rk2", **parameters)
 
     @property
-    def v_reset (self):
+    def v_reset(self):
         return self._resetvalue
 
     @property
-    def b (self):
+    def b(self):
         return self._bvalue
 
     @property
-    def tau_refrac (self):
+    def tau_refrac(self):
         return self._refractory
 
     @tau_refrac.setter
@@ -161,9 +161,9 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
         self._refractory = tau_refrac_value
 
     @v_reset.setter
-    def v_reset (self, resetvalue):
+    def v_reset(self, resetvalue):
         #self._resetvalue = resetvalue * mV
-        self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
+        self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue)
 
 
 class AdaptiveReset2(object):
@@ -182,12 +182,13 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
         threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0]*1000)
-        self._resetvalue=parameters.pop('v_reset')[0]
-        self._q_rvalue=parameters.pop('q_r')[0] * 10**9
-        self._q_svalue=parameters.pop('q_s')[0]* 10**9
-        self._refracvalue=parameters.pop('tau_refrac')[0]
-        reset = 'v = {}*mV; g_r+= {}*nS; g_s+={}*nS'.format(self._resetvalue*1000, self._q_rvalue, self._q_svalue)
-        refractory=self._refracvalue
+        self._resetvalue = parameters.pop('v_reset')[0]
+        self._q_rvalue = parameters.pop('q_r')[0] * 10**9
+        self._q_svalue = parameters.pop('q_s')[0] * 10**9
+        self._refracvalue = parameters.pop('tau_refrac')[0]
+        reset = 'v = {}*mV; g_r+= {}*nS; g_s+={}*nS'.format(
+            self._resetvalue*1000, self._q_rvalue, self._q_svalue)
+        refractory = self._refracvalue
         '''
         threshold = brian2.SimpleFunThreshold(self.check_threshold)
         period = simplify(parameters['tau_refrac'])
@@ -204,19 +205,19 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
                                  method="rk2", **parameters)
 
     @property
-    def v_reset (self):
+    def v_reset(self):
         return self._resetvalue
 
     @property
-    def q_r (self):
+    def q_r(self):
         return self._q_rvalue
 
     @property
-    def q_s (self):
+    def q_s(self):
         return self._q_svalue
 
     @property
-    def tau_refrac (self):
+    def tau_refrac(self):
         return self._refractory
 
     @tau_refrac.setter
@@ -226,7 +227,7 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
         self._refractory = tau_refrac_value
 
     @v_reset.setter
-    def v_reset (self, resetvalue):
+    def v_reset(self, resetvalue):
         #self._resetvalue = resetvalue * mV
         self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue)
 
@@ -244,6 +245,7 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
 # reset = '''v = v_reset
 #            u += d'''
 
+
 class IzhikevichReset(object):
 
     def __init__(self, Vr=-65 * mV, d=0.2 * mV / ms):
@@ -260,9 +262,9 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
     def __init__(self, n, equations, **parameters):
         #threshold = brian2.SimpleFunThreshold(self.check_threshold)
         #threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0]*1000)
-        threshold='v >= 30*mV'
-        self._resetvalue=parameters.pop('v_reset')[0]
-        self._dvalue=parameters.pop('d')[0]
+        threshold = 'v >= 30*mV'
+        self._resetvalue = parameters.pop('v_reset')[0]
+        self._dvalue = parameters.pop('d')[0]
         reset = 'v = {}*mV; u+={}*mV/ms'.format(self._resetvalue*1000, self._dvalue)
         '''
         reset = brian2.SimpleCustomRefractoriness(
@@ -282,17 +284,17 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
     #b = _new_property('_resetfun.resetfun', 'b', nA)
 
     @property
-    def v_reset (self):
+    def v_reset(self):
         return self._resetvalue
 
     @property
-    def d (self):
+    def d(self):
         return self._dvalue
 
     @v_reset.setter
-    def v_reset (self, resetvalue):
+    def v_reset(self, resetvalue):
         #self._resetvalue = resetvalue * mV
-        self.event_codes['spike']= 'v = {}*mV'.format(resetvalue)
+        self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue)
 
 
 class PoissonGroup(brian2.PoissonGroup):
@@ -308,12 +310,14 @@ class PoissonGroup(brian2.PoissonGroup):
         if is_listlike(self.start_time):
             self.variables.add_array('start_time', size=n, dimensions=second.dim)
         else:
-            self.variables.add_constant('start_time', value=float(self.start_time), dimensions=second.dim)
+            self.variables.add_constant('start_time', value=float(
+                self.start_time), dimensions=second.dim)
         if is_listlike(self.duration) or is_listlike(self.start_time):
             self.variables.add_array('end_time', size=n, dimensions=second.dim)
             self.end_time = self.start_time + self.duration
         else:
-            self.variables.add_constant('end_time', value=float(self.start_time + self.duration), dimensions=second.dim)
+            self.variables.add_constant('end_time', value=float(
+                self.start_time + self.duration), dimensions=second.dim)
         self.events = {'spike': '(t >= start_time) and (t <= end_time) and (rand() < rates * dt)'}
 
     def initialize(self):
@@ -365,7 +369,3 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
 
     def initialize(self):
         pass
-
-
-
-

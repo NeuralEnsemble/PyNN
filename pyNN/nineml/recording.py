@@ -19,7 +19,7 @@ class Recorder(recording.Recorder):
     def get(self, variables, gather=False, filter_ids=None, clear=False,
             annotations=None):
         pass
-    
+
     def write(self, variables, file=None, gather=False, filter_ids=None,
               clear=False, annotations=None):
         pass

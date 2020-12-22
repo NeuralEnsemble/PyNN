@@ -570,7 +570,6 @@ class PopulationViewTest(unittest.TestCase):
             numpy.array([1, 3, 5])
         )
 
-
     def test_save_positions(self, sim=sim):
         import os
         p = sim.Population(7, sim.IF_cond_exp())

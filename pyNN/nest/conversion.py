@@ -86,4 +86,3 @@ def make_pynn_compatible(container):
         compatible = make_pynn_compatible_single(container)
 
     return compatible
-

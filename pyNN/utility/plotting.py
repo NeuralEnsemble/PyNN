@@ -101,8 +101,8 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     min_index = sys.maxsize
     for spiketrain in spiketrains:
         ax.plot(spiketrain,
-                 np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
-                 'k.', **options)
+                np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
+                'k.', **options)
         max_index = max(max_index, spiketrain.annotations['source_index'])
         min_index = min(min_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
@@ -192,7 +192,7 @@ class Figure(object):
         if "annotations" in options:
             gs.update(bottom=1.2 / height)  # leave space for annotations
         gs.update(top=1 - 0.8 / height, hspace=0.25)
-        #print(gs.get_grid_positions(self.fig))
+        # print(gs.get_grid_positions(self.fig))
 
         for i, panel in enumerate(panels):
             panel.plot(plt.subplot(gs[i, 0]))

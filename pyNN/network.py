@@ -99,6 +99,6 @@ class Network(object):
         if isinstance(io, str):
             io = get_io(io)
         data = self.get_data(variables, gather, clear, annotations)
-        #if self._simulator.state.mpi_rank == 0 or gather is False:
+        # if self._simulator.state.mpi_rank == 0 or gather is False:
         if True:  # tmp. Need to handle MPI
             io.write(data)

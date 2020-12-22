@@ -134,7 +134,8 @@ class ArrayParameter(object):
         element `i` of val.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value + val)
 
@@ -148,7 +149,8 @@ class ArrayParameter(object):
         element `i` of val subtracted from it.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value - val)
 
@@ -162,7 +164,8 @@ class ArrayParameter(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value * val)
 
@@ -178,7 +181,8 @@ class ArrayParameter(object):
         element `i` of `val`.
         """
         if hasattr(val, '__len__'):
-            return numpy.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)  # reshape if necessary?
+            # reshape if necessary?
+            return numpy.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value / val)
 
@@ -234,6 +238,7 @@ class ParameterSpace(object):
 
     .. _`lazy array`: https://lazyarray.readthedocs.org/
     """
+
     def __init__(self, parameters, schema=None, shape=None, component=None):
         """
 
@@ -302,9 +307,11 @@ class ParameterSpace(object):
                     self._parameters[name] = LazyArray(value, shape=self._shape,
                                                        dtype=expected_dtype)
                 except (TypeError, errors.InvalidParameterValueError):
-                    raise errors.InvalidParameterValueError("For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
+                    raise errors.InvalidParameterValueError(
+                        "For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
                 except ValueError as err:
-                    raise errors.InvalidDimensionsError(err)  # maybe put the more specific error classes into lazyarray
+                    # maybe put the more specific error classes into lazyarray
+                    raise errors.InvalidDimensionsError(err)
         else:
             for name, value in parameters.items():
                 self._parameters[name] = LazyArray(value, shape=self._shape)
@@ -417,7 +424,8 @@ class ParameterSpace(object):
                         D[name] = value[:, j]
                     else:
                         D[name] = value
-                    assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+                    # should all have been evaluated by now
+                    assert not isinstance(D[name], LazyArray)
                 yield D
 
     def __eq__(self, other):
@@ -473,7 +481,7 @@ def simplify(value):
     else:
         return value
     # alternative - need to benchmark
-    #if numpy.any(arr != arr[0]):
+    # if numpy.any(arr != arr[0]):
     #    return arr
-    #else:
+    # else:
     #    return arr[0]

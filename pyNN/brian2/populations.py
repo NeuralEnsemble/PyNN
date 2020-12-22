@@ -18,6 +18,7 @@ import brian2
 ms = brian2.ms
 mV = brian2.mV
 
+
 class Assembly(common.Assembly):
     _simulator = simulator
 
@@ -69,7 +70,8 @@ class Population(common.Population):
                                 simulator.state.id_counter + self.size)
         self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
-        self._mask_local = numpy.ones((self.size,), bool)  # all cells are local. This doesn't seem very efficient.
+        # all cells are local. This doesn't seem very efficient.
+        self._mask_local = numpy.ones((self.size,), bool)
 
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
@@ -89,7 +91,7 @@ class Population(common.Population):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
         if callable(D['forward_transform']):
-            pval = D['forward_transform'](value) ### (value)
+            pval = D['forward_transform'](value)  # (value)
         else:
             pval = eval(D['forward_transform'], globals(), {variable: value})
         pval = pval.evaluate(simplify=False)
@@ -115,14 +117,14 @@ class Population(common.Population):
         """parameter_space should contain native parameters"""
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
-            if (name=="tau_refrac"):
-                value= value / ms
-                value= simplify(value)
+            if (name == "tau_refrac"):
+                value = value / ms
+                value = simplify(value)
                 #brian2.NeuronGroup.__setattr__(self.brian2_group, "_refractory", value)
-                self.brian2_group.tau_refrac=value
-            elif (name=="v_reset"):
-                value= value / mV
-                value= simplify(value)
-                self.brian2_group.v_reset=value
+                self.brian2_group.tau_refrac = value
+            elif (name == "v_reset"):
+                value = value / mV
+                value = simplify(value)
+                self.brian2_group.v_reset = value
             else:
                 setattr(self.brian2_group, name, value)

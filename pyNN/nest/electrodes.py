@@ -50,7 +50,8 @@ class NestCurrentSource(BaseCurrentSource):
         return corrected
 
     def record(self):
-        self.i_multimeter = nest.Create('multimeter', params={'record_from': ['I'], 'interval': state.dt})
+        self.i_multimeter = nest.Create(
+            'multimeter', params={'record_from': ['I'], 'interval': state.dt})
         nest.Connect(self.i_multimeter, self._device)
 
     def _get_data(self):
@@ -75,11 +76,11 @@ def native_electrode_type(model_name):
     assert isinstance(model_name, str)
     default_parameters, default_initial_values = get_defaults(model_name)
     return type(model_name,
-               (NativeElectrodeType,),
+                (NativeElectrodeType,),
                 {'nest_name': model_name,
                  'default_parameters': default_parameters,
                  'default_initial_values': default_initial_values,
-                })
+                 })
 
 
 # Should be usable with any NEST current generator
