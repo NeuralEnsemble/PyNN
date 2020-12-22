@@ -198,6 +198,29 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         synapses.GutigWeightDependence.__init__(self, w_min, w_max)
 
 
+def _translate_A_minus_forwards(**parameters):
+    A_minus = parameters["A_minus"]
+    A_plus = parameters["A_plus"]
+    if A_plus == 0:
+        # can't divide by zero, and value of alpha has no
+        # effect (since it will be multiplied by zero in NEST)
+        # so we just store the provided value of A_minus
+        alpha = A_minus
+    # to-do: handle the case where A_plus is an array with some zero values
+    else:
+        alpha = A_minus / A_plus
+    return alpha
+
+def _translate_A_minus_reverse(**parameters):
+    alpha = parameters["alpha"]
+    lambda_ = parameters["lambda"]
+    if lambda_ == 0:
+        A_minus = alpha  # presumed to have been stored by _translate_A_minus_forwards
+    else:
+        A_minus = alpha * lambda_
+    return A_minus
+
+
 class SpikePairRule(synapses.SpikePairRule):
     __doc__ = synapses.SpikePairRule.__doc__
 
@@ -205,7 +228,7 @@ class SpikePairRule(synapses.SpikePairRule):
         ('tau_plus',  'tau_plus'),
         ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
         ('A_plus',    'lambda'),
-        ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
+        ('A_minus',   'alpha', _translate_A_minus_forwards, _translate_A_minus_reverse),
 
     )
     possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])

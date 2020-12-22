@@ -321,8 +321,8 @@ class TestConnection(unittest.TestCase):
         self.c._setup_plasticity(MockPlasticSynapseType(),
                                  {'wmax': 0.04,
                                   'dendritic_delay_fraction': 0})
-        self.assertEqual(self.c.w_max, 0.04)
-        self.c.w_max = 0.05
+        self.assertEqual(self.c.wmax, 0.04)
+        self.c.wmax = 0.05
         self.assertEqual(self.c.weight_adjuster.wmax, 0.05)
 
 
