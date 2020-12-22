@@ -120,8 +120,7 @@ class Projection(object):
         in the list of available post-synaptic receptor types is the default for excitatory
         synapses and the second element is the default for inhibitory synapses.
         """
-        receptor_types = sorted(self.post.receptor_types)
-        if len(receptor_types) > 1:
+        if len(self.post.receptor_types) > 1:
             ps = deepcopy(self.synapse_type.parameter_space)
             ps = self._handle_distance_expressions(ps)
             weights = ps["weight"]
@@ -129,11 +128,11 @@ class Projection(object):
                 weights.shape = self.shape
             wl = weights[self.pre.size - 1, self.post.size - 1]
             if wl >= 0:
-                self.receptor_type = receptor_types[0]
+                self.receptor_type = self.post.receptor_types[0]
             else:
-                self.receptor_type = receptor_types[1]
+                self.receptor_type = self.post.receptor_types[1]
         else:
-            self.receptor_type = receptor_types[0]
+            self.receptor_type = self.post.receptor_types[0]
 
     def __len__(self):
         """Return the total number of local connections."""
