@@ -12,7 +12,7 @@ install:
   - source ci/install.sh
 script:  bash ci/test_script.sh
 after_success:
-  - coveralls
+  - test $PYENV = "py37" && coveralls
 cache:
   directories:
     - $HOME/nest-2.20.0
