@@ -10,7 +10,7 @@ from pyNN.utility import init_logging, normalized_filename
 from pyNN.parameters import Sequence
 from pyNN.space import Grid2D
 from importlib import import_module
-import numpy
+import numpy as np
 from lazyarray import sqrt
 import argparse
 parser = argparse.ArgumentParser()
@@ -44,11 +44,11 @@ for name in ('tau_m', 'v_rest', 'v_thresh'):
     print(name, "=", cells.get(name))
 
 number = int(2 * simtime * input_rate / 1000.0)
-numpy.random.seed(26278342)
+np.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(np.add.accumulate(np.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:

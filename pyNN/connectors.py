@@ -15,7 +15,7 @@ from pyNN.recording import files
 from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
 from pyNN.common import Population
-import numpy
+import numpy as np
 from itertools import repeat
 import logging
 from copy import copy, deepcopy
@@ -153,7 +153,7 @@ class MapConnector(Connector):
         todo: explain the argument `distance_map`.
         """
 
-        column_indices = numpy.arange(projection.post.size)
+        column_indices = np.arange(projection.post.size)
         postsynaptic_indices = projection.post.id_to_index(projection.post.all_cells)
 
         if (projection.synapse_type.native_parameters.parallel_safe
@@ -190,7 +190,7 @@ class MapConnector(Connector):
             _proceed = False
             if source_mask is True or source_mask.any():
                 _proceed = True
-            elif type(source_mask) == numpy.ndarray:
+            elif type(source_mask) == np.ndarray:
                 if source_mask.dtype == bool:
                     if source_mask.any():
                         _proceed = True
@@ -199,7 +199,7 @@ class MapConnector(Connector):
             if _proceed:
                 # Convert from boolean to integer mask, if necessary
                 if source_mask is True:
-                    source_mask = numpy.arange(projection.pre.size, dtype=int)
+                    source_mask = np.arange(projection.pre.size, dtype=int)
                 elif source_mask.dtype == bool:
                     source_mask = source_mask.nonzero()[0]
 
@@ -260,7 +260,7 @@ class MapConnector(Connector):
         else:
             # this could be optimized by checking parent or component populations
             # but should handle both views and assemblies
-            a = numpy.broadcast_to(projection.pre.all_cells,
+            a = np.broadcast_to(projection.pre.all_cells,
                                    (projection.post.size, projection.pre.size)).T
             b = projection.post.all_cells
             connection_map = LazyArray(a != b, shape=projection.shape)
@@ -516,7 +516,7 @@ class FromListConnector(Connector):
         Create a new connector.
         """
         Connector.__init__(self, safe=safe, callback=callback)
-        self.conn_list = numpy.array(conn_list)
+        self.conn_list = np.array(conn_list)
         if len(conn_list) > 0:
             n_columns = self.conn_list.shape[1]
             if column_names is None:
@@ -544,20 +544,20 @@ class FromListConnector(Connector):
                                  name, projection.synapse_type.__class__.__name__))
         if self.conn_list.size == 0:
             return
-        if numpy.any(self.conn_list[:, 0] >= projection.pre.size):
+        if np.any(self.conn_list[:, 0] >= projection.pre.size):
             raise errors.ConnectionError("source index out of range")
         # need to do some profiling, to figure out the best way to do this:
         #  - order of sorting/filtering by local
-        #  - use numpy.unique, or just do in1d(self.conn_list)?
-        idx = numpy.argsort(self.conn_list[:, 1])
-        targets = numpy.unique(self.conn_list[:, 1]).astype(numpy.int)
-        local = numpy.in1d(targets,
-                           numpy.arange(projection.post.size)[projection.post._mask_local],
+        #  - use np.unique, or just do in1d(self.conn_list)?
+        idx = np.argsort(self.conn_list[:, 1])
+        targets = np.unique(self.conn_list[:, 1]).astype(np.int)
+        local = np.in1d(targets,
+                           np.arange(projection.post.size)[projection.post._mask_local],
                            assume_unique=True)
         local_targets = targets[local]
         self.conn_list = self.conn_list[idx]
-        left = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'left')
-        right = numpy.searchsorted(self.conn_list[:, 1], local_targets, 'right')
+        left = np.searchsorted(self.conn_list[:, 1], local_targets, 'left')
+        right = np.searchsorted(self.conn_list[:, 1], local_targets, 'right')
         logger.debug("idx = %s", idx)
         logger.debug("targets = %s", targets)
         logger.debug("local_targets = %s", local_targets)
@@ -566,7 +566,7 @@ class FromListConnector(Connector):
         logger.debug("right = %s", right)
 
         for tgt, l, r in zip(local_targets, left, right):
-            sources = self.conn_list[l:r, 0].astype(numpy.int)
+            sources = self.conn_list[l:r, 0].astype(np.int)
             connection_parameters = deepcopy(projection.synapse_type.parameter_space)
 
             connection_parameters.shape = (r - l,)
@@ -647,7 +647,7 @@ class FixedNumberConnector(MapConnector):
             assert n >= 0
         elif isinstance(n, RandomDistribution):
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) >=
+            assert np.all(np.array(n.next(100)) >=
                              0), "the random distribution produces negative numbers"
         else:
             raise TypeError("n must be an integer or a RandomDistribution object")
@@ -656,12 +656,12 @@ class FixedNumberConnector(MapConnector):
     def _rng_uniform_int_exclude(self, n, size, exclude):
         res = self.rng.next(n, 'uniform_int', {"low": 0, "high": size}, mask=None)
         logger.debug("RNG0 res=%s" % res)
-        idx = numpy.where(res == exclude)[0]
+        idx = np.where(res == exclude)[0]
         logger.debug("RNG1 exclude=%d, res=%s idx=%s" % (exclude, res, idx))
         while idx.size > 0:
             redrawn = self.rng.next(idx.size, 'uniform_int', {"low": 0, "high": size}, mask=None)
             res[idx] = redrawn
-            idx = idx[numpy.where(res == exclude)[0]]
+            idx = idx[np.where(res == exclude)[0]]
             logger.debug("RNG2 exclude=%d redrawn=%s res=%s idx=%s" % (exclude, redrawn, res, idx))
         return res
 
@@ -723,7 +723,7 @@ class FixedNumberPostConnector(FixedNumberConnector):
                     targets = self.rng.next(
                         n, 'uniform_int', {"low": 0, "high": projection.post.size}, mask=None)
             else:
-                all_cells = numpy.arange(projection.post.size)
+                all_cells = np.arange(projection.post.size)
                 if not self.allow_self_connections and projection.pre == projection.post:
                     all_cells = all_cells[all_cells != source_index]
                 full_sets = n // all_cells.size
@@ -733,16 +733,16 @@ class FixedNumberPostConnector(FixedNumberConnector):
                     target_sets = [all_cells] * full_sets
                 if remainder > 0:
                     target_sets.append(self.rng.permutation(all_cells)[:remainder])
-                targets = numpy.hstack(target_sets)
+                targets = np.hstack(target_sets)
             assert targets.size == n
             for target_index in targets:
                 connections[target_index].append(source_index)
 
         def build_source_masks(mask=None):
             if mask is None:
-                return [numpy.array(x) for x in connections]
+                return [np.array(x) for x in connections]
             else:
-                return [numpy.array(x) for x in numpy.array(connections)[mask]]
+                return [np.array(x) for x in np.array(connections)[mask]]
         self._standard_connect(projection, build_source_masks)
 
 
@@ -830,7 +830,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                     # are connected one or more times, then the remainder
                     # are chosen randomly
                     n_pre = self._get_num_pre(projection.post.size, mask)
-                    all_cells = numpy.arange(projection.pre.size)
+                    all_cells = np.arange(projection.pre.size)
                     for n in n_pre:
                         full_sets = n // projection.pre.size
                         remainder = n % projection.pre.size
@@ -839,7 +839,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                             source_sets = [all_cells] * full_sets
                         if remainder > 0:
                             source_sets.append(self.rng.permutation(all_cells)[:remainder])
-                        sources = numpy.hstack(source_sets)
+                        sources = np.hstack(source_sets)
                         assert sources.size == n
                         yield sources
             else:
@@ -848,7 +848,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                     # are connected one or more times, then the remainder
                     # are chosen randomly
                     n_pre = self._get_num_pre(projection.post.size, mask)
-                    all_cells = numpy.arange(projection.pre.size)
+                    all_cells = np.arange(projection.pre.size)
                     if self.rng.parallel_safe or mask is None:
                         for i, n in enumerate(n_pre):
                             full_sets = n // (projection.pre.size - 1)
@@ -859,7 +859,7 @@ class FixedNumberPreConnector(FixedNumberConnector):
                                 source_sets = [allowed_cells] * full_sets
                             if remainder > 0:
                                 source_sets.append(self.rng.permutation(allowed_cells)[:remainder])
-                            sources = numpy.hstack(source_sets)
+                            sources = np.hstack(source_sets)
                             assert sources.size == n
                             yield sources
                     else:
@@ -964,7 +964,7 @@ class CSAConnector(MapConnector):
                     [projection.pre[i]], projection.post[j], weight, delay)
         elif csa.arity(self.cset) == 0:
             # inefficient implementation as a starting point
-            connection_map = numpy.zeros((projection.pre.size, projection.post.size), dtype=bool)
+            connection_map = np.zeros((projection.pre.size, projection.post.size), dtype=bool)
             for addr in c:
                 connection_map[addr] = True
             self._connect_with_map(projection, LazyArray(connection_map))
@@ -996,7 +996,7 @@ class CloneConnector(MapConnector):
                                          .format(self.reference_projection.pre,
                                                  self.reference_projection.post,
                                                  projection.pre, projection.post))
-        connection_map = LazyArray(~numpy.isnan(self.reference_projection.get(['weight'], 'array',
+        connection_map = LazyArray(~np.isnan(self.reference_projection.get(['weight'], 'array',
                                                                               gather='all')[0]))
         self._connect_with_map(projection, connection_map)
 
@@ -1038,7 +1038,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
             assert n >= 0
         elif isinstance(n, RandomDistribution):
             # weak check that the random distribution is ok
-            assert numpy.all(numpy.array(n.next(100)) >=
+            assert np.all(np.array(n.next(100)) >=
                              0), "the random distribution produces negative numbers"
         else:
             raise TypeError("n must be an integer or a RandomDistribution object")
@@ -1059,7 +1059,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
         bino = RandomDistribution('binomial',
                                   [self.n, targets_per_process / len(projection.post)],
                                   rng=self.rng)
-        num_conns_on_vp = numpy.zeros(num_processes, dtype=int)
+        num_conns_on_vp = np.zeros(num_processes, dtype=int)
         sum_dist = 0
         sum_partitions = 0
         for k in range(num_processes):
@@ -1072,7 +1072,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
 
         # Draw random sources and targets
         connections = [[] for i in range(projection.post.size)]
-        possible_targets = numpy.arange(projection.post.size)[projection.post._mask_local]
+        possible_targets = np.arange(projection.post.size)[projection.post._mask_local]
         for i in range(num_conns_on_vp[rank]):
             source_index = self.rng.next(1, 'uniform_int',
                                          {"low": 0, "high": projection.pre.size},
@@ -1082,7 +1082,7 @@ class FixedTotalNumberConnector(FixedNumberConnector):
 
         def build_source_masks(mask=None):
             if mask is None:
-                return [numpy.array(x) for x in connections]
+                return [np.array(x) for x in connections]
             else:
-                return [numpy.array(x) for x in numpy.array(connections)[mask]]
+                return [np.array(x) for x in np.array(connections)[mask]]
         self._standard_connect(projection, build_source_masks)

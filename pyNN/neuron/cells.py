@@ -10,7 +10,7 @@ Definition of cell classes for the neuron module.
 import logging
 from math import pi
 from functools import reduce
-import numpy
+import numpy as np
 from neuron import h, nrn, hclass
 
 from pyNN import errors
@@ -584,7 +584,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
         self.source = self
         self.source_section = None
         self.rec = None
-        self._recorded_spikes = numpy.array([])
+        self._recorded_spikes = np.array([])
 
     def _set_spike_times(self, spike_times):
         # spike_times should be a Sequence object
@@ -592,12 +592,12 @@ class VectorSpikeSource(hclass(h.VecStim)):
             self._spike_times = h.Vector(spike_times.value)
         except (RuntimeError, AttributeError):
             raise errors.InvalidParameterValueError("spike_times must be an array of floats")
-        if numpy.any(spike_times.value[:-1] > spike_times.value[1:]):
+        if np.any(spike_times.value[:-1] > spike_times.value[1:]):
             raise errors.InvalidParameterValueError(
                 "Spike times given to SpikeSourceArray must be in increasing order")
         self.play(self._spike_times)
         if self.recording:
-            self._recorded_spikes = numpy.hstack((self._recorded_spikes, spike_times.value))
+            self._recorded_spikes = np.hstack((self._recorded_spikes, spike_times.value))
 
     def _get_spike_times(self):
         return self._spike_times
@@ -614,7 +614,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
         self._recording = value
         if value:
             # when we turn recording on, the cell may already have had its spike times assigned
-            self._recorded_spikes = numpy.hstack((self._recorded_spikes, self.spike_times))
+            self._recorded_spikes = np.hstack((self._recorded_spikes, self.spike_times))
 
     def get_recorded_spike_times(self):
         return self._recorded_spikes

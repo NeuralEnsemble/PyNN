@@ -8,7 +8,7 @@ try:
     from unittest.mock import Mock
 except ImportError:
     from mock import Mock
-import numpy
+import numpy as np
 
 
 def test_build_translations():

@@ -1,5 +1,5 @@
 
-import numpy
+import numpy as np
 from nose.plugins.skip import SkipTest
 try:
     import scipy
@@ -24,13 +24,13 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     ifcell.initialize(v=-65, w=0)
     sim.run(200.0)
     data = ifcell.get_data().segments[0]
-    expected_spike_times = numpy.array(
+    expected_spike_times = np.array(
         [10.015, 25.515, 43.168, 63.41, 86.649, 113.112, 142.663, 174.76])
     if plot_figure:
         import matplotlib.pyplot as plt
         vm = data.filter(name="v")[0]
         plt.plot(vm.times, vm)
-        plt.plot(expected_spike_times, -40 * numpy.ones_like(expected_spike_times), "ro")
+        plt.plot(expected_spike_times, -40 * np.ones_like(expected_spike_times), "ro")
         plt.savefig("test_EIF_cond_alpha_isfa_ista_%s.png" % sim.__name__)
     diff = (data.spiketrains[0].rescale(pq.ms).magnitude -
             expected_spike_times) / expected_spike_times
@@ -70,7 +70,7 @@ def test_HH_cond_exp(sim, plot_figure=False):
         plt.plot(v.times, v)
         plt.savefig("test_HH_cond_exp_%s.png" % sim.__name__)
     sim.end()
-    first_spike = v.times[numpy.where(v > 0)[0][0]]
+    first_spike = v.times[np.where(v > 0)[0][0]]
     assert first_spike / pq.ms - 2.95 < 0.01
 
 
@@ -135,11 +135,11 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
             plt.subplot(3, 1, i + 1)
             isi = st[1:] - st[:-1]
             k = rate/1000.0
-            n_bins = int(numpy.sqrt(k * t_stop))
+            n_bins = int(np.sqrt(k * t_stop))
             values, bins, patches = plt.hist(isi, bins=n_bins,
                                              label="{} Hz".format(rate),
                                              histtype='step')
-            expected = t_stop * k * (numpy.exp(-k * bins[:-1]) - numpy.exp(-k * bins[1:]))
+            expected = t_stop * k * (np.exp(-k * bins[:-1]) - np.exp(-k * bins[1:]))
             plt.plot((bins[1:] + bins[:-1])/2.0, expected, 'r-')
             plt.xlabel("Inter-spike interval (ms)")
             plt.legend()
@@ -187,7 +187,7 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
         for i, (st, alpha, beta) in enumerate(zip(data.spiketrains, params["alpha"], params["beta"])):
             plt.subplot(3, 1, i + 1)
             isi = st[1:] - st[:-1]
-            n_bins = int(numpy.sqrt(beta * t_stop/1000.0))
+            n_bins = int(np.sqrt(beta * t_stop/1000.0))
             values, bins, patches = plt.hist(isi, bins=n_bins,
                                              label="alpha={}, beta={} Hz".format(alpha, beta),
                                              histtype='step',
@@ -252,13 +252,13 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
             poisson_mean_isi = expected_mean_isi - tau_refrac
             k = 1/poisson_mean_isi
 
-            n_bins = int(numpy.sqrt(k * t_stop))
+            n_bins = int(np.sqrt(k * t_stop))
             values, bins, patches = plt.hist(isi, bins=n_bins,
                                              label="{} Hz".format(rate),
                                              histtype='step')
             expected = t_stop/expected_mean_isi * \
-                (numpy.exp(-(k * (bins[:-1] - tau_refrac))) -
-                 numpy.exp(-(k * (bins[1:] - tau_refrac))))
+                (np.exp(-(k * (bins[:-1] - tau_refrac))) -
+                 np.exp(-(k * (bins[1:] - tau_refrac))))
             plt.plot((bins[1:] + bins[:-1])/2.0, expected, 'r-')
             plt.legend()
         plt.xlabel("Inter-spike interval (ms)")
@@ -308,7 +308,7 @@ def test_update_SpikeSourceArray(sim, plot_figure=False):
     ])
     sim.run(10.0)
     data = sources.get_data().segments[0].spiketrains
-    assert_array_equal(data[0].magnitude, numpy.array([12, 15, 18, 22, 25]))
+    assert_array_equal(data[0].magnitude, np.array([12, 15, 18, 22, 25]))
 
 
 test_update_SpikeSourceArray.__test__ = False

@@ -5,7 +5,7 @@ try:
 except ImportError:
     from mock import Mock
 from nose.tools import assert_equal
-import numpy
+import numpy as np
 import os
 from pyNN.utility import assert_arrays_equal
 
@@ -68,11 +68,11 @@ def test_close():
 def test_StandardTextFile_read():
     files.open = Mock()
     stf = files.StandardTextFile("filename", "w")
-    orig_loadtxt = numpy.loadtxt
-    numpy.loadtxt = Mock()
+    orig_loadtxt = np.loadtxt
+    np.loadtxt = Mock()
     stf.read()
-    numpy.loadtxt.assert_called_with(stf.fileobj)
-    numpy.loadtxt = orig_loadtxt
+    np.loadtxt.assert_called_with(stf.fileobj)
+    np.loadtxt = orig_loadtxt
     files.open = builtin_open
 
 
@@ -99,7 +99,7 @@ def test_PickleFile():
 #
 #    nbf = files.NumpyBinaryFile("tmp.npz", "r")
 #    assert_equal(nbf.get_metadata(), metadata)
-#    assert_arrays_equal(nbf.read().flatten(), numpy.array(data).flatten())
+#    assert_arrays_equal(nbf.read().flatten(), np.array(data).flatten())
 #    nbf.close()
 #
 #    os.remove("tmp.npz")
@@ -115,8 +115,8 @@ def test_HDF5ArrayFile():
 
         h5f = files.HDF5ArrayFile("tmp.h5", "r")
         assert_equal(h5f.get_metadata(), metadata)
-        assert_arrays_equal(numpy.array(h5f.read()).flatten(),
-                            numpy.array(data).flatten())
+        assert_arrays_equal(np.array(h5f.read()).flatten(),
+                            np.array(data).flatten())
         h5f.close()
 
         os.remove("tmp.h5")

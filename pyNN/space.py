@@ -28,7 +28,7 @@ from functools import reduce
 import math
 from operator import and_
 import logging
-import numpy
+import numpy as np
 
 from pyNN.random import NumpyRNG
 from pyNN import descriptions
@@ -51,10 +51,10 @@ def distance(src, tgt, mask=None, scale_factor=1.0, offset=0.0,
     d = src.position - scale_factor * (tgt.position + offset)
 
     if periodic_boundaries is not None:
-        d = numpy.minimum(abs(d), periodic_boundaries - abs(d))
+        d = np.minimum(abs(d), periodic_boundaries - abs(d))
     if mask is not None:
         d = d[mask]
-    return numpy.sqrt(numpy.dot(d, d))
+    return np.sqrt(np.dot(d, d))
 
 
 class Space(object):
@@ -92,7 +92,7 @@ class Space(object):
 
         """
         self.periodic_boundaries = periodic_boundaries
-        self.axes = numpy.array(Space.AXES[axes])
+        self.axes = np.array(Space.AXES[axes])
         self.scale_factor = scale_factor
         self.offset = offset
 
@@ -111,7 +111,7 @@ class Space(object):
         if len(B.shape) == 1:
             B = B.reshape(1, 3)
         B = self.scale_factor * (B + self.offset)
-        d = numpy.zeros((len(self.axes), A.shape[0], B.shape[0]), dtype=A.dtype)
+        d = np.zeros((len(self.axes), A.shape[0], B.shape[0]), dtype=A.dtype)
         for i, axis in enumerate(self.axes):
             diff2 = A[:, None, axis] - B[:, axis]
             if self.periodic_boundaries is not None:
@@ -119,21 +119,21 @@ class Space(object):
                 if boundaries is not None:
                     range = boundaries[1] - boundaries[0]
                     ad2 = abs(diff2)
-                    diff2 = numpy.minimum(ad2, range - ad2)
+                    diff2 = np.minimum(ad2, range - ad2)
             diff2 **= 2
             d[i] = diff2
         if not expand:
-            d = numpy.sum(d, 0)
-        numpy.sqrt(d, d)
+            d = np.sum(d, 0)
+        np.sqrt(d, d)
         return d.flatten()
 
     def distance_generator(self, f, g):
         def distance_map(i, j):
             shape = []
-            if isinstance(i, numpy.ndarray) and i.ndim == 2:
+            if isinstance(i, np.ndarray) and i.ndim == 2:
                 i = i[:, 0]
                 shape.append(i.size)
-            if isinstance(j, numpy.ndarray) and j.ndim == 2:
+            if isinstance(j, np.ndarray) and j.ndim == 2:
                 j = j[0, :]
                 shape.append(j.size)
             d = self.distances(f(i), g(j))
@@ -204,10 +204,10 @@ class Line(BaseStructure):
         self.z = z
 
     def generate_positions(self, n):
-        x = self.dx * numpy.arange(n, dtype=float) + self.x0
-        y = numpy.zeros(n) + self.y
-        z = numpy.zeros(n) + self.z
-        return numpy.array((x, y, z))
+        x = self.dx * np.arange(n, dtype=float) + self.x0
+        y = np.zeros(n) + self.y
+        z = np.zeros(n) + self.z
+        return np.array((x, y, z))
     generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 
@@ -253,12 +253,12 @@ class Grid2D(BaseStructure):
 
     def generate_positions(self, n):
         nx, ny = self.calculate_size(n)
-        x, y, z = numpy.indices((nx, ny, 1), dtype=float)
+        x, y, z = np.indices((nx, ny, 1), dtype=float)
         x = self.x0 + self.dx * x.flatten()
         y = self.y0 + self.dy * y.flatten()
         z = self.z + z.flatten()
         # use column_stack, if we decide to switch from (3,n) to (n,3)
-        positions = numpy.array((x, y, z))
+        positions = np.array((x, y, z))
         if self.fill_order == 'sequential':
             return positions
         else:  # random
@@ -313,11 +313,11 @@ class Grid3D(BaseStructure):
 
     def generate_positions(self, n):
         nx, ny, nz = self.calculate_size(n)
-        x, y, z = numpy.indices((nx, ny, nz), dtype=float)
+        x, y, z = np.indices((nx, ny, nz), dtype=float)
         x = self.x0 + self.dx * x.flatten()
         y = self.y0 + self.dy * y.flatten()
         z = self.z0 + self.dz * z.flatten()
-        positions = numpy.array((x, y, z))
+        positions = np.array((x, y, z))
         if self.fill_order == 'sequential':
             return positions
         else:
@@ -373,7 +373,7 @@ class Sphere(Shape):
         """Return `n` points distributed randomly with uniform density within the sphere."""
         # this implementation is wasteful, as it throws away a lot of numbers,
         # but simple. More efficient implementations welcome.
-        positions = numpy.empty((n, 3))
+        positions = np.empty((n, 3))
         i = 0
         while i < n:
             candidate = rng.uniform(-1, 1, size=(1, 3))
@@ -402,7 +402,7 @@ class RandomStructure(BaseStructure):
         self.rng = rng or NumpyRNG()
 
     def generate_positions(self, n):
-        return (numpy.array(self.origin) + self.boundary.sample(n, self.rng)).T
+        return (np.array(self.origin) + self.boundary.sample(n, self.rng)).T
     generate_positions.__doc__ = BaseStructure.generate_positions.__doc__
 
 # what about rotations?

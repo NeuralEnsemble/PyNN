@@ -14,7 +14,7 @@ optional arguments:
 
 """
 
-import numpy
+import numpy as np
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 
 
@@ -31,7 +31,7 @@ sim.setup(quit_on_end=False)
 
 # === Build and instrument the network =======================================
 
-spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
 
 connector = sim.AllToAllConnector()
 

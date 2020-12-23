@@ -1,5 +1,5 @@
 
-import numpy
+import numpy as np
 from nose.tools import assert_equal
 from .registry import register
 
@@ -31,7 +31,7 @@ def scenario2(sim):
     sim.setup(timestep=0.01, min_delay=0.1, spike_precision="off_grid")
     neurons = sim.Population(n, sim.IF_curr_exp(**cell_params))
     neurons.initialize(v=0.0)
-    I = numpy.arange(I0, I0 + 1.0, 1.0 / n)
+    I = np.arange(I0, I0 + 1.0, 1.0 / n)
     currents = [sim.DCSource(start=t_start, stop=t_start + duration, amplitude=amp)
                 for amp in I]
     for j, (neuron, current) in enumerate(zip(neurons, currents)):
@@ -48,8 +48,8 @@ def scenario2(sim):
     assert_equal(len(spiketrains[0]), 0)  # first cell does not fire
     assert_equal(len(spiketrains[1]), 1)  # other cells fire once
     assert_equal(len(spiketrains[-1]), 1)  # other cells fire once
-    expected_spike_times = t_start + tau_m * numpy.log(I * tau_m / (I * tau_m - v_thresh * cm))
-    a = spike_times = [numpy.array(st)[0] for st in spiketrains[1:]]
+    expected_spike_times = t_start + tau_m * np.log(I * tau_m / (I * tau_m - v_thresh * cm))
+    a = spike_times = [np.array(st)[0] for st in spiketrains[1:]]
     b = expected_spike_times[1:]
     max_error = abs((a - b) / b).max()
     print("max error =", max_error)

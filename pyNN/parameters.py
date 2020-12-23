@@ -5,7 +5,7 @@ Parameter set handling
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 import collections
 from pyNN.core import is_listlike
 from pyNN import errors
@@ -74,7 +74,7 @@ class LazyArray(larray):
 
         `mask`: either `None` or a boolean array indicating which columns should be included.
         """
-        column_indices = numpy.arange(self.ncols)
+        column_indices = np.arange(self.ncols)
         if mask is not None:
             assert len(mask) == self.ncols
             column_indices = column_indices[mask]
@@ -83,7 +83,7 @@ class LazyArray(larray):
                 for j in column_indices:
                     yield self._partially_evaluate((slice(None), j), simplify=True)
             else:
-                column_indices = numpy.arange(self.ncols)
+                column_indices = np.arange(self.ncols)
                 for j, local in zip(column_indices, mask):
                     col = self._partially_evaluate((slice(None), j), simplify=True)
                     if local:
@@ -111,11 +111,11 @@ class ArrayParameter(object):
     def __init__(self, value):
         if isinstance(value, ArrayParameter):
             self.value = value.value
-        elif isinstance(value, numpy.ndarray):
+        elif isinstance(value, np.ndarray):
             # dont overwrite dtype of int arrays
             self.value = value
         else:
-            self.value = numpy.array(value, float)
+            self.value = np.array(value, float)
 
     # def __len__(self):
     #     This must not be defined, otherwise ArrayParameter is insufficiently different from NumPy array
@@ -135,7 +135,7 @@ class ArrayParameter(object):
         """
         if hasattr(val, '__len__'):
             # reshape if necessary?
-            return numpy.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)
+            return np.array([self.__class__(self.value + x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value + val)
 
@@ -150,7 +150,7 @@ class ArrayParameter(object):
         """
         if hasattr(val, '__len__'):
             # reshape if necessary?
-            return numpy.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)
+            return np.array([self.__class__(self.value - x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value - val)
 
@@ -165,7 +165,7 @@ class ArrayParameter(object):
         """
         if hasattr(val, '__len__'):
             # reshape if necessary?
-            return numpy.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
+            return np.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value * val)
 
@@ -182,7 +182,7 @@ class ArrayParameter(object):
         """
         if hasattr(val, '__len__'):
             # reshape if necessary?
-            return numpy.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)
+            return np.array([self.__class__(self.value / x) for x in val], dtype=self.__class__)
         else:
             return self.__class__(self.value / val)
 
@@ -191,8 +191,8 @@ class ArrayParameter(object):
     def __eq__(self, other):
         if isinstance(other, ArrayParameter):
             return self.value.size == other.value.size and (self.value == other.value).all()
-        elif isinstance(other, numpy.ndarray) and other.size > 0 and isinstance(other[0], ArrayParameter):
-            return numpy.array([(self == seq).all() for seq in other])
+        elif isinstance(other, np.ndarray) and other.size > 0 and isinstance(other[0], ArrayParameter):
+            return np.array([(self == seq).all() for seq in other])
         else:
             return False
 
@@ -461,8 +461,8 @@ class ParameterSpace(object):
         New array values are set to NaN.
         """
         for name, value in self._parameters.items():
-            if isinstance(value.base_value, numpy.ndarray):
-                new_base_value = numpy.ones(new_shape) * numpy.nan
+            if isinstance(value.base_value, np.ndarray):
+                new_base_value = np.ones(new_shape) * np.nan
                 new_base_value[mask] = value.base_value
                 self._parameters[name].base_value = new_base_value
         self.shape = new_shape
@@ -473,7 +473,7 @@ def simplify(value):
     If `value` is a homogeneous array, return the single value that all elements
     share. Otherwise, pass the value through.
     """
-    if isinstance(value, numpy.ndarray):
+    if isinstance(value, np.ndarray):
         if (value == value[0]).all():
             return value[0]
         else:
@@ -481,7 +481,7 @@ def simplify(value):
     else:
         return value
     # alternative - need to benchmark
-    # if numpy.any(arr != arr[0]):
+    # if np.any(arr != arr[0]):
     #    return arr
     # else:
     #    return arr[0]

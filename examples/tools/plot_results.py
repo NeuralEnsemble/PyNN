@@ -15,7 +15,7 @@ from pprint import pprint
 import sys
 import os
 import matplotlib.pyplot as plt
-import numpy
+import numpy as np
 import warnings
 import glob
 from pyNN.recording import get_io

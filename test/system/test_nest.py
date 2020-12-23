@@ -3,7 +3,7 @@ from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_not_equal, assert_raises
 from pyNN.utility import init_logging, assert_arrays_equal
 from pyNN.random import RandomDistribution
-import numpy
+import numpy as np
 
 try:
     import pyNN.nest
@@ -40,7 +40,7 @@ def test_record_native_model():
     p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron")(**parameters))
     p1.initialize(V_m=-70.0, Theta=-50.0)
     p1.set(theta_eq=-51.5)
-    #assert_arrays_equal(p1.get('theta_eq'), -51.5*numpy.ones((10,)))
+    #assert_arrays_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
     assert_equal(p1.get('theta_eq'), -51.5)
     print(p1.get('tau_m'))
     p1.set(tau_m=RandomDistribution('uniform', low=15.0, high=20.0))
@@ -174,9 +174,9 @@ def test_tsodyks_markram_synapse():
     import nest
     sim = pyNN.nest
     sim.setup()
-    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
     neurons = sim.Population(5, sim.IF_cond_exp(
-        e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
+        e_rev_I=-75, tau_syn_I=np.arange(0.2, 0.7, 0.1)))
     synapse_type = sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
                                              tau_facil=1000.0, weight=0.01,
                                              delay=0.5)
@@ -186,10 +186,10 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    connections = nest.GetConnections(numpy.unique(
+    connections = nest.GetConnections(np.unique(
         prj._sources).tolist(), synapse_model=prj.nest_synapse_model)
-    tau_psc = numpy.array(nest.GetStatus(connections, 'tau_psc'))
-    assert_arrays_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+    tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
+    assert_arrays_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
 
 
 def test_native_electrode_types():
@@ -258,7 +258,7 @@ def test_issue529():
         'Wmax': 10.,
     })
 
-    W = numpy.random.rand(5)
+    W = np.random.rand(5)
 
     connections = [
         (0, 0, W[0]),

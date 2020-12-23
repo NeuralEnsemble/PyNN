@@ -7,7 +7,7 @@ Definition of cell classes for the brian2 module.
 """
 
 
-import numpy
+import numpy as np
 import brian2
 from pyNN.parameters import Sequence, simplify
 from pyNN.core import is_listlike
@@ -337,8 +337,8 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
         brian2.SpikeGeneratorGroup.__init__(self, n, indices=indices, times=times)
 
     def _convert_sequences_to_arrays(self, spike_time_sequences):
-        times = numpy.concatenate([seq.value for seq in spike_time_sequences])
-        indices = numpy.concatenate([i * numpy.ones(seq.value.size)
+        times = np.concatenate([seq.value for seq in spike_time_sequences])
+        indices = np.concatenate([i * np.ones(seq.value.size)
                                      for i, seq in enumerate(spike_time_sequences)])
         return indices, times * second
         # todo: try to push the multiplication by seconds back into the translation step.
@@ -349,7 +349,7 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
         values = [list() for i in range(self.N)]
         for i, t in zip(self.neuron_index, self.spike_time):
             values[i].append(t)
-        return numpy.array([Sequence(times) for times in values], dtype=Sequence)
+        return np.array([Sequence(times) for times in values], dtype=Sequence)
 
     def _set_spike_time_sequences(self, spike_time_sequences, mask=None):
         if mask is not None:
@@ -363,7 +363,7 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
 
     def _check_spike_times(self, spike_time_sequences):
         for seq in spike_time_sequences:
-            if numpy.any(seq.value[:-1] > seq.value[1:]):
+            if np.any(seq.value[:-1] > seq.value[1:]):
                 raise errors.InvalidParameterValueError(
                     "Spike times given to SpikeSourceArray must be in increasing order")
 

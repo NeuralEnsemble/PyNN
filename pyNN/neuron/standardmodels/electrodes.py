@@ -13,7 +13,7 @@ Classes:
 """
 
 from neuron import h
-import numpy
+import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.neuron import simulator
@@ -93,7 +93,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         if not (times >= 0.0).all():
             raise ValueError("Step current cannot accept negative timestamps.")
         # ensure that times provided are of strictly increasing magnitudes
-        dt_times = numpy.diff(times)
+        dt_times = np.diff(times)
         if not all(dt_times > 0.0):
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # map timestamps to actual simulation time instants based on specified dt
@@ -152,9 +152,9 @@ class NeuronCurrentSource(StandardCurrentSource):
         # This requires removing the first element from the current Vector
         # as NEURON computes the currents one time step later. The vector length
         # is compensated by repeating the last recorded value of current.
-        t_arr = numpy.array(self.record_times)
-        i_arr = numpy.array(self.itrace)[1:]
-        i_arr = numpy.append(i_arr, i_arr[-1])
+        t_arr = np.array(self.record_times)
+        i_arr = np.array(self.itrace)[1:]
+        i_arr = np.append(i_arr, i_arr[-1])
         return (t_arr, i_arr)
 
 
@@ -212,9 +212,9 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
         # Not efficient at all... Is there a way to have those vectors computed on the fly ?
         # Otherwise should have a buffer mechanism
         temp_num_t = int(round(((self.stop + simulator.state.dt) - self.start) / simulator.state.dt))
-        tmp = simulator.state.dt * numpy.arange(temp_num_t)
+        tmp = simulator.state.dt * np.arange(temp_num_t)
         self.times = tmp + self.start
-        self.amplitudes = self.offset + self.amplitude * numpy.sin(tmp * 2 * numpy.pi * self.frequency / 1000. + 2 * numpy.pi * self.phase / 360)
+        self.amplitudes = self.offset + self.amplitude * np.sin(tmp * 2 * np.pi * self.frequency / 1000. + 2 * np.pi * self.phase / 360)
         self.amplitudes[-1] = 0.0
 
 
@@ -241,7 +241,7 @@ class NoisyCurrentSource(NeuronCurrentSource, electrodes.NoisyCurrentSource):
         # Not efficient at all... Is there a way to have those vectors computed on the fly ?
         # Otherwise should have a buffer mechanism
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt)))
-        self.times = self.start + max(self.dt, simulator.state.dt) * numpy.arange(temp_num_t)
-        self.times = numpy.append(self.times, self.stop)
-        self.amplitudes = self.mean + self.stdev * numpy.random.randn(len(self.times))
+        self.times = self.start + max(self.dt, simulator.state.dt) * np.arange(temp_num_t)
+        self.times = np.append(self.times, self.stop)
+        self.amplitudes = self.mean + self.stdev * np.random.randn(len(self.times))
         self.amplitudes[-1] = 0.0

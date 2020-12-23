@@ -7,7 +7,7 @@ April 2013
 
 """
 
-import numpy
+import numpy as np
 from pyNN.utility import get_script_args, init_logging, normalized_filename
 
 init_logging(None, debug=True)
@@ -42,11 +42,11 @@ setup(timestep=dt, min_delay=syn_delay, max_delay=syn_delay)
 cells = Population(n, IF_curr_alpha(**cell_params), initial_values={'v': 0.0}, label="cells")
 
 number = int(2 * simtime * input_rate / 1000.0)
-numpy.random.seed(26278342)
+np.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(dt + numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(np.add.accumulate(dt + np.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:

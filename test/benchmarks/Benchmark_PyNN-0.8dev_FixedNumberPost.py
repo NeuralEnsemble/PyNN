@@ -22,7 +22,7 @@ t0 = time.time()
 from pyNN.utility import Timer
 timer = Timer()
 timer.start()
-times = {} 
+times = {}
 times['t_startup'] = time.time() - t0
 
 # check imports
@@ -49,7 +49,7 @@ except:
 from pyNN.random import NumpyRNG, RandomDistribution
 times['t_import'] = timer.diff()
 
-# === DEFINE PARAMETERS 
+# === DEFINE PARAMETERS
 benchmark = "COBA"
 rngseed = 98765
 parallel_safe = True
@@ -58,9 +58,9 @@ folder_name = 'Results_PyNN_FixedNumberPost_np%d/' % (np)
 gather = False  # gather spikes and membrane potentials on one process
 times_fn = 'pynn_times_FixedNumberPost_gather%d_np%d.dat' % (gather, np)
 
-n_cells = 200 * np 
+n_cells = 200 * np
 r_ei = 4.0   # number of excitatory cells:number of inhibitory cells
-n_exc = int(round((n_cells * r_ei / (1 + r_ei))))  # number of excitatory cells   
+n_exc = int(round((n_cells * r_ei / (1 + r_ei))))  # number of excitatory cells
 n_inh = n_cells - n_exc                     # number of inhibitory cells
 n_cells_to_record = np
 n_conn_out = 1000  # number of outgoing connections per neuron
@@ -74,7 +74,7 @@ dt = 0.1   # (ms) simulation timestep
 t_sim = 1000  # (ms) simulaton duration
 delay = 1 * dt
 
-# === SETUP 
+# === SETUP
 node_id = setup(timestep=dt, min_delay=delay, max_delay=delay)
 times['t_setup'] = timer.diff()
 
@@ -82,7 +82,7 @@ host_name = socket.gethostname()
 print("Host #%d is on %s" % (node_id + 1, host_name))
 
 
-# === CREATE 
+# === CREATE
 print("%s Creating cell populations..." % node_id)
 #celltype = IF_cond_exp
 exc_cells = Population(n_exc, IF_cond_exp(), label="Excitatory_Cells")

@@ -6,7 +6,7 @@
 
 import logging
 from collections import defaultdict
-import numpy
+import numpy as np
 import quantities as pq
 import brian2
 from pyNN.core import is_listlike
@@ -38,7 +38,7 @@ class Recorder(recording.Recorder):
             self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded)
         else:
             varname = self.population.celltype.state_variable_translations[variable]['translated_name']
-            neurons_to_record = numpy.sort(numpy.fromiter(
+            neurons_to_record = np.sort(np.fromiter(
                 self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
                                                           record=neurons_to_record,
@@ -99,7 +99,7 @@ class Recorder(recording.Recorder):
         values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](
             values)
         # because we use `when='end'`, need to add the value at the beginning of the run
-        tmp = numpy.empty((values.shape[0] + 1, values.shape[1]))
+        tmp = np.empty((values.shape[0] + 1, values.shape[1]))
         tmp[1:, :] = values
         population_mask = self.population.id_to_index(ids)
         tmp[0, :] = self.population.initial_values[variable][population_mask]
@@ -112,7 +112,7 @@ class Recorder(recording.Recorder):
         N = {}
         filtered_ids = self.filter_recorded(variable, filter_ids)
         padding = self.population.first_id
-        indices = numpy.fromiter(filtered_ids, dtype=int) - padding
+        indices = np.fromiter(filtered_ids, dtype=int) - padding
         spiky = self._devices['spikes'].spike_trains()
         for i, id in zip(indices, filtered_ids):
             #N[id] = len(self._devices['spikes'].spiketimes[i])

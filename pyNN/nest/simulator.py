@@ -24,7 +24,7 @@ modules.
 import nest
 import logging
 import tempfile
-import numpy
+import numpy as np
 from pyNN import common
 from pyNN.core import reraise
 

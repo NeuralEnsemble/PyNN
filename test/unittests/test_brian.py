@@ -4,7 +4,7 @@ try:
 except ImportError:
     brian = False
 import unittest
-import numpy
+import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
@@ -27,11 +27,11 @@ class TestProjection(unittest.TestCase):
         a = p1 + p2[1:4]
         # [0 2 3 4 5][x 1 2 3 x x x]
         prj = sim.Projection(a, a, MockConnector(), synapse_type=self.syn)
-        presynaptic_indices = numpy.array([0, 3, 4, 6, 7])
+        presynaptic_indices = np.array([0, 3, 4, 6, 7])
         partitions = prj._partition(presynaptic_indices)
         self.assertEqual(len(partitions), 2)
-        assert_array_equal(partitions[0], numpy.array([0, 3, 4]))
-        assert_array_equal(partitions[1], numpy.array([2, 3]))
+        assert_array_equal(partitions[0], np.array([0, 3, 4]))
+        assert_array_equal(partitions[1], np.array([2, 3]))
 
         # [0 1 2 3 4][x 1 2 3 x]
         self.assertEqual(prj._localize_index(0), (0, 0))

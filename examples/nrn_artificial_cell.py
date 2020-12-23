@@ -7,7 +7,7 @@ Usage: nrn_artificial_cell.py
 
 """
 
-import numpy
+import numpy as np
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.parameters import Sequence
 from pyNN.random import RandomDistribution as rnd
@@ -36,11 +36,11 @@ cells = sim.Population(n, sim.IntFire1(**cell_params),
                        label="cells")
 
 number = int(2 * simtime * input_rate / 1000.0)
-numpy.random.seed(26278342)
+np.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(np.add.accumulate(np.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:

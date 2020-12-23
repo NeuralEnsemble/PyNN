@@ -7,7 +7,7 @@ NEST v2 implementation of the PyNN API.
 
 """
 
-import numpy
+import numpy as np
 import nest
 import logging
 from itertools import repeat
@@ -23,9 +23,9 @@ logger = logging.getLogger("PyNN")
 
 
 def listify(obj):
-    if isinstance(obj, numpy.ndarray):
+    if isinstance(obj, np.ndarray):
         return obj.astype(float).tolist()
-    elif numpy.isscalar(obj):
+    elif np.isscalar(obj):
         return float(obj)  # NEST chokes on numpy's float types
     else:
         return obj
@@ -78,7 +78,7 @@ class Projection(common.Projection):
     @property
     def nest_connections(self):
         if self._connections is None or self._simulator.state.stale_connection_cache:
-            self._sources = numpy.unique(self._sources)
+            self._sources = np.unique(self._sources)
             if self._sources.size > 0:
                 self._connections = nest.GetConnections(self._sources.tolist(),
                                                         synapse_model=self.nest_synapse_model,
@@ -145,8 +145,8 @@ class Projection(common.Projection):
             for name, value in connection_parameters.items():
                 if name not in self._common_synapse_property_names:
                     value = make_sli_compatible(value)
-                    if isinstance(value, numpy.ndarray):
-                        syn_dict.update({name: numpy.array([value.tolist()])})
+                    if isinstance(value, np.ndarray):
+                        syn_dict.update({name: np.array([value.tolist()])})
                     else:
                         syn_dict.update({name: value})
         return syn_dict
@@ -197,10 +197,10 @@ class Projection(common.Projection):
         # Create connections and set parameters
         try:
             # nest.Connect expects a 2D array
-            if not numpy.isscalar(weights):
-                weights = numpy.array([weights])
-            if not numpy.isscalar(delays):
-                delays = numpy.array([delays])
+            if not np.isscalar(weights):
+                weights = np.array([weights])
+            if not np.isscalar(delays):
+                delays = np.array([delays])
             syn_dict.update({'weight': weights, 'delay': delays})
 
             if postsynaptic_cell.celltype.standard_receptor_type:
@@ -242,11 +242,11 @@ class Projection(common.Projection):
                                                   synapse_model=self.nest_synapse_model,
                                                   synapse_label=self.nest_synapse_label)
                 # not sure why we need to sort here
-                sort_indices = numpy.argsort(presynaptic_cells)
+                sort_indices = np.argsort(presynaptic_cells)
                 for name, value in connection_parameters.items():
                     if name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)
-                        if isinstance(value, numpy.ndarray):
+                        if isinstance(value, np.ndarray):
                             nest.SetStatus(connections, name, value[sort_indices].tolist())
                         else:
                             nest.SetStatus(connections, name, value)
@@ -281,7 +281,7 @@ class Projection(common.Projection):
                              "within a single Projection with NEST.")
         # only columns for connections that exist on this machine
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
-        sources = numpy.unique(self._sources).tolist()
+        sources = np.unique(self._sources).tolist()
         if self._common_synapse_property_names is None:
             self._identify_common_synapse_properties()
         for postsynaptic_cell, connection_parameters in zip(self.post.local_cells,
@@ -302,7 +302,7 @@ class Projection(common.Projection):
                         value = make_sli_compatible(value)
                         if len(source_mask) > 1:
                             nest.SetStatus(connections, name, value[source_mask])
-                        elif isinstance(value, numpy.ndarray):  # OneToOneConnector
+                        elif isinstance(value, np.ndarray):  # OneToOneConnector
                             nest.SetStatus(connections, name, value[source_mask])
                         else:
                             nest.SetStatus(connections, name, value)
@@ -317,7 +317,7 @@ class Projection(common.Projection):
         if name in self._common_synapse_properties:
             unequal = self._common_synapse_properties[name] != value
             # handle both scalars and numpy ndarray
-            if isinstance(unequal, numpy.ndarray):
+            if isinstance(unequal, np.ndarray):
                 raise_error = unequal.any()
             else:
                 raise_error = unequal
@@ -363,7 +363,7 @@ class Projection(common.Projection):
     #    logger.debug("--- Projection[%s].__saveConnections__() ---" % self.label)
     #
     #    if gather == False or simulator.state.mpi_rank == 0:
-    #        lines       = numpy.array(lines, dtype=float)
+    #        lines       = np.array(lines, dtype=float)
     #        lines[:,2] *= 0.001
     #        if compatible_output:
     #            lines[:,0] = self.pre.id_to_index(lines[:,0])
@@ -381,9 +381,9 @@ class Projection(common.Projection):
             else:
                 nest_names.append(name)
         values = nest.GetStatus(self.nest_connections, nest_names)
-        values = numpy.array(values)  # ought to preserve int type for source, target
+        values = np.array(values)  # ought to preserve int type for source, target
         if 'weight' in names:  # other attributes could also have scale factors - need to use translation mechanisms
-            scale_factors = numpy.ones(len(names))
+            scale_factors = np.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
             if self.receptor_type == 'inhibitory' and self.post.conductance_based:
                 # NEST uses negative values for inhibitory weights, even if these are conductances
@@ -406,14 +406,14 @@ class Projection(common.Projection):
         for attribute_name in names:
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
                 attribute_name = attribute_name[:-1]
-            value_arr = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            value_arr = np.nan * np.ones((self.pre.size, self.post.size))
             connection_attributes = nest.GetStatus(self.nest_connections,
                                                    ('source', 'target', attribute_name))
             for conn in connection_attributes:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn
                 addr = self.pre.id_to_index(src), self.post.id_to_index(tgt)
-                if numpy.isnan(value_arr[addr]):
+                if np.isnan(value_arr[addr]):
                     value_arr[addr] = value
                 else:
                     value_arr[addr] = multi_synapse_operation(value_arr[addr], value)

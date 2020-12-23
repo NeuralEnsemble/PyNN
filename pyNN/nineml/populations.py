@@ -5,7 +5,7 @@ Export of PyNN scripts as NineML.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 import nineml.user as nineml
 
 from pyNN import common
@@ -81,9 +81,9 @@ class Population(BasePopulation, common.Population):
         self._simulator.state.net.populations.append(self)
 
     def _create_cells(self):
-        id_range = numpy.arange(simulator.state.id_counter,
+        id_range = np.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
-        self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
+        self.all_cells = np.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
 
         def is_local(id):

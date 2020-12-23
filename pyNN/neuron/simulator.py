@@ -23,7 +23,7 @@ modules.
 from pyNN import __path__ as pyNN_path
 from pyNN import common
 import logging
-import numpy
+import numpy as np
 import os.path
 from neuron import h, nrn_dll_loaded
 from operator import itemgetter
@@ -82,7 +82,7 @@ def nativeRNG_pick(n, rng, distribution='uniform', parameters=[0, 1]):
     native_rng = h.Random(0 or rng.seed)
     rarr = [getattr(native_rng, distribution)(*parameters)]
     rarr.extend([native_rng.repick() for j in range(n - 1)])
-    return numpy.array(rarr)
+    return np.array(rarr)
 
 
 def h_property(name):

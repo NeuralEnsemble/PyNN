@@ -8,7 +8,7 @@ Contact Padraig Gleeson for more details
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
@@ -36,7 +36,7 @@ class PopulationView(common.PopulationView):
         parameter_dict = {}
         for name in names:
             value = self.parent._parameters[name]
-            if isinstance(value, numpy.ndarray):
+            if isinstance(value, np.ndarray):
                 value = value[self.mask]
             parameter_dict[name] = simplify(value)
         return ParameterSpace(parameter_dict, shape=(self.size,)) # or local size?
@@ -63,13 +63,13 @@ class Population(common.Population):
     _simulator = simulator
     _recorder_class = Recorder
     _assembly_class = Assembly
-    
+
     def __init__(self, size, cellclass, cellparams=None, structure=None,
                  initial_values={}, label=None):
         super(Population, self).__init__(size, cellclass, cellparams, structure,initial_values, label)
-        
+
         logger.debug("Created NeuroML Population: %s of size %i" % (self.label, self.size))
-             
+
         for cell in self.all_cells:
             index = self.id_to_index(cell)
             inst = neuroml.Instance(id=index)
@@ -79,35 +79,35 @@ class Population(common.Population):
             z = self.positions[2][index]
             logger.debug("Creating cell at (%s, %s, %s)"%(x,y,z))
             inst.location = neuroml.Location(x=x,y=y,z=z)
-        
+
 
     def _create_cells(self):
         """Create the cells in the population"""
-        
+
         nml_doc = simulator._get_nml_doc()
         net = simulator._get_main_network()
-        
+
         cell_pynn = self.celltype.__class__.__name__
         logger.debug("Creating Cell instance: %s" % (cell_pynn))
-        
+
         cell_id = self.celltype.add_to_nml_doc(nml_doc, self)
-        
+
         logger.debug("Creating Population: %s of size %i" % (self.label, self.size))
-        
+
         self.pop = neuroml.Population(id=self.label, size = self.size, type="populationList",
                           component=cell_id)
         net.populations.append(self.pop)
-        
-        
-        id_range = numpy.arange(simulator.state.id_counter,
+
+
+        id_range = np.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
-        self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
+        self.all_cells = np.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
-            
+
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
-        
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:
@@ -115,18 +115,18 @@ class Population(common.Population):
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(mask=self._mask_local, simplify=False)
         self._parameters = parameter_space.as_dict()
-        
+
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size
-        
-        
+
+
     def annotate(self, **annotations):
         print("Updating annotations: %s"%annotations)
         for k in annotations:
-            
+
             self.pop.properties.append(neuroml.Property(k, annotations[k]))
-            
+
         self.annotations.update(annotations)
 
     def _set_initial_value_array(self, variable, initial_values):

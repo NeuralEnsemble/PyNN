@@ -22,7 +22,7 @@ modules.
 
 import logging
 import brian2
-import numpy
+import numpy as np
 from pyNN import common
 from pyNN.parameters import simplify
 
@@ -105,12 +105,12 @@ class State(common.control.BaseState):
 
     def _get_min_delay(self):
         if self._min_delay == 'auto':
-            min_delay = numpy.inf
+            min_delay = np.inf
             for item in self.network.sorted_objects:
                 if isinstance(item, brian2.Synapses):
-                    matrix = numpy.asarray(item.delay) * 10000
+                    matrix = np.asarray(item.delay) * 10000
                     min_delay = min(min_delay, matrix.min())
-            if numpy.isinf(min_delay):
+            if np.isinf(min_delay):
                 self._min_delay = self.dt
             else:
                 self._min_delay = min_delay * self.dt  # Synapses.delay is an integer, the number of time steps

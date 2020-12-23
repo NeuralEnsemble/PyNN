@@ -3,7 +3,7 @@
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 from numpy.testing import assert_array_equal
 import quantities as pq
-import numpy
+import numpy as np
 from .registry import register
 
 try:
@@ -144,8 +144,8 @@ def issue437(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = int(numpy.argmax(t >= t_start))
-    t_stop_ind = int(numpy.argmax(t >= t_stop))
+    t_start_ind = int(np.argmax(t >= t_start))
+    t_stop_ind = int(np.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
@@ -166,15 +166,15 @@ def issue437(sim):
     #   Test implementation makes use of certain approximations for thresholding.
     #   Note: there can be a much simpler check for this once recording current profiles enabled (for all simulators).
     #   Test implementation makes use of certain approximations for thresholding; hence taking mode of initial values
-    t_up = numpy.arange(float(min(t)), float(max(t))+dt_0/10.0, dt_0/10.0)
-    v0_up = numpy.interp(t_up, t, v0.magnitude.flat)
-    v1_up = numpy.interp(t_up, t, v1.magnitude.flat)
-    d2_v0_up = numpy.diff(v0_up, n=2)
-    d2_v1_up = numpy.diff(v1_up, n=2)
+    t_up = np.arange(float(min(t)), float(max(t))+dt_0/10.0, dt_0/10.0)
+    v0_up = np.interp(t_up, t, v0.magnitude.flat)
+    v1_up = np.interp(t_up, t, v1.magnitude.flat)
+    d2_v0_up = np.diff(v0_up, n=2)
+    d2_v1_up = np.diff(v1_up, n=2)
     dt_0_list = [j for (i, j) in zip(d2_v0_up, t_up) if abs(i) >= 0.00005]
     dt_1_list = [j for (i, j) in zip(d2_v1_up, t_up) if abs(i) >= 0.00005]
-    dt_0_list_diff = numpy.diff(dt_0_list, n=1)
-    dt_1_list_diff = numpy.diff(dt_1_list, n=1)
+    dt_0_list_diff = np.diff(dt_0_list, n=1)
+    dt_1_list_diff = np.diff(dt_1_list, n=1)
     dt_0_mode = scipy.stats.mode(dt_0_list_diff[0:10])[0][0]
     dt_1_mode = scipy.stats.mode(dt_1_list_diff[0:10])[0][0]
     assert_true(abs(dt_0_mode - dt_0) < 1e-9 or abs(dt_1_mode - dt_1) < 1e-9)
@@ -212,8 +212,8 @@ def issue442(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = int(numpy.argmax(t >= t_start))
-    t_stop_ind = int(numpy.argmax(t >= t_stop))
+    t_start_ind = int(np.argmax(t >= t_start))
+    t_stop_ind = int(np.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
@@ -261,8 +261,8 @@ def issue445(sim):
 
     i_ac = acsource.get_data()
     i_t_ac = i_ac.times.magnitude
-    t_start_ind = numpy.argmax(i_t_ac >= t_start)
-    t_stop_ind = numpy.argmax(i_t_ac >= t_stop)
+    t_start_ind = np.argmax(i_t_ac >= t_start)
+    t_stop_ind = np.argmax(i_t_ac >= t_stop)
     assert_true(all(val != val_next for val, val_next in zip(
         i_t_ac[t_start_ind:t_stop_ind-1], i_t_ac[t_start_ind+1:t_stop_ind])))
     # note: exact matches not appropriate owing to floating point rounding errors
@@ -370,12 +370,12 @@ def issue487(sim):
     assert_true(v_step[int(simtime/dt)] < v_step[int(simtime/dt)+1])
     # check that membrane potential of cell undergoes a change
     # Test 3
-    v_dc_2_arr = numpy.squeeze(numpy.array(v_dc_2))
-    assert_false(numpy.isclose(v_dc_2_arr, v_rest).all())
+    v_dc_2_arr = np.squeeze(np.array(v_dc_2))
+    assert_false(np.isclose(v_dc_2_arr, v_rest).all())
     # check that membrane potential of cell undergoes no change till start of current injection
     # Test 4
-    v_step_2_arr = numpy.squeeze(numpy.array(v_step_2))
-    assert_true(numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
+    v_step_2_arr = np.squeeze(np.array(v_step_2))
+    assert_true(np.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
 @register()
@@ -446,11 +446,11 @@ def issue_465_474_630(sim):
     assert_true(len(i_step) == int(simtime/sim_dt)+1 == len(v_step))
 
     # test to check values exist at start and end of simulation
-    assert_true(i_ac.t_start == 0.0 * pq.ms and numpy.isclose(float(i_ac.times[-1]), simtime))
-    assert_true(i_dc.t_start == 0.0 * pq.ms and numpy.isclose(float(i_dc.times[-1]), simtime))
+    assert_true(i_ac.t_start == 0.0 * pq.ms and np.isclose(float(i_ac.times[-1]), simtime))
+    assert_true(i_dc.t_start == 0.0 * pq.ms and np.isclose(float(i_dc.times[-1]), simtime))
     assert_true(i_noise.t_start == 0.0 *
-                pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
-    assert_true(i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
+                pq.ms and np.isclose(float(i_noise.times[-1]), simtime))
+    assert_true(i_step.t_start == 0.0 * pq.ms and np.isclose(float(i_step.times[-1]), simtime))
 
     # test to check current changes at start time instant
     assert_true(i_ac[(int(start / sim_dt)) - 1, 0] == 0 *
@@ -473,13 +473,13 @@ def issue_465_474_630(sim):
                 pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA)
 
     # test to check vm changes at the time step following current initiation
-    assert_true(numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()),
+    assert_true(np.isclose(float(v_ac[int(start / sim_dt), 0].item()),
                               v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true(numpy.isclose(float(v_dc[int(start / sim_dt), 0].item()),
+    assert_true(np.isclose(float(v_dc[int(start / sim_dt), 0].item()),
                               v_rest) and v_dc[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true(numpy.isclose(float(v_noise[int(start / sim_dt), 0].item()),
+    assert_true(np.isclose(float(v_noise[int(start / sim_dt), 0].item()),
                               v_rest) and v_noise[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true(numpy.isclose(float(v_step[int(start / sim_dt), 0].item()),
+    assert_true(np.isclose(float(v_step[int(start / sim_dt), 0].item()),
                               v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
@@ -664,13 +664,13 @@ def issue631(sim):
     i_noisy = noisy_source.get_data()
     i_step = step_source.get_data()
 
-    assert_true(numpy.all(i_dc.magnitude[:int(25.0 / sim_dt) - 1:] == 0)
-                and numpy.all(i_dc.magnitude[int(50.0 / sim_dt):] == 0))
-    assert_true(numpy.all(i_ac.magnitude[:int(75.0 / sim_dt) - 1:] == 0)
-                and numpy.all(i_ac.magnitude[int(125.0 / sim_dt):] == 0))
-    assert_true(numpy.all(i_noisy.magnitude[:int(150.0 / sim_dt) - 1:] == 0)
-                and numpy.all(i_noisy.magnitude[int(175.0 / sim_dt):] == 0))
-    assert_true(numpy.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
+    assert_true(np.all(i_dc.magnitude[:int(25.0 / sim_dt) - 1:] == 0)
+                and np.all(i_dc.magnitude[int(50.0 / sim_dt):] == 0))
+    assert_true(np.all(i_ac.magnitude[:int(75.0 / sim_dt) - 1:] == 0)
+                and np.all(i_ac.magnitude[int(125.0 / sim_dt):] == 0))
+    assert_true(np.all(i_noisy.magnitude[:int(150.0 / sim_dt) - 1:] == 0)
+                and np.all(i_noisy.magnitude[int(175.0 / sim_dt):] == 0))
+    assert_true(np.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
 
 
 if __name__ == '__main__':

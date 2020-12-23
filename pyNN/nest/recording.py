@@ -4,7 +4,7 @@
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 import logging
 import nest
 from pyNN import recording
@@ -67,8 +67,8 @@ class RecordingDevice(object):
         for id, v in zip(ids, values):
             data[id].append(v)
 
-        desired_and_existing_ids = numpy.intersect1d(
-            numpy.array(list(recorded_ids)), numpy.array(desired_ids))
+        desired_and_existing_ids = np.intersect1d(
+            np.array(list(recorded_ids)), np.array(desired_ids))
         data = {k: data[k] for k in desired_and_existing_ids}
 
         if variable != 'times':
@@ -222,12 +222,12 @@ class Multimeter(RecordingDevice):
 #        ids = events['senders']
 #        times = events['times']
 #        if self.type == 'spike_detector':
-#            data = numpy.array((ids, times)).T
+#            data = np.array((ids, times)).T
 #        else:
 #            data = [ids, times]
 #            for var in self.record_from:
 #                data.append(events[var])
-#            data = numpy.array(data).T
+#            data = np.array(data).T
 #        return data
 #
 #    def scale_data(self, data):
@@ -258,7 +258,7 @@ class Multimeter(RecordingDevice):
 #                    initial.append(0.0) # unsatisfactory
 #            initial_values.append(initial)
 #        if initial_values:
-#            data = numpy.concatenate((initial_values, data))
+#            data = np.concatenate((initial_values, data))
 #        return data
 #
 #    def read_data_from_memory(self, gather, compatible_output):
@@ -276,7 +276,7 @@ class Multimeter(RecordingDevice):
 #        if gather and simulator.state.num_processes > 1:
 #            data = recording.gather(data)
 #            self._gathered_file = tempfile.TemporaryFile()
-#            numpy.save(self._gathered_file, data)
+#            np.save(self._gathered_file, data)
 #            self._gathered = True
 #        return data
 #
@@ -293,7 +293,7 @@ class Multimeter(RecordingDevice):
 #        if self._local_files_merged:
 #            logger.debug("Loading merged data from cache")
 #            self._merged_file.seek(0)
-#            data = numpy.load(self._merged_file)
+#            data = np.load(self._merged_file)
 #        else:
 #            d = nest.GetStatus(self.device)[0]
 #            if "filenames" in d:
@@ -304,21 +304,21 @@ class Multimeter(RecordingDevice):
 #            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
 #            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
 #            if len(non_empty_nest_files) > 0:
-#                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
-#                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file))
+#                data_list = [np.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+#                data_list = [np.atleast_2d(np.loadtxt(nest_file))
 #                             for nest_file in non_empty_nest_files]
-#                data = numpy.concatenate(data_list)
+#                data = np.concatenate(data_list)
 #            if len(non_empty_nest_files) == 0 or data.size == 0:
 #                if self.type is "spike_detector":
 #                    ncol = 2
 #                else:
 #                    ncol = 2 + len(self.record_from)
-#                data = numpy.empty([0, ncol])
+#                data = np.empty([0, ncol])
 #            if compatible_output and self.type is not "spike_detector":
 #                data = self.scale_data(data)
 #                data = self.add_initial_values(data)
 #            self._merged_file = tempfile.TemporaryFile()
-#            numpy.save(self._merged_file, data)
+#            np.save(self._merged_file, data)
 #            self._local_files_merged = True  # this is set back to False by run()
 #        return data
 #
@@ -340,7 +340,7 @@ class Multimeter(RecordingDevice):
 #                if self._gathered:
 #                    logger.debug("Loading previously gathered data from cache")
 #                    self._gathered_file.seek(0)
-#                    data = numpy.load(self._gathered_file)
+#                    data = np.load(self._gathered_file)
 #                else:
 #                    local_data = self.read_local_data(compatible_output)
 #                    if always_local:
@@ -350,7 +350,7 @@ class Multimeter(RecordingDevice):
 #                        data = recording.gather(local_data)
 #                    logger.debug("Caching gathered data")
 #                    self._gathered_file = tempfile.TemporaryFile()
-#                    numpy.save(self._gathered_file, data)
+#                    np.save(self._gathered_file, data)
 #                    self._gathered = True
 #            else:
 #                data = self.read_local_data(compatible_output)
@@ -445,9 +445,9 @@ class Recorder(recording.Recorder):
         data = self._multimeter.get_data(variable, ids, clear=clear)
         if len(ids) > 0:
             # JACOMMENT: this is very expensive but not sure how to get rid of it
-            return numpy.array([data[i] for i in ids]).T
+            return np.array([data[i] for i in ids]).T
         else:
-            return numpy.array([])
+            return np.array([])
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'
@@ -462,10 +462,10 @@ class Recorder(recording.Recorder):
         #                       filter=filter)
         #    for id in self.filter_recorded(filter):
         #        N[int(id)] = 0
-        #    ids   = numpy.sort(spikes[:,0].astype(int))
-        #    idx   = numpy.unique(ids)
-        #    left  = numpy.searchsorted(ids, idx, 'left')
-        #    right = numpy.searchsorted(ids, idx, 'right')
+        #    ids   = np.sort(spikes[:,0].astype(int))
+        #    idx   = np.unique(ids)
+        #    left  = np.searchsorted(ids, idx, 'left')
+        #    right = np.searchsorted(ids, idx, 'right')
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
         # return N

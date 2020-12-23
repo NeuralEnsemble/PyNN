@@ -25,7 +25,7 @@ optional arguments:
 """
 
 from math import exp
-import numpy
+import numpy as np
 import neo
 from quantities import ms
 from pyNN.utility import get_simulator, init_logging, normalized_filename
@@ -75,7 +75,7 @@ def build_spike_sequences(period, duration, n, delta_t):
     """
     def spike_time_gen(i):
         """Spike time generator. `i` should be an array of indices."""
-        return [Sequence(numpy.arange(period + j * delta_t, duration, period)) for j in (i - n // 2)]
+        return [Sequence(np.arange(period + j * delta_t, duration, period)) for j in (i - n // 2)]
     return spike_time_gen
 
 
@@ -87,7 +87,7 @@ p1 = sim.Population(n, sim.SpikeSourceArray(spike_times=spike_sequence_generator
 p2 = sim.Population(1, sim.IF_cond_exp(**cell_parameters),
                     initial_values={"v": cell_parameters["v_reset"]}, label="postsynaptic")
 # drive to the postsynaptic neuron, ensuring it fires at exact multiples of the firing period
-p3 = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(firing_period - delay, t_stop, firing_period)),
+p3 = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(firing_period - delay, t_stop, firing_period)),
                     label="driver")
 
 # we set the initial weights to be very small, to avoid perturbing the firing times of the
@@ -131,7 +131,7 @@ class WeightRecorder(object):
     def get_weights(self):
         signal = neo.AnalogSignal(self._weights, units='nA', sampling_period=self.interval * ms,
                                   name="weight")
-        signal.channel_index = neo.ChannelIndex(numpy.arange(len(self._weights[0])))
+        signal.channel_index = neo.ChannelIndex(np.arange(len(self._weights[0])))
         return signal
 
 
@@ -152,15 +152,15 @@ postsynaptic_data = p2.get_data().segments[0]
 print("Post-synaptic spike times: %s" % postsynaptic_data.spiketrains[0])
 
 weights = weight_recorder.get_weights()
-final_weights = numpy.array(weights[-1])
-deltas = delta_t * numpy.arange(n // 2, -n // 2, -1)
+final_weights = np.array(weights[-1])
+deltas = delta_t * np.arange(n // 2, -n // 2, -1)
 print("Final weights: %s" % final_weights)
 plasticity_data = DataTable(deltas, final_weights)
 
 
 if options.fit_curve:
     def double_exponential(t, t0, w0, wp, wn, tau):
-        return w0 + numpy.where(t >= t0, wp * numpy.exp(-(t - t0) / tau), wn * numpy.exp((t - t0) / tau))
+        return w0 + np.where(t >= t0, wp * np.exp(-(t - t0) / tau), wn * np.exp((t - t0) / tau))
     p0 = (-1.0, 5e-8, 1e-8, -1.2e-8, 20.0)
     popt, pcov = plasticity_data.fit_curve(double_exponential, p0, ftol=1e-10)
     print("Best fit parameters: t0={0}, w0={1}, wp={2}, wn={3}, tau={4}".format(*popt))

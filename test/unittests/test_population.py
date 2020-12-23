@@ -7,7 +7,7 @@ backend.
 """
 
 import unittest
-import numpy
+import numpy as np
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import quantities as pq
@@ -49,11 +49,11 @@ class PopulationTest(unittest.TestCase):
     def test_create_with_parameters(self, sim=sim):
         p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
                                                  'tau_syn_E': lambda i: 0.987 + 0.01 * i,
-                                                 'tau_syn_I': numpy.array([0.5, 0.6, 0.7, 0.8])}))
+                                                 'tau_syn_I': np.array([0.5, 0.6, 0.7, 0.8])}))
         tau_syn_E, tau_m, tau_syn_I = p.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
-        assert_array_almost_equal(tau_syn_E, numpy.array([0.987, 0.997, 1.007, 1.017]))
+        assert_array_almost_equal(tau_syn_E, np.array([0.987, 0.997, 1.007, 1.017]))
         self.assertAlmostEqual(tau_m, 12.3)
-        assert_array_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]))
+        assert_array_equal(tau_syn_I, np.array([0.5, 0.6, 0.7, 0.8]))
 
     # test create native cell
 
@@ -86,13 +86,13 @@ class PopulationTest(unittest.TestCase):
 
     def test_id_to_index_with_array(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
-        assert_array_equal(p.id_to_index(p.all_cells[3:9:2]), numpy.arange(3, 9, 2))
+        assert_array_equal(p.id_to_index(p.all_cells[3:9:2]), np.arange(3, 9, 2))
 
     def test_id_to_index_with_populationview(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
         view = p[3:7]
         self.assertIsInstance(view, sim.PopulationView)
-        assert_array_equal(p.id_to_index(view), numpy.arange(3, 7))
+        assert_array_equal(p.id_to_index(view), np.arange(3, 7))
 
     def test_id_to_index_with_invalid_id(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
@@ -109,7 +109,7 @@ class PopulationTest(unittest.TestCase):
 
     def test_set_structure(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        p.positions = numpy.arange(33).reshape(3, 11)
+        p.positions = np.arange(33).reshape(3, 11)
         new_struct = space.Grid2D()
         p.structure = new_struct
         self.assertEqual(p.structure, new_struct)
@@ -119,20 +119,20 @@ class PopulationTest(unittest.TestCase):
 
     def test_get_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        pos1 = numpy.arange(33).reshape(3, 11)
+        pos1 = np.arange(33).reshape(3, 11)
         p._structure = Mock()
         p._structure.generate_positions = Mock(return_value=pos1)
         self.assertEqual(p._positions, None)
         assert_array_equal(p.positions, pos1)
 
-        pos2 = 1 + numpy.arange(33).reshape(3, 11)
+        pos2 = 1 + np.arange(33).reshape(3, 11)
         p.positions = pos2
         assert_array_equal(p.positions, pos2)
 
     def test_set_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
         assert p._structure is not None
-        new_positions = numpy.random.uniform(size=(3, 11))
+        new_positions = np.random.uniform(size=(3, 11))
         p.positions = new_positions
         self.assertEqual(p.structure, None)
         assert_array_equal(p.positions, new_positions)
@@ -209,7 +209,7 @@ class PopulationTest(unittest.TestCase):
 
     def test_nearest(self, sim=sim):
         p = sim.Population(13, sim.IF_cond_exp())
-        p.positions = numpy.arange(39).reshape((13, 3)).T
+        p.positions = np.arange(39).reshape((13, 3)).T
         self.assertEqual(p.nearest((0.0, 1.0, 2.0)), p[0])
         self.assertEqual(p.nearest((3.0, 4.0, 5.0)), p[1])
         self.assertEqual(p.nearest((36.0, 37.0, 38.0)), p[12])
@@ -231,7 +231,7 @@ class PopulationTest(unittest.TestCase):
     def test_sample(self, sim=sim):
         p = sim.Population(13, sim.IF_cond_exp())
         rng = Mock()
-        rng.permutation = Mock(return_value=numpy.array(
+        rng.permutation = Mock(return_value=np.array(
             [7, 4, 8, 12, 0, 3, 9, 1, 2, 11, 5, 10, 6]))
         pv = p.sample(5, rng=rng)
         assert_array_equal(pv.all_cells,
@@ -256,10 +256,10 @@ class PopulationTest(unittest.TestCase):
                                               tau_syn_I=lambda i: 0.5 + 0.1 * i))
         tau_syn_E, tau_m, tau_syn_I = p.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
         self.assertIsInstance(tau_m, float)
-        self.assertIsInstance(tau_syn_E, numpy.ndarray)
-        assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.989, 0.990]))
+        self.assertIsInstance(tau_syn_E, np.ndarray)
+        assert_array_equal(tau_syn_E, np.array([0.987, 0.988, 0.989, 0.990]))
         self.assertAlmostEqual(tau_m, 12.3)
-        assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.7, 0.8]), decimal=12)
+        assert_array_almost_equal(tau_syn_I, np.array([0.5, 0.6, 0.7, 0.8]), decimal=12)
 
     def test_get_multiple_params_no_gather(self, sim=sim):
         sim.simulator.state.num_processes = 2
@@ -269,10 +269,10 @@ class PopulationTest(unittest.TestCase):
                                               i_offset=lambda i: -0.2 * i))
         tau_syn_E, tau_m, i_offset = p.get(('tau_syn_E', 'tau_m', 'i_offset'), gather=False)
         self.assertIsInstance(tau_m, float)
-        self.assertIsInstance(tau_syn_E, numpy.ndarray)
-        assert_array_equal(tau_syn_E, numpy.array([0.988, 0.990]))
+        self.assertIsInstance(tau_syn_E, np.ndarray)
+        assert_array_equal(tau_syn_E, np.array([0.988, 0.990]))
         self.assertEqual(tau_m, 12.3)
-        assert_array_almost_equal(i_offset, numpy.array([-0.2, -0.6]), decimal=12)
+        assert_array_almost_equal(i_offset, np.array([-0.2, -0.6]), decimal=12)
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
 
@@ -290,9 +290,9 @@ class PopulationTest(unittest.TestCase):
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
         p.set(tau_syn_E=random.RandomDistribution('uniform', (0.5, 1.5), rng=rng), tau_m=9.87)
         tau_m, tau_syn_E, tau_syn_I = p.get(('tau_m', 'tau_syn_E', 'tau_syn_I'), gather=True)
-        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22, 1.23, 1.24]))
-        assert_array_almost_equal(tau_m, 9.87 * numpy.ones((4,)))
-        assert_array_equal(tau_syn_I, 0.7 * numpy.ones((4,)))
+        assert_array_equal(tau_syn_E, np.array([1.21, 1.22, 1.23, 1.24]))
+        assert_array_almost_equal(tau_m, 9.87 * np.ones((4,)))
+        assert_array_equal(tau_syn_I, 0.7 * np.ones((4,)))
 
     def test_set_invalid_name(self, sim=sim):
         p = sim.Population(9, sim.HH_cond_exp())
@@ -314,9 +314,9 @@ class PopulationTest(unittest.TestCase):
 
     def test_set_array(self, sim=sim):
         p = sim.Population(5, sim.IF_cond_exp())
-        p.set(v_thresh=-50.0 + numpy.arange(5))
+        p.set(v_thresh=-50.0 + np.arange(5))
         assert_array_equal(p.get('v_thresh', gather=True),
-                           numpy.array([-50.0, -49.0, -48.0, -47.0, -46.0]))
+                           np.array([-50.0, -49.0, -48.0, -47.0, -46.0]))
 
     def test_set_random_distribution_parallel_unsafe(self, sim=sim):
         orig_rcfg = random.get_mpi_config
@@ -327,7 +327,7 @@ class PopulationTest(unittest.TestCase):
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=False)
         p.set(tau_syn_E=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng))
         tau_syn_E = p.get('tau_syn_E', gather=False)
-        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22]))
+        assert_array_equal(tau_syn_E, np.array([1.21, 1.22]))
         random.get_mpi_config = orig_rcfg
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
@@ -341,7 +341,7 @@ class PopulationTest(unittest.TestCase):
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
         p.set(tau_syn_E=random.RandomDistribution('uniform', (0.1, 1), rng=rng))
         tau_syn_E = p.get('tau_syn_E', gather=False)
-        assert_array_equal(tau_syn_E, numpy.array([1.22, 1.24]))
+        assert_array_equal(tau_syn_E, np.array([1.22, 1.24]))
         random.get_mpi_config = orig_rcfg
         sim.simulator.state.num_processes = 1
         sim.simulator.state.mpi_rank = 0
@@ -349,7 +349,7 @@ class PopulationTest(unittest.TestCase):
     def test_tset(self, sim=sim):
         p = sim.Population(17, sim.IF_cond_alpha())
         p.set = Mock()
-        tau_m = numpy.linspace(10.0, 20.0, num=p.size)
+        tau_m = np.linspace(10.0, 20.0, num=p.size)
         p.tset("tau_m", tau_m)
         p.set.assert_called_with(tau_m=tau_m)
 
@@ -364,7 +364,7 @@ class PopulationTest(unittest.TestCase):
 
     def test_initialize(self, sim=sim):
         p = sim.Population(17, sim.EIF_cond_exp_isfa_ista())
-        v_init = numpy.linspace(-70.0, -60.0, num=p.size)
+        v_init = np.linspace(-70.0, -60.0, num=p.size)
         w_init = 0.1
         p.initialize(v=v_init, w=w_init)
         assert_array_equal(p.initial_values['v'].evaluate(simplify=True), v_init)
@@ -495,7 +495,7 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(len(seg1.analogsignals), 2)
         self.assertEqual(len(seg1.spiketrains), p.size)
         assert_array_equal(seg1.spiketrains[7],
-                           numpy.array([p.first_id + 7, p.first_id + 7 + 5]) % t3)
+                           np.array([p.first_id + 7, p.first_id + 7 + 5]) % t3)
 
     # def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
@@ -600,11 +600,11 @@ class PopulationTest(unittest.TestCase):
     def test_save_positions(self, sim=sim):
         import os
         p = sim.Population(4, sim.IF_cond_exp(), )
-        p.positions = numpy.arange(15, 27).reshape((4, 3)).T
+        p.positions = np.arange(15, 27).reshape((4, 3)).T
         output_file = Mock()
         p.save_positions(output_file)
         assert_array_equal(output_file.write.call_args[0][0],
-                           numpy.array([[0, 15, 16, 17],
+                           np.array([[0, 15, 16, 17],
                                         [1, 18, 19, 20],
                                         [2, 21, 22, 23],
                                         [3, 24, 25, 26]]))

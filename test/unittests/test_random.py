@@ -3,7 +3,7 @@ Unit tests for pyNN/random.py.
 """
 
 import pyNN.random as random
-import numpy
+import numpy as np
 import unittest
 
 try:
@@ -45,9 +45,9 @@ class SimpleTests(unittest.TestCase):
     def testNextOne(self):
         """Calling next() with n=1 should return an array."""
         for rng in self.rnglist:
-            self.assertIsInstance(rng.next(1, 'uniform', {'low': 0, 'high': 1}), numpy.ndarray)
+            self.assertIsInstance(rng.next(1, 'uniform', {'low': 0, 'high': 1}), np.ndarray)
             self.assertIsInstance(rng.next(n=1, distribution='uniform',
-                                           parameters={'low': 0, 'high': 1}), numpy.ndarray)
+                                           parameters={'low': 0, 'high': 1}), np.ndarray)
             self.assertEqual(rng.next(1, distribution='uniform',
                                       parameters={'low': 0, 'high': 1}).shape, (1,))
 
@@ -107,8 +107,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng0.seed, 1000)
             self.assertEqual(rng1.seed, 1001)
             self.assertEqual(rng_check.seed, 1001)
-            mask1 = numpy.array((1, 0, 1, 0, 1), bool)
-            mask2 = numpy.array((0, 1, 0, 1, 0), bool)
+            mask1 = np.array((1, 0, 1, 0, 1), bool)
+            mask2 = np.array((0, 1, 0, 1, 0), bool)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask1)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask2)
             draw_check = rng_check.next(5, 'uniform', {'low': 0, 'high': 1}, mask=None)
@@ -127,8 +127,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng0.seed, 1000)
             self.assertEqual(rng1.seed, 1000)
             self.assertEqual(rng_check.seed, 1000)
-            mask1 = numpy.array((1, 0, 1, 0, 1), bool)
-            mask2 = numpy.array((0, 1, 0, 1, 0), bool)
+            mask1 = np.array((1, 0, 1, 0, 1), bool)
+            mask2 = np.array((0, 1, 0, 1, 0), bool)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask1)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask2)
             draw_check = rng_check.next(5, 'uniform', {'low': 0, 'high': 1}, mask=None)
@@ -234,7 +234,7 @@ class RandomDistributionTests(unittest.TestCase):
         # number of redraws. This should be caught.
         for rng in self.rnglist:
             rd1 = random.RandomDistribution(
-                'normal_clipped', mu=0, sigma=1, low=5, high=numpy.inf, rng=rng)
+                'normal_clipped', mu=0, sigma=1, low=5, high=np.inf, rng=rng)
             self.assertRaises(Exception, rd1.next, 1000)
 
 

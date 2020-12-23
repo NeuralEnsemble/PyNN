@@ -6,7 +6,7 @@ Assorted utility classes and functions.
 """
 
 import warnings
-import numpy
+import numpy as np
 
 
 def is_listlike(obj):
@@ -18,7 +18,7 @@ def is_listlike(obj):
     """
     return (
         isinstance(obj, (list, tuple, set))
-        or (isinstance(obj, numpy.ndarray) and obj.ndim > 0)
+        or (isinstance(obj, np.ndarray) and obj.ndim > 0)
     )
 
 

@@ -11,7 +11,7 @@ LCN, EPFL - October 2009
 
 
 ## Import modules ##
-import numpy, pylab, time
+import numpy as np, pylab, time
 import pyNN.nest as sim
 import pyNN.common as common
 import pyNN.connectors as connectors
@@ -80,14 +80,14 @@ class LatticeConnector(connectors.Connector):
         listPreIDs = projection.pre.all_cells
         countPost = len(listPostIDs)
         countPre = len(listPreIDs)
-        listPreIndexes = numpy.arange(countPre)
+        listPreIndexes = np.arange(countPre)
         listPostIndexes = map(projection.post.id_to_index, listPostIDs)
 
         # Prepare all distances #
         allDistances = self.space.distances(projection.post.positions, projection.pre.positions)
 
         # Get weights #
-        weights = numpy.empty(n)
+        weights = np.empty(n)
         weights[:] = self.weights
         is_conductance = common.is_conductance(projection.post[listPostIndexes[0]])
         weights = common.check_weight(weights, projection.synapse_type, is_conductance)
@@ -99,7 +99,7 @@ class LatticeConnector(connectors.Connector):
 
             # Pick n neurons at random in pre population
             myTimer = time.time()
-            chosenPresIndexes = list(numpy.random.permutation(numpy.arange(countPre))[0:n])
+            chosenPresIndexes = list(np.random.permutation(np.arange(countPre))[0:n])
             chosenPresIDs = list(projection.pre[chosenPresIndexes].all_cells)
             #if rank==0:
             #    print(chosenPresIDs)
@@ -113,7 +113,7 @@ class LatticeConnector(connectors.Connector):
             timer1 += time.time() - myTimer
 
             # Generate gamme noise
-            noise = numpy.random.gamma(1.0, noise_factor, n)
+            noise = np.random.gamma(1.0, noise_factor, n)
 
             # Create delays with distance and noise
             myTimer = time.time()
@@ -123,7 +123,7 @@ class LatticeConnector(connectors.Connector):
 
             # Check for small and big delays
             myTimer = time.time()
-            delaysClipped = numpy.clip(delays, common.get_min_delay(), common.get_max_delay())
+            delaysClipped = np.clip(delays, common.get_min_delay(), common.get_max_delay())
             howManyClipped = len((delays != delaysClipped).nonzero()[0])
             if (howManyClipped > 1):
                 print("Warning: %d of %d delays were cliped because they were either bigger than the max delay or lower than the min delay." % (howManyClipped, n))
@@ -241,9 +241,9 @@ myModel = sim.IF_cond_exp_gsfa_grr
 sim.setup(timestep=dt, min_delay=dt, max_delay=30.0, debug=True, quit_on_end=False)
 
 # dynamic stimulus E->E, E->I
-f = numpy.array([rateE_E, rateE_E * 1.5, rateE_E, rateE_E])
-tbins = numpy.array([0.0, 1000.0, 1200.0, 2000.0])
-a = numpy.array([3.0] * 4)
+f = np.array([rateE_E, rateE_E * 1.5, rateE_E, rateE_E])
+tbins = np.array([0.0, 1000.0, 1200.0, 2000.0])
+a = np.array([3.0] * 4)
 b = 1.0 / (f * a)
 
 ## Stochastic input preparation ##
@@ -280,13 +280,13 @@ popI = sim.Population((numberOfNeuronsI), myModel, params.inhibitory, label=myLa
 #all_cells = Assembly("All cells", popE, popI)
 
 ## Set the position in space (lattice)##
-numpy.random.seed(0)
-latticePerm = numpy.random.permutation(latticeSize**3)
-positionE = numpy.empty([3, numberOfNeuronsE])
-positionI = numpy.empty([3, numberOfNeuronsI])
-for x in numpy.arange(latticeSize):
-        for y in numpy.arange(latticeSize):
-            for z in numpy.arange(latticeSize):
+np.random.seed(0)
+latticePerm = np.random.permutation(latticeSize**3)
+positionE = np.empty([3, numberOfNeuronsE])
+positionI = np.empty([3, numberOfNeuronsI])
+for x in np.arange(latticeSize):
+        for y in np.arange(latticeSize):
+            for z in np.arange(latticeSize):
                 index = x * (latticeSize**2) + y * (latticeSize) + z
                 currentNeuron = latticePerm[index]
                 if currentNeuron > numberOfNeuronsE - 1:
@@ -298,16 +298,16 @@ popI.positions = positionI
 
 ## Random seeds ##
 # seed which is different every time
-#numpy.random.seed(int(time.time()*10+rank))
+#np.random.seed(int(time.time()*10+rank))
 # seeds which are same every time
-numpy.random.seed(rank)
+np.random.seed(rank)
 from pyNN.random import NumpyRNG
 
 # some random seeds which are different everytime
 # and different for each node.
-#seeds = numpy.arange(numberOfNodes) + int((time.time()*100)%2**32)
+#seeds = np.arange(numberOfNodes) + int((time.time()*100)%2**32)
 # seeds which are same every time, different for each node
-seeds = numpy.arange(numberOfNodes)
+seeds = np.arange(numberOfNodes)
 
 # bcast, as we can't be sure each node has the same time, and therefore
 # different seeds.  This way, all nodes get the list from rank=0.
@@ -428,7 +428,7 @@ spikesI = popI.getSpikes()
 
 ## Process them ##
 if rank == 0:
-    highestIndexE = numpy.max(spikesE[:, 0])
+    highestIndexE = np.max(spikesE[:, 0])
     listNeuronsE = list(spikesE[:, 0])
     listTimesE = list(spikesE[:, 1])
     listNeuronsI = list(spikesI[:, 0] + highestIndexE)
@@ -468,7 +468,7 @@ if rank == 0:
     axisHeight = pylab.axis()[3]
     pylab.vlines(tinit, 0.0, axisHeight / 8, linewidth="4", color='k', linestyles='solid')
 
-    pylab.plot(tbins, axisHeight / 8 / numpy.max(f) * f, linewidth="2", color='b', linestyle='steps-post')
+    pylab.plot(tbins, axisHeight / 8 / np.max(f) * f, linewidth="2", color='b', linestyle='steps-post')
 
     if numberOfNodes != 0:
         pylab.savefig("myFigure.pdf")

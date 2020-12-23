@@ -2,7 +2,7 @@ from nose.plugins.skip import SkipTest
 from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_not_equal
 from pyNN.utility import init_logging, assert_arrays_equal
-import numpy
+import numpy as np
 import logging
 from pyNN.parameters import Sequence
 from numpy.testing import assert_array_equal

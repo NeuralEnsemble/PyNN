@@ -7,7 +7,7 @@ nrnpython implementation of the PyNN API.
 
 """
 from copy import deepcopy
-import numpy
+import numpy as np
 import logging
 from itertools import repeat, chain
 from collections import defaultdict
@@ -104,12 +104,12 @@ class Projection(common.Projection):
         hosted before it can be set
         """
         # Get the list of all connections on all nodes
-        conn_list = numpy.array(self.get(self.synapse_type.get_parameter_names(), 'list',
+        conn_list = np.array(self.get(self.synapse_type.get_parameter_names(), 'list',
                                          gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on
         # the local node
-        mask_local = numpy.array(numpy.in1d(numpy.squeeze(conn_list[:, 0]),
-                                            numpy.nonzero(self.pre._mask_local)[0]), dtype=bool)
+        mask_local = np.array(np.in1d(np.squeeze(conn_list[:, 0]),
+                                            np.nonzero(self.pre._mask_local)[0]), dtype=bool)
         for conn in conn_list[mask_local, :]:
             pre_idx = int(conn[0])
             post_idx = int(conn[1])

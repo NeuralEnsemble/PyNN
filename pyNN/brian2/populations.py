@@ -2,7 +2,7 @@
 
 """
 
-import numpy
+import numpy as np
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
@@ -66,12 +66,12 @@ class Population(common.Population):
     _assembly_class = Assembly
 
     def _create_cells(self):
-        id_range = numpy.arange(simulator.state.id_counter,
+        id_range = np.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
-        self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
+        self.all_cells = np.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
         # all cells are local. This doesn't seem very efficient.
-        self._mask_local = numpy.ones((self.size,), bool)
+        self._mask_local = np.ones((self.size,), bool)
 
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters

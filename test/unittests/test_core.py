@@ -1,5 +1,5 @@
 from pyNN.core import is_listlike
-import numpy
+import numpy as np
 
 
 def test_is_list_like_with_tuple():
@@ -19,7 +19,7 @@ def test_is_list_like_with_set():
 
 
 def test_is_list_like_with_numpy_array():
-    assert is_listlike(numpy.arange(10))
+    assert is_listlike(np.arange(10))
 
 
 def test_is_list_like_with_string():

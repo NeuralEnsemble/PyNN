@@ -9,7 +9,7 @@ backend-specific Projection classes.
 
 
 from functools import reduce
-import numpy
+import numpy as np
 import logging
 import operator
 from copy import deepcopy
@@ -230,10 +230,10 @@ class Projection(object):
 
     def _value_list_to_array(self, attributes):
         """Convert a list of connection parameters/attributes to a 2D array."""
-        connection_mask = ~numpy.isnan(self.get('weight', format='array', gather='all'))
+        connection_mask = ~np.isnan(self.get('weight', format='array', gather='all'))
         for name, value in attributes.items():
-            if isinstance(value, list) or (isinstance(value, numpy.ndarray) and value.ndim == 1):
-                array_value = numpy.nan * numpy.ones(self.shape)
+            if isinstance(value, list) or (isinstance(value, np.ndarray) and value.ndim == 1):
+                array_value = np.nan * np.ones(self.shape)
                 array_value[connection_mask] = value
                 attributes[name] = array_value
         return attributes
@@ -368,7 +368,7 @@ class Projection(object):
                     tmp_values = reduce(operator.add, all_values.values())
                     values = self._get_attributes_as_arrays(attribute_names,
                                                             multiple_synapses=multiple_synapses)
-                    tmp_values = numpy.array(tmp_values)
+                    tmp_values = np.array(tmp_values)
                     for i in range(len(values)):
                         values[i][tmp_values[:, 0].astype(
                             int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2 + i]
@@ -391,13 +391,13 @@ class Projection(object):
         multi_synapse_operation = Projection.MULTI_SYNAPSE_OPERATIONS[multiple_synapses]
         all_values = []
         for attribute_name in names:
-            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            values = np.nan * np.ones((self.pre.size, self.post.size))
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
                 attribute_name = attribute_name[:-1]
             for c in self.connections:
                 value = getattr(c, attribute_name)
                 addr = (c.presynaptic_index, c.postsynaptic_index)
-                if numpy.isnan(values[addr]):
+                if np.isnan(values[addr]):
                     values[addr] = value
                 else:
                     values[addr] = multi_synapse_operation(values[addr], value)
@@ -431,7 +431,7 @@ class Projection(object):
         all_values = self.get(attribute_names, format=format,
                               gather=gather, with_address=with_address)
         if format == 'array':
-            all_values = [numpy.where(numpy.isnan(values), 0.0, values)
+            all_values = [np.where(np.isnan(values), 0.0, values)
                           for values in all_values]
         if self._simulator.state.mpi_rank == 0:
             metadata = {"columns": attribute_names}
@@ -456,20 +456,20 @@ class Projection(object):
         """
         self.save('delay', file, format, gather)
 
-    @deprecated("numpy.histogram()")
+    @deprecated("np.histogram()")
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are
         calculated automatically.
         """
-        weights = numpy.array(self.get('weight', format='list', gather=True, with_address=False))
+        weights = np.array(self.get('weight', format='list', gather=True, with_address=False))
         if min is None:
             min = weights.min()
         if max is None:
             max = weights.max()
-        bins = numpy.linspace(min, max, nbins + 1)
-        return numpy.histogram(weights, bins)  # returns n, bins
+        bins = np.linspace(min, max, nbins + 1)
+        return np.histogram(weights, bins)  # returns n, bins
 
     def annotate(self, **annotations):
         self.annotations.update(annotations)

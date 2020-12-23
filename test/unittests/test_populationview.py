@@ -7,7 +7,7 @@ pyNN.mock backend.
 """
 
 import unittest
-import numpy
+import numpy as np
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 import quantities as pq
@@ -46,27 +46,27 @@ class PopulationViewTest(unittest.TestCase):
         self.assertEqual(pv.parent, p)
         self.assertEqual(pv.size, 3)
         self.assertEqual(pv.mask, mask)
-        assert_array_equal(pv.all_cells, numpy.array(
+        assert_array_equal(pv.all_cells, np.array(
             [p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
-        #assert_array_equal(pv.local_cells, numpy.array([p.all_cells[3]]))
-        #assert_array_equal(pv._mask_local, numpy.array([1,0,0], dtype=bool))
+        #assert_array_equal(pv.local_cells, np.array([p.all_cells[3]]))
+        #assert_array_equal(pv._mask_local, np.array([1,0,0], dtype=bool))
         self.assertEqual(pv.celltype, p.celltype)
         self.assertEqual(pv.first_id, p.all_cells[3])
         self.assertEqual(pv.last_id, p.all_cells[7])
 
     def test_create_with_boolean_array_selector(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        mask = numpy.array([0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=bool)
+        mask = np.array([0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0], dtype=bool)
         pv = sim.PopulationView(parent=p, selector=mask)
-        assert_array_equal(pv.all_cells, numpy.array(
+        assert_array_equal(pv.all_cells, np.array(
             [p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         #assert_array_equal(pv.mask, mask)
 
     def test_create_with_index_array_selector(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_alpha())
-        mask = numpy.array([3, 5, 7])
+        mask = np.array([3, 5, 7])
         pv = sim.PopulationView(parent=p, selector=mask)
-        assert_array_equal(pv.all_cells, numpy.array(
+        assert_array_equal(pv.all_cells, np.array(
             [p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
         assert_array_equal(pv.mask, mask)
 
@@ -81,9 +81,9 @@ class PopulationViewTest(unittest.TestCase):
         pv2 = sim.PopulationView(parent=pv1, selector=mask2)
         # or would it be better to resolve the parent chain up to an actual Population?
         self.assertEqual(pv2.parent, pv1)
-        assert_array_equal(pv2.all_cells, numpy.array(
+        assert_array_equal(pv2.all_cells, np.array(
             [p.all_cells[3], p.all_cells[5], p.all_cells[7]]))
-        #assert_array_equal(pv2._mask_local, numpy.array([1,0,0], dtype=bool))
+        #assert_array_equal(pv2._mask_local, np.array([1,0,0], dtype=bool))
 
     # test initial values property
 
@@ -97,10 +97,10 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_get_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_exp())
-        ppos = numpy.random.uniform(size=(3, 11))
+        ppos = np.random.uniform(size=(3, 11))
         p._positions = ppos
         pv = sim.PopulationView(parent=p, selector=slice(3, 9, 2))
-        assert_array_equal(pv.positions, numpy.array([ppos[:, 3], ppos[:, 5], ppos[:, 7]]).T)
+        assert_array_equal(pv.positions, np.array([ppos[:, 3], ppos[:, 5], ppos[:, 7]]).T)
 
     def test_id_to_index(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
@@ -113,7 +113,7 @@ class PopulationViewTest(unittest.TestCase):
     def test_id_to_index_with_array(self, sim=sim):
         p = sim.Population(121, sim.IF_curr_alpha())
         pv = p[2, 5, 7, 8, 19, 37, 49, 82, 83, 99]
-        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), numpy.arange(3, 9, 2))
+        assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), np.arange(3, 9, 2))
 
     def test_id_to_index_with_invalid_id(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
@@ -144,7 +144,7 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_get_positions(self, sim=sim):
         p = sim.Population(11, sim.IF_cond_exp())
-        pos = numpy.arange(33).reshape(3, 11)
+        pos = np.arange(33).reshape(3, 11)
         p.positions = pos
         pv = p[2, 5, 7, 8]
         assert_array_equal(pv.positions, pos[:, [2, 5, 7, 8]])
@@ -234,7 +234,7 @@ class PopulationViewTest(unittest.TestCase):
 
     def test_nearest(self, sim=sim):
         p = sim.Population(13, sim.IF_cond_exp())
-        p.positions = numpy.arange(39).reshape((13, 3)).T
+        p.positions = np.arange(39).reshape((13, 3)).T
         pv = p[0, 2, 5, 11]
         self.assertEqual(pv.nearest((0.0, 1.0, 2.0)), pv[0])
         self.assertEqual(pv.nearest((3.0, 4.0, 5.0)), pv[0])
@@ -247,7 +247,7 @@ class PopulationViewTest(unittest.TestCase):
         pv1 = p[0, 3, 7, 10, 12]
 
         rng = Mock()
-        rng.permutation = Mock(return_value=numpy.array([3, 1, 0, 2, 4]))
+        rng.permutation = Mock(return_value=np.array([3, 1, 0, 2, 4]))
         pv2 = pv1.sample(3, rng=rng)
         assert_array_equal(pv2.all_cells,
                            p.all_cells[[10, 3, 0]])
@@ -274,10 +274,10 @@ class PopulationViewTest(unittest.TestCase):
         pv = p[0, 1, 3]
         tau_syn_E, tau_m, tau_syn_I = pv.get(('tau_syn_E', 'tau_m', 'tau_syn_I'), gather=True)
         self.assertIsInstance(tau_m, float)
-        self.assertIsInstance(tau_syn_E, numpy.ndarray)
-        assert_array_equal(tau_syn_E, numpy.array([0.987, 0.988, 0.990]))
+        self.assertIsInstance(tau_syn_E, np.ndarray)
+        assert_array_equal(tau_syn_E, np.array([0.987, 0.988, 0.990]))
         self.assertAlmostEqual(tau_m, 12.3)
-        assert_array_almost_equal(tau_syn_I, numpy.array([0.5, 0.6, 0.8]), decimal=12)
+        assert_array_almost_equal(tau_syn_I, np.array([0.5, 0.6, 0.8]), decimal=12)
 
     # def test_get_multiple_params_no_gather(self, sim=sim):
 
@@ -298,14 +298,14 @@ class PopulationViewTest(unittest.TestCase):
         rng = MockRNG(start=1.21, delta=0.01, parallel_safe=True)
         pv.set(tau_syn_E=random.RandomDistribution('uniform', (0.8, 1.2), rng=rng), tau_m=9.87)
         tau_m, tau_syn_E, tau_syn_I = p.get(('tau_m', 'tau_syn_E', 'tau_syn_I'), gather=True)
-        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22, 1.23, 0.987]))
-        assert_array_almost_equal(tau_m, numpy.array([9.87, 9.87, 9.87, 12.3]))
-        assert_array_equal(tau_syn_I, 0.7 * numpy.ones((4,)))
+        assert_array_equal(tau_syn_E, np.array([1.21, 1.22, 1.23, 0.987]))
+        assert_array_almost_equal(tau_m, np.array([9.87, 9.87, 9.87, 12.3]))
+        assert_array_equal(tau_syn_I, 0.7 * np.ones((4,)))
 
         tau_m, tau_syn_E, tau_syn_I = pv.get(('tau_m', 'tau_syn_E', 'tau_syn_I'), gather=True)
-        assert_array_equal(tau_syn_E, numpy.array([1.21, 1.22, 1.23]))
-        assert_array_almost_equal(tau_m, numpy.array([9.87, 9.87, 9.87]))
-        assert_array_equal(tau_syn_I, 0.7 * numpy.ones((3,)))
+        assert_array_equal(tau_syn_E, np.array([1.21, 1.22, 1.23]))
+        assert_array_almost_equal(tau_m, np.array([9.87, 9.87, 9.87]))
+        assert_array_equal(tau_syn_I, 0.7 * np.ones((3,)))
 
     def test_set_invalid_name(self, sim=sim):
         p = sim.Population(9, sim.HH_cond_exp())
@@ -332,15 +332,15 @@ class PopulationViewTest(unittest.TestCase):
     def test_set_array(self, sim=sim):
         p = sim.Population(5, sim.IF_cond_exp, {'v_thresh': -54.3})
         pv = p[2:]
-        pv.set(v_thresh=-50.0 + numpy.arange(3))
+        pv.set(v_thresh=-50.0 + np.arange(3))
         assert_array_equal(p.get('v_thresh', gather=True),
-                           numpy.array([-54.3, -54.3, -50.0, -49.0, -48.0]))
+                           np.array([-54.3, -54.3, -50.0, -49.0, -48.0]))
 
     def test_tset(self, sim=sim):
         p = sim.Population(17, sim.IF_cond_alpha())
         pv = p[::4]
         pv.set = Mock()
-        tau_m = numpy.linspace(10.0, 20.0, num=pv.size)
+        tau_m = np.linspace(10.0, 20.0, num=pv.size)
         pv.tset("tau_m", tau_m)
         pv.set.assert_called_with(tau_m=tau_m)
 
@@ -359,13 +359,13 @@ class PopulationViewTest(unittest.TestCase):
     #                       initial_values={'v': -65.4, 'w': 0.0})
     #    pv = p[::2]
     #
-    #    v_init = numpy.linspace(-70.0, -67.0, num=pv.size)
+    #    v_init = np.linspace(-70.0, -67.0, num=pv.size)
     #    w_init = 0.1
     #    pv.initialize(v=v_init, w=w_init)
     #    assert_array_equal(p.initial_values['v'].evaluate(simplify=True),
-    #                       numpy.array([-70.0, -65.4, -69.0, -65.4, -68.0, -65.4, -67.0]))
+    #                       np.array([-70.0, -65.4, -69.0, -65.4, -68.0, -65.4, -67.0]))
     #    assert_array_equal(p.initial_values['w'].evaluate(simplify=True),
-    #                       numpy.array([0.1, 0.0, 0.1, 0.0, 0.1, 0.0, 0.1]))
+    #                       np.array([0.1, 0.0, 0.1, 0.0, 0.1, 0.0, 0.1]))
     #    # should call p.record(('v', 'w')) and check that the recorded data starts with the initial value
 
     def test_can_record(self, sim=sim):
@@ -500,7 +500,7 @@ class PopulationViewTest(unittest.TestCase):
         self.assertEqual(len(seg1.analogsignals), 2)
         self.assertEqual(len(seg1.spiketrains), pv.size)
         assert_array_equal(seg1.spiketrains[2],
-                           numpy.array([p.first_id + 6, p.first_id + 6 + 5]) % t3)
+                           np.array([p.first_id + 6, p.first_id + 6 + 5]) % t3)
 
     # def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
@@ -549,8 +549,8 @@ class PopulationViewTest(unittest.TestCase):
     def test_index_in_grandparent(self, sim=sim):
         pv1 = sim.Population(11, sim.IF_cond_exp())[0, 1, 3, 4, 6, 7, 9]
         pv2 = pv1[2, 3, 5, 6]
-        assert_array_equal(pv1.index_in_grandparent([2, 4, 6]), numpy.array([3, 6, 9]))
-        assert_array_equal(pv2.index_in_grandparent([0, 1, 3]), numpy.array([3, 4, 9]))
+        assert_array_equal(pv1.index_in_grandparent([2, 4, 6]), np.array([3, 6, 9]))
+        assert_array_equal(pv2.index_in_grandparent([0, 1, 3]), np.array([3, 4, 9]))
 
     def test_index_from_parent_index(self, sim=sim):
         parent = sim.Population(20, sim.IF_cond_exp())
@@ -558,27 +558,27 @@ class PopulationViewTest(unittest.TestCase):
         # test with slice mask
         pv1 = parent[2:16:3]
         assert_array_equal(
-            pv1.index_from_parent_index(numpy.array([2, 5, 8, 11, 14])),
-            numpy.array([0, 1, 2, 3, 4])
+            pv1.index_from_parent_index(np.array([2, 5, 8, 11, 14])),
+            np.array([0, 1, 2, 3, 4])
         )
         self.assertEqual(pv1.index_from_parent_index(11), 3)
 
         # test with array mask
-        pv2 = parent[numpy.array([1, 2, 3, 5, 8, 13])]
+        pv2 = parent[np.array([1, 2, 3, 5, 8, 13])]
         assert_array_equal(
-            pv2.index_from_parent_index(numpy.array([2, 5, 13])),
-            numpy.array([1, 3, 5])
+            pv2.index_from_parent_index(np.array([2, 5, 13])),
+            np.array([1, 3, 5])
         )
 
     def test_save_positions(self, sim=sim):
         import os
         p = sim.Population(7, sim.IF_cond_exp())
-        p.positions = numpy.arange(15, 36).reshape((7, 3)).T
+        p.positions = np.arange(15, 36).reshape((7, 3)).T
         pv = p[2, 4, 5]
         output_file = Mock()
         pv.save_positions(output_file)
         assert_array_equal(output_file.write.call_args[0][0],
-                           numpy.array([[0, 21, 22, 23],
+                           np.array([[0, 21, 22, 23],
                                         [1, 27, 28, 29],
                                         [2, 30, 31, 32]]))
         self.assertEqual(output_file.write.call_args[0][1], {'population': pv.label})

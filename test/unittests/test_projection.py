@@ -7,7 +7,7 @@ pyNN.mock backend.
 """
 
 import unittest
-import numpy
+import numpy as np
 import os
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -24,8 +24,8 @@ from pyNN.parameters import Sequence
 
 
 def _sort_by_column(A, col):
-    A = numpy.array(A)
-    array_index = numpy.argsort(A[:, col], kind='mergesort')
+    A = np.array(A)
+    array_index = np.argsort(A[:, col], kind='mergesort')
     return A[array_index]
 
 
@@ -95,7 +95,7 @@ class ProjectionTest(unittest.TestCase):
     #    prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
     #    prj.set(weight=0.789)
     #    weights = prj.get("weight", format="array", gather=False)  # use gather False because we are faking the MPI
-    #    target = 0.789*numpy.ones((self.p1.size, self.p2.size))
+    #    target = 0.789*np.ones((self.p1.size, self.p2.size))
     #    assert_array_equal(weights, target)
 
     # def test_randomize_weights(self, sim=sim):
@@ -147,7 +147,7 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list")
         weights = _sort_by_column(weights, 1)[:5]
-        target = numpy.array(
+        target = np.array(
             [(0, 0, 0.007),
              (1, 0, 0.007),
              (2, 0, 0.007),
@@ -158,21 +158,21 @@ class ProjectionTest(unittest.TestCase):
     def test_get_weights_as_list_no_address(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         weights = prj.get("weight", format="list", with_address=False)[:5]
-        target = 0.007 * numpy.ones((5,))
+        target = 0.007 * np.ones((5,))
         assert_array_equal(weights, target)
 
     def test_get_weights_as_array(self, sim=sim):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn2)
         # use gather False because we are faking the MPI
         weights = prj.get("weight", format="array", gather=False)
-        target = 0.007 * numpy.ones((self.p1.size, self.p2.size))
+        target = 0.007 * np.ones((self.p1.size, self.p2.size))
         assert_array_equal(weights, target)
 
     def test_get_weights_as_array_with_multapses(self, sim=sim):
         C = sim.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
         prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
         # because we use a fake RNG, it is always the last three presynaptic cells which receive the double connection
-        target = numpy.array([
+        target = np.array([
             [0.006, 0.006, 0.006, 0.006, 0.006],
             [0.012, 0.012, 0.012, 0.012, 0.012],
             [0.012, 0.012, 0.012, 0.012, 0.012],
@@ -185,7 +185,7 @@ class ProjectionTest(unittest.TestCase):
     def test_get_weights_as_array_with_multapses_min(self, sim=sim):
         C = sim.FixedNumberPreConnector(n=7, rng=MockRNG(delta=1))
         prj = sim.Projection(self.p2, self.p3, C, synapse_type=self.syn1)
-        target = numpy.array([
+        target = np.array([
             [0.006, 0.006, 0.006, 0.006, 0.006],
             [0.006, 0.006, 0.006, 0.006, 0.006],
             [0.006, 0.006, 0.006, 0.006, 0.006],
@@ -221,7 +221,7 @@ class ProjectionTest(unittest.TestCase):
                              synapse_type=depressing)
         U = prj.get("U", format="list")
         U = _sort_by_column(U, 1)[:5]
-        U_target = numpy.array(
+        U_target = np.array(
             [(0, 0, 0.5),
              (1, 0, 0.501),
              (2, 0, 0.502),
@@ -230,7 +230,7 @@ class ProjectionTest(unittest.TestCase):
         assert_array_equal(U, U_target)
         tau_rec = prj.get("tau_rec", format="list")
         tau_rec = _sort_by_column(tau_rec, 1)[:5]
-        tau_rec_target = numpy.array(
+        tau_rec_target = np.array(
             [(0, 0, 80),
              (1, 0, 81),
              (2, 0, 82),
@@ -275,7 +275,7 @@ class ProjectionTest(unittest.TestCase):
     #    p1 = sim.Population(7, sim.IF_cond_exp)
     #    p2 = sim.Population(7, sim.IF_cond_exp)
     #    prj = sim.Projection(p1, p2, connector=Mock())
-    #    prj.get = Mock(return_value=numpy.arange(5.0))
+    #    prj.get = Mock(return_value=np.arange(5.0))
     #    prj.printWeights(filename, format='array', gather=False)
     #    prj.get.assert_called_with('weight', format='array', gather=False)
     #    assert os.path.exists(filename)
@@ -291,8 +291,8 @@ class ProjectionTest(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, connector=self.all2all,
                              synapse_type=self.syn2)
         n, bins = prj.weightHistogram(min=0.0, max=0.05)
-        assert_array_equal(bins, numpy.linspace(0, 0.05, num=11))
-        assert_array_equal(n, numpy.array([0, prj.size(), 0, 0, 0, 0, 0, 0, 0, 0]))
+        assert_array_equal(bins, np.linspace(0, 0.05, num=11))
+        assert_array_equal(n, np.array([0, prj.size(), 0, 0, 0, 0, 0, 0, 0, 0]))
 
 
 class CheckTest(unittest.TestCase):
@@ -341,7 +341,7 @@ class CheckTest(unittest.TestCase):
 
     def test_check_weights_with_array(self, sim=sim):
         # all positive weights
-        w = numpy.arange(10)
+        w = np.arange(10)
         for prj in [
             self.projections["cond"]["excitatory"],
             self.projections["curr"]["excitatory"],
@@ -353,7 +353,7 @@ class CheckTest(unittest.TestCase):
         ]:
             self.assertRaises(errors.ConnectionError, standardmodels.check_weights, w, prj)
         # all negative weights
-        w = numpy.arange(-10, 0)
+        w = np.arange(-10, 0)
         for prj in [
             self.projections["cond"]["excitatory"],
             self.projections["curr"]["excitatory"],
@@ -365,7 +365,7 @@ class CheckTest(unittest.TestCase):
         ]:
             standardmodels.check_weights(w, prj)
         # mixture of positive and negative weights
-        w = numpy.arange(-5, 5)
+        w = np.arange(-5, 5)
         for prj in [
             self.projections["cond"]["excitatory"],
             self.projections["curr"]["excitatory"],

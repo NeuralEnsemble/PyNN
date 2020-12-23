@@ -31,7 +31,7 @@ import time
 import os
 from datetime import datetime
 import functools
-import numpy
+import numpy as np
 from importlib import import_module
 
 from pyNN.core import deprecated
@@ -218,12 +218,12 @@ def normalized_filename(root, basename, extension, simulator, num_processes=None
 def connection_plot(projection, positive='O', zero='.', empty=' ', spacer=''):
     """ """
     connection_array = projection.get('weight', format='array')
-    image = numpy.zeros_like(connection_array, dtype=str)
-    old_settings = numpy.seterr(invalid='ignore')  # ignore the complaint that x > 0 is invalid for NaN
+    image = np.zeros_like(connection_array, dtype=str)
+    old_settings = np.seterr(invalid='ignore')  # ignore the complaint that x > 0 is invalid for NaN
     image[connection_array > 0] = positive
     image[connection_array == 0] = zero
-    numpy.seterr(**old_settings)  # restore original floating point error settings
-    image[numpy.isnan(connection_array)] = empty
+    np.seterr(**old_settings)  # restore original floating point error settings
+    image[np.isnan(connection_array)] = empty
     return '\n'.join([spacer.join(row) for row in image])
 
 
@@ -375,17 +375,17 @@ class SimulationProgressBar(ProgressBar):
 
 
 def assert_arrays_equal(a, b):
-    import numpy
-    assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
+    import numpy as np
+    assert isinstance(a, np.ndarray), "a is a %s" % type(a)
+    assert isinstance(b, np.ndarray), "b is a %s" % type(b)
     assert a.shape == b.shape, "%s != %s" % (a, b)
     assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a, b)
 
 
 def assert_arrays_almost_equal(a, b, threshold):
-    import numpy
-    assert isinstance(a, numpy.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, numpy.ndarray), "b is a %s" % type(b)
+    import numpy as np
+    assert isinstance(a, np.ndarray), "a is a %s" % type(a)
+    assert isinstance(b, np.ndarray), "b is a %s" % type(b)
     assert a.shape == b.shape, "%s != %s" % (a, b)
     assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 

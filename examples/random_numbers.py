@@ -23,7 +23,7 @@ optional arguments:
 
 """
 
-import numpy
+import numpy as np
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.utility import get_simulator
 
@@ -95,8 +95,8 @@ if options.plot_figure:
     filename = normalized_filename("Results", "random_numbers", "png", options.simulator)
     # where there is no connection, the weight matrix contains NaN
     # for plotting purposes, we replace NaN with zero.
-    weights_python[numpy.isnan(weights_python)] = 0
-    weights_native[numpy.isnan(weights_native)] = 0
+    weights_python[np.isnan(weights_python)] = 0
+    weights_native[np.isnan(weights_native)] = 0
     Figure(
         Panel(weights_python, cmap='gray_r', xlabel="Python RNG"),
         Panel(weights_native, cmap='gray_r', xlabel="Native RNG"),

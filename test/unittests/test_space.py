@@ -7,7 +7,7 @@ Tests of the `space` module.
 
 from pyNN import space
 import unittest
-import numpy
+import numpy as np
 try:
     from unittest.mock import Mock
 except ImportError:
@@ -32,7 +32,7 @@ def assert_arrays_almost_equal(a, b, threshold, msg=''):
 def test_distance():
     cell1 = Mock()
     cell2 = Mock()
-    A = lambda *x: numpy.array(x)
+    A = lambda *x: np.array(x)
     cell1.position = A(2.3, 4.5, 6.7)
     cell2.position = A(2.3, 4.5, 6.7)
     assert_equal(space.distance(cell1, cell2), 0.0)
@@ -54,7 +54,7 @@ def test_distance():
 class SpaceTest(unittest.TestCase):
 
     def setUp(self):
-        N = numpy.array
+        N = np.array
         self.A = N([0.0, 0.0, 0.0])
         self.B = N([1.0, 1.0, 1.0])
         self.C = N([-1.0, -1.0, -1.0])
@@ -72,25 +72,25 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s.distances(self.A, self.B), sqrt(3))
         self.assertEqual(s.distances(self.C, self.B), sqrt(12))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
-                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+                               np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
         assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
-                            numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29),
+                            np.array([0.0, sqrt(3), sqrt(3), sqrt(29),
                                          sqrt(3), 0.0, sqrt(12), sqrt(14),
                                          sqrt(3), sqrt(12), 0.0, sqrt(50.0),
                                          sqrt(29), sqrt(14), sqrt(50.0), 0.0]))
         self.assertArraysEqual(s.distances(self.ABCD, self.A),
-                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+                               np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
 
     def test_generator_for_infinite_space_with_3D_distances(self):
         s = space.Space()
         def f(i): return self.ABCD[i]
         def g(j): return self.ABCD[j]
-        self.assertArraysEqual(s.distance_generator(f, g)(0, numpy.arange(4)),
-                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
-        assert_arrays_equal(numpy.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
-                            numpy.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
+        self.assertArraysEqual(s.distance_generator(f, g)(0, np.arange(4)),
+                               np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
+        assert_arrays_equal(np.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
+                            np.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
                                          (sqrt(3), 0.0, sqrt(12), sqrt(14)),
                                          (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
                                          (sqrt(29), sqrt(14), sqrt(50.0), 0.0)]))
@@ -105,7 +105,7 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s_xy.distances(self.A, self.D), sqrt(13))
         self.assertEqual(s_yz.distances(self.A, self.D), sqrt(25))
         self.assertArraysEqual(s_yz.distances(self.D, self.ABCD),
-                               numpy.array([sqrt(25), sqrt(13), sqrt(41), sqrt(0)]))
+                               np.array([sqrt(25), sqrt(13), sqrt(41), sqrt(0)]))
 
     def test_infinite_space_with_scale_and_offset(self):
         s = space.Space(scale_factor=2.0, offset=1.0)
@@ -114,7 +114,7 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s.distances(self.C, self.B), sqrt(75))
         self.assertEqual(s.distances(self.B, self.C), sqrt(3))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
-                               numpy.array([sqrt(12), sqrt(48), sqrt(0), sqrt(200)]))
+                               np.array([sqrt(12), sqrt(48), sqrt(0), sqrt(200)]))
 
     def test_cylindrical_space(self):
         s = space.Space(periodic_boundaries=((-1.0, 4.0), (-1.0, 4.0), (-1.0, 4.0)))
@@ -122,11 +122,11 @@ class SpaceTest(unittest.TestCase):
         self.assertEqual(s.distances(self.A, self.D), sqrt(4 + 4 + 1))
         self.assertEqual(s.distances(self.C, self.D), sqrt(4 + 1 + 0))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
-                               numpy.array([0.0, sqrt(3), sqrt(3), sqrt(4 + 4 + 1)]))
+                               np.array([0.0, sqrt(3), sqrt(3), sqrt(4 + 4 + 1)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
         self.assertArraysEqual(s.distances(self.C, self.ABCD),
-                               numpy.array([sqrt(3), sqrt(4 + 4 + 4), 0.0, sqrt(4 + 1 + 0)]))
+                               np.array([sqrt(3), sqrt(4 + 4 + 4), 0.0, sqrt(4 + 1 + 0)]))
 
 
 class LineTest(unittest.TestCase):
@@ -138,7 +138,7 @@ class LineTest(unittest.TestCase):
         assert_equal(positions.shape, (3, n))
         assert_arrays_almost_equal(
             positions,
-            numpy.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
+            np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
             threshold=1e-15
         )
 
@@ -149,7 +149,7 @@ class LineTest(unittest.TestCase):
         assert_equal(positions.shape, (3, n))
         assert_arrays_almost_equal(
             positions,
-            numpy.array([[-100, 444, 987], [0, 444, 987]], float).T,
+            np.array([[-100, 444, 987], [0, 444, 987]], float).T,
             threshold=1e-15
         )
 
@@ -188,14 +188,14 @@ class Grid2D_Test(object):
         assert_equal(positions.shape, (3, n))
         assert_arrays_almost_equal(
             positions,
-            numpy.array([
+            np.array([
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
             ]).T,
             1e-15)
         assert_arrays_almost_equal(
             self.grid2.generate_positions(12),
-            numpy.array([
+            np.array([
                 [123, 456, 789], [123, 465.9, 789],
                 [123 + 11.1, 456, 789], [123 + 11.1, 465.9, 789],
                 [123 + 22.2, 456, 789], [123 + 22.2, 465.9, 789],
@@ -230,7 +230,7 @@ class Grid3D_Test(object):
         assert_equal(positions.shape, (3, n))
         assert_arrays_almost_equal(
             positions,
-            numpy.array([
+            np.array([
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],
                 [1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]
             ]).T,
@@ -246,12 +246,12 @@ class TestSphere(object):
     def test_sample(self):
         n = 1000
         s = space.Sphere(2.5)
-        positions = s.sample(n, numpy.random)
+        positions = s.sample(n, np.random)
         assert_equal(positions.shape, (n, 3))
         for axis in range(2):
             assert 1 < max(positions[:, axis]) < 2.5
             assert -1 > min(positions[:, axis]) > -2.5
-        s2 = numpy.sum(positions**2, axis=1)
+        s2 = np.sum(positions**2, axis=1)
         assert max(s2) < 6.25
 
 
@@ -260,7 +260,7 @@ class TestCuboid(object):
     def test_sample(self):
         n = 1000
         c = space.Cuboid(3, 4, 5)
-        positions = c.sample(n, numpy.random)
+        positions = c.sample(n, np.random)
         assert_equal(positions.shape, (n, 3))
         assert 1 < max(positions[:, 0]) < 1.5, max(positions[:, 0])
         assert -1 > min(positions[:, 0]) > -1.5

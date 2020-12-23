@@ -11,7 +11,7 @@ internal use.
 """
 
 import logging
-import numpy
+import numpy as np
 import os
 from copy import copy
 from collections import defaultdict
@@ -45,14 +45,14 @@ def rename_existing(filename):
 def gather_array(data):
     # gather 1D or 2D numpy arrays
     mpi_comm, mpi_flags = get_mpi_comm()
-    assert isinstance(data, numpy.ndarray)
+    assert isinstance(data, np.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size
     size = data.size
     sizes = mpi_comm.gather(size, root=MPI_ROOT) or []
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
-    gdata = numpy.empty(sum(sizes))
+    gdata = np.empty(sum(sizes))
     mpi_comm.Gatherv([data.flatten(), size, mpi_flags['DOUBLE']],
                      [gdata, (sizes, displacements), mpi_flags['DOUBLE']],
                      root=MPI_ROOT)
@@ -291,7 +291,7 @@ class Recorder(object):
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
-                    source_ids = numpy.fromiter(ids, dtype=int)
+                    source_ids = np.fromiter(ids, dtype=int)
                     signal = neo.AnalogSignal(
                         signal_array,
                         units=units,
@@ -301,8 +301,8 @@ class Recorder(object):
                         source_population=self.population.label,
                         source_ids=source_ids)
                     signal.channel_index = neo.ChannelIndex(
-                        index=numpy.arange(source_ids.size),
-                        channel_ids=numpy.array([self.population.id_to_index(id) for id in ids]))
+                        index=np.arange(source_ids.size),
+                        channel_ids=np.array([self.population.id_to_index(id) for id in ids]))
                     segment.analogsignals.append(signal)
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node,
                                  source_ids, signal.channel_index)

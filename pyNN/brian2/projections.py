@@ -6,7 +6,7 @@
 import logging
 from itertools import chain
 from collections import defaultdict
-import numpy
+import numpy as np
 import brian2
 from brian2 import uS, nA, mV, ms, second
 from pyNN import common
@@ -133,7 +133,7 @@ class Projection(common.Projection):
                                           on_post=post_eqns,
                                           clock=simulator.state.network.clock,
                                           multisynaptic_index='synapse_number')
-                # code_namespace={"exp": numpy.exp})
+                # code_namespace={"exp": np.exp})
                 self._brian2_synapses[i][j] = syn_obj
                 simulator.state.network.add(syn_obj)
         # connect the populations
@@ -162,9 +162,9 @@ class Projection(common.Projection):
         partition indices, in case of Assemblies
         """
         if isinstance(self.pre, common.Assembly):
-            boundaries = numpy.cumsum([0] + [p.size for p in self.pre.populations])
+            boundaries = np.cumsum([0] + [p.size for p in self.pre.populations])
             assert indices.max() < boundaries[-1]
-            partitions = numpy.split(indices, numpy.searchsorted(
+            partitions = np.split(indices, np.searchsorted(
                 indices, boundaries[1:-1])) - boundaries[:-1]
             for i_group, local_indices in enumerate(partitions):
                 if isinstance(self.pre.populations[i_group], common.PopulationView):
@@ -179,8 +179,8 @@ class Projection(common.Projection):
     def _localize_index(self, index):
         """determine which group the postsynaptic index belongs to """
         if isinstance(self.post, common.Assembly):
-            boundaries = numpy.cumsum([0] + [p.size for p in self.post.populations])
-            j = numpy.searchsorted(boundaries, index, side='right') - 1
+            boundaries = np.cumsum([0] + [p.size for p in self.post.populations])
+            j = np.searchsorted(boundaries, index, side='right') - 1
             local_index = index - boundaries[j]
             if isinstance(self.post.populations[j], common.PopulationView):
                 return j, self.post.populations[j].index_in_grandparent(local_index)
@@ -208,7 +208,7 @@ class Projection(common.Projection):
             if name == 'delay':
                 scale = self._simulator.state.dt * ms
                 value /= scale                         # ensure delays are rounded to the
-                value = numpy.round(value) * scale     # nearest time step, rather than truncated
+                value = np.round(value) * scale     # nearest time step, rather than truncated
             for i_group, i in enumerate(presynaptic_index_partitions):
                 if i.size > 0:
                     brian2_var = getattr(self._brian2_synapses[i_group][j_group], name)
@@ -241,14 +241,14 @@ class Projection(common.Projection):
             raise NotImplementedError
         values = []
         syn_obj = self._brian2_synapses[0][0]
-        nan_mask = numpy.full((self.pre.size, self.post.size), True)
+        nan_mask = np.full((self.pre.size, self.post.size), True)
         iarr, jarr = syn_obj.i[:], syn_obj.j[:]
         nan_mask[iarr, jarr] = False
 
         multi_synapse_aggregation_map = {
-            'sum': (numpy.add.at, 0.0),
-            'min': (numpy.minimum.at, numpy.inf),
-            'max': (numpy.maximum.at, -numpy.inf)
+            'sum': (np.add.at, 0.0),
+            'min': (np.minimum.at, np.inf),
+            'max': (np.maximum.at, -np.inf)
         }
 
         for name in attribute_names:
@@ -260,9 +260,9 @@ class Projection(common.Projection):
 
             if multiple_synapses in multi_synapse_aggregation_map:
                 aggregation_func, dummy_val = multi_synapse_aggregation_map[multiple_synapses]
-                array_val = numpy.full((self.pre.size, self.post.size), dummy_val)
+                array_val = np.full((self.pre.size, self.post.size), dummy_val)
                 aggregation_func(array_val, (syn_obj.i[:], syn_obj.j[:]), ps[name])
-                array_val[nan_mask] = numpy.nan
+                array_val[nan_mask] = np.nan
             else:
                 raise NotImplementedError
             values.append(array_val)
@@ -293,7 +293,7 @@ class Projection(common.Projection):
                 ps.evaluate()
                 value = ps[name]
             values.append(value)
-        a = numpy.array(values)
+        a = np.array(values)
 
         return [tuple(x) for x in a.T]
 
