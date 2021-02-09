@@ -260,7 +260,7 @@ class Recorder(object):
                               description=self.population.describe(),
                               rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end
         variables_to_include = set(self.recorded.keys())
-        if variables is not 'all':
+        if variables != 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
             if variable == 'spikes':
