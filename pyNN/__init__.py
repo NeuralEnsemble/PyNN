@@ -72,4 +72,5 @@ Other modules:
 __version__ = '2.0.0.alpha.1'
 __all__ = ["common", "random", "nest", "neuron", "brian2",
            "recording", "errors", "space", "descriptions",
-           "standardmodels", "parameters", "core", "serialization"]
+           "standardmodels", "parameters", "core", "morphology",
+           "serialization"]

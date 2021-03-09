@@ -77,7 +77,7 @@ class BaseCellType(BaseModelType):
 
     def can_record(self, variable, location=None):
         if location is None:
-        return variable in self.recordable
+            return variable in self.recordable
         else:
             return False
 

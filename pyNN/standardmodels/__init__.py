@@ -22,7 +22,7 @@ from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 from pyNN.morphology import IonChannelDistribution, SynapseDistribution
 import numpy as np
-from pyNN.core import is_listlike, itervalues
+from pyNN.core import is_listlike
 from copy import deepcopy
 import neo
 import quantities as pq

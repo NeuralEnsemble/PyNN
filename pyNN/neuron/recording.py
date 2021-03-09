@@ -36,17 +36,17 @@ class Recorder(recording.Recorder):
 
     def _record_state_variable(self, cell, variable):
         if variable.location is None:
-        if hasattr(cell, 'recordable') and variable in cell.recordable:
-            hoc_var = cell.recordable[variable]
+            if hasattr(cell, 'recordable') and variable in cell.recordable:
+                hoc_var = cell.recordable[variable]
             elif variable.name == 'v':
-            hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
             elif variable.name == 'gsyn_exc':
-            hoc_var = cell.esyn._ref_g
+                hoc_var = cell.esyn._ref_g
             elif variable.name == 'gsyn_inh':
-            hoc_var = cell.isyn._ref_g
-        else:
+                hoc_var = cell.isyn._ref_g
+            else:
                 source, var_name = self._resolve_variable(cell, variable.name)
-            hoc_var = getattr(source, "_ref_%s" % var_name)
+                hoc_var = getattr(source, "_ref_%s" % var_name)
             hoc_vars = [hoc_var]
         else:
             if isinstance(variable.location, str):
@@ -76,10 +76,10 @@ class Recorder(recording.Recorder):
                     hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
         for hoc_var in hoc_vars:
             vec = h.Vector()
-        if self.sampling_interval == self._simulator.state.dt:
-            vec.record(hoc_var)
-        else:
-            vec.record(hoc_var, self.sampling_interval)
+            if self.sampling_interval == self._simulator.state.dt:
+                vec.record(hoc_var)
+            else:
+                vec.record(hoc_var, self.sampling_interval)
             cell.traces[variable].append(vec)
         if not cell.recording_time:
             cell.record_times = h.Vector()

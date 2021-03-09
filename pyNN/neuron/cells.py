@@ -639,7 +639,7 @@ class ArtificialCell(object):
         # needed for PyNN
         self.source_section = dummy  # todo: only need a single dummy for entire network, not one per cell
         self.parameter_names = ('tau', 'refrac')
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.spike_times = h.Vector(0)
         self.rec = h.NetCon(self.source, None)
         self.recording_time = False
@@ -844,7 +844,7 @@ class NeuronTemplate(object):
                     set_in_section(section, index, "{}i".format(ion_name), parameters.internal_concentration)
                 if parameters.external_concentration:
                     set_in_section(section, index, "{}o".format(ion_name), parameters.external_concentration)
-                
+
 
         # set source section
         if self.spike_source:
