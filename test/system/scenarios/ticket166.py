@@ -1,9 +1,9 @@
 
-import numpy
+import numpy as np
 from .registry import register
 
 
-@register(exclude=["nemo"])
+@register()
 def ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
@@ -21,7 +21,7 @@ def ticket166(sim, plot_figure=False):
     conn = sim.Projection(spikesources, cells, sim.OneToOneConnector(), syn)
     cells.record('v')
 
-    spiketimes = numpy.arange(2.0, t_step, t_step / 13.0)
+    spiketimes = np.arange(2.0, t_step, t_step / 13.0)
     spikesources[0].spike_times = spiketimes
     spikesources[1].spike_times = spiketimes + lag
 

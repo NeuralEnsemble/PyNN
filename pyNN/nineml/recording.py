@@ -5,7 +5,7 @@ Export of PyNN scripts as NineML.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 from pyNN import recording
 from . import simulator
 
@@ -19,7 +19,7 @@ class Recorder(recording.Recorder):
     def get(self, variables, gather=False, filter_ids=None, clear=False,
             annotations=None):
         pass
-    
+
     def write(self, variables, file=None, gather=False, filter_ids=None,
               clear=False, annotations=None):
         pass

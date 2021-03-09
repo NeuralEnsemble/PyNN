@@ -49,6 +49,5 @@ def plot_current_source(t, i_inj, v, i_range=None, v_range=None,
     ax.add_artist(plt.Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=3))
     ax.add_artist(plt.Line2D((xmin, xmin), (ymin, ymax), color='black', linewidth=3))
 
-    #plt.show()
     plt.savefig("tmp.png")
     return fig

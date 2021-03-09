@@ -24,16 +24,11 @@ or the conventional grid-constrained scheme
 
     setup(spike_precision='on_grid')
 
-where `'on_grid'` is the default.
+where `'off_grid'` is the default.
 
-.. todo:: consider changing the default to off_grid, since PyNN's defaults are
-          supposed to prefer accuracy/comparability over performance.
-
-As of NEST 2.0.0, the following PyNN standard models have an off-grid
-implementation: :class:`IF_curr_alpha` (in preparation), :class:`IF_curr_exp`,
+The following PyNN standard models have an off-grid
+implementation: :class:`IF_curr_exp`, :class:`SpikeSourcePoisson`
 :class:`EIF_cond_alpha_isfa_ista`.
-
-.. todo:: check the accuracy of the above list before release
 
 .. todo:: add a list of native NEST models with off-grid capability
 

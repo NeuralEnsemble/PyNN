@@ -2,7 +2,7 @@
 Definition of NativeElectrodeType class for NEST.
 """
 
-import numpy
+import numpy as np
 import nest
 from pyNN.common import Population, PopulationView, Assembly
 from pyNN.parameters import ParameterSpace, Sequence
@@ -43,28 +43,29 @@ class NestCurrentSource(BaseCurrentSource):
         """
         corrected = value - self.min_delay
         # set negative times to zero
-        if isinstance(value, numpy.ndarray):
-            corrected = numpy.where(corrected > 0, corrected, 0.0)
+        if isinstance(value, np.ndarray):
+            corrected = np.where(corrected > 0, corrected, 0.0)
         else:
             corrected = max(corrected, 0.0)
         return corrected
 
     def record(self):
-        self.i_multimeter = nest.Create('multimeter', params={'record_from': ['I'], 'interval': state.dt})
+        self.i_multimeter = nest.Create(
+            'multimeter', params={'record_from': ['I'], 'interval': state.dt})
         nest.Connect(self.i_multimeter, self._device)
 
     def _get_data(self):
         events = nest.GetStatus(self.i_multimeter)[0]['events']
         # Similar to recording.py: NEST does not record values at
         # the zeroth time step, so we add them here.
-        t_arr = numpy.insert(numpy.array(events['times']), 0, 0.0)
-        i_arr = numpy.insert(numpy.array(events['I']/1000.0), 0, 0.0)
+        t_arr = np.insert(np.array(events['times']), 0, 0.0)
+        i_arr = np.insert(np.array(events['I']/1000.0), 0, 0.0)
         # NEST and pyNN have different concepts of current initiation times
         # To keep this consistent across simulators, we will have current
         # initiating at the electrode at t_start and effect on cell at next dt
         # This requires padding min_delay equivalent period with 0's
         pad_length = int(self.min_delay/self.timestep)
-        i_arr = numpy.insert(i_arr[:-pad_length], 0, [0]*pad_length)
+        i_arr = np.insert(i_arr[:-pad_length], 0, [0]*pad_length)
         return t_arr, i_arr
 
 
@@ -75,11 +76,11 @@ def native_electrode_type(model_name):
     assert isinstance(model_name, str)
     default_parameters, default_initial_values = get_defaults(model_name)
     return type(model_name,
-               (NativeElectrodeType,),
+                (NativeElectrodeType,),
                 {'nest_name': model_name,
                  'default_parameters': default_parameters,
                  'default_initial_values': default_initial_values,
-                })
+                 })
 
 
 # Should be usable with any NEST current generator

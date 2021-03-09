@@ -7,22 +7,23 @@ August 2006, November 2009
 
 """
 
-import socket, os
+from pyNN.random import NumpyRNG
+import socket
+import os
 import csa
-import numpy
+import numpy as np
 from pyNN.utility import get_script_args, Timer
 
 simulator_name = get_script_args(1)[0]
 exec("from pyNN.%s import *" % simulator_name)
 
-from pyNN.random import NumpyRNG
 
 timer = Timer()
 seed = 764756387
 tstop = 1000.0  # ms
 input_rate = 100.0  # Hz
 cell_params = {'tau_refrac': 2.0,  # ms
-               'v_thresh':  -50.0, # mV
+               'v_thresh': -50.0,  # mV
                'tau_syn_E':  2.0,  # ms
                'tau_syn_I':  2.0}  # ms
 n_record = 5
@@ -35,7 +36,7 @@ rng = NumpyRNG(seed=seed, parallel_safe=True)
 
 print("[%d] Creating populations" % node)
 n_spikes = int(2 * tstop * input_rate / 1000.0)
-spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
+spike_times = np.add.accumulate(rng.next(n_spikes, 'exponential',
                                             {'beta': 1000.0 / input_rate}, mask_local=False))
 
 input_population = Population(100, SpikeSourceArray(spike_times=spike_times), label="input")

@@ -2,12 +2,12 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-import numpy
+import numpy as np
 import logging
 from pyNN import common
 from pyNN.parameters import ArrayParameter, Sequence, ParameterSpace, simplify, LazyArray
@@ -23,7 +23,7 @@ class PopulationMixin(object):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        parameter_space.evaluate(mask=numpy.where(self._mask_local)[0])
+        parameter_space.evaluate(mask=np.where(self._mask_local)[0])
         for cell, parameters in zip(self, parameter_space):
             for name, val in parameters.items():
                 setattr(cell._cell, name, val)
@@ -37,9 +37,9 @@ class PopulationMixin(object):
             if name == 'spike_times':  # hack
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
-                val = numpy.array([getattr(id._cell, name) for id in self])
+                val = np.array([getattr(id._cell, name) for id in self])
                 if isinstance(val[0], tuple) or len(val.shape) == 2:
-                    val = numpy.array([ArrayParameter(v) for v in val])
+                    val = np.array([ArrayParameter(v) for v in val])
                     val = LazyArray(simplify(val), shape=(self.local_size,), dtype=ArrayParameter)
                     parameter_dict[name] = val
                 else:
@@ -56,7 +56,7 @@ class PopulationMixin(object):
             if isinstance(initial_values.base_value, RandomDistribution) and initial_values.base_value.rng.parallel_safe:
                 local_values = initial_values.evaluate()[self._mask_local]
             else:
-                local_values = initial_values[self._mask_local]            
+                local_values = initial_values[self._mask_local]
             for cell, value in zip(self, local_values):
                 setattr(cell._cell, "%s_init" % variable, value)
 
@@ -99,7 +99,7 @@ class Population(common.Population, PopulationMixin):
         # perhaps should check for that
         self.first_id = simulator.state.gid_counter
         self.last_id = simulator.state.gid_counter + self.size - 1
-        self.all_cells = numpy.array([id for id in range(self.first_id, self.last_id + 1)], 
+        self.all_cells = np.array([id for id in range(self.first_id, self.last_id + 1)],
                                      simulator.ID)
 
         # mask_local is used to extract those elements from arrays that apply to the cells on the current node
@@ -130,5 +130,6 @@ class Population(common.Population, PopulationMixin):
         assert isinstance(rand_distr.rng, NativeRNG)
         rng = simulator.h.Random(rand_distr.rng.seed or 0)
         native_rand_distr = getattr(rng, rand_distr.name)
-        rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick() for i in range(self.all_cells.size - 1)]
+        rarr = [native_rand_distr(*rand_distr.parameters)] + [rng.repick()
+                                                              for i in range(self.all_cells.size - 1)]
         self.tset(parametername, rarr)

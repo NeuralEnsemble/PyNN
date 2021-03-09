@@ -1,12 +1,12 @@
 """
 Assorted utility classes and functions.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import warnings
-import numpy
+import numpy as np
 
 
 def is_listlike(obj):
@@ -16,25 +16,10 @@ def is_listlike(obj):
 
     Maybe need to split into different functions, as don't always need length.
     """
-    return isinstance(obj, (list, numpy.ndarray, tuple, set))
-
-
-def iteritems(obj):
-    """Handle the disappearance of `dict.iteritems` in Python 3"""
-    try:
-        itr = obj.iteritems()  # Python 2
-    except AttributeError:
-        itr = obj.items()
-    return itr
-
-
-def itervalues(obj):
-    """Handle the disappearance of `dict.itervalues` in Python 3"""
-    try:
-        itr = obj.itervalues()  # Python 2
-    except AttributeError:
-        itr = obj.values()
-    return itr
+    return (
+        isinstance(obj, (list, tuple, set))
+        or (isinstance(obj, np.ndarray) and obj.ndim > 0)
+    )
 
 
 class deprecated(object):
@@ -90,4 +75,3 @@ class IndexBasedExpression(object):
 
     def __call__(self, i, j):
         raise NotImplementedError
-

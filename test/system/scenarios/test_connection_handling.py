@@ -3,7 +3,6 @@ Tests of the fine-grained connection API
 
 """
 
-from __future__ import division
 from nose.tools import assert_equal, assert_almost_equal, assert_is_instance
 from numpy.testing import assert_array_equal
 import numpy as np
@@ -16,11 +15,14 @@ def connections_attribute(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
-    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.7), sim.StaticSynapse(weight=0.05, delay=0.5))
+    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.7),
+                         sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
     assert_equal(len(connections), len(prj))
     assert_is_instance(connections[0], common.Connection)
+
+
 connections_attribute.__test__ = False
 
 
@@ -29,7 +31,8 @@ def connection_access_weight_and_delay(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
-    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.8), sim.StaticSynapse(weight=0.05, delay=0.5))
+    prj = sim.Projection(p1, p2, sim.FixedProbabilityConnector(0.8),
+                         sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
     assert_almost_equal(connections[2].weight, 0.05, places=9)
@@ -43,7 +46,106 @@ def connection_access_weight_and_delay(sim):
     target[2, 1] = 1.0
     assert_array_equal(np.array(prj.get(('weight', 'delay'), format='list', with_address=False)),
                        target)
+
+
 connection_access_weight_and_delay.__test__ = False
+
+
+@register()
+def issue672(sim):
+    """
+    Check that creating new Projections does not mess up existing ones.
+    """
+    sim.setup(verbosity="error")
+
+    p1 = sim.Population(5, sim.IF_curr_exp())
+    p2 = sim.Population(4, sim.IF_curr_exp())
+    p3 = sim.Population(6, sim.IF_curr_exp())
+
+    prj1 = sim.Projection(p2, p3, sim.AllToAllConnector(), sim.StaticSynapse(weight=lambda d: d))
+    # Get weight array of first Projection
+    wA = prj1.get("weight", format="array")
+    # Create a new Projection
+    prj2 = sim.Projection(p2, p3, sim.AllToAllConnector(), sim.StaticSynapse(weight=lambda w: 1))
+    # Get weight array of first Projection again
+    #   - incorrect use of caching could lead to this giving different results
+    wB = prj1.get("weight", format="array")
+
+    assert_array_equal(wA, wB)
+
+
+# @register()
+# def update_synaptic_plasticity_parameters(sim):
+#     sim.setup()
+#     p1 = sim.Population(3, sim.IF_cond_exp(), label="presynaptic")
+#     p2 = sim.Population(2, sim.IF_cond_exp(), label="postsynaptic")
+
+#     stdp_model = sim.STDPMechanism(
+#         timing_dependence=sim.SpikePairRule(tau_plus=20.0, tau_minus=20.0,
+#                                             A_plus=0.011, A_minus=0.012),
+#         weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=0.0000001),
+#         weight=0.00000005,
+#         delay=0.2)
+#     connections = sim.Projection(p1, p2, sim.AllToAllConnector(), stdp_model)
+
+#     assert (connections.get("A_minus", format="array") == 0.012).all()
+#     connections.set(A_minus=0.013)
+#     assert (connections.get("A_minus", format="array") == 0.013).all()
+#     connections.set(A_minus=np.array([0.01, 0.011, 0.012, 0.013, 0.014, 0.015]))
+#     assert_array_equal(connections.get("A_minus", format="array"),
+#                        np.array([[0.01, 0.011], [0.012, 0.013], [0.014, 0.015]]))
+
+
+@register(exclude=["brian2"])
+def issue652(sim):
+    """Correctly handle A_plus = 0 in SpikePairRule."""
+    sim.setup()
+
+    neural_population1 = sim.Population(10, sim.IF_cond_exp())
+    neural_population2 = sim.Population(10, sim.IF_cond_exp())
+
+    amount_of_neurons_to_connect_to = 5
+    synaptic_weight = 0.5
+
+    synapse_type = sim.STDPMechanism(
+        weight=synaptic_weight,
+        timing_dependence=sim.SpikePairRule(
+            tau_plus=20,
+            tau_minus=20,
+            A_plus=0.0,
+            A_minus=0.0,
+        ),
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=1)
+    )
+
+    connection_to_input = sim.Projection(
+        neural_population1, neural_population2,
+        sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
+    )
+
+    a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
+    assert_equal(a_plus[~np.isnan(a_plus)][0], 0.0)
+    assert_equal(a_minus[~np.isnan(a_minus)][0], 0.0)
+
+    synapse_type = sim.STDPMechanism(
+        weight=synaptic_weight,
+        timing_dependence=sim.SpikePairRule(
+            tau_plus=20,
+            tau_minus=20,
+            A_plus=0.0,
+            A_minus=0.5,
+        ),
+        weight_dependence=sim.AdditiveWeightDependence(w_min=0, w_max=1)
+    )
+
+    connection_to_input = sim.Projection(
+        neural_population1, neural_population2,
+        sim.FixedNumberPreConnector(amount_of_neurons_to_connect_to), synapse_type
+    )
+
+    a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
+    assert_equal(a_plus[~np.isnan(a_plus)][0], 0.0)
+    assert_equal(a_minus[~np.isnan(a_minus)][0], 0.5)
 
 
 if __name__ == '__main__':

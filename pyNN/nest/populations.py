@@ -2,12 +2,12 @@
 """
 NEST v2 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-import numpy
+import numpy as np
 import nest
 import logging
 from pyNN import common, errors
@@ -29,7 +29,7 @@ class PopulationMixin(object):
         """
         parameter_space should contain native parameters
         """
-        param_dict = _build_params(parameter_space, numpy.where(self._mask_local)[0])
+        param_dict = _build_params(parameter_space, np.where(self._mask_local)[0])
         ids = self.local_cells.tolist()
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
@@ -44,13 +44,14 @@ class PopulationMixin(object):
             ids = [id.source for id in ids]
 
         if "spike_times" in names:
-            parameter_dict = {"spike_times": [Sequence(value) for value in nest.GetStatus(ids, names)]}
+            parameter_dict = {"spike_times": [Sequence(value)
+                                              for value in nest.GetStatus(ids, names)]}
         else:
             parameter_dict = {}
             for name in names:  # one name at a time, since some parameter values may be tuples
-                val = numpy.array(nest.GetStatus(ids, name))
+                val = np.array(nest.GetStatus(ids, name))
                 if isinstance(val[0], tuple) or len(val.shape) == 2:
-                    val = numpy.array([ArrayParameter(v) for v in val])
+                    val = np.array([ArrayParameter(v) for v in val])
                     val = LazyArray(simplify(val), shape=(self.local_size,), dtype=ArrayParameter)
                     parameter_dict[name] = val
                 else:
@@ -111,7 +112,8 @@ class Population(common.Population, PopulationMixin):
                  initial_values={}, label=None):
         __doc__ = common.Population.__doc__
         self._deferred_parrot_connections = False
-        super(Population, self).__init__(size, cellclass, cellparams, structure, initial_values, label)
+        super(Population, self).__init__(size, cellclass,
+                                         cellparams, structure, initial_values, label)
         self._simulator.state.populations.append(self)
 
     def _create_cells(self):
@@ -133,7 +135,7 @@ class Population(common.Population, PopulationMixin):
                                    size=self.size)
         try:
             self.all_cells = nest.Create(nest_model, self.size, params=params)
-        except nest.NESTError as err:
+        except nest.kernel.NESTError as err:
             if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             if "Spike times must be sorted in non-descending order" in err.args[0]:
@@ -141,15 +143,15 @@ class Population(common.Population, PopulationMixin):
             raise  # errors.InvalidModelError(err)
         # create parrot neurons if necessary
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
-            self.all_cells_source = numpy.array(self.all_cells)        # we put the parrots into all_cells, since this will
+            self.all_cells_source = np.array(self.all_cells)        # we put the parrots into all_cells, since this will
             parrot_model = simulator.state.spike_precision == "off_grid" and "parrot_neuron_ps" or "parrot_neuron"
             self.all_cells = nest.Create(parrot_model, self.size)      # be used for connections and recording. all_cells_source
                                                                        # should be used for setting parameters
             self._deferred_parrot_connections = True
             # connecting up the parrot neurons is deferred until we know the value of min_delay
             # which could be 'auto' at this point.
-        self._mask_local = numpy.array(nest.GetStatus(self.all_cells, 'local'))
-        self.all_cells = numpy.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
+        self._mask_local = np.array(nest.GetStatus(self.all_cells, 'local'))
+        self.all_cells = np.array([simulator.ID(gid) for gid in self.all_cells], simulator.ID)
         for gid in self.all_cells:
             gid.parent = self
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
@@ -157,7 +159,7 @@ class Population(common.Population, PopulationMixin):
                 gid.source = source
 
     def _connect_parrot_neurons(self):
-        nest.Connect(self.all_cells_source, numpy.array(self.all_cells, int), 'one_to_one',
+        nest.Connect(self.all_cells_source, np.array(self.all_cells, int), 'one_to_one',
                      syn_spec={'delay': simulator.state.min_delay})
         self._deferred_parrot_connections = False
 
@@ -169,7 +171,7 @@ class Population(common.Population, PopulationMixin):
             local_values = value._partially_evaluate(self._mask_local, simplify=True)
         try:
             nest.SetStatus(self.local_cells.tolist(), variable, local_values)
-        except nest.NESTError as e:
+        except nest.kernel.NESTError as e:
             if "Unused dictionary items" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)
                 # should perhaps check whether value-to-be-set is the same as current value,

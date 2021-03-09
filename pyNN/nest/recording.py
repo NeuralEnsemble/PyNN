@@ -1,10 +1,10 @@
 """
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy
+import numpy as np
 import logging
 import nest
 from pyNN import recording
@@ -14,7 +14,8 @@ from pyNN.nest import simulator
 VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
                 'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
 REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
-SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001,
+                 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
 
 logger = logging.getLogger("PyNN")
 
@@ -23,8 +24,8 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.NESTError as e:
-        raise nest.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
+    except nest.kernel.NESTError as e:
+        raise nest.kernel.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 
 class RecordingDevice(object):
@@ -55,18 +56,20 @@ class RecordingDevice(object):
         nest_variable = VARIABLE_MAP.get(variable, variable)
         events = nest.GetStatus(self.device, 'events')[0]
         ids = events['senders']
-        values = events[nest_variable] * scale_factor  # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
+        # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
+        values = events[nest_variable] * scale_factor
         data = {}
         recorded_ids = set(ids)
-        
-        for id in recorded_ids:
-            data[id]=[]
 
-        for id,v in zip(ids,values):
+        for id in recorded_ids:
+            data[id] = []
+
+        for id, v in zip(ids, values):
             data[id].append(v)
 
-        desired_and_existing_ids = numpy.intersect1d(numpy.array(list(recorded_ids)),numpy.array(desired_ids))
-        data = {k : data[k] for k in desired_and_existing_ids}
+        desired_and_existing_ids = np.intersect1d(
+            np.array(list(recorded_ids)), np.array(desired_ids))
+        data = {k: data[k] for k in desired_and_existing_ids}
 
         if variable != 'times':
             for id in desired_ids:
@@ -76,7 +79,7 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                data[int(id)] = [initial_value] + data.get(int(id),[])
+                data[int(id)] = [initial_value] + data.get(int(id), [])
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
@@ -154,7 +157,7 @@ class Multimeter(RecordingDevice):
         _set_status(self.device, {'record_from': list(current_variables)})
 
 
-#class RecordingDevice(object):
+# class RecordingDevice(object):
 #    scale_factors = {'V_m': 1, 'g_ex': 0.001, 'g_in': 0.001}
 #
 #    def __init__(self, device_type, to_memory=False):
@@ -174,8 +177,8 @@ class Multimeter(RecordingDevice):
 #            device_parameters.update(to_file=True, to_memory=False)
 #        try:
 #            nest.SetStatus(self.device, device_parameters)
-#        except nest.hl_api.NESTError as e:
-#            raise nest.hl_api.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
+#        except nest.kernel.NESTError as e:
+#            raise nest.kernel.NESTError("%s. Parameter dictionary was: %s" % (e, device_parameters))
 #
 #        self.record_from = []
 #        self._local_files_merged = False
@@ -219,12 +222,12 @@ class Multimeter(RecordingDevice):
 #        ids = events['senders']
 #        times = events['times']
 #        if self.type == 'spike_detector':
-#            data = numpy.array((ids, times)).T
+#            data = np.array((ids, times)).T
 #        else:
 #            data = [ids, times]
 #            for var in self.record_from:
 #                data.append(events[var])
-#            data = numpy.array(data).T
+#            data = np.array(data).T
 #        return data
 #
 #    def scale_data(self, data):
@@ -255,7 +258,7 @@ class Multimeter(RecordingDevice):
 #                    initial.append(0.0) # unsatisfactory
 #            initial_values.append(initial)
 #        if initial_values:
-#            data = numpy.concatenate((initial_values, data))
+#            data = np.concatenate((initial_values, data))
 #        return data
 #
 #    def read_data_from_memory(self, gather, compatible_output):
@@ -273,7 +276,7 @@ class Multimeter(RecordingDevice):
 #        if gather and simulator.state.num_processes > 1:
 #            data = recording.gather(data)
 #            self._gathered_file = tempfile.TemporaryFile()
-#            numpy.save(self._gathered_file, data)
+#            np.save(self._gathered_file, data)
 #            self._gathered = True
 #        return data
 #
@@ -290,7 +293,7 @@ class Multimeter(RecordingDevice):
 #        if self._local_files_merged:
 #            logger.debug("Loading merged data from cache")
 #            self._merged_file.seek(0)
-#            data = numpy.load(self._merged_file)
+#            data = np.load(self._merged_file)
 #        else:
 #            d = nest.GetStatus(self.device)[0]
 #            if "filenames" in d:
@@ -301,21 +304,21 @@ class Multimeter(RecordingDevice):
 #            logger.debug("Concatenating data from the following files: %s" % ", ".join(nest_files))
 #            non_empty_nest_files = [filename for filename in nest_files if os.stat(filename).st_size > 0]
 #            if len(non_empty_nest_files) > 0:
-#                data_list = [numpy.loadtxt(nest_file) for nest_file in non_empty_nest_files]
-#                data_list = [numpy.atleast_2d(numpy.loadtxt(nest_file))
+#                data_list = [np.loadtxt(nest_file) for nest_file in non_empty_nest_files]
+#                data_list = [np.atleast_2d(np.loadtxt(nest_file))
 #                             for nest_file in non_empty_nest_files]
-#                data = numpy.concatenate(data_list)
+#                data = np.concatenate(data_list)
 #            if len(non_empty_nest_files) == 0 or data.size == 0:
 #                if self.type is "spike_detector":
 #                    ncol = 2
 #                else:
 #                    ncol = 2 + len(self.record_from)
-#                data = numpy.empty([0, ncol])
+#                data = np.empty([0, ncol])
 #            if compatible_output and self.type is not "spike_detector":
 #                data = self.scale_data(data)
 #                data = self.add_initial_values(data)
 #            self._merged_file = tempfile.TemporaryFile()
-#            numpy.save(self._merged_file, data)
+#            np.save(self._merged_file, data)
 #            self._local_files_merged = True  # this is set back to False by run()
 #        return data
 #
@@ -337,7 +340,7 @@ class Multimeter(RecordingDevice):
 #                if self._gathered:
 #                    logger.debug("Loading previously gathered data from cache")
 #                    self._gathered_file.seek(0)
-#                    data = numpy.load(self._gathered_file)
+#                    data = np.load(self._gathered_file)
 #                else:
 #                    local_data = self.read_local_data(compatible_output)
 #                    if always_local:
@@ -347,7 +350,7 @@ class Multimeter(RecordingDevice):
 #                        data = recording.gather(local_data)
 #                    logger.debug("Caching gathered data")
 #                    self._gathered_file = tempfile.TemporaryFile()
-#                    numpy.save(self._gathered_file, data)
+#                    np.save(self._gathered_file, data)
 #                    self._gathered = True
 #            else:
 #                data = self.read_local_data(compatible_output)
@@ -419,7 +422,7 @@ class Recorder(recording.Recorder):
 
     def _get_sampling_interval(self):
         return nest.GetStatus(self._multimeter.device, "interval")[0]
-        
+
     def _set_sampling_interval(self, value):
         if value is not None:
             nest.SetStatus(self._multimeter.device, {"interval": value})
@@ -435,37 +438,39 @@ class Recorder(recording.Recorder):
         # Maybe we can reset them, rather than create new ones?
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
-    
+
     def _get_spiketimes(self, ids):
-        return self._spike_detector.get_spiketimes(ids)  # hugely inefficient - to be optimized later
-    
+        # hugely inefficient - to be optimized later
+        return self._spike_detector.get_spiketimes(ids)
+
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable.name, ids, clear=clear)
         if len(ids) > 0:
-            return numpy.array([data[i] for i in ids]).T #JACOMMENT: this is very expensive but not sure how to get rid of it 
+            # JACOMMENT: this is very expensive but not sure how to get rid of it
+            return np.array([data[i] for i in ids]).T
         else:
-            return numpy.array([])
+            return np.array([])
 
     def _local_count(self, variable, filter_ids):
         assert variable.name == 'spikes'
         #N = {}
-        #if self._device.in_memory():
+        # if self._device.in_memory():
         #    events = nest.GetStatus(self._device.device, 'events')[0]
         #    for id in self.filter_recorded(filter):
         #        mask = events['senders'] == int(id)
         #        N[int(id)] = len(events['times'][mask])
-        #else:
+        # else:
         #    spikes = self._get(gather=False, compatible_output=False,
         #                       filter=filter)
         #    for id in self.filter_recorded(filter):
         #        N[int(id)] = 0
-        #    ids   = numpy.sort(spikes[:,0].astype(int))
-        #    idx   = numpy.unique(ids)
-        #    left  = numpy.searchsorted(ids, idx, 'left')
-        #    right = numpy.searchsorted(ids, idx, 'right')
+        #    ids   = np.sort(spikes[:,0].astype(int))
+        #    idx   = np.unique(ids)
+        #    left  = np.searchsorted(ids, idx, 'left')
+        #    right = np.searchsorted(ids, idx, 'right')
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
-        #return N
+        # return N
         return self._spike_detector.get_spike_counts(self.filter_recorded(variable, filter_ids))
 
     def _clear_simulator(self):

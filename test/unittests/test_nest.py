@@ -4,15 +4,8 @@ try:
 except ImportError:
     nest = False
 from pyNN.standardmodels import StandardCellType
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-try:
-    basestring
-except NameError:
-    basestring = str
-import numpy
+import unittest
+import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 
@@ -25,7 +18,7 @@ class TestFunctions(unittest.TestCase):
     def test_list_standard_models(self):
         cell_types = sim.list_standard_models()
         self.assertTrue(len(cell_types) > 10)
-        self.assertIsInstance(cell_types[0], basestring)
+        self.assertIsInstance(cell_types[0], str)
 
     def test_setup(self):
         sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
@@ -56,18 +49,18 @@ class TestPopulation(unittest.TestCase):
         sim.setup()
         self.p = sim.Population(4, sim.IF_cond_exp(**{'tau_m': 12.3,
                                                       'cm': lambda i: 0.987 + 0.01 * i,
-                                                      'i_offset': numpy.array([-0.21, -0.20, -0.19, -0.18])}))
+                                                      'i_offset': np.array([-0.21, -0.20, -0.19, -0.18])}))
 
     def test_create_native(self):
-        cell_type = sim.native_cell_type('iaf_neuron')
+        cell_type = sim.native_cell_type('iaf_psc_alpha')
         p = sim.Population(3, cell_type())
 
     def test__get_parameters(self):
         ps = self.p._get_parameters('C_m', 'g_L', 'E_ex', 'I_e')
         ps.evaluate(simplify=True)
-        assert_array_almost_equal(ps['C_m'], numpy.array([987, 997, 1007, 1017], float),
+        assert_array_almost_equal(ps['C_m'], np.array([987, 997, 1007, 1017], float),
                                   decimal=12)
-        assert_array_almost_equal(ps['I_e'], numpy.array([-210, -200, -190, -180], float),
+        assert_array_almost_equal(ps['I_e'], np.array([-210, -200, -190, -180], float),
                                   decimal=12)
         self.assertEqual(ps['E_ex'], 0.0)
 
@@ -103,8 +96,6 @@ class TestProjection(unittest.TestCase):
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=sim.TsodyksMarkramSynapse())
 
-
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_native_synapse(self):
         """
         Native synapse with array-like parameters and CommonProperties.
@@ -131,7 +122,6 @@ class TestProjection(unittest.TestCase):
         weights_array = prj.get("weight", format="array")
         self.assertTrue((weights_array > 0.).all())
 
-    @unittest.skip("causes core dump with NEST master branch")
     def test_create_with_homogeneous_common_properties(self):
         with self.assertRaises(ValueError):
             # create synapse type with heterogeneous common parameters
@@ -144,7 +134,7 @@ class TestProjection(unittest.TestCase):
     def test_set_array(self):
         weight = 0.123
         prj = sim.Projection(self.p1, self.p2, sim.AllToAllConnector())
-        weight_array = numpy.ones(prj.shape) * weight
+        weight_array = np.ones(prj.shape) * weight
         prj.set(weight=weight_array)
         self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
@@ -156,7 +146,7 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0], weight)
 
-        weight_array = numpy.ones(prj.shape) * weight
+        weight_array = np.ones(prj.shape) * weight
         prj.set(weight=weight_array)
         self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
@@ -168,7 +158,7 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0][0], weight)
 
-        weight_array = numpy.ones(prj.shape) * weight
+        weight_array = np.ones(prj.shape) * weight
         prj.set(weight=weight_array)
         self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 
@@ -180,7 +170,7 @@ class TestProjection(unittest.TestCase):
         prj.set(weight=weight)
         self.assertEqual(prj.get("weight", format="array")[0][0], weight)
 
-        weight_array = numpy.ones(prj.shape) * weight
+        weight_array = np.ones(prj.shape) * weight
         prj.set(weight=weight_array)
         self.assertTrue((weight_array == prj.get("weight", format="array")).all())
 

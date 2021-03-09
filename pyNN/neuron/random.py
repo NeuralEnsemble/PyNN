@@ -6,11 +6,6 @@ import numpy as np
 from neuron import h
 from pyNN.random import NativeRNG, WrappedRNG
 
-try:
-    xrange
-except NameError:
-    xrange = range
-
 
 class NativeRNG(NativeRNG, WrappedRNG):
     """
@@ -55,13 +50,13 @@ class NativeRNG(NativeRNG, WrappedRNG):
 
     def _next_n(self, distribution_nrn, n, parameters_nrn):
         if self.last_distribution == distribution_nrn:
-            values = np.fromiter((self.rng.repick() for i in xrange(n)), dtype=float, count=n)
+            values = np.fromiter((self.rng.repick() for i in range(n)), dtype=float, count=n)
         else:
             self.last_distribution = distribution_nrn
             f_distr = getattr(self.rng, distribution_nrn)
             values = np.empty((n,))
             values[0] = f_distr(*parameters_nrn)
-            for i in xrange(1, n):
+            for i in range(1, n):
                 values[i] = self.rng.repick()
         return values
 

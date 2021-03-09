@@ -3,21 +3,16 @@
 Common implementation of the Projection class, to be sub-classed by
 backend-specific Projection classes.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-try:
-    basestring
-    reduce
-    xrange
-except NameError:
-    basestring = str
-    from functools import reduce
-    xrange = range
-import numpy
+
+from functools import reduce
+import numpy as np
 import logging
 import operator
+from copy import deepcopy
 from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
@@ -80,32 +75,61 @@ class Projection(object):
         for prefix, pop in zip(("pre", "post"),
                                (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
-                raise errors.ConnectionError("%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
+                raise errors.ConnectionError(
+                    "%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
 
         if isinstance(postsynaptic_neurons, Assembly):
             if not postsynaptic_neurons._homogeneous_synapses:
-                raise errors.ConnectionError('Projection to an Assembly object can be made only with homogeneous synapses types')
+                raise errors.ConnectionError(
+                    'Projection to an Assembly object can be made only with homogeneous synapses types')
 
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
         self.post = postsynaptic_neurons  # } read-only
-        self.receptor_type = receptor_type or 'excitatory'  # TO FIX: if weights are negative, default should be 'inhibitory'
+        self.label = label
+        self.space = space
+        self._connector = connector
+
+        self.synapse_type = synapse_type or self._static_synapse_class()
+        assert isinstance(self.synapse_type, models.BaseSynapseType), \
+            "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(
+                synapse_type)
+
+        self.receptor_type = receptor_type
+        if self.receptor_type in ("default", None):
+            self._guess_receptor_type()
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
             errmsg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
             raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
-        self.label = label
-        self.space = space
-        self._connector = connector
-        self.synapse_type = synapse_type or self._static_synapse_class()
-        assert isinstance(self.synapse_type, models.BaseSynapseType), \
-              "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(synapse_type)
+
         if label is None:
             if self.pre.label and self.post.label:
                 self.label = u"%s→%s" % (self.pre.label, self.post.label)
         self.initial_values = {}
+        self.annotations = {}
         Projection._nProj += 1
+
+    def _guess_receptor_type(self):
+        """
+        If the receptor_type is not specified, we follow the convention that the first element
+        in the list of available post-synaptic receptor types is the default for excitatory
+        synapses and the second element is the default for inhibitory synapses.
+        """
+        if len(self.post.receptor_types) > 1:
+            ps = deepcopy(self.synapse_type.parameter_space)
+            ps = self._handle_distance_expressions(ps)
+            weights = ps["weight"]
+            if weights.shape is None:
+                weights.shape = self.shape
+            wl = weights[self.pre.size - 1, self.post.size - 1]
+            if wl >= 0:
+                self.receptor_type = self.post.receptor_types[0]
+            else:
+                self.receptor_type = self.post.receptor_types[1]
+        else:
+            self.receptor_type = self.post.receptor_types[0]
 
     def __len__(self):
         """Return the total number of local connections."""
@@ -198,17 +222,18 @@ class Projection(object):
             prj.initialize(u=-70.0)
         """
         for variable, value in initial_values.items():
-            logger.debug("In Projection '%s', initialising %s to %s" % (self.label, variable, value))
+            logger.debug("In Projection '%s', initialising %s to %s" %
+                         (self.label, variable, value))
             initial_value = LazyArray(value, shape=(self.size,), dtype=float)
             self._set_initial_value_array(variable, initial_value)
             self.initial_values[variable] = initial_value
 
     def _value_list_to_array(self, attributes):
         """Convert a list of connection parameters/attributes to a 2D array."""
-        connection_mask = ~numpy.isnan(self.get('weight', format='array', gather='all'))
+        connection_mask = ~np.isnan(self.get('weight', format='array', gather='all'))
         for name, value in attributes.items():
-            if isinstance(value, list) or (isinstance(value, numpy.ndarray) and value.ndim == 1):
-                array_value = numpy.nan * numpy.ones(self.shape)
+            if isinstance(value, list) or (isinstance(value, np.ndarray) and value.ndim == 1):
+                array_value = np.nan * np.ones(self.shape)
                 array_value[connection_mask] = value
                 attributes[name] = array_value
         return attributes
@@ -307,7 +332,7 @@ class Projection(object):
         Values will be expressed in the standard PyNN units (i.e. millivolts,
         nanoamps, milliseconds, microsiemens, nanofarads, event per second).
         """
-        if isinstance(attribute_names, basestring):
+        if isinstance(attribute_names, str):
             attribute_names = (attribute_names,)
             return_single = True
         else:
@@ -329,7 +354,8 @@ class Projection(object):
             return values
         elif format == 'array':
             if multiple_synapses not in Projection.MULTI_SYNAPSE_OPERATIONS:
-                raise ValueError("`multiple_synapses` argument must be one of {}".format(list(Projection.MULTI_SYNAPSE_OPERATIONS)))
+                raise ValueError("`multiple_synapses` argument must be one of {}".format(
+                    list(Projection.MULTI_SYNAPSE_OPERATIONS)))
             if gather and self._simulator.state.num_processes > 1:
                 # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
                 # Slaves nodes are returning list of connections, so this may be inconsistent...
@@ -342,9 +368,10 @@ class Projection(object):
                     tmp_values = reduce(operator.add, all_values.values())
                     values = self._get_attributes_as_arrays(attribute_names,
                                                             multiple_synapses=multiple_synapses)
-                    tmp_values = numpy.array(tmp_values)
-                    for i in xrange(len(values)):
-                        values[i][tmp_values[:, 0].astype(int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2 + i]
+                    tmp_values = np.array(tmp_values)
+                    for i in range(len(values)):
+                        values[i][tmp_values[:, 0].astype(
+                            int), tmp_values[:, 1].astype(int)] = tmp_values[:, 2 + i]
             else:
                 values = self._get_attributes_as_arrays(attribute_names,
                                                         multiple_synapses=multiple_synapses)
@@ -364,13 +391,13 @@ class Projection(object):
         multi_synapse_operation = Projection.MULTI_SYNAPSE_OPERATIONS[multiple_synapses]
         all_values = []
         for attribute_name in names:
-            values = numpy.nan * numpy.ones((self.pre.size, self.post.size))
+            values = np.nan * np.ones((self.pre.size, self.post.size))
             if attribute_name[-1] == "s":  # weights --> weight, delays --> delay
                 attribute_name = attribute_name[:-1]
             for c in self.connections:
                 value = getattr(c, attribute_name)
                 addr = (c.presynaptic_index, c.postsynaptic_index)
-                if numpy.isnan(values[addr]):
+                if np.isnan(values[addr]):
                     values[addr] = value
                 else:
                     values[addr] = multi_synapse_operation(values[addr], value)
@@ -399,11 +426,12 @@ class Projection(object):
         """
         if attribute_names in ('all', 'connections'):
             attribute_names = self.synapse_type.get_parameter_names()
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = recording.files.StandardTextFile(file, mode='wb')
-        all_values = self.get(attribute_names, format=format, gather=gather, with_address=with_address)
+        all_values = self.get(attribute_names, format=format,
+                              gather=gather, with_address=with_address)
         if format == 'array':
-            all_values = [numpy.where(numpy.isnan(values), 0.0, values)
+            all_values = [np.where(np.isnan(values), 0.0, values)
                           for values in all_values]
         if self._simulator.state.mpi_rank == 0:
             metadata = {"columns": attribute_names}
@@ -428,20 +456,23 @@ class Projection(object):
         """
         self.save('delay', file, format, gather)
 
-    @deprecated("numpy.histogram()")
+    @deprecated("np.histogram()")
     def weightHistogram(self, min=None, max=None, nbins=10):
         """
         Return a histogram of synaptic weights.
         If min and max are not given, the minimum and maximum weights are
         calculated automatically.
         """
-        weights = numpy.array(self.get('weight', format='list', gather=True, with_address=False))
+        weights = np.array(self.get('weight', format='list', gather=True, with_address=False))
         if min is None:
             min = weights.min()
         if max is None:
             max = weights.max()
-        bins = numpy.linspace(min, max, nbins + 1)
-        return numpy.histogram(weights, bins)  # returns n, bins
+        bins = np.linspace(min, max, nbins + 1)
+        return np.histogram(weights, bins)  # returns n, bins
+
+    def annotate(self, **annotations):
+        self.annotations.update(annotations)
 
     def describe(self, template='projection_default.txt', engine='default'):
         """

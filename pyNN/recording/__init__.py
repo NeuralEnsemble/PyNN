@@ -5,24 +5,21 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import logging
-import numpy
+import numpy as np
 import os
 from copy import copy
 from collections import defaultdict, namedtuple
+from warnings import warn
 from datetime import datetime
 from pyNN import errors
 import neo
 import quantities as pq
-try:
-    basestring
-except NameError:
-    basestring = str
 
 logger = logging.getLogger("PyNN")
 
@@ -36,27 +33,29 @@ def get_mpi_comm():
     try:
         from mpi4py import MPI
     except ImportError:
-        raise Exception("Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+        raise Exception(
+            "Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
     return MPI.COMM_WORLD, {'DOUBLE': MPI.DOUBLE, 'SUM': MPI.SUM}
 
 
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
-        logger.warning("File %s already exists. Renaming the original file to %s_old" % (filename, filename))
+        logger.warning("File %s already exists. Renaming the original file to %s_old" %
+                       (filename, filename))
 
 
 def gather_array(data):
     # gather 1D or 2D numpy arrays
     mpi_comm, mpi_flags = get_mpi_comm()
-    assert isinstance(data, numpy.ndarray)
+    assert isinstance(data, np.ndarray)
     assert len(data.shape) < 3
     # first we pass the data size
     size = data.size
     sizes = mpi_comm.gather(size, root=MPI_ROOT) or []
     # now we pass the data
     displacements = [sum(sizes[:i]) for i in range(len(sizes))]
-    gdata = numpy.empty(sum(sizes))
+    gdata = np.empty(sum(sizes))
     mpi_comm.Gatherv([data.flatten(), size, mpi_flags['DOUBLE']],
                      [gdata, (sizes, displacements), mpi_flags['DOUBLE']],
                      root=MPI_ROOT)
@@ -90,13 +89,14 @@ def gather_blocks(data, ordered=True):
     D = gather_dict(D)
     blocks = list(D.values())
     merged = data
-    if mpi_comm.rank == MPI_ROOT:    
+    if mpi_comm.rank == MPI_ROOT:
         merged = blocks[0]
         for block in blocks[1:]:
             merged.merge(block)
     if ordered:
         for segment in merged.segments:
-            ordered_spiketrains = sorted(segment.spiketrains, key=lambda s: s.annotations['source_id'])
+            ordered_spiketrains = sorted(
+                segment.spiketrains, key=lambda s: s.annotations['source_id'])
             segment.spiketrains = ordered_spiketrains
     return merged
 
@@ -114,7 +114,7 @@ def localize_variables(variables, locations):
     
     """
     # If variables is a single string, encapsulate it in a list.
-    if isinstance(variables, basestring) and variables != 'all':
+    if isinstance(variables, str) and variables != 'all':
         variables = [variables]
     resolved_variables = []
     if locations is None:
@@ -156,7 +156,8 @@ def get_io(filename):
     safe_makedirs(dir)
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
-        raise IOError("ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")
+        raise IOError(
+            "ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")
     elif extension in ('.h5',):
         return neo.io.NeoHdf5IO(filename=filename)
     elif extension in ('.pkl', '.pickle'):
@@ -241,9 +242,7 @@ class Recorder(object):
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
         logger.debug('Recorder.record(<%d cells>)' % len(ids))
-        if sampling_interval is not None:
-            if sampling_interval != self.sampling_interval and len(self.recorded) > 0:
-                raise ValueError("All neurons in a population must be recorded with the same sampling interval.")
+        self._check_sampling_interval(sampling_interval)
 
         ids = set([id for id in ids if id.local])
         for variable in localize_variables(variables, locations):
@@ -253,6 +252,19 @@ class Recorder(object):
             assert isinstance(variable, Variable)
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids, sampling_interval)
+
+    def _check_sampling_interval(self, sampling_interval):
+        """
+        Check whether record() has been called previously with a different sampling interval
+        (we exclude recording of spikes, as the sampling interval does not apply in that case)
+        """
+        if sampling_interval is not None and sampling_interval != self.sampling_interval:
+            recorded_variables = list(self.recorded.keys())
+            if "spikes" in recorded_variables:
+                recorded_variables.remove("spikes")
+            if len(recorded_variables) > 0:
+                raise ValueError(
+                    "All neurons in a population must be recorded with the same sampling interval.")
 
     def reset(self):
         """Reset the list of things to be recorded."""
@@ -270,7 +282,7 @@ class Recorder(object):
                               description=self.population.describe(),
                               rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end
         variables_to_include = set(self.recorded.keys())
-        if variables is not 'all':
+        if variables != 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
             if variable.name == 'spikes':
@@ -280,14 +292,20 @@ class Recorder(object):
                                                    filter_ids))
                 data = self._get_spiketimes(sids)
 
-                segment.spiketrains = [
-                    neo.SpikeTrain(data.get(int(id),[]),
-                                   t_start=self._recording_start_time,
-                                   t_stop=t_stop,
-                                   units='ms',
-                                   source_population=self.population.label,
-                                   source_id=int(id),source_index=self.population.id_to_index(int(id)))
-                    for id in sids]
+                segment.spiketrains = []
+                for id in sids:
+                    times = pq.Quantity(data.get(int(id), []), pq.ms)
+                    if times.size > 0 and times.max() > t_stop:
+                        warn("Recorded at least one spike after t_stop")
+                        times = times[times <= t_stop]
+                    segment.spiketrains.append(
+                        neo.SpikeTrain(times,
+                                       t_start=self._recording_start_time,
+                                       t_stop=t_stop,
+                                       units='ms',
+                                       source_population=self.population.label,
+                                       source_id=int(id), source_index=self.population.id_to_index(int(id)))
+                    )
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
@@ -297,7 +315,7 @@ class Recorder(object):
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
-                    source_ids = numpy.fromiter(ids, dtype=int)
+                    source_ids = np.fromiter(ids, dtype=int)
                     if variable.location_label:
                         signal_name = "{}.{}".format(variable.location_label, variable.name)
                     elif variable.location:
@@ -305,19 +323,21 @@ class Recorder(object):
                     else:
                         signal_name = variable.name
                     signal = neo.AnalogSignal(
-                                    signal_array,
-                                    units=units,
-                                    t_start=t_start,
-                                    sampling_period=sampling_period,
+                        signal_array,
+                        units=units,
+                        t_start=t_start,
+                        sampling_period=sampling_period,
                                     name=signal_name,
-                                    source_population=self.population.label,
-                                    source_ids=source_ids)
+                        source_population=self.population.label,
+                        source_ids=source_ids)
                     signal.channel_index = neo.ChannelIndex(
-                            index=numpy.arange(source_ids.size),
-                            channel_ids=numpy.array([self.population.id_to_index(id) for id in ids]))
+                        index=np.arange(source_ids.size),
+                        channel_ids=np.array([self.population.id_to_index(id) for id in ids]))
                     segment.analogsignals.append(signal)
-                    logger.debug("%d **** ids=%s, channels=%s", mpi_node, source_ids, signal.channel_index)
-                    assert segment.analogsignals[0].t_stop - current_time - 2 * sampling_period < 1e-10
+                    logger.debug("%d **** ids=%s, channels=%s", mpi_node,
+                                 source_ids, signal.channel_index)
+                    assert segment.analogsignals[0].t_stop - \
+                        current_time - 2 * sampling_period < 1e-10
                     # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
@@ -363,13 +383,13 @@ class Recorder(object):
     def write(self, variables, file=None, gather=False, filter_ids=None,
               clear=False, annotations=None, locations=None):
         """Write recorded data to a Neo IO"""
-        if isinstance(file, basestring):
+        if isinstance(file, str):
             file = get_io(file)
         io = file or self.file
         if gather is False and self._simulator.state.num_processes > 1:
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
-                                               variables, io.filename, gather))
+            variables, io.filename, gather))
         data = self.get(variables, gather, filter_ids, clear, annotations=annotations,
                         locations=locations)
         if self._simulator.state.mpi_rank == 0 or gather is False:
@@ -380,16 +400,17 @@ class Recorder(object):
     @property
     def metadata(self):
         metadata = {
-                'size': self.population.size,
-                'first_index': 0,
-                'last_index': len(self.population),
-                'first_id': int(self.population.first_id),
-                'last_id': int(self.population.last_id),
-                'label': self.population.label,
-                'simulator': self._simulator.name,
-            }
+            'size': self.population.size,
+            'first_index': 0,
+            'last_index': len(self.population),
+            'first_id': int(self.population.first_id),
+            'last_id': int(self.population.last_id),
+            'label': self.population.label,
+            'simulator': self._simulator.name,
+        }
         metadata.update(self.population.annotations)
-        metadata['dt'] = self._simulator.state.dt  # note that this has to run on all nodes (at least for NEST)
+        # note that this has to run on all nodes (at least for NEST)
+        metadata['dt'] = self._simulator.state.dt
         metadata['mpi_processes'] = self._simulator.state.num_processes
         return metadata
 

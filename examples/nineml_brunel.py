@@ -8,7 +8,7 @@ runs a simulation using the pyNN.nineml module with the NEURON
 backend.
 
 """
-from __future__ import division
+
 import numpy as np
 from neo import AnalogSignal
 from quantities import ms, dimensionless
@@ -22,6 +22,8 @@ import ninemlcatalog
 cases = ['SR', 'SR2', 'SR3', 'SIfast', 'AI', 'SIslow']
 
 parser = argparse.ArgumentParser()
+parser.add_argument('simulator_name',
+                    help=("The simulator to use"))
 parser.add_argument('case',
                     help=("The simulation case to run, can be one of '{}'"
                           .format("', '".join(cases))))
@@ -36,7 +38,7 @@ sim.setup()
 
 if args.case not in cases:
     raise Exception("Unrecognised case '{}', allowed cases are '{}'"
-                    .format("', '".join(cases)))
+                    .format(args.case, "', '".join(cases)))
 
 document = ninemlcatalog.load('/network/Brunel2000/' + args.case)
 xml_file = document.url
@@ -84,6 +86,7 @@ def instantaneous_firing_rate(segment, begin, end):
         hist += h
     return AnalogSignal(hist, sampling_period=0.1 * ms, units=dimensionless,
                         channel_index=0, name="Spike count")
+
 
 if args.plot:
     Figure(

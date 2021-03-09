@@ -3,7 +3,7 @@
 Small network created with the Population and Projection classes
 
 
-Usage: random_numbers.py [-h] [--plot-figure] [--debug DEBUG] simulator
+Usage: small_network.py [-h] [--plot-figure] [--debug DEBUG] simulator
 
 positional arguments:
   simulator      neuron, nest, brian or another backend simulator
@@ -15,21 +15,21 @@ optional arguments:
 
 """
 
-import numpy
+import numpy as np
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.parameters import Sequence
-from pyNN.random import RandomDistribution as rnd
+from pyNN.random import RandomDistribution as rnd, NumpyRNG
 
 sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file.", {"action": "store_true"}),
                              ("--debug", "Print debugging information"))
 
 if options.debug:
-    init_logging(None, debug=True)    
+    init_logging(None, debug=True)
 
 
 # === Define parameters ========================================================
 
-n = 20      # Number of cells
+n = 20     # Number of cells
 w = 0.002  # synaptic weight (µS)
 cell_params = {
     'tau_m'      : 20.0,   # (ms)
@@ -46,21 +46,24 @@ dt         = 0.1           # (ms)
 syn_delay  = 1.0           # (ms)
 input_rate = 50.0          # (Hz)
 simtime    = 1000.0        # (ms)
+seed       = 945645645
 
 # === Build the network ========================================================
 
 sim.setup(timestep=dt, max_delay=syn_delay)
 
+rng = NumpyRNG(seed=seed)
+
 cells = sim.Population(n, sim.IF_cond_alpha(**cell_params),
-                       initial_values={'v': rnd('uniform', (-60.0, -50.0))},
+                       initial_values={'v': rnd('uniform', (-60.0, -50.0), rng)},
                        label="cells")
 
 number = int(2 * simtime * input_rate / 1000.0)
-numpy.random.seed(26278342)
+np.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(np.add.accumulate(dt + np.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:

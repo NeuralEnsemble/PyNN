@@ -1,11 +1,11 @@
-# :copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+# :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 # :license: CeCILL, see LICENSE for details.
 
 cmake_minimum_required( VERSION 2.8.12 )
 
 # This CMakeLists.txt is configured to build your external module for NEST.
 #
-# The configuration requires a compiled and installed NEST; if `nest-config` is 
+# The configuration requires a compiled and installed NEST; if `nest-config` is
 # not in the PATH, please specify the absolute path with `-Dwith-nest=...`.
 #
 # For more informations on how to extend and use your module see:

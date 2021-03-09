@@ -1,0 +1,33 @@
+========================
+PyNN 0.9.4 release notes
+========================
+
+March 22nd 2019
+
+Welcome to PyNN 0.9.4!
+
+
+SONATA
+-------
+
+SONATA_ is a data format for representing/storing data-driven spiking neuronal network models, experimental protocols
+(injecting spikes, currents) and simulation outputs.
+
+In the network representation, all connections are represented explicity, as in PyNN’s
+:class:`FromFileConnector` and :class:`FromListConnector`.
+
+A PyNN model/simulation script can be exported in SONATA format,
+and a SONATA model/simulation can be read and executed through PyNN
+provided the cell types used in the model are compatible with PyNN,
+i.e. they must be point neurons.
+
+For more information on working with the SONATA format, see :ref:`sec-sonata`.
+
+
+Bug fixes and performance improvements
+--------------------------------------
+
+A `small number of bugs`_ have been fixed, and the documentation clarified in a few places.
+
+.. _SONATA: https://github.com/AllenInstitute/sonata
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.9.4+is%3Aclosed

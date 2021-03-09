@@ -84,4 +84,5 @@ tmp
 /pynnpg.sh
 /cleanpynn.sh
 doc/logos
-docker_*
+docker_*.eggs/
+/test/system/tmp_serialization_test

@@ -20,17 +20,17 @@ class MyOutputChecker(doctest.OutputChecker):
     by Python in the manual, as it just takes up space without adding any
     useful information.
     """
-    
+
     def __init__(self, strict):
         self.strict = strict
-    
+
     def check_output(self, want, got, optionflags):
         if self.strict:
             return doctest.OutputChecker.check_output(self, want, got, optionflags)
         else:
             if want == '':
                 return True
-            else:  
+            else:
                 try:
                     long(want) and long(got)  # where the output is an id
                     return True
@@ -51,7 +51,7 @@ def mytestfile(filename, globs, optionflags, strict=False):
     else:
         globs = globs.copy()
     name = os.path.basename(filename)
-    
+
     runner = doctest.DocTestRunner(checker=MyOutputChecker(strict=strict), optionflags=optionflags)
     # Read the file, convert it to a test, and run it.
     s = open(filename).read()
@@ -74,9 +74,10 @@ def remove_data_files():
         for filename in glob.glob(pattern):
             os.remove(filename)
 
+
 # ==============================================================================
 if __name__ == "__main__":
-    
+
     # Process command line
     parser = OptionParser(usage="usage: %prog [options] FILE")
     parser.add_option("-s", "--simulator", dest="simulator",
@@ -84,7 +85,7 @@ if __name__ == "__main__":
                       help="run doctests with SIMULATOR", metavar="SIMULATOR",
                       default='nest')
     parser.add_option("--strict", action="store_true", dest="strict", default=False,
-                  help="Use the original doctest output checker, not the more lax local version.")
+                      help="Use the original doctest output checker, not the more lax local version.")
     parser.add_option("-p", "--print", action="store_true", default=False, dest="dump",
                       help="Just print out the script extracted from the document, don't run the test.")
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     else:
         parser.print_help()
         sys.exit(1)
-    
+
     # Run test
     if options.dump:
         print_script(docfile, options.simulator)

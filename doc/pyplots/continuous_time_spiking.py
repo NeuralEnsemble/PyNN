@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from pyNN.nest import *
 import matplotlib.pyplot as plt
 
@@ -9,7 +9,7 @@ def test_sim(on_or_off_grid, sim_time):
     cm = 250.0
     tau_m = 10.0
     tau_syn_E = 1.0
-    weight = cm / tau_m * numpy.power(tau_syn_E / tau_m, -tau_m / (tau_m - tau_syn_E)) * 20.5
+    weight = cm / tau_m * np.power(tau_syn_E / tau_m, -tau_m / (tau_m - tau_syn_E)) * 20.5
     nrn = Population(1, IF_curr_exp(cm=cm, tau_m=tau_m, tau_syn_E=tau_syn_E,
                                     tau_refrac=2.0, v_thresh=20.0, v_rest=0.0,
                                     v_reset=0.0, i_offset=0.0))
@@ -18,6 +18,7 @@ def test_sim(on_or_off_grid, sim_time):
     nrn.record('v')
     run(sim_time)
     return nrn.get_data().segments[0].analogsignals[0]
+
 
 sim_time = 10.0
 off = test_sim('off_grid', sim_time)
@@ -34,6 +35,7 @@ def plot_data(pos, on, off, ylim, with_legend=False):
     ax.set_ylabel('V [mV]')
     if with_legend:
         plt.legend()
+
 
 plot_data(1, on, off, (-0.5, 21), with_legend=True)
 plot_data(2, on, off, (-0.05, 2.1))

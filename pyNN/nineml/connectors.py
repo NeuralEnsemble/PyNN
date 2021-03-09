@@ -1,7 +1,7 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -18,15 +18,15 @@ class ConnectorMixin(object):
         for name in self.__class__.parameter_names:
             connector_parameters[name] = getattr(self, name)
         connection_rule = nineml.ConnectionRuleComponent(
-                                    name="connection rule for projection %s" % label,
-                                    definition=nineml.Definition(self.definition_url,
-                                                                 "connection_generator"),
-                                    parameters=build_parameter_set(connector_parameters))
+            name="connection rule for projection %s" % label,
+            definition=nineml.Definition(self.definition_url,
+                                         "connection_generator"),
+            parameters=build_parameter_set(connector_parameters))
         return connection_rule
 
 
 class FixedProbabilityConnector(ConnectorMixin, connectors.FixedProbabilityConnector):
-    definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url 
+    definition_url = "%s/connectionrules/random_fixed_probability.xml" % catalog_url
     parameter_names = ('p_connect', 'allow_self_connections')
 
 

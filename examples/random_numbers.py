@@ -23,7 +23,7 @@ optional arguments:
 
 """
 
-import numpy
+import numpy as np
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.utility import get_simulator
 
@@ -31,8 +31,8 @@ from pyNN.utility import get_simulator
 # === Configure the simulator ================================================
 
 sim, options = get_simulator(
-                    ("--plot-figure", "plot the simulation results to a file", {"action": "store_true"}),
-                    ("--debug", "print debugging information"))
+    ("--plot-figure", "plot the simulation results to a file", {"action": "store_true"}),
+    ("--debug", "print debugging information"))
 
 sim.setup()
 
@@ -43,14 +43,17 @@ native_rng = sim.NativeRNG(seed=87354762)
 
 # === Define the neuron model and initial conditions =========================
 
-cell_type = sim.IF_cond_exp(tau_m=RandomDistribution('normal', (15.0, 2.0), rng=python_rng))  # not possible with NEST to use NativeRNG here
+# not possible with NEST to use NativeRNG here
+cell_type = sim.IF_cond_exp(tau_m=RandomDistribution('normal', (15.0, 2.0), rng=python_rng))
 v_init = RandomDistribution('uniform',
-                            (cell_type.default_parameters['v_rest'], cell_type.default_parameters['v_thresh']),
+                            (cell_type.default_parameters['v_rest'],
+                             cell_type.default_parameters['v_thresh']),
                             rng=python_rng)  # not possible with NEST to use NativeRNG here
 
 # === Create populations of neurons, and record from them ====================
 
-p1 = sim.Population(10, sim.SpikeSourcePoisson(rate=100.0))  # in the current version, can't specify the RNG - it is always native
+# in the current version, can't specify the RNG - it is always native
+p1 = sim.Population(10, sim.SpikeSourcePoisson(rate=100.0))
 p2 = sim.Population(10, cell_type, initial_values={'v': v_init})
 
 p1.record("spikes")
@@ -92,8 +95,8 @@ if options.plot_figure:
     filename = normalized_filename("Results", "random_numbers", "png", options.simulator)
     # where there is no connection, the weight matrix contains NaN
     # for plotting purposes, we replace NaN with zero.
-    weights_python[numpy.isnan(weights_python)] = 0
-    weights_native[numpy.isnan(weights_native)] = 0
+    weights_python[np.isnan(weights_python)] = 0
+    weights_native[np.isnan(weights_native)] = 0
     Figure(
         Panel(weights_python, cmap='gray_r', xlabel="Python RNG"),
         Panel(weights_native, cmap='gray_r', xlabel="Native RNG"),

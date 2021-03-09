@@ -7,15 +7,16 @@ August 2006, November 2009
 
 """
 
-import socket, os
+from pyNN.random import NumpyRNG, RandomDistribution
+import socket
+import os
 from importlib import import_module
-import numpy
+import numpy as np
 from pyNN.utility import get_script_args, init_logging, normalized_filename
 
 simulator_name = get_script_args(1)[0]
 sim = import_module("pyNN.%s" % simulator_name)
 
-from pyNN.random import NumpyRNG, RandomDistribution
 
 init_logging(None, debug=True)
 
@@ -36,8 +37,8 @@ print("Process with rank %d running on %s" % (node, socket.gethostname()))
 
 print("[%d] Creating populations" % node)
 n_spikes = int(2 * tstop * input_rate / 1000.0)
-spike_times = numpy.add.accumulate(rng.next(n_spikes, 'exponential',
-                                            {'beta': 1000.0 / input_rate}, mask_local=False))
+spike_times = np.add.accumulate(rng.next(n_spikes, 'exponential',
+                                            {'beta': 1000.0 / input_rate}))
 
 input_population = sim.Population(10, sim.SpikeSourceArray(spike_times=spike_times), label="input")
 output_population = sim.Population(20, sim.IF_curr_exp(**cell_params), label="output")

@@ -4,35 +4,35 @@ try:
     from unittest.mock import Mock
 except ImportError:
     from mock import Mock
-import numpy
+import numpy as np
 import os
 from datetime import datetime
 from collections import defaultdict
 from pyNN.utility import assert_arrays_equal
 from pyNN.recording import Variable
 
-#def test_rename_existing():
-    
-#def test_gather():
-    #import time
-    #for x in range(7):
-    #    N = pow(10, x)
-    #    local_data = numpy.empty((N,2))
-    #    local_data[:,0] = numpy.ones(N, dtype=float)*comm.rank
-    #    local_data[:,1] = numpy.random.rand(N)
-    #    
-    #    start_time = time.time()
-    #    all_data = gather(local_data)
-    #    #print(comm.rank, "local", local_data)
-    #    if comm.rank == 0:
-    #    #    print("all", all_data)
-    #        print(N, time.time()-start_time)
-    
-#def test_gather_no_MPI():
+# def test_rename_existing():
 
-#def test_gather_dict():
+# def test_gather():
+#import time
+# for x in range(7):
+#    N = pow(10, x)
+#    local_data = np.empty((N,2))
+#    local_data[:,0] = np.ones(N, dtype=float)*comm.rank
+#    local_data[:,1] = np.random.rand(N)
+#
+#    start_time = time.time()
+#    all_data = gather(local_data)
+#    #print(comm.rank, "local", local_data)
+#    if comm.rank == 0:
+#    #    print("all", all_data)
+#        print(N, time.time()-start_time)
 
-#def test_mpi_sum():
+# def test_gather_no_MPI():
+
+# def test_gather_dict():
+
+# def test_mpi_sum():
 
 
 class MockState(object):
@@ -109,12 +109,13 @@ def test_Recorder_create():
     assert_equal(r.population, p)
     assert_equal(r.file, None)
     assert_equal(r.recorded, defaultdict(set))
-    
+
 
 def test_Recorder_invalid_variable():
     p = MockPopulation()
     r = MockRecorder(p)
-    all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
+    all_ids = (MockID(0, True), MockID(1, False), MockID(
+        2, True), MockID(3, True), MockID(4, False))
     assert_raises(errors.RecordingError,
                   r.record, 'foo', all_ids)
 
@@ -132,8 +133,9 @@ def test_record():
     r._record = Mock()
     spam_var = Variable(location=None, name='spam')
     assert_equal(r.recorded, defaultdict(set))
-    
-    all_ids = (MockID(0, True), MockID(1, False), MockID(2, True), MockID(3, True), MockID(4, False))
+
+    all_ids = (MockID(0, True), MockID(1, False), MockID(
+        2, True), MockID(3, True), MockID(4, False))
     first_ids = all_ids[0:3]
     r.record('spam', first_ids)
     assert_equal(r.recorded[spam_var], set(id for id in first_ids if id.local))
@@ -161,7 +163,7 @@ def test_filter_recorded():
     filter = all_ids[::2]
     filtered_ids = r.filter_recorded(spam_var, filter)
     assert_equal(filtered_ids, set(id for id in filter if id.local))
-    
+
     assert_equal(r.filter_recorded(spikes_var, None), r.recorded[spikes_var])
 
 
@@ -172,7 +174,7 @@ def test_get():
     assert_equal(data.name, p.label)
     assert_equal(data.description, p.describe())
 
-#def test_write__with_filename__compatible_output__gather__onroot():
+# def test_write__with_filename__compatible_output__gather__onroot():
 #    orig_metadata = recording.Recorder.metadata
 #    #recording.Recorder.metadata = {'a': 2, 'b':3}
 #    p = MockPopulation()
@@ -195,10 +197,9 @@ def test_metadata_property():
                   'simulator': 'MockSimulator', 'mpi_processes': 9})
 
 
-#def test_count__spikes_gather():
+# def test_count__spikes_gather():
 
-#def test_count__spikes_nogather():
+# def test_count__spikes_nogather():
 
 
-#def test_count__other():
-
+# def test_count__other():

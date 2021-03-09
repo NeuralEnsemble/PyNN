@@ -1,7 +1,7 @@
 """
 Synapse Dynamics classes for nest
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -27,13 +27,13 @@ class StaticSynapse(synapses.StaticSynapse, NESTSynapseMixin):
 
 class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
     """Specification of STDP models."""
-    
+
     base_translations = build_translations(
         ('weight', 'weight', 1000.0),  # nA->pA, uS->nS
         ('delay', 'delay'),
         ('dendritic_delay_fraction', 'dendritic_delay_fraction')
     )  # will be extended by translations from timing_dependence, etc.
-    
+
     def __init__(self, timing_dependence=None, weight_dependence=None,
                  voltage_dependence=None, dendritic_delay_fraction=1.0,
                  weight=0.0, delay=None):
@@ -69,7 +69,7 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
         synapse_defaults.pop("dendritic_delay_fraction")
         synapse_defaults.pop("w_min_always_zero_in_NEST")
         # Tau_minus is a parameter of the post-synaptic cell, not of the connection
-        synapse_defaults.pop("tau_minus")
+        synapse_defaults.pop("tau_minus", None)
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
         nest.SetDefaults(base_model + '_lbl', synapse_defaults)
@@ -94,9 +94,9 @@ class SimpleStochasticSynapse(synapses.SimpleStochasticSynapse, NESTSynapseMixin
     translations = build_translations(
         ('weight', 'weight', 1000.0),
         ('delay', 'delay'),
-        ('p', 'p'),
+        ('p', 'p_transmit'),
     )
-    nest_name = 'simple_stochastic_synapse'
+    nest_name = 'bernoulli_synapse'
 
 
 class StochasticTsodyksMarkramSynapse(synapses.StochasticTsodyksMarkramSynapse, NESTSynapseMixin):
@@ -131,7 +131,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 0.0,
         'mu_minus': 0.0
@@ -150,7 +150,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse'])  #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 1.0,
         'mu_minus': 1.0
@@ -169,7 +169,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('w_max',     'Wmax',  1000.0),  # unit conversion
         ('w_min',     'w_min_always_zero_in_NEST'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
     extra_parameters = {
         'mu_plus': 0.0,
         'mu_minus': 1.0
@@ -190,7 +190,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'mu_plus'),
         ('mu_minus',  'mu_minus'),
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])
 
     def __init__(self, w_min=0.0, w_max=1.0, mu_plus=0.5, mu_minus=0.5):
         if w_min != 0:
@@ -198,14 +198,38 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         synapses.GutigWeightDependence.__init__(self, w_min, w_max)
 
 
+def _translate_A_minus_forwards(**parameters):
+    A_minus = parameters["A_minus"]
+    A_plus = parameters["A_plus"]
+    if A_plus == 0:
+        # can't divide by zero, and value of alpha has no
+        # effect (since it will be multiplied by zero in NEST)
+        # so we just store the provided value of A_minus
+        alpha = A_minus
+    # to-do: handle the case where A_plus is an array with some zero values
+    else:
+        alpha = A_minus / A_plus
+    return alpha
+
+
+def _translate_A_minus_reverse(**parameters):
+    alpha = parameters["alpha"]
+    lambda_ = parameters["lambda"]
+    if lambda_ == 0:
+        A_minus = alpha  # presumed to have been stored by _translate_A_minus_forwards
+    else:
+        A_minus = alpha * lambda_
+    return A_minus
+
+
 class SpikePairRule(synapses.SpikePairRule):
     __doc__ = synapses.SpikePairRule.__doc__
 
     translations = build_translations(
         ('tau_plus',  'tau_plus'),
-        ('tau_minus', 'tau_minus'), # defined in post-synaptic neuron
+        ('tau_minus', 'tau_minus'),  # defined in post-synaptic neuron
         ('A_plus',    'lambda'),
-        ('A_minus',   'alpha', 'A_minus/A_plus', 'alpha*lambda'),
+        ('A_minus',   'alpha', _translate_A_minus_forwards, _translate_A_minus_reverse),
 
     )
-    possible_models = set(['stdp_synapse']) #,'stdp_synapse_hom'])
+    possible_models = set(['stdp_synapse'])  # ,'stdp_synapse_hom'])

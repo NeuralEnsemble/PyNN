@@ -9,26 +9,21 @@ Classes:
     NumpyBinaryFile
     HDF5ArrayFile - requires PyTables
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-import numpy
+import numpy as np
 import os
 import shutil
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 try:
     import tables
     have_hdf5 = True
 except ImportError:
     have_hdf5 = False
-from pyNN.core import iteritems
-
 
 DEFAULT_BUFFER_SIZE = 10000
 
@@ -46,11 +41,11 @@ def _savetxt(filename, data, format, delimiter):
 
 def savez(file, *args, **kwds):
 
-    __doc__ = numpy.savez.__doc__
+    __doc__ = np.savez.__doc__
     import zipfile
     from numpy.lib import format
 
-    if isinstance(file, basestring):
+    if isinstance(file, str):
         if not file.endswith('.npz'):
             file = file + '.npz'
 
@@ -68,11 +63,11 @@ def savez(file, *args, **kwds):
     # function in parallel !
     import tempfile
     direc = tempfile.mkdtemp()
-    for key, val in iteritems(namedict):
+    for key, val in namedict.items():
         fname = key + '.npy'
         filename = os.path.join(direc, fname)
         fid = open(filename, 'wb')
-        format.write_array(fid, numpy.asanyarray(val))
+        format.write_array(fid, np.asanyarray(val))
         fid.close()
         zip.write(filename, arcname=fname)
     zip.close()
@@ -158,13 +153,13 @@ class StandardTextFile(BaseFile):
         header = "\n".join(header_lines) + '\n'
         self.fileobj.write(header.encode('utf-8'))
         # write data
-        savetxt = getattr(numpy, 'savetxt', _savetxt)
+        savetxt = getattr(np, 'savetxt', _savetxt)
         savetxt(self.fileobj, data, fmt='%r', delimiter='\t')
         self.fileobj.close()
 
     def read(self):
         self._check_open()
-        return numpy.loadtxt(self.fileobj)
+        return np.loadtxt(self.fileobj)
 
     def get_metadata(self):
         self._check_open()
@@ -220,13 +215,13 @@ class NumpyBinaryFile(BaseFile):
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
-        metadata_array = numpy.array(metadata.items(), dtype=(str, float))
+        metadata_array = np.array(metadata.items(), dtype=(str, float))
         savez(self.fileobj, data=data, metadata=metadata_array)
 
     def read(self):
         __doc__ = BaseFile.read.__doc__
         self._check_open()
-        data = numpy.load(self.fileobj)['data']
+        data = np.load(self.fileobj)['data']
         self.fileobj.seek(0)
         return data
 
@@ -234,7 +229,7 @@ class NumpyBinaryFile(BaseFile):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         D = {}
-        for name, value in numpy.load(self.fileobj)['metadata']:
+        for name, value in np.load(self.fileobj)['metadata']:
             try:
                 D[name] = eval(value)
             except Exception:
@@ -273,7 +268,8 @@ if have_hdf5:
                     else:
                         node = self.fileobj.createArray(self.fileobj.root, "data", data)
                 except tables.HDF5ExtError as e:
-                    raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" % (e, data.shape, metadata))
+                    raise tables.HDF5ExtError("%s. data.shape=%s, metadata=%s" %
+                                              (e, data.shape, metadata))
                 for name, value in metadata.items():
                     setattr(node.attrs, name, value)
                 self.fileobj.close()

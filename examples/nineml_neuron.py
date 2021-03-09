@@ -115,9 +115,9 @@ cells.record(('spikes', 'iaf_V', 'excitatory_g', 'inhibitory_g'))
 sim.run(100.0)
 
 cells.write_data(
-        normalized_filename("Results", "nineml_cell", "pkl",
-                            options.simulator, sim.num_processes()),
-        annotations={'script_name': __file__})
+    normalized_filename("Results", "nineml_cell", "pkl",
+                        options.simulator, sim.num_processes()),
+    annotations={'script_name': __file__})
 
 data = cells.get_data().segments[0]
 

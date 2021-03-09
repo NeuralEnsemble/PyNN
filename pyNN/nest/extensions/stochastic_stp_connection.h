@@ -1,7 +1,7 @@
 /*
  *  stochastic_stp_connection.h
  *
- *  :copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
@@ -88,13 +88,9 @@ public:
   /**
    * Send an event to the receiver of this connection.
    * \param e The event to send
-   * \param t_lastspike Point in time of last spike sent.
    * \param cp Common properties to all synapses (empty).
    */
-  void send( nest::Event& e,
-    nest::thread t,
-    double t_lastspike,
-    const CommonPropertiesType& cp );
+  void send( nest::Event& e, nest::thread t, const CommonPropertiesType& cp );
 
   class ConnTestDummyNode : public nest::ConnTestDummyNodeBase
   {
@@ -113,7 +109,6 @@ public:
   check_connection( nest::Node& s,
     nest::Node& t,
     nest::rport receptor_type,
-    double,
     const CommonPropertiesType& )
   {
     ConnTestDummyNode dummy_target;
@@ -134,6 +129,7 @@ private:
   double tau_fac_; //!< [ms] time constant for facilitation (F)
   double R_;       //!< recovered state {0=unrecovered, 1=recovered}
   double t_surv_;  //!< time since last evaluation of survival
+  double t_lastspike_; //!< Time point of last spike emitted
 };
 
 
@@ -148,16 +144,14 @@ template < typename targetidentifierT >
 inline void
 StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
   nest::thread thr,
-  double t_lastspike,
   const CommonPropertiesType& )
 {
-  const int vp = get_target( thr )->get_vp();
 
   double t_spike = e.get_stamp().get_ms();
 
   // calculation of u
   if ( tau_fac_ > 1.0e-10 ) {
-    u_ *= std::exp( -(t_spike - t_lastspike) / tau_fac_ );
+    u_ *= std::exp( -(t_spike - t_lastspike_) / tau_fac_ );
     u_ += U_ * ( 1 - u_ );
   } else {
     u_ = U_;
@@ -172,7 +166,7 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
     release = false;
     // probability of survival of unrecovered state based on Poisson recovery with rate 1/tau_rec
     p_surv = std::exp( -(t_spike - t_surv_) / tau_rec_ );
-    if ( nest::kernel().rng_manager.get_rng( vp )->drand() > p_surv ) {
+    if ( nest::kernel().rng_manager.get_rng( thr )->drand() > p_surv ) {
       R_ = 1;                           // recovered
     } else {
       t_surv_ = t_spike; // failed to recover
@@ -181,7 +175,7 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
 
   // check for release
   if ( R_ == 1 ) {
-    if ( nest::kernel().rng_manager.get_rng( vp )->drand() < u_ ) {    // release
+    if ( nest::kernel().rng_manager.get_rng( thr )->drand() < u_ ) {    // release
       release = true;
       R_ = 0;
       t_surv_ = t_spike;
@@ -194,10 +188,12 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
   {
     e.set_receiver( *get_target( thr ) );
     e.set_weight( weight_ );
-    e.set_delay( get_delay_steps() );
+    e.set_delay_steps( get_delay_steps() );
     e.set_rport( get_rport() );
     e();
   }
+
+  t_lastspike_ = t_spike;
 }
 
 } // namespace

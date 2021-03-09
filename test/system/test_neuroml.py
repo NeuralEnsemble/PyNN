@@ -1,7 +1,7 @@
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_equal
 from .scenarios.registry import registry
-import numpy
+import numpy as np
 
 try:
     import pyNN.neuroml
@@ -28,11 +28,11 @@ def test_save_validate_network():
     reference='Test0'
 
     sim.setup(reference=reference)
-    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
     neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75))
     sim.end()
-    
+
     from neuroml.utils import validate_neuroml2
 
     validate_neuroml2('%s.net.nml'%reference)
-    
+

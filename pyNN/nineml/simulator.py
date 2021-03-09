@@ -44,4 +44,5 @@ class State(common.control.BaseState):
         self.t_start = 0
         self.segment_counter += 1
 
+
 state = State()

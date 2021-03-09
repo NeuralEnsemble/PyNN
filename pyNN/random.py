@@ -3,27 +3,24 @@ Provides wrappers for several random number generators (RNGs), giving them all a
 common interface so that they can be used interchangeably in PyNN.
 
 Classes:
-    NumpyRNG           - uses the numpy.random.RandomState RNG
+    NumpyRNG           - uses the np.random.RandomState RNG
     GSLRNG             - uses the RNGs from the Gnu Scientific Library
     NativeRNG          - indicates to the simulator that it should use it's own,
                          built-in RNG
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 from copy import deepcopy
 import logging
-import numpy.random
-try:
-    reduce
-except NameError:
-    from functools import reduce
+from functools import reduce
 import operator
 import time
+import numpy as np
 
 try:
     import pygsl.rng
@@ -68,7 +65,7 @@ def get_mpi_config():
 class AbstractRNG(object):
     """Abstract class for wrapping random number generators. The idea is to be
     able to use either simulator-native rngs, which may be more efficient, or a
-    standard Python rng, e.g. a numpy.random.RandomState object, which would
+    standard Python rng, e.g. a np.random.RandomState object, which would
     allow the same random numbers to be used across different simulators, or
     simply to read externally-generated numbers from files."""
 
@@ -93,20 +90,20 @@ class AbstractRNG(object):
             * `n` is 0, return an empty array.
 
         If called with distribution=None, returns uniformly distributed floats in the range [0, 1)
-        
+
         If `mask` is provided, it should be a boolean or integer NumPy array,
         indicating that only a subset of the random numbers should be returned.
-        
+
         Example::
-            
+
             rng.next(5, mask=np.array([True, False, True, False, True]))
-            
+
         or::
-        
+
             rng.next(5, mask=np.array([0, 2, 4]))
-            
+
         will each return only three values.
-        
+
         If the rng is "parallel safe", an array of n values will be drawn from the rng,
         and the mask applied.
         If the rng is not parallel safe, the contents of the mask are disregarded, only its
@@ -133,34 +130,35 @@ class WrappedRNG(AbstractRNG):
             if parameters is None:
                 parameters = {"low": 0.0, "high": 1.0}
         if n == 0:
-            rarr = numpy.random.rand(0)  # We return an empty array
+            rarr = np.random.rand(0)  # We return an empty array
         elif n is None:
             rarr = self._next(distribution, 1, parameters)
         elif n > 0:
             if mask is not None:
-                assert isinstance(mask, numpy.ndarray)
-                if mask.dtype == numpy.bool:
+                assert isinstance(mask, np.ndarray)
+                if mask.dtype == np.bool:
                     if mask.size != n:
                         raise ValueError("boolean mask size must equal n")
                 if not self.parallel_safe:
-                    if mask.dtype == numpy.bool:
+                    if mask.dtype == np.bool:
                         n = mask.sum()
-                    elif mask.dtype == numpy.integer:
+                    elif mask.dtype == np.integer:
                         n = mask.size
             rarr = self._next(distribution, n, parameters)
         else:
             raise ValueError("The sample number must be positive")
-        if not isinstance(rarr, numpy.ndarray):
-            rarr = numpy.array(rarr)
+        if not isinstance(rarr, np.ndarray):
+            rarr = np.array(rarr)
         if self.parallel_safe and mask is not None:
-            rarr = rarr[mask]  # strip out the random numbers that should be used on other processors.
+            # strip out the random numbers that should be used on other processors.
+            rarr = rarr[mask]
         if n is None:
             return rarr[0]
         else:
             return rarr
     next.__doc__ = AbstractRNG.next.__doc__
 
-    def _clipped(self, gen, low=-numpy.inf, high=numpy.inf, size=None):
+    def _clipped(self, gen, low=-np.inf, high=np.inf, size=None):
         """ """
         res = gen(size)
         iterations = 0
@@ -173,13 +171,13 @@ class WrappedRNG(AbstractRNG):
                 res = gen(size)
                 iterations += 1
         else:
-            idx = numpy.where((res > high) | (res < low))[0]
+            idx = np.where((res > high) | (res < low))[0]
             while idx.size > 0:
                 if iterations > MAX_REDRAWS:
                     raise Exception(errmsg)
                 redrawn = gen(idx.size)
                 res[idx] = redrawn
-                idx = idx[numpy.where((redrawn > high) | (redrawn < low))[0]]
+                idx = idx[np.where((redrawn > high) | (redrawn < low))[0]]
                 iterations += 1
         return res
 
@@ -189,7 +187,7 @@ class WrappedRNG(AbstractRNG):
 
 
 class NumpyRNG(WrappedRNG):
-    """Wrapper for the :class:`numpy.random.RandomState` class (Mersenne Twister PRNG)."""
+    """Wrapper for the :class:`np.random.RandomState` class (Mersenne Twister PRNG)."""
     translations = {
         'binomial':       ('binomial',     {'n': 'n', 'p': 'p'}),
         'gamma':          ('gamma',        {'k': 'shape', 'theta': 'scale'}),
@@ -207,7 +205,7 @@ class NumpyRNG(WrappedRNG):
 
     def __init__(self, seed=None, parallel_safe=True):
         WrappedRNG.__init__(self, seed, parallel_safe)
-        self.rng = numpy.random.RandomState()
+        self.rng = np.random.RandomState()
         if self.seed is not None:
             self.rng.seed(self.seed)
         else:
@@ -216,7 +214,7 @@ class NumpyRNG(WrappedRNG):
     def __getattr__(self, name):
         """
         This is to give the PyNN RNGs the same methods as the wrapped RNGs
-        (:class:`numpy.random.RandomState` or the GSL RNGs.)
+        (:class:`np.random.RandomState` or the GSL RNGs.)
         """
         return getattr(self.rng, name)
 
@@ -241,17 +239,17 @@ class NumpyRNG(WrappedRNG):
         obj.rng = deepcopy(self.rng)
         return obj
 
-    def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+    def normal_clipped(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
         """ """
         # not sure how well this works with parallel_safe, mask_local
         gen = lambda n: self.rng.normal(loc=mu, scale=sigma, size=n)
         return self._clipped(gen, low=low, high=high, size=size)
 
-    def normal_clipped_to_boundary(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+    def normal_clipped_to_boundary(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
         # Not recommended, used `normal_clipped` instead.
         # Provided because some models in the literature use this.
         res = self.rng.normal(loc=mu, scale=sigma, size=size)
-        return numpy.maximum(numpy.minimum(res, high), low)
+        return np.maximum(np.minimum(res, high), low)
 
 
 class GSLRNG(WrappedRNG):
@@ -311,7 +309,7 @@ class GSLRNG(WrappedRNG):
         """ """
         return mu + self.rng.gaussian(sigma, size)
 
-    def normal_clipped(self, mu=0.0, sigma=1.0, low=-numpy.inf, high=numpy.inf, size=None):
+    def normal_clipped(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
         """ """
         gen = lambda n: self.normal(mu, sigma, n)
         return self._clipped(gen, low=low, high=high, size=size)
@@ -386,7 +384,7 @@ class RandomDistribution(object):
         if rng:
             assert isinstance(rng, AbstractRNG), "rng must be a pyNN.random RNG object"
             self.rng = rng
-        else:  # use numpy.random.RandomState() by default
+        else:  # use np.random.RandomState() by default
             self.rng = NumpyRNG()  # should we provide a seed?
 
     def next(self, n=None, mask=None):
@@ -419,10 +417,10 @@ class RandomDistribution(object):
     def lazily_evaluate(self, mask=None, shape=None):
         """
         Generate an array of random numbers of the requested shape.
-        
+
         If a mask is given, produce only enough numbers to fill the
         region defined by the mask (hence 'lazily').
-        
+
         This method is called by the lazyarray `evaluate()` and
         `_partially_evaluate()` methods.
         """

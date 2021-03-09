@@ -1,11 +1,11 @@
 """
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from collections import defaultdict
-import numpy
+import numpy as np
 from pyNN import recording
 from pyNN.morphology import MorphologyFilter
 from pyNN.neuron import simulator
@@ -13,7 +13,8 @@ import re
 from neuron import h
 
 
-recordable_pattern = re.compile(r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
+recordable_pattern = re.compile(
+    r'((?P<section>\w+)(\((?P<location>[-+]?[0-9]*\.?[0-9]+)\))?\.)?(?P<var>\w+)')
 
 
 class Recorder(recording.Recorder):
@@ -26,6 +27,8 @@ class Recorder(recording.Recorder):
             for id in new_ids:
                 if id._cell.rec is not None:
                     id._cell.rec.record(id._cell.spike_times)
+                else:  # SpikeSourceArray
+                    id._cell.recording = True
         else:
             self.sampling_interval = sampling_interval or self._simulator.state.dt
             for id in new_ids:
@@ -33,17 +36,17 @@ class Recorder(recording.Recorder):
 
     def _record_state_variable(self, cell, variable):
         if variable.location is None:
-            if hasattr(cell, 'recordable') and variable in cell.recordable:
-                hoc_var = cell.recordable[variable]
+        if hasattr(cell, 'recordable') and variable in cell.recordable:
+            hoc_var = cell.recordable[variable]
             elif variable.name == 'v':
-                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+            hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
             elif variable.name == 'gsyn_exc':
-                hoc_var = cell.esyn._ref_g
+            hoc_var = cell.esyn._ref_g
             elif variable.name == 'gsyn_inh':
-                hoc_var = cell.isyn._ref_g
-            else:
+            hoc_var = cell.isyn._ref_g
+        else:
                 source, var_name = self._resolve_variable(cell, variable.name)
-                hoc_var = getattr(source, "_ref_%s" % var_name)
+            hoc_var = getattr(source, "_ref_%s" % var_name)
             hoc_vars = [hoc_var]
         else:
             if isinstance(variable.location, str):
@@ -73,10 +76,10 @@ class Recorder(recording.Recorder):
                     hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
         for hoc_var in hoc_vars:
             vec = h.Vector()
-            if self.sampling_interval == self._simulator.state.dt:
-                vec.record(hoc_var)
-            else:
-                vec.record(hoc_var, self.sampling_interval)
+        if self.sampling_interval == self._simulator.state.dt:
+            vec.record(hoc_var)
+        else:
+            vec.record(hoc_var, self.sampling_interval)
             cell.traces[variable].append(vec)
         if not cell.recording_time:
             cell.record_times = h.Vector()
@@ -130,22 +133,25 @@ class Recorder(recording.Recorder):
         if hasattr(id, "__len__"):
             all_spiketimes = {}
             for cell_id in id:
-                spikes = numpy.array(cell_id._cell.spike_times)
+                if cell_id._cell.rec is None:  # SpikeSourceArray
+                    spikes = cell_id._cell.get_recorded_spike_times()
+                else:
+                    spikes = np.array(cell_id._cell.spike_times)
                 all_spiketimes[cell_id] = spikes[spikes <= simulator.state.t + 1e-9]
             return all_spiketimes
         else:
-            spikes = numpy.array(id._cell.spike_times)
+            spikes = np.array(id._cell.spike_times)
             return spikes[spikes <= simulator.state.t + 1e-9]
 
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
-            signals = numpy.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
-            expected_length = numpy.rint(simulator.state.tstop / self.sampling_interval) + 1
+            signals = np.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
+            expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
-                signals = numpy.vstack((signals, signals[-1, :]))
+                signals = np.vstack((signals, signals[-1, :]))
         else:
-            signals = numpy.array([])
+            signals = np.array([])
         return signals
 
     def _local_count(self, variable, filter_ids=None):

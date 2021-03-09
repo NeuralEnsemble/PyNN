@@ -1,13 +1,14 @@
 """
 Definition of NativeSynapseType class for NEST
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import nest
 
 from pyNN.models import BaseSynapseType
+from pyNN.errors import NoModelAvailableError
 from .simulator import state
 from .conversion import make_pynn_compatible, make_sli_compatible
 
@@ -20,7 +21,8 @@ def get_synapse_defaults(model_name):
               'num_connectors', 'receptor_type', 'synapsemodel',
               'property_object', 'element_type', 'type', 'sizeof',
               'has_delay', 'synapse_model', 'requires_symmetric',
-              'weight_recorder']
+              'weight_recorder', 'init_flag', 'next_readout_time',
+              'synapse_id']
     default_params = {}
     for name, value in defaults.items():
         if name not in ignore:
@@ -39,7 +41,15 @@ class NESTSynapseMixin(object):
                 synapse_defaults[name] = value.evaluate(simplify=True)
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
-        nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        try:
+            nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        except nest.lib.hl_api_exceptions.NESTError as err:
+            if not state.extensions_loaded:
+                raise NoModelAvailableError(
+                    "{self.__class__.__name__} is not available."
+                    "There was a problem loading NEST extensions".format(self=self)
+                )
+            raise
         return self.nest_name + '_lbl'
 
     def _get_minimum_delay(self):
@@ -48,8 +58,10 @@ class NESTSynapseMixin(object):
     def _set_tau_minus(self, cells):
         if len(cells) > 0 and self.has_parameter('tau_minus'):
             native_parameters = self.native_parameters
-            if not native_parameters["tau_minus"].is_homogeneous:  # could allow inhomogeneous values as long as each column is internally homogeneous
-                raise ValueError("pyNN.NEST does not support tau_minus being different for different synapses")
+            # could allow inhomogeneous values as long as each column is internally homogeneous
+            if not native_parameters["tau_minus"].is_homogeneous:
+                raise ValueError(
+                    "pyNN.NEST does not support tau_minus being different for different synapses")
             native_parameters.shape = (1,)
             tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
             nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])

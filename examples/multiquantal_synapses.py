@@ -4,11 +4,11 @@
 
 """
 
+from pyNN.utility import get_simulator, init_logging, normalized_filename
+import neo
+import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-import numpy as np
-import neo
-from pyNN.utility import get_simulator, init_logging, normalized_filename
 
 
 # === Configure the simulator ================================================
@@ -42,12 +42,14 @@ synapse_types = {
 populations = {}
 projections = {}
 for label in synapse_types:
-    populations[label] = sim.Population(1000, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=4.3), label=label)
+    populations[label] = sim.Population(
+        1000, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=4.3), label=label)
     populations[label].record('gsyn_inh')
     projections[label] = sim.Projection(spike_source, populations[label], connector,
                                         receptor_type='inhibitory',
                                         synapse_type=synapse_types[label])
-    projections[label].initialize(a=synapse_types[label].parameter_space['n'], u=synapse_types[label].parameter_space['U'])
+    projections[label].initialize(a=synapse_types[label].parameter_space['n'],
+                                  u=synapse_types[label].parameter_space['U'])
 
 spike_source.record('spikes')
 
@@ -69,7 +71,7 @@ for label, p in populations.items():
 
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel
-    #figure_filename = normalized_filename("Results", "multiquantal_synapses",
+    # figure_filename = normalized_filename("Results", "multiquantal_synapses",
     #                                      "png", options.simulator)
     figure_filename = "Results/multiquantal_synapses_{}.png".format(options.simulator)
 
@@ -82,7 +84,6 @@ if options.plot_figure:
                                      channel_index=np.array([0]))
         gsyn_mean.name = 'gsyn_inh_mean'
         data[label].analogsignals.append(gsyn_mean)
-    #import pdb; pdb.set_trace()
 
     def make_panel(population, label):
         return Panel(population.get_data().segments[0].filter(name='gsyn_inh')[0],

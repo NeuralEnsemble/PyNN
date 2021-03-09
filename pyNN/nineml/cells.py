@@ -1,7 +1,7 @@
 """
 Cell models generated from 9ML
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -15,7 +15,7 @@ logger = logging.getLogger("PyNN")
 
 # Neuron Models derived from a 9ML AL definition
 
-#class NineMLCellType(BaseCellType):
+# class NineMLCellType(BaseCellType):
 #    #model = NineMLCell
 #
 #    def __init__(self, parameters):
@@ -23,11 +23,11 @@ logger = logging.getLogger("PyNN")
 #        self.parameters["type"] = self
 
 
-#def unimplemented_builder(*args, **kwargs):
+# def unimplemented_builder(*args, **kwargs):
 #    raise NotImplementedError("TODO: 9ML neuron builder")
 
 
-#def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **synapse_models):
+# def nineml_cell_type(name, neuron_model, port_map={}, weight_variables={}, **synapse_models):
 #    """
 #    Return a new NineMLCellType subclass.
 #    """
@@ -91,8 +91,8 @@ class build_nineml_celltype(type):
 
         # Make the substitutions:
         flat_component.backsub_all()
-        #flat_component.backsub_aliases()
-        #flat_component.backsub_equations()
+        # flat_component.backsub_aliases()
+        # flat_component.backsub_equations()
 
         # Close any open reduce ports:
         modifiers.DynamicPortModifier.close_all_reduce_ports(componentclass=flat_component)
@@ -100,13 +100,17 @@ class build_nineml_celltype(type):
         # New:
         dct["combined_model"] = flat_component
         dct["default_parameters"] = dict((param.name, 1.0) for param in flat_component.parameters)
-        dct["default_initial_values"] = dict((statevar.name, 0.0) for statevar in chain(flat_component.state_variables))
+        dct["default_initial_values"] = dict((statevar.name, 0.0)
+                                             for statevar in chain(flat_component.state_variables))
         dct["receptor_types"] = list(weight_vars.keys())
         dct["standard_receptor_type"] = (dct["receptor_types"] == ('excitatory', 'inhibitory'))
-        dct["injectable"] = False        # how to determine this? neuron component has a receive analog port with dimension current, that is not connected to a synapse port?
-        dct["conductance_based"] = True  # how to determine this? synapse component has a receive analog port with dimension voltage?
+        # how to determine this? neuron component has a receive analog port with dimension current, that is not connected to a synapse port?
+        dct["injectable"] = False
+        # how to determine this? synapse component has a receive analog port with dimension voltage?
+        dct["conductance_based"] = True
         dct["model_name"] = name
-        dct["units"] = dict((statevar.name, _default_units[statevar.dimension.name]) for statevar in chain(flat_component.state_variables))
+        dct["units"] = dict((statevar.name, _default_units[statevar.dimension.name])
+                            for statevar in chain(flat_component.state_variables))
 
         # Recording from bindings:
         dct["recordable"] = ([port.name for port in flat_component.analog_ports]
@@ -118,4 +122,3 @@ class build_nineml_celltype(type):
         dct["builder"](flat_component, dct["weight_variables"], hierarchical_mode=True)
 
         return type.__new__(cls, name, bases, dct)
-

@@ -3,7 +3,7 @@ Illustration of the different standard random distributions and different random
 
 """
 
-import numpy
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import scipy.stats
@@ -57,7 +57,7 @@ gs.update(hspace=0.4)
 
 for i, case in enumerate(cases):
     distribution, parameters, xlim, rv = case
-    bins = numpy.linspace(*xlim, num=nbins)
+    bins = np.linspace(*xlim, num=nbins)
     for j, rng in enumerate(rnglist):
         rd = random.RandomDistribution(distribution, rng=rng, **parameters)
         values = rd.next(n)
@@ -73,4 +73,3 @@ for i, case in enumerate(cases):
         plt.xlim(xlim)
 
 plt.savefig("Results/random_distributions.png")
-

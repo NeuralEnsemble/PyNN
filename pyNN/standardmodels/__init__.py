@@ -13,7 +13,7 @@ Classes:
     STDPWeightDependence
     STDPTimingDependence
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -21,11 +21,12 @@ Classes:
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 from pyNN.morphology import IonChannelDistribution, SynapseDistribution
-import numpy
+import numpy as np
 from pyNN.core import is_listlike, itervalues
 from copy import deepcopy
 import neo
 import quantities as pq
+
 
 # ==============================================================================
 #   Standard cells
@@ -140,7 +141,7 @@ class StandardModelType(models.BaseModelType):
         if names:
             translations = (self.translations[name] for name in names)
         else:  # return all names
-            translations = itervalues(self.translations)
+            translations = self.translations.values()
         return [D['translated_name'] for D in translations]
 
 
@@ -214,7 +215,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
         computed_parameters = self.computed_parameters()
-        have_computed_parameters = numpy.any([p_name in computed_parameters
+        have_computed_parameters = np.any([p_name in computed_parameters
                                               for p_name in parameters])
         if have_computed_parameters:
             all_parameters = self.get_parameters()
@@ -239,12 +240,12 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
 
     def _round_timestamp(self, value, resolution):
         # todo: consider using decimals module, since rounding of floating point numbers is so horrible
-        return numpy.rint(value/resolution) * resolution
+        return np.rint(value/resolution) * resolution
 
     def get_data(self):
         """Return the recorded current as a Neo signal object"""
         t_arr, i_arr = self._get_data()
-        intervals = numpy.diff(t_arr)
+        intervals = np.diff(t_arr)
         if intervals.size > 0 and intervals.max() - intervals.min() < 1e-9:
             signal = neo.AnalogSignal(i_arr, units="nA", t_start=t_arr[0] * pq.ms,
                                       sampling_period=intervals[0] * pq.ms)
@@ -266,25 +267,30 @@ class ModelNotAvailable(object):
 
 
 def check_weights(weights, projection):
-    # if projection.post is an Assembly, some components might have cond-synapses, others curr, so need a more sophisticated check here
-    synapse_sign = projection.receptor_type
-    is_conductance = projection.post.conductance_based
-    if isinstance(weights, numpy.ndarray):
+    # if projection.post is an Assembly, some components might have cond-synapses, others curr,
+    # so need a more sophisticated check here. For now, skipping check and emitting a warning
+    if hasattr(projection.post, "_homogeneous_synapses") and not projection.post._homogeneous_synapses:
+        warnings.warn("Not checking weights due to due mixture of synapse types")
+    if isinstance(weights, np.ndarray):
         all_negative = (weights <= 0).all()
         all_positive = (weights >= 0).all()
         if not (all_negative or all_positive):
             raise errors.ConnectionError("Weights must be either all positive or all negative")
-    elif numpy.isreal(weights):
+    elif np.isreal(weights):
         all_positive = weights >= 0
-        all_negative = weights < 0
+        all_negative = weights <= 0
     else:
         raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    if is_conductance or synapse_sign == 'excitatory':
+    if projection.post.conductance_based or projection.receptor_type == 'excitatory':
         if not all_positive:
-            raise errors.ConnectionError("Weights must be positive for conductance-based and/or excitatory synapses")
-    elif is_conductance is False and synapse_sign == 'inhibitory':
+            raise errors.ConnectionError(
+                "Weights must be positive for conductance-based and/or excitatory synapses"
+            )
+    elif projection.post.conductance_based is False and projection.receptor_type == 'inhibitory':
         if not all_negative:
-            raise errors.ConnectionError("Weights must be negative for current-based, inhibitory synapses")
+            raise errors.ConnectionError(
+                "Weights must be negative for current-based, inhibitory synapses"
+            )
     else:  # This should never happen.
         raise Exception("Can't check weight, conductance status unknown.")
 
@@ -292,11 +298,11 @@ def check_weights(weights, projection):
 def check_delays(delays, projection):
     min_delay = projection._simulator.state.min_delay
     max_delay = projection._simulator.state.max_delay
-    if isinstance(delays, numpy.ndarray):
+    if isinstance(delays, np.ndarray):
         below_max = (delays <= max_delay).all()
         above_min = (delays >= min_delay).all()
         in_range = below_max and above_min
-    elif numpy.isreal(delays):
+    elif np.isreal(delays):
         in_range = min_delay <= delays <= max_delay
     else:
         raise errors.ConnectionError("Delays must be a number or an array of numbers.")
@@ -307,7 +313,7 @@ def check_delays(delays, projection):
 class StandardSynapseType(StandardModelType, models.BaseSynapseType):
     parameter_checks = {
         'weight': check_weights,
-        'delay': check_delays
+        #'delay': check_delays   # this needs to be revisited in the context of min_delay = "auto"
     }
 
     def get_schema(self):

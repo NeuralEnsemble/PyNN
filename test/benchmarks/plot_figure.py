@@ -67,7 +67,7 @@ def sort_by_first(*y):
     zipped = zip(*y)
     zipped_sorted = sorted(zipped, key=lambda x: x[0])
     return map(list, zip(*zipped_sorted))
-    
+
 settings = {
     'lines.linewidth': 0.5,
     'axes.linewidth': 0.5,
@@ -84,7 +84,7 @@ gs = gridspec.GridSpec(1, 1)
 gs.update(bottom=0.6)  # leave space for annotations
 gs.update(top=1 - 0.8 / height, hspace=0.1)
 ax = plt.subplot(gs[0, 0])
-for var in dependent_variables:   
+for var in dependent_variables:
     x = stats[var].keys()
     y, yerr = map(list, zip(*stats[var].values()))
     x, y, yerr = sort_by_first(x, y, yerr)

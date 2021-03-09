@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
@@ -21,7 +21,7 @@ class PopulationView(common.PopulationView):
         parameter_dict = {}
         for name in names:
             value = self.parent._parameters[name]
-            if isinstance(value, numpy.ndarray):
+            if isinstance(value, np.ndarray):
                 value = value[self.mask]
             parameter_dict[name] = simplify(value)
         return ParameterSpace(parameter_dict, shape=(self.size,))  # or local size?
@@ -45,15 +45,15 @@ class Population(common.Population):
     _assembly_class = Assembly
 
     def _create_cells(self):
-        id_range = numpy.arange(simulator.state.id_counter,
+        id_range = np.arange(simulator.state.id_counter,
                                 simulator.state.id_counter + self.size)
-        self.all_cells = numpy.array([simulator.ID(id) for id in id_range],
+        self.all_cells = np.array([simulator.ID(id) for id in id_range],
                                      dtype=simulator.ID)
 
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
         self._mask_local = is_local(self.all_cells)
-        
+
         if isinstance(self.celltype, StandardCellType):
             parameter_space = self.celltype.native_parameters
         else:
@@ -61,7 +61,7 @@ class Population(common.Population):
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(mask=self._mask_local, simplify=False)
         self._parameters = parameter_space.as_dict()
-        
+
         for id in self.all_cells:
             id.parent = self
         simulator.state.id_counter += self.size

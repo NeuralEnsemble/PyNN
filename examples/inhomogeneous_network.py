@@ -10,7 +10,7 @@ from pyNN.utility import init_logging, normalized_filename
 from pyNN.parameters import Sequence
 from pyNN.space import Grid2D
 from importlib import import_module
-import numpy
+import numpy as np
 from lazyarray import sqrt
 import argparse
 parser = argparse.ArgumentParser()
@@ -29,8 +29,6 @@ n_cells = 9
 sim.setup()
 
 cell_type = sim.IF_cond_exp(tau_m=10.0,
-#                            v_rest=lambda x, y, z: -60.0 - sqrt((x**2 + y**2)/100),
-#                            v_thresh=lambda x, y, z: -55.0 + x/10.0)
                             v_rest=lambda i: -60.0 + i,
                             v_thresh=lambda i: -55.0 + i)
 
@@ -46,11 +44,11 @@ for name in ('tau_m', 'v_rest', 'v_thresh'):
     print(name, "=", cells.get(name))
 
 number = int(2 * simtime * input_rate / 1000.0)
-numpy.random.seed(26278342)
+np.random.seed(26278342)
 
 
 def generate_spike_times(i):
-    gen = lambda: Sequence(numpy.add.accumulate(numpy.random.exponential(1000.0 / input_rate, size=number)))
+    gen = lambda: Sequence(np.add.accumulate(np.random.exponential(1000.0 / input_rate, size=number)))
     if hasattr(i, "__len__"):
         return [gen() for j in i]
     else:
@@ -64,7 +62,7 @@ connections = sim.Projection(spike_source, cells,
                              sim.FixedProbabilityConnector(0.5),
                              sim.StaticSynapse(weight='1/(1+d)',
                                                delay=0.5)
-                            )
+                             )
 
 print("weights:")
 print(str(connections.get('weight', format='array')).replace('nan', ' . '))

@@ -1,7 +1,7 @@
 /*
  *  stochastic_stp_connection_impl.h
  *
- *  :copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
@@ -32,6 +32,7 @@ StochasticStpConnection< targetidentifierT >::StochasticStpConnection()
   , tau_fac_( 10.0 )
   , R_( 1.0 )
   , t_surv_( 0.0 )
+  , t_lastspike_( 0.0 )
 {
 }
 
@@ -46,6 +47,7 @@ StochasticStpConnection< targetidentifierT >::StochasticStpConnection(
   , tau_fac_( rhs.tau_fac_ )
   , R_( rhs.R_ )
   , t_surv_( rhs.t_surv_ )
+  , t_lastspike_( rhs.t_lastspike_ )
 {
 }
 

@@ -3,11 +3,8 @@ Unit tests for pyNN/random.py.
 """
 
 import pyNN.random as random
-import numpy
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import numpy as np
+import unittest
 
 try:
     from neuron import h
@@ -32,7 +29,8 @@ class SimpleTests(unittest.TestCase):
     def setUp(self):
         self.rnglist = [random.NumpyRNG(seed=987)]
         for rng in self.rnglist:
-            rng.mpi_rank = 0; rng.num_processes = 1
+            rng.mpi_rank = 0
+            rng.num_processes = 1
         if random.have_gsl:
             self.rnglist.append(random.GSLRNG(seed=654))
         if have_nrn:
@@ -41,14 +39,17 @@ class SimpleTests(unittest.TestCase):
     def testNextNone(self):
         """Calling next() with no number argument should return a float."""
         for rng in self.rnglist:
-            self.assertIsInstance(rng.next(distribution='uniform', parameters={'low': 0, 'high': 1}), float)
+            self.assertIsInstance(rng.next(distribution='uniform',
+                                           parameters={'low': 0, 'high': 1}), float)
 
     def testNextOne(self):
         """Calling next() with n=1 should return an array."""
         for rng in self.rnglist:
-            self.assertIsInstance(rng.next(1, 'uniform', {'low': 0, 'high': 1}), numpy.ndarray)
-            self.assertIsInstance(rng.next(n=1, distribution='uniform', parameters={'low': 0, 'high': 1}), numpy.ndarray)
-            self.assertEqual(rng.next(1, distribution='uniform', parameters={'low': 0, 'high': 1}).shape, (1,))
+            self.assertIsInstance(rng.next(1, 'uniform', {'low': 0, 'high': 1}), np.ndarray)
+            self.assertIsInstance(rng.next(n=1, distribution='uniform',
+                                           parameters={'low': 0, 'high': 1}), np.ndarray)
+            self.assertEqual(rng.next(1, distribution='uniform',
+                                      parameters={'low': 0, 'high': 1}).shape, (1,))
 
     def testNextTwoPlus(self):
         """Calling next(n=m) where m > 1 should return an array."""
@@ -106,8 +107,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng0.seed, 1000)
             self.assertEqual(rng1.seed, 1001)
             self.assertEqual(rng_check.seed, 1001)
-            mask1 = numpy.array((1, 0, 1, 0, 1), bool)
-            mask2 = numpy.array((0, 1, 0, 1, 0), bool)
+            mask1 = np.array((1, 0, 1, 0, 1), bool)
+            mask2 = np.array((0, 1, 0, 1, 0), bool)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask1)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask2)
             draw_check = rng_check.next(5, 'uniform', {'low': 0, 'high': 1}, mask=None)
@@ -126,8 +127,8 @@ class ParallelTests(unittest.TestCase):
             self.assertEqual(rng0.seed, 1000)
             self.assertEqual(rng1.seed, 1000)
             self.assertEqual(rng_check.seed, 1000)
-            mask1 = numpy.array((1, 0, 1, 0, 1), bool)
-            mask2 = numpy.array((0, 1, 0, 1, 0), bool)
+            mask1 = np.array((1, 0, 1, 0, 1), bool)
+            mask2 = np.array((0, 1, 0, 1, 0), bool)
             draw0 = rng0.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask1)
             draw1 = rng1.next(5, 'uniform', {'low': 0, 'high': 1}, mask=mask2)
             draw_check = rng_check.next(5, 'uniform', {'low': 0, 'high': 1}, mask=None)
@@ -178,7 +179,8 @@ class RandomDistributionTests(unittest.TestCase):
             self.rnglist.append(NativeRNG(seed=321))
 
     def test_uniform(self):
-        rd = random.RandomDistribution(distribution='uniform', low=-1.0, high=3.0, rng=self.rnglist[0])
+        rd = random.RandomDistribution(distribution='uniform', low=-
+                                       1.0, high=3.0, rng=self.rnglist[0])
         vals = rd.next(100)
         assert vals.min() >= -1.0
         assert vals.max() < 3.0
@@ -224,13 +226,15 @@ class RandomDistributionTests(unittest.TestCase):
             self.assertEqual(rd1.parameters, {'mu': 0.5, 'sigma': 0.2})
             self.assertEqual(rd1.rng, rng)
         self.assertRaises(ValueError, random.RandomDistribution, 'normal', (0.5,))
-        self.assertRaises(ValueError, random.RandomDistribution, 'normal', (0.5, 0.2), mu=0.5, sigma=0.2)
+        self.assertRaises(ValueError, random.RandomDistribution,
+                          'normal', (0.5, 0.2), mu=0.5, sigma=0.2)
 
     def test_max_redraws(self):
         # for certain parameterizations, clipped distributions can require a very large, possibly infinite
         # number of redraws. This should be caught.
         for rng in self.rnglist:
-            rd1 = random.RandomDistribution('normal_clipped', mu=0, sigma=1, low=5, high=numpy.inf, rng=rng)
+            rd1 = random.RandomDistribution(
+                'normal_clipped', mu=0, sigma=1, low=5, high=np.inf, rng=rng)
             self.assertRaises(Exception, rd1.next, 1000)
 
 

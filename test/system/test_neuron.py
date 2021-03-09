@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal
 from pyNN.random import RandomDistribution
 from pyNN.utility import init_logging
 import quantities as pq
-import numpy
+import numpy as np
 
 try:
     import pyNN.neuron
@@ -83,7 +83,7 @@ class SimpleNeuron(object):
     def _set_g_leak(self, value):
         for sec in (self.apical, self.basilar):
             for seg in sec:
-               seg.pas.g = value
+                seg.pas.g = value
         for sec in (self.soma, self.axon):
             for seg in sec:
                 seg.hh.gl = value
@@ -134,7 +134,7 @@ def test_electrical_synapse():
     p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
-    C = pyNN.connectors.FromListConnector(numpy.array([[0, 0, 1.0],
+    C = pyNN.connectors.FromListConnector(np.array([[0, 0, 1.0],
                                                        [0, 1, 1.0],
                                                        [2, 2, 1.0],
                                                        [3, 2, 1.0]]),
@@ -208,8 +208,9 @@ def test_tsodyks_markram_synapse():
         raise SkipTest
     sim = pyNN.neuron
     sim.setup()
-    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=numpy.arange(10, 100, 10)))
-    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=numpy.arange(0.2, 0.7, 0.1)))
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
+    neurons = sim.Population(5, sim.IF_cond_exp(
+        e_rev_I=-75, tau_syn_I=np.arange(0.2, 0.7, 0.1)))
     synapse_type = sim.TsodyksMarkramSynapse(U=0.04, tau_rec=100.0,
                                              tau_facil=1000.0, weight=0.01,
                                              delay=0.5)
@@ -219,5 +220,24 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    tau_psc = numpy.array([c.weight_adjuster.tau_syn for c in prj.connections])
-    assert_array_equal(tau_psc, numpy.arange(0.2, 0.7, 0.1))
+    tau_psc = np.array([c.weight_adjuster.tau_syn for c in prj.connections])
+    assert_array_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
+
+
+def test_artificial_cells():
+    if not have_neuron:
+        raise SkipTest
+    sim = pyNN.neuron
+    sim.setup()
+    input = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
+    p1 = sim.Population(3, sim.IntFire1(tau=10, refrac=2))
+    p2 = sim.Population(3, sim.IntFire2())
+    p3 = sim.Population(3, sim.IntFire4())
+    projections = []
+    for p in (p1, p2, p3):
+        projections.append(
+            sim.Projection(input, p, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.1, delay=0.5),
+                           receptor_type="default")
+        )
+        p.record('m')
+    sim.run(100.0)

@@ -1,11 +1,12 @@
 
-import glob, os
+import glob
+import os
 from nose.tools import assert_equal
 from pyNN.random import NumpyRNG, RandomDistribution
 from .registry import register
 
 
-@register(exclude=["nemo"])
+@register()
 def scenario1(sim):
     """
     Balanced network of integrate-and-fire neurons.
@@ -72,7 +73,7 @@ def scenario1(sim):
     sim.end()
 
 
-@register(exclude=["brian", "nemo"])
+@register()
 def scenario1a(sim):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"

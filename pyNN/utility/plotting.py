@@ -6,11 +6,12 @@ formatting. If you need to produce more complex and/or publication-quality
 figures, it will probably be easier to use matplotlib or another plotting
 package directly rather than trying to extend this module.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
+import sys
 from collections import defaultdict
 from numbers import Number
 from itertools import repeat
@@ -20,10 +21,6 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
 from neo import AnalogSignal, SpikeTrain
-try:
-    from sys import maxint
-except ImportError:  # Py3
-    from sys import maxsize as maxint
 
 
 DEFAULT_FIG_SETTINGS = {
@@ -101,11 +98,11 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     ax.set_xlim(0, spiketrains[0].t_stop / ms)
     handle_options(ax, options)
     max_index = 0
-    min_index = maxint
+    min_index = sys.maxsize
     for spiketrain in spiketrains:
         ax.plot(spiketrain,
-                 np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
-                 'k.', **options)
+                np.ones_like(spiketrain) * spiketrain.annotations['source_index'],
+                'k.', **options)
         max_index = max(max_index, spiketrain.annotations['source_index'])
         min_index = min(min_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
@@ -195,7 +192,7 @@ class Figure(object):
         if "annotations" in options:
             gs.update(bottom=1.2 / height)  # leave space for annotations
         gs.update(top=1 - 0.8 / height, hspace=0.25)
-        #print(gs.get_grid_positions(self.fig))
+        # print(gs.get_grid_positions(self.fig))
 
         for i, panel in enumerate(panels):
             panel.plot(plt.subplot(gs[i, 0]))

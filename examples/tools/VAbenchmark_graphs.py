@@ -42,14 +42,20 @@ def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_
 
 def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
               label=None, xticks=None, xticklabels=None, xmin=None, ymax=None):
-    if xlabel: panel.set_xlabel(xlabel)
-    if ylabel: panel.set_ylabel(ylabel)
+    if xlabel:
+        panel.set_xlabel(xlabel)
+    if ylabel:
+        panel.set_ylabel(ylabel)
     for t, n in zip(bins[:-1], hist):
         panel.bar(t, n, width=width, color=None)
-    if xmin: panel.set_xlim(xmin=xmin)
-    if ymax: panel.set_ylim(ymax=ymax)
-    if xticks is not None: panel.set_xticks(xticks)
-    if xticklabels: panel.set_xticklabels(xticklabels)
+    if xmin:
+        panel.set_xlim(xmin=xmin)
+    if ymax:
+        panel.set_ylim(ymax=ymax)
+    if xticks is not None:
+        panel.set_xticks(xticks)
+    if xticklabels:
+        panel.set_xticklabels(xticklabels)
     panel.text(0.8, 0.8, label, transform=panel.transAxes)
 
 
@@ -88,9 +94,9 @@ def plot_isi_hist(panel, segment, label, hide_axis_labels=False):
         xlabel = None
         ylabel = None
     plot_hist(panel, isihist, bins_log, bin_width, label=label,
-        xlabel=xlabel, xticks=np.log([10, 100, 1000]),
-        xticklabels=['10', '100', '1000'], xmin=np.log(2),
-        ylabel=ylabel)
+              xlabel=xlabel, xticks=np.log([10, 100, 1000]),
+              xticklabels=['10', '100', '1000'], xmin=np.log(2),
+              ylabel=ylabel)
 
 
 def plot_cvisi_hist(panel, segment, label, hide_axis_labels=False):
@@ -124,7 +130,7 @@ def sort_by_annotation(name, objects):
 def plot(datafiles, output_file, sort_by='simulator', annotation=None):
     blocks = [get_io(datafile).read_block() for datafile in datafiles]
     # note: Neo needs a pretty printer that is not tied to IPython
-    #for block in blocks:
+    # for block in blocks:
     #    print(block.describe())
     script_name = blocks[0].annotations['script_name']
     for block in blocks[1:]:
@@ -151,12 +157,14 @@ def plot(datafiles, output_file, sort_by='simulator', annotation=None):
             for name in ("exc", "inh"):
                 if name in block.name.lower():
                     segments[name] = block.segments[0]
-                    
+
         # Plot membrane potential traces
-        plot_vm_traces(plt.subplot(gs[0, 2 * k:2 * k + 2]), segments['exc'], label, hide_axis_labels)
+        plot_vm_traces(plt.subplot(gs[0, 2 * k:2 * k + 2]),
+                       segments['exc'], label, hide_axis_labels)
 
         # Plot spike rasters
-        plot_spiketrains(plt.subplot(gs[1, 2 * k:2 * k + 2]), segments['exc'], label, hide_axis_labels)
+        plot_spiketrains(plt.subplot(gs[1, 2 * k:2 * k + 2]),
+                         segments['exc'], label, hide_axis_labels)
 
         # Inter-spike-interval histograms
         # Histograms of coefficients of variation of ISI
@@ -182,6 +190,6 @@ def main():
     plot(args.datafiles, output_file=args.output_file,
          sort_by=args.sort, annotation=args.annotation)
 
-    
+
 if __name__ == "__main__":
     main()

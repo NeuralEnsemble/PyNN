@@ -15,7 +15,7 @@ init_logging("connectors_benchmark_%s.log" % simulator_name, debug=True)
 
 
 def draw_rf(cell, positions, connections, color='k'):
-    idx = numpy.where(connections[:, 1] == cell)[0]
+    idx = np.where(connections[:, 1] == cell)[0]
     sources = connections[idx, 0]
     for src in sources:
         plot([positions[cell, 1], positions[src, 1]], [positions[cell, 2], positions[src, 2]], c=color)
@@ -24,8 +24,8 @@ def draw_rf(cell, positions, connections, color='k'):
 def distances(pos_1, pos_2, N):
     dx = abs(pos_1[:, 0] - pos_2[:, 0])
     dy = abs(pos_1[:, 1] - pos_2[:, 1])
-    dx = numpy.minimum(dx, N - dx)
-    dy = numpy.minimum(dy, N - dy)
+    dx = np.minimum(dx, N - dx)
+    dy = np.minimum(dy, N - dy)
     return sqrt(dx * dx + dy * dy)
 
 timer.start()
@@ -55,21 +55,21 @@ def test(cases=[1]):
         #w = RandomDistribution('uniform', (0,1))
         w = "0.2 + d/0.2"
         #w = 0.1
-        #w = lambda dist : 0.1 + numpy.random.rand(len(dist[0]))*sqrt(dist[0]**2 + dist[1]**2)
+        #w = lambda dist : 0.1 + np.random.rand(len(dist[0]))*sqrt(dist[0]**2 + dist[1]**2)
 
         #delay = RandomDistribution('uniform', (0.1,5.))
         #delay = "0.1 + d/0.2"
         delay = 0.1
-        #delay = lambda distances : 0.1 + numpy.random.rand(len(distances))*distances
+        #delay = lambda distances : 0.1 + np.random.rand(len(distances))*distances
 
         d_expression = "exp(-d**2/(2*0.1**2))"
         #d_expression = "(d[0] < 0.05) & (d[1] < 0.05)"
-        #d_expression = "(d[0]/(0.05**2) + d[1]/(0.1**2)) < 100*numpy.random.rand()"
+        #d_expression = "(d[0]/(0.05**2) + d[1]/(0.1**2)) < 100*np.random.rand()"
 
         timer = Timer()
         np = num_processes()
         timer.start()
-       
+
         synapse = StaticSynapse(weight=w, delay=delay)
         rng = NumpyRNG(23434, parallel_safe=parallel_safe)
 
@@ -99,7 +99,7 @@ def test(cases=[1]):
             fig_name = "SmallWorld_%s_np_%d.png" % (simulator_name, np)
 
         print("Generating data for %s" % fig_name)
-        
+
         prj = Projection(x, x, conn, synapse, space=sp)
 
         mytime = timer.diff()
@@ -123,8 +123,8 @@ def test(cases=[1]):
         if node_id == 0 and render and to_file:
             figure()
             print("Generating and saving %s" % fig_name)
-            positions = numpy.loadtxt('Results/positions.dat')
-            
+            positions = np.loadtxt('Results/positions.dat')
+
             positions[:, 0] -= positions[:, 0].min()
             connections = files.NumpyBinaryFile('Results/connections.dat', mode='r').read()
             print(positions.shape, connections.shape)
@@ -143,8 +143,8 @@ def test(cases=[1]):
             title('Delay distribution')
             hist(connections[:, 3], 50)
             subplot(234)
-            numpy.random.seed(74562)
-            ids = numpy.random.permutation(positions[:, 0])[0:6]
+            np.random.seed(74562)
+            ids = np.random.permutation(positions[:, 0])[0:6]
             colors = ['k', 'r', 'b', 'g', 'c', 'y']
             for count, cell in enumerate(ids):
                 draw_rf(cell, positions, connections, colors[count])

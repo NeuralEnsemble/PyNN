@@ -17,3 +17,6 @@ capacitance       nF
 firing rate       /s
 phase/angle       deg
 ================= =====
+
+Synaptic weights are in microsiemens or nanoamps, depending on whether the post-synaptic mechanism implements a change in conductance or current.
+Distances are typically in microns, but any distance scale can be used, provided it is used consistently.

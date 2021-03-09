@@ -1,0 +1,21 @@
+========================
+PyNN 0.9.5 release notes
+========================
+
+December 5th 2019
+
+Welcome to PyNN 0.9.5!
+
+
+NEST 2.18.0
+-----------
+
+PyNN now supports the latest version of NEST.
+
+
+Bug fixes
+---------
+
+A `small number of bugs`_ have been fixed.
+
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.9.5+is%3Aclosed

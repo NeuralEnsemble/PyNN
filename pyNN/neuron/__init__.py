@@ -2,7 +2,7 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -27,7 +27,7 @@ from pyNN.neuron.standardmodels.electrodes import *
 from pyNN.neuron.standardmodels.ion_channels import *
 from pyNN.neuron.populations import Population, PopulationView, Assembly
 from pyNN.neuron.projections import Projection
-from pyNN.neuron.cells import NativeCellType
+from pyNN.neuron.cells import NativeCellType, IntFire1, IntFire2, IntFire4
 from . import neuroml
 try:
     from . import nineml
@@ -44,7 +44,7 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and 
+    return [obj.__name__ for obj in globals().values() if (isinstance(obj, type) and
                                                            issubclass(obj, StandardCellType) and
                                                            obj is not StandardCellType)]
 
@@ -98,7 +98,8 @@ def end(compatible_output=True):
         io = get_io(filename)
         population.write_data(io, variables)
     simulator.state.write_on_end = []
-    #simulator.state.finalize()
+    # simulator.state.finalize()
+
 
 run, run_until = common.build_run(simulator)
 run_for = run
@@ -112,7 +113,7 @@ initialize = common.initialize
 # ==============================================================================
 
 get_current_time, get_time_step, get_min_delay, get_max_delay, \
-            num_processes, rank = common.build_state_queries(simulator)
+    num_processes, rank = common.build_state_queries(simulator)
 
 
 # ==============================================================================
@@ -127,8 +128,10 @@ set = common.set
 
 record = common.build_record(simulator)
 
-record_v = lambda source, filename: record(['v'], source, filename)
 
-record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
+def record_v(source, filename): return record(['v'], source, filename)
+
+
+def record_gsyn(source, filename): return record(['gsyn_exc', 'gsyn_inh'], source, filename)
 
 # ==============================================================================

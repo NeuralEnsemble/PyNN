@@ -32,9 +32,9 @@ Name            Default value  Units  Description
 ``v_rest``      -65.0          mV     Resting membrane potential 
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
-``tau_refrac``    0.0          ms     Duration of refractory period
-``tau_syn_E``     5.0          ms     Rise time of the excitatory synaptic alpha function
-``tau_syn_I``     5.0          ms     Rise time of the inhibitory synaptic alpha function
+``tau_refrac``    0.1          ms     Duration of refractory period
+``tau_syn_E``     0.5          ms     Rise time of the excitatory synaptic alpha function
+``tau_syn_I``     0.5          ms     Rise time of the inhibitory synaptic alpha function
 ``i_offset``      0.0          nA     Offset current
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``v_thresh``    -50.0          mV     Spike threshold
@@ -55,7 +55,7 @@ Name            Default value  Units  Description
 ``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
-``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_refrac``    0.1          ms     Duration of refractory period
 ``tau_syn_E``     5.0          ms     Decay time of excitatory synaptic current
 ``tau_syn_I``     5.0          ms     Decay time of inhibitory synaptic current
 ``i_offset``      0.0          nA     Offset current
@@ -77,9 +77,9 @@ Name            Default value  Units  Description
 ``v_rest``      -65.0          mV     Resting membrane potential 
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
-``tau_refrac``    0.0          ms     Duration of refractory period
-``tau_syn_E``     5.0          ms     Rise time of the excitatory synaptic alpha function
-``tau_syn_I``     5.0          ms     Rise time of the inhibitory synaptic alpha function
+``tau_refrac``    0.1          ms     Duration of refractory period
+``tau_syn_E``     0.3          ms     Rise time of the excitatory synaptic alpha function
+``tau_syn_I``     0.5          ms     Rise time of the inhibitory synaptic alpha function
 ``e_rev_E``       0.0          mV     Reversal potential for excitatory input
 ``e_rev_I``     -70.0          mV     Reversal potential for inhibitory input
 ``v_thresh``    -50.0          mV     Spike threshold
@@ -101,7 +101,7 @@ Name            Default value  Units  Description
 ``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
-``tau_refrac``    0.0          ms     Duration of refractory period
+``tau_refrac``    0.1          ms     Duration of refractory period
 ``tau_syn_E``     5.0          ms     Decay time of the excitatory synaptic conductance
 ``tau_syn_I``     5.0          ms     Decay time of the inhibitory synaptic conductance
 ``e_rev_E``       0.0          mV     Reversal potential for excitatory input
@@ -151,8 +151,8 @@ Availability: NEST, NEURON, Brian
 Name            Default value  Units  Description
 ==============  =============  =====  =================================================== 
 ``cm``            0.281        nF     Capacity of the membrane
-``tau_refrac``    0.0          ms     Duration of refractory period
-``v_spike``       0.0          mV     Spike detection threshold
+``tau_refrac``    0.1          ms     Duration of refractory period
+``v_spike``     -40.0          mV     Spike detection threshold
 ``v_reset``     -70.6          mV     Reset value for membrane potential after a spike
 ``v_rest``      -70.6          mV     Resting membrane potential (Leak reversal potential)
 ``tau_m``         9.3667       ms     Membrane time constant

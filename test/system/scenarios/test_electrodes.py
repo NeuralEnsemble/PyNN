@@ -3,7 +3,7 @@
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 from numpy.testing import assert_array_equal
 import quantities as pq
-import numpy
+import numpy as np
 from .registry import register
 
 try:
@@ -14,7 +14,7 @@ except ImportError:
 from nose.plugins.skip import SkipTest
 
 
-@register(exclude=["nemo"])
+@register()
 def test_changing_electrode(sim):
     """
     Check that changing the values of the electrodes on the fly is taken into account
@@ -39,6 +39,8 @@ def test_changing_electrode(sim):
     # check that the value of v just before increasing the current is less than
     # the value at the end of the simulation
     assert data[int(simtime / dt), 0] < data[-1, 0]
+
+
 test_changing_electrode.__test__ = False
 
 
@@ -84,7 +86,7 @@ def issue321(sim):
     """Check that non-zero currents at t=0 are taken into account."""
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(3, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
-                                               v_reset=-60.0))
+                                                v_reset=-60.0))
     cells.initialize(v=-60.0)
     cells[0].i_offset = 1.0
     inj1 = sim.DCSource(amplitude=1.0, start=0.0)
@@ -121,10 +123,10 @@ def issue437(sim):
     v_rest = -60.0  # for this test keep v_rest < v_reset
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(2, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=v_rest,
-                                               v_reset=-55.0, tau_refrac=5.0))
+                                                v_reset=-55.0, tau_refrac=5.0))
     cells.initialize(v=-60.0)
 
-    #We test two cases: dt = simulator.state.dt and dt != simulator.state.dt
+    # We test two cases: dt = simulator.state.dt and dt != simulator.state.dt
     t_start = 25.0
     t_stop = 150.0
     dt_0 = 0.1
@@ -142,18 +144,21 @@ def issue437(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = int(numpy.argmax(t >= t_start))
-    t_stop_ind = int(numpy.argmax(t >= t_stop))
+    t_start_ind = int(np.argmax(t >= t_start))
+    t_stop_ind = int(np.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
-    assert_true (all(abs(val0 - v_rest*pq.mV) < 1e-9 and abs(val1 - v_rest*pq.mV) < 1e-9 for val0, val1 in zip(v0[:t_start_ind+1], v1[:t_start_ind+1])))
+    assert_true(all(abs(val0 - v_rest*pq.mV) < 1e-9 and abs(val1 - v_rest*pq.mV) <
+                    1e-9 for val0, val1 in zip(v0[:t_start_ind+1], v1[:t_start_ind+1])))
 
     # test for change in vm at dt after start time
-    assert_true (abs(v0[t_start_ind+1] - v_rest*pq.mV) >= 1e-9 and abs(v1[t_start_ind+1] - v_rest*pq.mV) >= 1e-9)
+    assert_true(abs(v0[t_start_ind+1] - v_rest*pq.mV) >=
+                1e-9 and abs(v1[t_start_ind+1] - v_rest*pq.mV) >= 1e-9)
 
     # test for monotonic decay of vm after stop time
-    assert_true (all(val0 >= val0_next and val1 >= val1_next for val0, val0_next, val1, val1_next in zip(v0[t_stop_ind:], v0[t_stop_ind+1:], v1[t_stop_ind:], v1[t_stop_ind+1:])))
+    assert_true(all(val0 >= val0_next and val1 >= val1_next for val0, val0_next, val1, val1_next in zip(
+        v0[t_stop_ind:], v0[t_stop_ind+1:], v1[t_stop_ind:], v1[t_stop_ind+1:])))
 
     # test for ensuring noise.dt is properly implemented; checking first instance for each
     #   recording current profiles not implemented currently, thus using double derivative of vm
@@ -161,18 +166,18 @@ def issue437(sim):
     #   Test implementation makes use of certain approximations for thresholding.
     #   Note: there can be a much simpler check for this once recording current profiles enabled (for all simulators).
     #   Test implementation makes use of certain approximations for thresholding; hence taking mode of initial values
-    t_up = numpy.arange(float(min(t)), float(max(t))+dt_0/10.0, dt_0/10.0)
-    v0_up = numpy.interp(t_up, t, v0.magnitude.flat)
-    v1_up = numpy.interp(t_up, t, v1.magnitude.flat)
-    d2_v0_up = numpy.diff(v0_up, n=2)
-    d2_v1_up = numpy.diff(v1_up, n=2)
-    dt_0_list = [ j for (i,j) in zip(d2_v0_up, t_up) if abs(i) >= 0.00005 ]
-    dt_1_list = [ j for (i,j) in zip(d2_v1_up, t_up) if abs(i) >= 0.00005 ]
-    dt_0_list_diff = numpy.diff(dt_0_list, n=1)
-    dt_1_list_diff = numpy.diff(dt_1_list, n=1)
+    t_up = np.arange(float(min(t)), float(max(t))+dt_0/10.0, dt_0/10.0)
+    v0_up = np.interp(t_up, t, v0.magnitude.flat)
+    v1_up = np.interp(t_up, t, v1.magnitude.flat)
+    d2_v0_up = np.diff(v0_up, n=2)
+    d2_v1_up = np.diff(v1_up, n=2)
+    dt_0_list = [j for (i, j) in zip(d2_v0_up, t_up) if abs(i) >= 0.00005]
+    dt_1_list = [j for (i, j) in zip(d2_v1_up, t_up) if abs(i) >= 0.00005]
+    dt_0_list_diff = np.diff(dt_0_list, n=1)
+    dt_1_list_diff = np.diff(dt_1_list, n=1)
     dt_0_mode = scipy.stats.mode(dt_0_list_diff[0:10])[0][0]
     dt_1_mode = scipy.stats.mode(dt_1_list_diff[0:10])[0][0]
-    assert_true (abs(dt_0_mode - dt_0) < 1e-9 or abs(dt_1_mode - dt_1) < 1e-9)
+    assert_true(abs(dt_0_mode - dt_0) < 1e-9 or abs(dt_1_mode - dt_1) < 1e-9)
 
 
 @register()
@@ -188,7 +193,7 @@ def issue442(sim):
     v_rest = -60.0
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=v_rest,
-                                               v_reset=-65.0, tau_refrac=5.0))
+                                                v_reset=-65.0, tau_refrac=5.0))
     cells.initialize(v=v_rest)
 
     # set t_start, t_stop and freq such that
@@ -196,7 +201,8 @@ def issue442(sim):
     t_start = 22.5
     t_stop = 122.5
     freq = 100.0
-    acsource = sim.ACSource(start=t_start, stop=t_stop, amplitude=0.5, offset=0.1, frequency=freq, phase=0.0)
+    acsource = sim.ACSource(start=t_start, stop=t_stop, amplitude=0.5,
+                            offset=0.1, frequency=freq, phase=0.0)
     cells[0].inject(acsource)
 
     cells.record('v')
@@ -206,8 +212,8 @@ def issue442(sim):
     t = v.times
     sim.end()
 
-    t_start_ind = int(numpy.argmax(t >= t_start))
-    t_stop_ind = int(numpy.argmax(t >= t_stop))
+    t_start_ind = int(np.argmax(t >= t_start))
+    t_stop_ind = int(np.argmax(t >= t_stop))
 
     # test for no change in vm before start time
     # note: exact matches not appropriate owing to floating point rounding errors
@@ -217,14 +223,15 @@ def issue442(sim):
     assert_true(abs(v0[t_start_ind+1] - v0[t_start_ind]) >= 1e-9)
 
     # test for monotonic decay of vm after stop time
-    assert_true(all(val0 >= val0_next for val0, val0_next in zip(v0[t_stop_ind:], v0[t_stop_ind+1:])))
+    assert_true(all(val0 >= val0_next for val0, val0_next in zip(
+        v0[t_stop_ind:], v0[t_stop_ind+1:])))
 
     # test for accurate frequency; simply counts peaks
     peak_ctr = 0
     peak_ind = []
     for i in range(t_stop_ind-t_start_ind):
         if v0[t_start_ind+i-1] < v0[t_start_ind+i] and v0[t_start_ind+i] >= v0[t_start_ind+i+1]:
-            peak_ctr+=1
+            peak_ctr += 1
             peak_ind.append(t_start_ind+i)
     assert_equal(peak_ctr, freq*1e-3*(t_stop-t_start))
     # also test for offset; peaks initially increase in magnitude
@@ -242,9 +249,10 @@ def issue445(sim):
     simtime = 200.0
     sim.setup(timestep=sim_dt, min_delay=1.0)
     cells = sim.Population(1, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
-    t_start=50.0
-    t_stop=125.0
-    acsource = sim.ACSource(start=t_start, stop=t_stop, amplitude=0.5, offset=0.0, frequency=100.0, phase=0.0)
+    t_start = 50.0
+    t_stop = 125.0
+    acsource = sim.ACSource(start=t_start, stop=t_stop, amplitude=0.5,
+                            offset=0.0, frequency=100.0, phase=0.0)
     cells[0].inject(acsource)
     acsource.record()
 
@@ -253,11 +261,12 @@ def issue445(sim):
 
     i_ac = acsource.get_data()
     i_t_ac = i_ac.times.magnitude
-    t_start_ind = numpy.argmax(i_t_ac >= t_start)
-    t_stop_ind = numpy.argmax(i_t_ac >= t_stop)
-    assert_true (all(val != val_next for val, val_next in zip(i_t_ac[t_start_ind:t_stop_ind-1], i_t_ac[t_start_ind+1:t_stop_ind])))
+    t_start_ind = np.argmax(i_t_ac >= t_start)
+    t_stop_ind = np.argmax(i_t_ac >= t_stop)
+    assert_true(all(val != val_next for val, val_next in zip(
+        i_t_ac[t_start_ind:t_stop_ind-1], i_t_ac[t_start_ind+1:t_stop_ind])))
     # note: exact matches not appropriate owing to floating point rounding errors
-    assert_true (( len(i_t_ac) - ((max(i_t_ac)-min(i_t_ac))/sim_dt + 1) )< 1e-9)
+    assert_true((len(i_t_ac) - ((max(i_t_ac)-min(i_t_ac))/sim_dt + 1)) < 1e-9)
 
 
 @register()
@@ -286,7 +295,7 @@ def issue451(sim):
     sim.end()
     # check that the value of v is equal to v_rest throughout the simulation
     # note: exact matches not appropriate owing to floating point rounding errors
-    assert_true (all( (val.item()-v_rest)<1e-9 for val in v[:, 0]))
+    assert_true(all((val.item()-v_rest) < 1e-9 for val in v[:, 0]))
 
 
 @register()
@@ -356,21 +365,21 @@ def issue487(sim):
 
     # check that membrane potential does not fall after end of first run
     # Test 1
-    assert_true (v_dc[int(simtime/dt)] < v_dc[int(simtime/dt)+1])
+    assert_true(v_dc[int(simtime/dt)] < v_dc[int(simtime/dt)+1])
     # Test 2
-    assert_true (v_step[int(simtime/dt)] < v_step[int(simtime/dt)+1])
+    assert_true(v_step[int(simtime/dt)] < v_step[int(simtime/dt)+1])
     # check that membrane potential of cell undergoes a change
     # Test 3
-    v_dc_2_arr = numpy.squeeze(numpy.array(v_dc_2))
-    assert_false (numpy.isclose(v_dc_2_arr, v_rest).all())
+    v_dc_2_arr = np.squeeze(np.array(v_dc_2))
+    assert_false(np.isclose(v_dc_2_arr, v_rest).all())
     # check that membrane potential of cell undergoes no change till start of current injection
     # Test 4
-    v_step_2_arr = numpy.squeeze(numpy.array(v_step_2))
-    assert_true (numpy.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
+    v_step_2_arr = np.squeeze(np.array(v_step_2))
+    assert_true(np.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@register(exclude=["brian"])  # todo: fix for Brian
-def issue_465_474(sim):
+@register()
+def issue_465_474_630(sim):
     """
     Checks the current traces recorded for each of the four types of
     electrodes in pyNN, and verifies that:
@@ -386,12 +395,13 @@ def issue_465_474(sim):
     cells = sim.Population(4, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0, v_rest=v_rest))
     cells.initialize(v=v_rest)
 
-    amp=0.5
+    amp = 0.5
     offset = 0.1
-    start=50.0
-    stop=125.0
+    start = 50.0
+    stop = 125.0
 
-    acsource = sim.ACSource(start=start, stop=stop, amplitude=amp, offset=offset, frequency=100.0, phase=0.0)
+    acsource = sim.ACSource(start=start, stop=stop, amplitude=amp,
+                            offset=offset, frequency=100.0, phase=0.0)
     cells[0].inject(acsource)
     acsource.record()
 
@@ -430,31 +440,50 @@ def issue_465_474(sim):
     i_step = step.get_data()
 
     # test for length of recorded current traces
-    assert_true (len(i_ac) == (int(simtime/sim_dt)+1) == len(v_ac))
-    assert_true (len(i_dc) == int(simtime/sim_dt)+1 == len(v_dc))
-    assert_true (len(i_noise) == int(simtime/sim_dt)+1 == len(v_noise))
-    assert_true (len(i_step) == int(simtime/sim_dt)+1 == len(v_step))
+    assert_true(len(i_ac) == (int(simtime/sim_dt)+1) == len(v_ac))
+    assert_true(len(i_dc) == int(simtime/sim_dt)+1 == len(v_dc))
+    assert_true(len(i_noise) == int(simtime/sim_dt)+1 == len(v_noise))
+    assert_true(len(i_step) == int(simtime/sim_dt)+1 == len(v_step))
 
     # test to check values exist at start and end of simulation
-    assert_true (i_ac.t_start == 0.0 * pq.ms and numpy.isclose(float(i_ac.times[-1]), simtime))
-    assert_true (i_dc.t_start == 0.0 * pq.ms and numpy.isclose(float(i_dc.times[-1]), simtime))
-    assert_true (i_noise.t_start == 0.0 * pq.ms and numpy.isclose(float(i_noise.times[-1]), simtime))
-    assert_true (i_step.t_start == 0.0 * pq.ms and numpy.isclose(float(i_step.times[-1]), simtime))
+    assert_true(i_ac.t_start == 0.0 * pq.ms and np.isclose(float(i_ac.times[-1]), simtime))
+    assert_true(i_dc.t_start == 0.0 * pq.ms and np.isclose(float(i_dc.times[-1]), simtime))
+    assert_true(i_noise.t_start == 0.0 *
+                pq.ms and np.isclose(float(i_noise.times[-1]), simtime))
+    assert_true(i_step.t_start == 0.0 * pq.ms and np.isclose(float(i_step.times[-1]), simtime))
 
-    # test to check current changes at the expected time instant
-    assert_true (i_ac[(int(start / sim_dt)) - 1, 0] == 0 * pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_dc[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_noise[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
-    assert_true (i_step[int(start / sim_dt) - 1, 0] == 0 * pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
+    # test to check current changes at start time instant
+    assert_true(i_ac[(int(start / sim_dt)) - 1, 0] == 0 *
+                pq.nA and i_ac[int(start / sim_dt), 0] != 0 * pq.nA)
+    assert_true(i_dc[int(start / sim_dt) - 1, 0] == 0 *
+                pq.nA and i_dc[int(start / sim_dt), 0] != 0 * pq.nA)
+    assert_true(i_noise[int(start / sim_dt) - 1, 0] == 0 *
+                pq.nA and i_noise[int(start / sim_dt), 0] != 0 * pq.nA)
+    assert_true(i_step[int(start / sim_dt) - 1, 0] == 0 *
+                pq.nA and i_step[int(start / sim_dt), 0] != 0 * pq.nA)
+
+    # test to check current changes appropriately at stop time instant - issue #630
+    assert_true(i_ac[(int(stop / sim_dt)) - 1, 0] != 0.0 *
+                pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA)
+    assert_true(i_dc[(int(stop / sim_dt)) - 1, 0] != 0.0 *
+                pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA)
+    assert_true(i_noise[(int(stop / sim_dt)) - 1, 0] != 0.0 *
+                pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA)
+    assert_true(i_step[(int(stop / sim_dt)) - 1, 0] != 0.2 *
+                pq.nA and i_ac[(int(stop / sim_dt)), 0] == 0.0 * pq.nA)
 
     # test to check vm changes at the time step following current initiation
-    assert_true (numpy.isclose(float(v_ac[int(start / sim_dt), 0].item()), v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_dc[int(start / sim_dt), 0].item()), v_rest) and v_dc[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_noise[int(start / sim_dt), 0].item()), v_rest) and v_noise[int(start / sim_dt) + 1] != v_rest * pq.mV)
-    assert_true (numpy.isclose(float(v_step[int(start / sim_dt), 0].item()), v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
+    assert_true(np.isclose(float(v_ac[int(start / sim_dt), 0].item()),
+                              v_rest) and v_ac[int(start / sim_dt) + 1] != v_rest * pq.mV)
+    assert_true(np.isclose(float(v_dc[int(start / sim_dt), 0].item()),
+                              v_rest) and v_dc[int(start / sim_dt) + 1] != v_rest * pq.mV)
+    assert_true(np.isclose(float(v_noise[int(start / sim_dt), 0].item()),
+                              v_rest) and v_noise[int(start / sim_dt) + 1] != v_rest * pq.mV)
+    assert_true(np.isclose(float(v_step[int(start / sim_dt), 0].item()),
+                              v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
-@register(exclude=["brian"])
+@register()
 def issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid
@@ -480,11 +509,11 @@ def issue497(sim):
     cells = sim.Population(2, sim.IF_curr_exp(v_thresh=-55.0, tau_refrac=5.0))
 
     acsource1 = sim.ACSource(start=start1, stop=20.0, amplitude=amplitude, offset=0.0,
-                        frequency=freq1, phase=phase1)
+                             frequency=freq1, phase=phase1)
     cells[0].inject(acsource1)
     acsource1.record()
     acsource2 = sim.ACSource(start=start2, stop=20.0, amplitude=amplitude, offset=0.0,
-                        frequency=freq2, phase=phase2)
+                             frequency=freq2, phase=phase2)
     cells[1].inject(acsource2)
     acsource2.record()
 
@@ -503,10 +532,10 @@ def issue497(sim):
     i_ac2 = acsource2.get_data()
 
     # verify that acsource1 has value at t = start as 0 and as non-zero at next dt
-    assert_true (abs(i_ac1[int(start1 / sim_dt), 0]) < 1e-9)
-    assert_true (abs(i_ac1[int(start1 / sim_dt) + 1, 0]) > 1e-9)
+    assert_true(abs(i_ac1[int(start1 / sim_dt), 0]) < 1e-9)
+    assert_true(abs(i_ac1[int(start1 / sim_dt) + 1, 0]) > 1e-9)
     # verify that acsources has value at t = start as 'amplitude'
-    assert_true (abs(i_ac2[int(start2 / sim_dt), 0] - amplitude * pq.nA) < 1e-9)
+    assert_true(abs(i_ac2[int(start2 / sim_dt), 0] - amplitude * pq.nA) < 1e-9)
 
 
 @register()
@@ -543,25 +572,25 @@ def issue512(sim):
     assert_equal(get_len(step.amplitudes), 2)
     if "pyNN.brian" in str(sim):
         # Brian requires time in seconds (s)
-        assert_true (abs(step.times[0]-0.4*1e-3) < 1e-9)
-        assert_true (abs(step.times[1]-0.9*1e-3) < 1e-9)
+        assert_true(abs(step.times[0]-0.4*1e-3) < 1e-9)
+        assert_true(abs(step.times[1]-0.9*1e-3) < 1e-9)
         # Brain requires amplitudes in amperes (A)
-        assert_true (step.amplitudes[0] == -0.5*1e-9)
-        assert_true (step.amplitudes[1] == 0.5*1e-9)
+        assert_true(step.amplitudes[0] == -0.5*1e-9)
+        assert_true(step.amplitudes[1] == 0.5*1e-9)
     else:
         # NEST requires amplitudes in picoamperes (pA) but stored
         # as LazyArray and so needn't manually adjust; use nA
         # NEURON requires amplitudes in nanoamperes (nA)
-        assert_true (step.amplitudes[0] == -0.5)
-        assert_true (step.amplitudes[1] == 0.5)
+        assert_true(step.amplitudes[0] == -0.5)
+        assert_true(step.amplitudes[1] == 0.5)
         # NEST and NEURON require time in ms
         # But NEST has time stamps reduced by min_delay
         if "pyNN.nest" in str(sim):
-            assert_true (abs(step.times[0]-0.3) < 1e-9)
-            assert_true (abs(step.times[1]-0.8) < 1e-9)
-        else: # neuron
-            assert_true (abs(step.times[0]-0.4) < 1e-9)
-            assert_true (abs(step.times[1]-0.9) < 1e-9)
+            assert_true(abs(step.times[0]-0.3) < 1e-9)
+            assert_true(abs(step.times[1]-0.8) < 1e-9)
+        else:  # neuron
+            assert_true(abs(step.times[0]-0.4) < 1e-9)
+            assert_true(abs(step.times[1]-0.9) < 1e-9)
 
     # 2) dt = 0.01 ms, min_delay = 0.01 ms
     dt = 0.01
@@ -580,25 +609,68 @@ def issue512(sim):
     assert_equal(get_len(step.amplitudes), 2)
     if "pyNN.brian" in str(sim):
         # Brian requires time in seconds (s)
-        assert_true (abs(step.times[0]-0.45*1e-3) < 1e-9)
-        assert_true (abs(step.times[1]-0.86*1e-3) < 1e-9)
+        assert_true(abs(step.times[0]-0.45*1e-3) < 1e-9)
+        assert_true(abs(step.times[1]-0.86*1e-3) < 1e-9)
         # Brain requires amplitudes in amperes (A)
-        assert_true (step.amplitudes[0] == -0.5*1e-9)
-        assert_true (step.amplitudes[1] == 0.5*1e-9)
+        assert_true(step.amplitudes[0] == -0.5*1e-9)
+        assert_true(step.amplitudes[1] == 0.5*1e-9)
     else:
         # NEST requires amplitudes in picoamperes (pA) but stored
         # as LazyArray and so needn't manually adjust; use nA
         # NEURON requires amplitudes in nanoamperes (nA)
-        assert_true (step.amplitudes[0] == -0.5)
-        assert_true (step.amplitudes[1] == 0.5)
+        assert_true(step.amplitudes[0] == -0.5)
+        assert_true(step.amplitudes[1] == 0.5)
         # NEST and NEURON require time in ms
         # But NEST has time stamps reduced by min_delay
         if "pyNN.nest" in str(sim):
-            assert_true (abs(step.times[0]-0.44) < 1e-9)
-            assert_true (abs(step.times[1]-0.85) < 1e-9)
-        else: # neuron
-            assert_true (abs(step.times[0]-0.45) < 1e-9)
-            assert_true (abs(step.times[1]-0.86) < 1e-9)
+            assert_true(abs(step.times[0]-0.44) < 1e-9)
+            assert_true(abs(step.times[1]-0.85) < 1e-9)
+        else:  # neuron
+            assert_true(abs(step.times[0]-0.45) < 1e-9)
+            assert_true(abs(step.times[1]-0.86) < 1e-9)
+
+
+@register()
+def issue631(sim):
+    """
+    Test to ensure that recording of multiple electrode currents do not
+    interfere with one another.
+    """
+    sim_dt = 0.1
+    sim.setup(timestep=sim_dt, min_delay=sim_dt)
+
+    cells = sim.Population(1, sim.IF_curr_exp(v_rest=-65.0, v_thresh=-
+                                              55.0, tau_refrac=5.0))  # , i_offset=-1.0*amp))
+    dc_source = sim.DCSource(amplitude=0.5, start=25, stop=50)
+    ac_source = sim.ACSource(start=75, stop=125, amplitude=0.5,
+                             offset=0.25, frequency=100.0, phase=0.0)
+    noisy_source = sim.NoisyCurrentSource(mean=0.5, stdev=0.05, start=150, stop=175, dt=1.0)
+    step_source = sim.StepCurrentSource(times=[200, 225, 250], amplitudes=[0.4, 0.6, 0.2])
+
+    cells[0].inject(dc_source)
+    cells[0].inject(ac_source)
+    cells[0].inject(noisy_source)
+    cells[0].inject(step_source)
+
+    dc_source.record()
+    ac_source.record()
+    noisy_source.record()
+    step_source.record()
+
+    sim.run(275.0)
+
+    i_dc = dc_source.get_data()
+    i_ac = ac_source.get_data()
+    i_noisy = noisy_source.get_data()
+    i_step = step_source.get_data()
+
+    assert_true(np.all(i_dc.magnitude[:int(25.0 / sim_dt) - 1:] == 0)
+                and np.all(i_dc.magnitude[int(50.0 / sim_dt):] == 0))
+    assert_true(np.all(i_ac.magnitude[:int(75.0 / sim_dt) - 1:] == 0)
+                and np.all(i_ac.magnitude[int(125.0 / sim_dt):] == 0))
+    assert_true(np.all(i_noisy.magnitude[:int(150.0 / sim_dt) - 1:] == 0)
+                and np.all(i_noisy.magnitude[int(175.0 / sim_dt):] == 0))
+    assert_true(np.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
 
 
 if __name__ == '__main__':
@@ -614,6 +686,7 @@ if __name__ == '__main__':
     issue451(sim)
     issue483(sim)
     issue487(sim)
-    issue_465_474(sim)
+    issue_465_474_630(sim)
     issue497(sim)
     issue512(sim)
+    issue631(sim)

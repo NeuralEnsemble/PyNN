@@ -11,7 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os
+import sys
+import os
 
 
 if True:  # mock NEURON
@@ -50,10 +51,7 @@ if False:  # mock NEST
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
               'sphinx.ext.todo',
-              'sphinx.ext.viewcode',
-              #'sphinx.ext.intersphinx',
-#              'matplotlib.sphinxext.only_directives',
-#              'matplotlib.sphinxext.plot_directive'
+              'sphinx.ext.viewcode'
               ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -71,7 +69,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'PyNN'
 authors = u'the PyNN community'
-copyright = u'2006-2017, ' + authors
+copyright = u'2006-2020, ' + authors
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -208,8 +206,8 @@ htmlhelp_basename = 'PyNNdoc'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyNN.tex', u'PyNN Documentation',
-   authors, 'manual'),
+    ('index', 'PyNN.tex', u'PyNN Documentation',
+     authors, 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -295,4 +293,4 @@ todo_include_todos = True
 
 # -- inter-Sphinx mapping options ----------------------------------------------
 
-intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
+intersphinx_mapping = {'python': ('http://docs.python.org/3.8', None)}

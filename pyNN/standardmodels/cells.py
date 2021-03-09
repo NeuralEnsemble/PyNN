@@ -24,7 +24,7 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -327,6 +327,7 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_E':    0.2,   # ms
         'tau_syn_I':    2.0,
         'i_offset':     0.0,   # nA
+
     }
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
     receptor_types = ('excitatory', 'inhibitory', 'source_section.gap')
@@ -334,6 +335,9 @@ class HH_cond_exp(StandardCellType):
         'v': -65.0,  # 'v_rest',
         'gsyn_exc': 0.0,
         'gsyn_inh': 0.0,
+        'h': 1.0,
+        'm': 0.0,
+        'n': 0.0,
     }
     units = {
         'v': 'mV',
@@ -352,6 +356,9 @@ class HH_cond_exp(StandardCellType):
         'tau_syn_E': 'ms',
         'tau_syn_I': 'ms',
         'i_offset': 'nA',
+        'h': '',
+        'm': '',
+        'n': '',
     }
 
 

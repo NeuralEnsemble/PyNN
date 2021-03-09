@@ -71,7 +71,7 @@ def run(sim):
     spikesI = popI.getSpikes()
     v_I = popE.get_v()
     g_I = popI.get_gsyn()
-   
+
     #print(spikesE)
     # should be about 6.0Hz
     print(float(len(spikesE)) / tsim * 1000.0)
@@ -84,7 +84,7 @@ def run(sim):
 
 
 results = {}
-for sim_name, sim in pyNN_backends.iteritems():
+for sim_name, sim in pyNN_backends.items():
     print(sim_name)
     results[sim_name] = run(sim)
     #v_E = results[sim_name][2]
@@ -92,7 +92,7 @@ for sim_name, sim in pyNN_backends.iteritems():
 
     g_E = results[sim_name][4]
     plot(g_E[:, 1], g_E[:, 2], label=sim_name)
-    
+
 legend()
 
 

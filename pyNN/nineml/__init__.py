@@ -1,7 +1,7 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 import logging
@@ -54,7 +54,7 @@ reset = common.build_reset(simulator)
 initialize = common.initialize
 
 get_current_time, get_time_step, get_min_delay, get_max_delay, \
-                    num_processes, rank = common.build_state_queries(simulator)
+    num_processes, rank = common.build_state_queries(simulator)
 
 create = common.build_create(Population)
 
@@ -64,9 +64,11 @@ set = common.set
 
 record = common.build_record(simulator)
 
-record_v = lambda source, filename: record(['v'], source, filename)
 
-record_gsyn = lambda source, filename: record(['gsyn_exc', 'gsyn_inh'], source, filename)
+def record_v(source, filename): return record(['v'], source, filename)
+
+
+def record_gsyn(source, filename): return record(['gsyn_exc', 'gsyn_inh'], source, filename)
 
 
 class Network(object):  # move to .simulator ?

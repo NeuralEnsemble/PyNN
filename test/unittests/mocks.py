@@ -1,12 +1,12 @@
 """
 Mock classes for unit tests
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from pyNN import random
-import numpy
+import numpy as np
 
 
 class MockRNG(random.WrappedRNG):
@@ -24,13 +24,13 @@ class MockRNG(random.WrappedRNG):
             return self._next_binomial(n, parameters)
         s = self.start
         self.start += n * self.delta
-        return s + self.delta * numpy.arange(n)
+        return s + self.delta * np.arange(n)
 
     def _next_int(self, n, parameters):
         low, high = parameters["low"], parameters["high"]
         s = int(self.start)
         self.start += n * self.delta
-        x = s + self.delta * numpy.arange(n)
+        x = s + self.delta * np.arange(n)
         return x % (high - low) + low
 
     def _next_binomial(self, n, parameters):
@@ -67,10 +67,10 @@ class MockRNG3(random.WrappedRNG):
         random.WrappedRNG.__init__(self, parallel_safe=parallel_safe)
 
     def _next(self, distribution, n, parameters):
-        x = numpy.zeros(n)
+        x = np.zeros(n)
         x.dtype = int
         x[0] = 1
         return x
-    
+
     def permutation(self, arr):
         return arr[::-1]
