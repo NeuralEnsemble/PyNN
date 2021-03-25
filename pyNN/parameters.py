@@ -354,9 +354,12 @@ class ParameterSpace(object):
             self._evaluated_shape = self._shape
         else:
             for name, value in self._parameters.items():
-                if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
-                    value = value.evaluate()  # can't partially evaluate if using parallel safe
-                self._parameters[name] = value[mask]
+                try:
+                    if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
+                        value = value.evaluate()  # can't partially evaluate if using parallel safe
+                    self._parameters[name] = value[mask]
+                except ValueError:
+                    raise errors.InvalidParameterValueError(f"{name} should not be of type {type(value)}")
             self._evaluated_shape = partial_shape(mask, self._shape)
         self._evaluated = True
         # should possibly update self.shape according to mask?

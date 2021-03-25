@@ -346,7 +346,9 @@ class BasePopulation(object):
         # TODO: add example using of function of (x,y,z) and Population.position_generator
         if self.local_size > 0:
             if (isinstance(self.celltype, standardmodels.StandardCellType)
-                    and any(name in self.celltype.computed_parameters() for name in parameters)):
+                    and any(name in self.celltype.computed_parameters() for name in parameters)
+                    and not isinstance(self.celltype, standardmodels.cells.SpikeSourceArray)):
+                      # the last condition above is a bit of hack to avoid calling expand() unecessarily
                 # need to get existing parameter space of models so we can perform calculations
                 native_names = self.celltype.get_native_names()
                 parameter_space = self.celltype.reverse_translate(
