@@ -832,7 +832,7 @@ class NeuronTemplate(object):
                     h.pop_section()
                 try:
                     setattr(section, name, value)
-                except NameError as err:  # section does not contain ion
+                except (NameError, AttributeError) as err:  # section does not contain ion
                     if "the mechanism does not exist" not in str(err):
                         raise
 

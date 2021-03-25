@@ -2,9 +2,11 @@ import os
 from collections import defaultdict
 from nose.plugins.skip import SkipTest
 from .scenarios.registry import registry
-from nose.tools import assert_equal, assert_almost_equal
+from nose.tools import assert_equal, assert_almost_equal, assert_false
 from numpy.testing import assert_array_equal
 from pyNN.random import RandomDistribution
+from pyNN.parameters import IonicSpecies
+from pyNN.space import Grid2D, RandomStructure, Sphere
 from pyNN.utility import init_logging
 import quantities as pq
 import numpy as np
@@ -16,6 +18,16 @@ try:
     have_neuron = True
 except ImportError:
     have_neuron = False
+
+try:
+    from neuroml import Morphology, Segment, Point3DWithDiam as P
+    from pyNN.morphology import (NeuroMLMorphology, load_morphology, uniform, random_section,
+                                 dendrites, apical_dendrites, by_distance)
+    import neuroml.loaders
+    have_neuroml = True
+except ImportError:
+    have_neuroml = False
+
 
 skip_ci = False
 if "JENKINS_SKIP_TESTS" in os.environ:
@@ -241,3 +253,131 @@ def test_artificial_cells():
         )
         p.record('m')
     sim.run(100.0)
+
+
+def test_2_compartment():
+    if not (have_neuron and have_neuroml):
+        raise SkipTest
+    sim = pyNN.neuron
+
+    sim.setup(timestep=0.025)
+    soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
+                   distal=P(x=18.8, y=0, z=0, diameter=18.8),
+                   name="soma", id=0)
+    dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
+                   distal=P(x=-500, y=0, z=0, diameter=2),
+                   name="dendrite",
+                   parent=soma, id=1)
+
+    cell_class = sim.MultiCompartmentNeuron
+    cell_class.label = "ExampleMultiCompartmentNeuron"
+    cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
+
+    cell_type = cell_class(
+        morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),
+        cm=1.01,
+        Ra=500.0,
+        ionic_species={
+                "na": IonicSpecies("na", reversal_potential=50.1),
+                "k": IonicSpecies("k", reversal_potential=-77.7)
+        },
+        pas={"conductance_density": uniform('all', 0.00033),
+                "e_rev":-54.32},
+        na={"conductance_density": uniform('soma', 0.121)},
+        kdr={"conductance_density": uniform('soma', 0.0363)}
+    )
+
+    cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
+    step_current = sim.DCSource(amplitude=0.1, start=50.0, stop=150.0)
+    step_current.inject_into(cells[0:1], location="soma")
+    step_current.inject_into(cells[1:2], location="dendrite")
+
+    cells.record('spikes')
+    cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
+    cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
+
+    sim.run(200.0)
+
+    data = cells.get_data().segments[0]
+
+    hcell0 = cells[0]._cell
+    hsoma = hcell0.section_labels["soma"]
+    assert_equal(hsoma.L, 18.8)
+    assert_equal(hsoma.diam, 18.8)
+    assert_equal(hsoma.cm, 1.01)
+    assert_equal(hsoma.gnabar_hh, 0.121)
+    assert_equal(hsoma.gkbar_hh, 0.0363)
+    assert_equal(hsoma.gl_hh, 0.0)
+    assert_equal(hsoma.ena, 50.1)
+    assert_equal(hsoma.ek, -77.7)
+    assert_equal(hsoma.e_pas, -54.32)
+    assert_equal(hsoma.g_pas, 0.00033)
+
+    hdend = hcell0.section_labels["dendrite"]
+    assert_equal(hdend.L, 500.0)
+    assert_equal(hdend.diam, 2.0)
+    assert_equal(hsoma.cm, 1.01)
+    assert_equal(hdend.e_pas, -54.32)
+    assert_equal(hdend.g_pas, 0.00033)
+    assert_false(hasattr(hdend, "ena"))
+
+    vm_soma = data.filter(name="soma.v")[0]
+    assert_equal(vm_soma[0, 0], pq.Quantity(-60.0, "mV"))
+    assert_equal(vm_soma[0, 1], pq.Quantity(-70.0, "mV"))
+    vm_dend = data.filter(name="dendrite.v")[0]
+    assert_equal(vm_dend[0, 0], pq.Quantity(-60.0, "mV"))
+    assert_equal(vm_dend[0, 1], pq.Quantity(-70.0, "mV"))
+
+
+def test_mc_network():
+    if not (have_neuron and have_neuroml):
+        raise SkipTest
+    sim = pyNN.neuron
+
+    pyr_morph = load_morphology(
+        "http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
+        replace_axon=None)
+
+    pyramidal_cell_class = sim.MultiCompartmentNeuron
+    pyramidal_cell_class.label = "PyramidalNeuron"
+    pyramidal_cell_class.ion_channels = {
+        'pas': sim.PassiveLeak,
+        'na': sim.NaChannel,
+        'kdr': sim.KdrChannel
+    }
+    pyramidal_cell_class.post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticResponse,
+                                                   'GABA_A': sim.CondExpPostSynapticResponse}
+
+    pyramidal_cell = pyramidal_cell_class(
+                        morphology=pyr_morph,
+                        pas={"conductance_density": uniform('all', 0.0003)},
+                        na={"conductance_density": uniform('soma', 0.120)},
+                        kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0)},
+                        ionic_species={
+                            "na": IonicSpecies("na", reversal_potential=50.0),
+                            "k": IonicSpecies("k", reversal_potential=-77.0)
+                        },
+                        cm=1.0,
+                        Ra=500.0,
+                        AMPA={"density": uniform('all', 0.05),  # number per µm
+                              "e_rev": 0.0,
+                              "tau_syn": 2.0},
+                        GABA_A={"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
+                                "e_rev": -70.0,
+                                "tau_syn": 5.0})
+
+    pyramidal_cells = sim.Population(2, pyramidal_cell, initial_values={'v': -60.0}, structure=Grid2D())
+    inputs = sim.Population(1000, sim.SpikeSourcePoisson(rate=1000.0))
+
+    pyramidal_cells.record('spikes')
+    pyramidal_cells[:1].record('v', locations={"soma": "soma"})
+    pyramidal_cells[:1].record('v', locations={"dend": apical_dendrites()})
+
+    i2p = sim.Projection(inputs, pyramidal_cells,
+                        connector=sim.AllToAllConnector(location_selector=random_section(apical_dendrites())),
+                        synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
+                        receptor_type="AMPA"
+                        )
+
+    sim.run(10.0)
+    data = pyramidal_cells.get_data().segments[0]
