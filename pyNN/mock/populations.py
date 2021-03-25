@@ -1,5 +1,5 @@
 import numpy as np
-from pyNN import common
+from pyNN import common, errors
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
@@ -29,7 +29,10 @@ class PopulationView(common.PopulationView):
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
         for name, value in parameter_space.items():
-            self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
+            try:
+                self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
+            except ValueError as err:
+                raise errors.InvalidParameterValueError(f"{name} should not be of type {type(value)}")
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
