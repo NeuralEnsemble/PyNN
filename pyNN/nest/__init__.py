@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-NEST v2 implementation of the PyNN API.
+NEST 3.0 implementation of the PyNN API.
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
@@ -19,11 +19,6 @@ from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 
-try:
-    nest.GetStatus([np.int32(0)])
-except nest.kernel.NESTError:
-    raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing np.")
-
 # if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
 #    raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
@@ -38,8 +33,6 @@ from pyNN.nest.connectors import *
 from pyNN.nest.standardmodels.synapses import *
 from pyNN.nest.standardmodels.electrodes import *
 from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG, GSLRNG
-from pyNN.nest.random import NativeRNG
 from pyNN.space import Space
 from pyNN.standardmodels import StandardCellType
 from pyNN.nest.populations import Population, PopulationView, Assembly
@@ -105,12 +98,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
     `threads`:
         number of threads to use
-    `grng_seed`:
-        one seed for the global random number generator of NEST
-    `rng_seeds`:
-        a list of seeds, one for each thread on each MPI process
-    `rng_seeds_seed`:
-        a single seed that will be used to generate random values for `rng_seeds`
+    `rng_seed`:
+        seed for the random number generator of NEST
     """
     max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     common.setup(timestep, min_delay, **extra_params)
@@ -118,16 +107,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     for key in ("threads", "verbosity", "spike_precision", "recording_precision"):
         if key in extra_params:
             setattr(simulator.state, key, extra_params[key])
-    # set kernel RNG seeds
     simulator.state.num_threads = extra_params.get('threads') or 1
-    if 'grng_seed' in extra_params:
-        simulator.state.grng_seed = extra_params['grng_seed']
-    if 'rng_seeds' in extra_params:
-        simulator.state.rng_seeds = extra_params['rng_seeds']
-    else:
-        rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
-        n = simulator.state.num_processes * simulator.state.threads
-        simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
+    # set kernel RNG seed
+    simulator.state.rng_seed = extra_params.get('rng_seed') or 42
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay

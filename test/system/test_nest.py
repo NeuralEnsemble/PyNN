@@ -160,7 +160,7 @@ def test_random_seeds():
     sim = pyNN.nest
     data = []
     for seed in (854947309, 470924491):
-        sim.setup(threads=1, rng_seeds=[seed])
+        sim.setup(threads=1, rng_seed=seed)
         p = sim.Population(3, sim.SpikeSourcePoisson(rate=100.0))
         p.record('spikes')
         sim.run(100)

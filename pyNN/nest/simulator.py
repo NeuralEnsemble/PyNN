@@ -74,15 +74,13 @@ class _State(common.control.BaseState):
     @property
     def t(self):
         # note that we always simulate one time step past the requested time
-        return max(nest.GetKernelStatus('time') - self.dt, 0.0)
+        return max(nest.GetKernelStatus('biological_time') - self.dt, 0.0)
 
     dt = nest_property('resolution', float)
 
     threads = nest_property('local_num_threads', int)
 
-    grng_seed = nest_property('grng_seed', int)
-
-    rng_seeds = nest_property('rng_seeds', list)
+    rng_seed = nest_property('rng_seed', int)
 
     @property
     def min_delay(self):
@@ -150,8 +148,8 @@ class _State(common.control.BaseState):
         self.run(tstop - self.t)
 
     def reset(self):
-        nest.ResetNetwork()
-        nest.SetKernelStatus({'time': 0.0})
+        nest.ResetKernel()
+        nest.SetKernelStatus({'biological_time': 0.0})
         for p in self.populations:
             for variable, initial_value in p.initial_values.items():
                 p._set_initial_value_array(variable, initial_value)
