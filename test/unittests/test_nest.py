@@ -23,18 +23,14 @@ class TestFunctions(unittest.TestCase):
     def test_setup(self):
         sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
                   verbosity='debug', spike_precision='off_grid',
-                  recording_precision=4, threads=2, rng_seeds=[873465, 3487564])
+                  recording_precision=4, threads=2, rng_seed=873465)
         ks = nest.GetKernelStatus()
         self.assertEqual(ks['resolution'], 0.05)
         self.assertEqual(ks['local_num_threads'], 2)
-        self.assertEqual(ks['rng_seeds'], (873465, 3487564))
+        self.assertEqual(ks['rng_seed'], 873465)
         #self.assertEqual(ks['min_delay'], 0.1)
         #self.assertEqual(ks['max_delay'], 1.0)
         self.assertTrue(ks['off_grid_spiking'])
-
-    def test_setup_with_rng_seeds(self):
-        sim.setup(rng_seeds_seed=42, threads=3)
-        self.assertEqual(len(nest.GetKernelStatus('rng_seeds')), 3)
 
     def test_run_0(self, ):  # see https://github.com/NeuralEnsemble/PyNN/issues/191
         sim.setup(timestep=0.123, min_delay=0.246)

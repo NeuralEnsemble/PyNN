@@ -85,7 +85,7 @@ class CSAConnector(DefaultCSAConnector):
 class NESTConnectorMixin(object):
 
     def synapse_parameters(self, projection):
-        params = {'model': projection.nest_synapse_model}
+        params = {'synapse_model': projection.nest_synapse_model}
         parameter_space = self._parameters_from_synapse_type(projection, distance_map=None)
         for name, value in parameter_space.items():
             if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):

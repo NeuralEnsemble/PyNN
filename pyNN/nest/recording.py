@@ -33,11 +33,10 @@ class RecordingDevice(object):
 
     def __init__(self, device_parameters, to_memory=True):
         # to be called at the end of the subclass __init__
-        device_parameters.update(withgid=True, withtime=True)
         if to_memory:
-            device_parameters.update(to_file=False, to_memory=True)
+            device_parameters.update(record_to="memory")
         else:
-            device_parameters.update(to_file=True, to_memory=False)
+            device_parameters.update(record_to="ascii")
         self._all_ids = set([])
         self._connected = False
         simulator.state.recording_devices.append(self)
@@ -90,22 +89,23 @@ class RecordingDevice(object):
 
 
 class SpikeDetector(RecordingDevice):
-    """A wrapper around the NEST spike_detector device"""
+    """A wrapper around the NEST spike_recorder device"""
 
     def __init__(self, to_memory=True):
-        self.device = nest.Create('spike_detector')
-        device_parameters = {
-            "precise_times": True,
-            "precision": simulator.state.default_recording_precision
-        }
+        self.device = nest.Create('spike_recorder')
+        device_parameters = {}
+        if not to_memory:
+            device_parameters.update(precision=simulator.state.default_recording_precision)
         super(SpikeDetector, self).__init__(device_parameters, to_memory)
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self._all_ids),
-                     list(self.device),
+        if not self._all_ids:
+            return
+        nest.Connect(nest.NodeCollection(list(self._all_ids)),
+                     self.device,
                      {'rule': 'all_to_all'},
-                     {'model': 'static_synapse',
+                     {'synapse_model': 'static_synapse',
                       'delay': simulator.state.min_delay})
         self._connected = True
 
@@ -140,10 +140,12 @@ class Multimeter(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self.device),
-                     list(self._all_ids),
+        if not self._all_ids:
+            return
+        nest.Connect(self.device,
+                     nest.NodeCollection(list(self._all_ids)),
                      {'rule': 'all_to_all'},
-                     {'model': 'static_synapse',
+                     {'synapse_model': 'static_synapse',
                       'delay': simulator.state.min_delay})
         self._connected = True
 
@@ -161,20 +163,20 @@ class Multimeter(RecordingDevice):
 #    scale_factors = {'V_m': 1, 'g_ex': 0.001, 'g_in': 0.001}
 #
 #    def __init__(self, device_type, to_memory=False):
-#        assert device_type in ("multimeter", "spike_detector")
+#        assert device_type in ("multimeter", "spike_recorder")
 #        self.type      = device_type
 #        self.device    = nest.Create(device_type)
 #        self.to_memory = to_memory
-#        device_parameters = {"withgid": True, "withtime": True}
+#        device_parameters = {}
 #        if self.type is 'multimeter':
 #            device_parameters["interval"] = simulator.state.dt
 #        else:
-#            device_parameters["precise_times"] = True
-#            device_parameters["precision"] = simulator.state.default_recording_precision
+#            if not to_memory:
+#                device_parameters["precision"] = simulator.state.default_recording_precision
 #        if to_memory:
-#            device_parameters.update(to_file=False, to_memory=True)
+#            device_parameters.update(record_to="memory")
 #        else:
-#            device_parameters.update(to_file=True, to_memory=False)
+#            device_parameters.update(record_to="ascii")
 #        try:
 #            nest.SetStatus(self.device, device_parameters)
 #        except nest.kernel.NESTError as e:
@@ -204,7 +206,7 @@ class Multimeter(RecordingDevice):
 #    def connect_to_cells(self):
 #        if not self._connected:
 #            ids = list(self._all_ids)
-#            if self.type is "spike_detector":
+#            if self.type is "spike_recorder":
 #                nest.ConvergentConnect(ids, self.device, model='static_synapse')
 #            else:
 #                nest.DivergentConnect(self.device, ids, model='static_synapse')
@@ -221,7 +223,7 @@ class Multimeter(RecordingDevice):
 #        """
 #        ids = events['senders']
 #        times = events['times']
-#        if self.type == 'spike_detector':
+#        if self.type == 'spike_recorder':
 #            data = np.array((ids, times)).T
 #        else:
 #            data = [ids, times]
@@ -309,12 +311,12 @@ class Multimeter(RecordingDevice):
 #                             for nest_file in non_empty_nest_files]
 #                data = np.concatenate(data_list)
 #            if len(non_empty_nest_files) == 0 or data.size == 0:
-#                if self.type is "spike_detector":
+#                if self.type is "spike_recorder":
 #                    ncol = 2
 #                else:
 #                    ncol = 2 + len(self.record_from)
 #                data = np.empty([0, ncol])
-#            if compatible_output and self.type is not "spike_detector":
+#            if compatible_output and self.type is not "spike_recorder":
 #                data = self.scale_data(data)
 #                data = self.add_initial_values(data)
 #            self._merged_file = tempfile.TemporaryFile()
@@ -386,14 +388,14 @@ class Recorder(recording.Recorder):
     def __init__(self, population, file=None):
         __doc__ = recording.Recorder.__doc__
         self._multimeter = Multimeter()
-        self._spike_detector = SpikeDetector()
+        self._spike_recorder = SpikeDetector()
         recording.Recorder.__init__(self, population, file)
 #        self._create_device()
 
 #    def _create_device(self, variable):
 #        to_memory = (self.file is False) # note file=None means we save to a temporary file, not to memory
 #        if variable is "spikes":
-#            self._device = RecordingDevice("spike_detector", to_memory)
+#            self._device = RecordingDevice("spike_recorder", to_memory)
 #        else:
 #            self._device = None
 #            for recorder in self.population.recorders.values():
@@ -412,7 +414,7 @@ class Recorder(recording.Recorder):
         we record all analog variables for all requested cells.
         """
         if variable == 'spikes':
-            self._spike_detector.add_ids(new_ids)
+            self._spike_recorder.add_ids(new_ids)
         else:
             self.sampling_interval = sampling_interval
             self._multimeter.add_variable(variable)
@@ -430,16 +432,16 @@ class Recorder(recording.Recorder):
     def _reset(self):
         """ """
         simulator.state.recording_devices.remove(self._multimeter)
-        simulator.state.recording_devices.remove(self._spike_detector)
+        simulator.state.recording_devices.remove(self._spike_recorder)
         # I guess the existing devices still exist in NEST, can we delete them
         # or at least turn them off?
         # Maybe we can reset them, rather than create new ones?
         self._multimeter = Multimeter()
-        self._spike_detector = SpikeDetector()
+        self._spike_recorder = SpikeDetector()
 
     def _get_spiketimes(self, ids):
         # hugely inefficient - to be optimized later
-        return self._spike_detector.get_spiketimes(ids)
+        return self._spike_recorder.get_spiketimes(ids)
 
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
@@ -469,14 +471,14 @@ class Recorder(recording.Recorder):
         #    for id, l, r in zip(idx, left, right):
         #        N[id] = r-l
         # return N
-        return self._spike_detector.get_spike_counts(self.filter_recorded('spikes', filter_ids))
+        return self._spike_recorder.get_spike_counts(self.filter_recorded('spikes', filter_ids))
 
     def _clear_simulator(self):
         """
         Should remove all recorded data held by the simulator and, ideally,
         free up the memory.
         """
-        nest.SetStatus(self._spike_detector.device, 'n_events', 0)
+        nest.SetStatus(self._spike_recorder.device, 'n_events', 0)
         nest.SetStatus(self._multimeter.device, 'n_events', 0)
 
     def store_to_cache(self, annotations=None):

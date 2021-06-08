@@ -33,6 +33,7 @@ class PopulationMixin(object):
         ids = self.local_cells.tolist()
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
+        ids = nest.NodeCollection([int(i) for i in ids])
         nest.SetStatus(ids, param_dict)
 
     def _get_parameters(self, *names):
@@ -42,6 +43,7 @@ class PopulationMixin(object):
         ids = self.local_cells.tolist()
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = [id.source for id in ids]
+        ids = nest.NodeCollection([int(i) for i in ids])
 
         if "spike_times" in names:
             parameter_dict = {"spike_times": [Sequence(value)
@@ -159,8 +161,8 @@ class Population(common.Population, PopulationMixin):
                 gid.source = source
 
     def _connect_parrot_neurons(self):
-        nest.Connect(self.all_cells_source, np.array(self.all_cells, int), 'one_to_one',
-                     syn_spec={'delay': simulator.state.min_delay})
+        nest.Connect(self.all_cells_source, self.all_cells.astype(int), 'one_to_one',
+                     syn_spec={'delay': simulator.state.min_delay * np.ones_like(self.all_cells_source)})
         self._deferred_parrot_connections = False
 
     def _set_initial_value_array(self, variable, value):
@@ -170,7 +172,8 @@ class Population(common.Population, PopulationMixin):
         else:
             local_values = value._partially_evaluate(self._mask_local, simplify=True)
         try:
-            nest.SetStatus(self.local_cells.tolist(), variable, local_values)
+            nc = nest.NodeCollection([int(i) for i in self.local_cells])
+            nest.SetStatus(nc, variable, local_values)
         except nest.kernel.NESTError as e:
             if "Unused dictionary items" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)

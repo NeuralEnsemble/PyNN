@@ -26,7 +26,7 @@ def listify(obj):
     if isinstance(obj, np.ndarray):
         return obj.astype(float).tolist()
     elif np.isscalar(obj):
-        return float(obj)  # NEST chokes on numpy's float types
+        return [float(obj)]  # NEST chokes on numpy's float types
     else:
         return obj
 
@@ -123,7 +123,7 @@ class Projection(common.Projection):
         Use the connection between the sample indices to distinguish
         between local and common synapse properties.
         """
-        sample_connection = nest.GetConnections(source=[int(self._sources[0])],
+        sample_connection = nest.GetConnections(source=self._sources[0],
                                                 synapse_model=self.nest_synapse_model,
                                                 synapse_label=self.nest_synapse_label)[:1]
 
@@ -134,7 +134,7 @@ class Projection(common.Projection):
 
     def _update_syn_params(self, syn_dict, connection_parameters):
         """
-        Update the paramaters to be passed in the nest.Connect method with the connection
+        Update the parameters to be passed in the nest.Connect method with the connection
         parameters specific to the synapse type.
 
         `syn_dict` - the dictionary to be passed to nest.Connect containing "local" parameters
@@ -154,7 +154,7 @@ class Projection(common.Projection):
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             **connection_parameters):
         """
-        Connect a neuron to one or more other neurons with a static connection.
+        Connect one or more (presynaptic) neurons to one other (postsynaptic) neuron.
 
         `presynaptic_indices` - 1D array of presynaptic indices
         `postsynaptic_index` - integer - the index of the postsynaptic neuron
@@ -162,14 +162,14 @@ class Projection(common.Projection):
         """
         #logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
 
-        presynaptic_cells = self.pre.all_cells[presynaptic_indices].astype(int).tolist()
+        presynaptic_cells = nest.NodeCollection(self.pre.all_cells[presynaptic_indices].astype(int).tolist())
         postsynaptic_cell = self.post[postsynaptic_index]
-        postsynaptic_cell_id = [int(postsynaptic_cell)]
+        postsynaptic_cell_id = nest.NodeCollection([int(postsynaptic_cell)])
         assert len(presynaptic_cells) > 0, presynaptic_cells
         self._sources.extend(presynaptic_cells)
 
         syn_dict = {
-            'model': self.nest_synapse_model,
+            'synapse_model': self.nest_synapse_model,
             'synapse_label': self.nest_synapse_label,
         }
 
@@ -190,18 +190,22 @@ class Projection(common.Projection):
 
         # Clean the connection parameters by removing parameters that are
         # used by PyNN but should not be passed to NEST
-        connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
+        connection_parameters.pop('tau_minus', None)  # should be set on the postsynaptic cell instead
+        if "tau_minus" in connection_parameters.keys():
+            nest.SetStatus(postsynaptic_cell_id,
+                           {"tau_minus": simplify(connection_parameters["tau_minus"])})
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
 
         # Create connections and set parameters
         try:
-            # nest.Connect expects a 2D array
-            if not np.isscalar(weights):
-                weights = np.array([weights])
-            if not np.isscalar(delays):
-                delays = np.array([delays])
-            syn_dict.update({'weight': weights, 'delay': delays})
+            # nest.Connect expects `weight` and `delay` to be 2D arrays for 'all_to_all' connection type
+            if np.isscalar(weights):
+                weights = np.atleast_2d(weights)
+            if np.isscalar(delays):
+                delays = np.atleast_2d(delays)
+            syn_dict.update({'weight': weights,
+                             'delay': delays})
 
             if postsynaptic_cell.celltype.standard_receptor_type:
                 # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
@@ -242,12 +246,11 @@ class Projection(common.Projection):
                                                   synapse_model=self.nest_synapse_model,
                                                   synapse_label=self.nest_synapse_label)
                 # not sure why we need to sort here
-                sort_indices = np.argsort(presynaptic_cells)
                 for name, value in connection_parameters.items():
                     if name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)
                         if isinstance(value, np.ndarray):
-                            nest.SetStatus(connections, name, value[sort_indices].tolist())
+                            nest.SetStatus(connections, name, value.tolist())
                         else:
                             nest.SetStatus(connections, name, value)
                     else:
