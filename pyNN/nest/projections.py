@@ -7,10 +7,10 @@ NEST v3.0 implementation of the PyNN API
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy as np
-import nest
 import logging
-from itertools import repeat
+import nest
+import numpy as np
+import sys
 from pyNN import common, errors
 from pyNN.space import Space
 from pyNN.parameters import simplify
@@ -45,7 +45,7 @@ class Projection(common.Projection):
         self.nest_synapse_model = self.synapse_type._get_nest_synapse_model()
         self.nest_synapse_label = Projection._nProj
         self.synapse_type._set_tau_minus(self.post.local_cells)
-        self._sources = []
+        self._sources = nest.NodeCollection()
         self._connections = None
         # This is used to keep track of common synapse properties
         self._common_synapse_properties = {}
@@ -78,9 +78,8 @@ class Projection(common.Projection):
     @property
     def nest_connections(self):
         if self._connections is None or self._simulator.state.stale_connection_cache:
-            self._sources = np.unique(self._sources)
-            if self._sources.size > 0:
-                self._connections = nest.GetConnections(self._sources.tolist(),
+            if len(self._sources) > 0:
+                self._connections = nest.GetConnections(self._sources,
                                                         synapse_model=self.nest_synapse_model,
                                                         synapse_label=self.nest_synapse_label)
             else:
@@ -117,6 +116,7 @@ class Projection(common.Projection):
         self._simulator.state.stale_connection_cache = True
         self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model,
                                                                synapse_label=self.nest_synapse_label)]
+        self._sources = nest.NodeCollection(self._sources)
 
     def _identify_common_synapse_properties(self):
         """
@@ -165,8 +165,10 @@ class Projection(common.Projection):
         presynaptic_cells = nest.NodeCollection(self.pre.all_cells[presynaptic_indices].astype(int).tolist())
         postsynaptic_cell = self.post[postsynaptic_index]
         postsynaptic_cell_id = nest.NodeCollection([int(postsynaptic_cell)])
-        assert len(presynaptic_cells) > 0, presynaptic_cells
-        self._sources.extend(presynaptic_cells)
+        assert presynaptic_cells
+        assert len(presynaptic_cells) > 0
+        #self._sources += presynaptic_cells
+        self._sources = nest.NodeCollection(np.unique(np.append(np.array(self._sources.tolist(), dtype=int), np.array(presynaptic_cells.tolist(), dtype=int))))
 
         syn_dict = {
             'synapse_model': self.nest_synapse_model,
@@ -175,13 +177,13 @@ class Projection(common.Projection):
 
         # Weights require some special handling
         weights = connection_parameters.pop('weight')
-        if self.receptor_type == 'inhibitory' and self.post.conductance_based:
+        if self.receptor_type == 'inhibitory' and self.post.conductance_based: # XXX: should and cond_based be here??
             weights *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
             if "stdp" in self.nest_synapse_model:
-                syn_dict["Wmax"] = -1.2345e6  # just some very large negative value to avoid
-                                              # NEST complaining about weight and Wmax having different signs
-                                              # (see https://github.com/NeuralEnsemble/PyNN/issues/636)
-                                              # Will be overwritten below.
+                syn_dict["Wmax"] = -sys.float_info.max  # just some very large negative value to avoid
+                                                        # NEST complaining about weight and Wmax having different signs
+                                                        # (see https://github.com/NeuralEnsemble/PyNN/issues/636)
+                                                        # Will be overwritten below.
                 connection_parameters["Wmax"] *= -1
         if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
             weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
@@ -198,14 +200,21 @@ class Projection(common.Projection):
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
 
         # Create connections and set parameters
-        try:
+        #try:
+        if True:
             # nest.Connect expects `weight` and `delay` to be 2D arrays for 'all_to_all' connection type
-            if np.isscalar(weights):
-                weights = np.atleast_2d(weights)
-            if np.isscalar(delays):
-                delays = np.atleast_2d(delays)
+            #if np.isscalar(weights) or len(weights) == 1:
+            #    weights = np.array(len(presynaptic_cells) * [float(weights)])
+            #if np.isscalar(delays) or len(delays) == 1:
+            #    delays = np.array(len(presynaptic_cells) * [float(delays)])
+            assert type(weights) is float or len(weights) == 1
+            assert type(delays) is float or len(delays) == 1
+            weights = float(weights)
+            delays = float(delays)
+            print("syn_dict beofre = " + str(syn_dict))
             syn_dict.update({'weight': weights,
                              'delay': delays})
+            print("syn_dict after = " + str(syn_dict))
 
             if postsynaptic_cell.celltype.standard_receptor_type:
                 # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
@@ -268,7 +277,8 @@ class Projection(common.Projection):
                     if name in self._common_synapse_property_names:
                         self._set_common_synapse_property(name, value)
 
-        except nest.kernel.NESTError as e:
+        #except nest.kernel.NESTError as e:
+        if False:
             errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
                 e, presynaptic_cells, postsynaptic_cell,
                 weights, delays, self.nest_synapse_model)
@@ -284,22 +294,21 @@ class Projection(common.Projection):
                              "within a single Projection with NEST.")
         # only columns for connections that exist on this machine
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
-        sources = np.unique(self._sources).tolist()
         if self._common_synapse_property_names is None:
             self._identify_common_synapse_properties()
         for postsynaptic_cell, connection_parameters in zip(self.post.local_cells,
                                                             parameter_space.columns()):
-            connections = nest.GetConnections(source=sources,
-                                              target=[postsynaptic_cell],
+            connections = nest.GetConnections(source=self._sources,
+                                              target=nest.NodeCollection([int(postsynaptic_cell)]),
                                               synapse_model=self.nest_synapse_model,
                                               synapse_label=self.nest_synapse_label)
             if connections:
-                source_mask = self.pre.id_to_index([x[0] for x in connections])
+                source_mask = self.pre.id_to_index([x for x in connections.sources()])
                 for name, value in connection_parameters.items():
                     if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
                         value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
                     if name == "tau_minus":  # set on the post-synaptic cell
-                        nest.SetStatus(self.post.local_cells.astype(int).tolist(),
+                        nest.SetStatus(nest.NodeCollection(self.post.local_cells.astype(int).tolist()),
                                        {"tau_minus": simplify(value)})
                     elif name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)
@@ -314,8 +323,8 @@ class Projection(common.Projection):
 
     def _set_common_synapse_property(self, name, value):
         """
-            Sets the common synapse property while making sure its value stays
-            unique (i.e. it can only be set once).
+        Sets the common synapse property while making sure its value stays
+        unique (i.e. it can only be set once).
         """
         if name in self._common_synapse_properties:
             unequal = self._common_synapse_properties[name] != value

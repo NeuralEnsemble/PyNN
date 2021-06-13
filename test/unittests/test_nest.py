@@ -180,7 +180,7 @@ class TestProjection(unittest.TestCase):
             weight=0.5, delay=1.0, dendritic_delay_fraction=1.0)
         prj = sim.Projection(self.p1, self.p2, self.all2all,
                              synapse_type=stdp_model)
-        actual_tau_minus = nest.GetStatus([prj.post[0]], "tau_minus")[0]
+        actual_tau_minus = nest.GetStatus(nest.NodeCollection([prj.post[0]]), "tau_minus")[0]
         self.assertEqual(intended_tau_minus, actual_tau_minus)
 
 

@@ -68,7 +68,7 @@ class NESTSynapseMixin(object):
             native_parameters.shape = (1,)
             tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
             cells = nest.NodeCollection([int(i) for i in cells])
-            nest.SetStatus(cells, [{'tau_minus': tau_minus}])
+            nest.SetStatus(cells, {'tau_minus': tau_minus})
 
 
 class NativeSynapseType(BaseSynapseType, NESTSynapseMixin):
