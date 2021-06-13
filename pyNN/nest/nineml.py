@@ -1,4 +1,7 @@
 """
+NEST v3.0 implementation of the PyNN API
+----------------------------------------
+
 Support cell types defined in 9ML with NEST.
 
 Requires the 9ml nestbuilder script to be on the import path.
@@ -14,7 +17,6 @@ Constants:
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging

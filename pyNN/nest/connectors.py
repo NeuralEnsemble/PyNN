@@ -1,9 +1,11 @@
 """
-Connection method classes for nest
+NEST v3.0 implementation of the PyNN API
+----------------------------------------
+
+Connection method classes for NEST
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging

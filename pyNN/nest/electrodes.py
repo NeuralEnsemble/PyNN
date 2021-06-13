@@ -1,5 +1,11 @@
 """
+NEST v3.0 implementation of the PyNN API
+----------------------------------------
+
 Definition of NativeElectrodeType class for NEST.
+
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np

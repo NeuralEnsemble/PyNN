@@ -1,4 +1,7 @@
 """
+NEST v3.0 implementation of the PyNN API
+----------------------------------------
+
 Definition of NativeSynapseType class for NEST
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
