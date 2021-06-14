@@ -6,7 +6,7 @@ if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
     echo -e "\n========== Installing NEST ==========\n"
     # Specify which version of NEST to install
     #export NEST_VERSION="master"
-    export NEST_VERSION="2.20.0"
+    export NEST_VERSION="3.0"
 
     pip install cython  #==0.28.1
 
