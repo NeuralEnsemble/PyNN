@@ -2,7 +2,7 @@
 
 set -e  # stop execution in case of errors
 
-if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+if [ "$TRAVIS_PYTHON_VERSION" == "3.8" ]; then
     echo -e "\n========== Installing NEURON ==========\n"
     export NRN_VERSION="nrn-7.7"
     if [ ! -f "$HOME/$NRN_VERSION/configure" ]; then
