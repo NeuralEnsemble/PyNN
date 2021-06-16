@@ -4,7 +4,7 @@ matrix:
   include:
     - python: 3.6
       env: PYENV=py36
-    - python: 3.8.2
+    - python: 3.8
       env: PYENV=py38
 before_install:
   - sudo apt-get install -y libgsl0-dev openmpi-bin libopenmpi-dev python-dev
