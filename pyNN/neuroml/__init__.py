@@ -1,6 +1,6 @@
 """
 
-Export of PyNN models to NeuroML 2
+Export of PyNN models to NeuroML 2   
 See https://github.com/NeuroML/NeuroML2/issues/73 for more details
 
 Contact Padraig Gleeson for more details
