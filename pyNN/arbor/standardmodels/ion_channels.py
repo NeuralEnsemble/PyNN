@@ -37,10 +37,13 @@ class LeakyChannel(object):
     model = "hh"
     conductance_density_parameter = 'gl'
 
- class CondExpPostSynapticResponse(standard.CondExpPostSynapticResponse):
-     translations = build_translations(
-         ('density', 'density'),
-         ('e_rev', 'e'),
-         ('tau_syn', 'tau')
-     )
-     model = "expsyn"
+class CondExpPostSynapticResponse(standard.CondExpPostSynapticResponse):
+    """
+    Synapse with discontinuous change in conductance at an event followed by an exponential decay with time constant tau.
+    """
+    translations = build_translations(
+        ('density', 'density'),
+        ('e_rev', 'e'),
+        ('tau_syn', 'tau')
+    )
+    model = "expsyn"
