@@ -33,7 +33,6 @@ class RecordingDevice(object):
 
     def __init__(self, device_parameters, to_memory=True):
         # to be called at the end of the subclass __init__
-        device_parameters.update(withgid=True, withtime=True)
         if to_memory:
             self.device.record_to = "memory"
         else:

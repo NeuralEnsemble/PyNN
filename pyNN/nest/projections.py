@@ -215,11 +215,9 @@ class Projection(common.Projection):
         presynaptic_indices.sort()
         try:
             presynaptic_cell_groups = [self.pre.node_collection[presynaptic_indices]]
-            connection_parameter_groups =  [connection_parameters]
+            connection_parameter_groups = [connection_parameters]
         except ValueError as err:
             if "All node IDs in a NodeCollection have to be unique" in str(err):
-                if any(hasattr(val, "__len__") for val in connection_parameters.values()):
-                    raise NotImplementedError("Needs re-implementing for NEST v3")
                 presynaptic_index_groups, connection_parameter_groups = \
                     split_array_to_avoid_repeats(presynaptic_indices, **connection_parameters)
                 presynaptic_cell_groups = [self.pre.node_collection[i] for i in presynaptic_index_groups]
@@ -230,9 +228,10 @@ class Projection(common.Projection):
         # Create connections and set parameters
         for presynaptic_cells, connection_parameter_group in zip(presynaptic_cell_groups,
                                                                  connection_parameter_groups):
+            self._sources.update(presynaptic_cells.tolist())
             try:
                 weights = connection_parameter_group.pop('weight')
-                delays = connection_parameter_group.pop('delays')
+                delays = connection_parameter_group.pop('delay')
                 # nest.Connect expects a 2D array
                 if not np.isscalar(weights):
                     weights = np.array([weights])
@@ -267,44 +266,42 @@ class Projection(common.Projection):
                 # it so that in subsequent Connect() calls we can pass all of the local
                 # (non-common) parameters.
 
-                for presynaptic_cells in presynaptic_cell_groups:
-                    if self._common_synapse_property_names is None:
-                        nest.Connect(presynaptic_cells,
-                                     postsynaptic_cell.node_collection,
-                                     'all_to_all',
-                                     syn_dict)
-                        self._identify_common_synapse_properties()
+                if self._common_synapse_property_names is None:
+                    nest.Connect(presynaptic_cells,
+                                 postsynaptic_cell.node_collection,
+                                 'all_to_all',
+                                 syn_dict)
+                    self._identify_common_synapse_properties()
 
-                        # Retrieve connections so that we can set additional
-                        # parameters using nest.SetStatus
-                        connections = nest.GetConnections(source=presynaptic_cells,
-                                                          target=postsynaptic_cell,
-                                                          synapse_model=self.nest_synapse_model,
-                                                          synapse_label=self.nest_synapse_label)
-                        # not sure why we need to sort here
-                        sort_indices = np.argsort(presynaptic_cells)
-                        for name, value in connection_parameter_group.items():
-                            if name not in self._common_synapse_property_names:
-                                value = make_sli_compatible(value)
-                                if isinstance(value, np.ndarray):
-                                    nest.SetStatus(connections, name, value[sort_indices].tolist())
-                                else:
-                                    nest.SetStatus(connections, name, value)
+                    # Retrieve connections so that we can set additional
+                    # parameters using nest.SetStatus
+                    connections = nest.GetConnections(source=presynaptic_cells,
+                                                        target=postsynaptic_cell.node_collection,
+                                                        synapse_model=self.nest_synapse_model,
+                                                        synapse_label=self.nest_synapse_label)
+                    for name, value in connection_parameter_group.items():
+                        if name not in self._common_synapse_property_names:
+                            value = make_sli_compatible(value)
+                            if isinstance(value, np.ndarray):
+                                nest.SetStatus(connections, name, value.tolist())
                             else:
-                                self._set_common_synapse_property(name, value)
-                    else:
-                        # Since we know which parameters are common, we can set the non-common
-                        # parameters directly in the nest.Connect call
-                        syn_dict = self._update_syn_params(syn_dict, connection_parameter_group)
-                        nest.Connect(presynaptic_cells,
-                                     postsynaptic_cell,
-                                     'all_to_all',
-                                     syn_dict)
-                        # and then set the common parameters
-                        for name, value in connection_parameter_group.items():
-                            if name in self._common_synapse_property_names:
-                                self._set_common_synapse_property(name, value)
-                    self._sources.update(presynaptic_cells.tolist())
+                                nest.SetStatus(connections, name, value)
+                        else:
+                            self._set_common_synapse_property(name, value)
+                else:
+                    # Since we know which parameters are common, we can set the non-common
+                    # parameters directly in the nest.Connect call
+                    syn_dict = self._update_syn_params(syn_dict, connection_parameter_group)
+                    nest.Connect(presynaptic_cells,
+                                 postsynaptic_cell.node_collection,
+                                 'all_to_all',
+                                 syn_dict)
+                    # and then set the common parameters
+                    for name, value in connection_parameter_group.items():
+                        if name in self._common_synapse_property_names:
+                            self._set_common_synapse_property(name, value)
+
+
 
             except nest.kernel.NESTError as e:
                 errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
