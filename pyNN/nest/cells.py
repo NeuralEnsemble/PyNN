@@ -50,7 +50,10 @@ def get_receptor_types(model_name):
 
 
 def get_recordables(model_name):
-    return [sl.name for sl in nest.GetDefaults(model_name).get("recordables", [])]
+    try:
+        return [name for name in nest.GetDefaults(model_name, "recordables")]
+    except nest.lib.hl_api_exceptions.NESTError as err:
+        return []
 
 
 def native_cell_type(model_name):
@@ -61,7 +64,7 @@ def native_cell_type(model_name):
     default_parameters, default_initial_values = get_defaults(model_name)
     receptor_types = get_receptor_types(model_name)
     recordable = get_recordables(model_name) + ['spikes']
-    element_type = nest.GetDefaults(model_name, 'element_type').name
+    element_type = nest.GetDefaults(model_name, 'element_type')
     return type(model_name,
                 (NativeCellType,),
                 {'nest_model': model_name,

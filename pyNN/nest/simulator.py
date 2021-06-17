@@ -69,20 +69,23 @@ class _State(common.control.BaseState):
         self.tempdirs = []
         self.recording_devices = []
         self.populations = []  # needed for reset
+        self.current_sources = []
+        self._time_offset = 0.0
         self.stale_connection_cache = False
 
     @property
     def t(self):
-        # note that we always simulate one time step past the requested time
-        return max(nest.GetKernelStatus('time') - self.dt, 0.0)
+        # note that we always simulate one min delay past the requested time
+        return max(self.t_kernel - self.min_delay - self._time_offset, 0.0)
+
+    t_kernel = nest_property("biological_time", float)
 
     dt = nest_property('resolution', float)
 
     threads = nest_property('local_num_threads', int)
 
-    grng_seed = nest_property('grng_seed', int)
-
-    rng_seeds = nest_property('rng_seeds', list)
+    rng_seed = nest_property('rng_seed', int)
+    grng_seed = nest_property('rng_seed', int)
 
     @property
     def min_delay(self):
@@ -131,6 +134,45 @@ class _State(common.control.BaseState):
         nest.set_verbosity('M_{}'.format(verbosity.upper()))
     verbosity = property(fset=_set_verbosity)
 
+    def set_status(self, nodes, params, val=None):
+        """
+        Wrapper around nest.SetStatus() to handle time offset
+        """
+        if self._time_offset == 0.0:
+            nest.SetStatus(nodes, params, val=val)
+        elif val is None:
+            if isinstance(params, list):
+                params_copy = []
+                for item in params:
+                    item_copy = {}
+                    for name, value in item.items():
+                        if name in ("start", "stop"):
+                            item_copy[name] = value + self._time_offset
+                        elif name in ("spike_times", "amplitude_times"):
+                            item_copy[name] = [v + self._time_offset for v in value]
+                        else:
+                            item_copy[name] = value
+                    params_copy.append(item_copy)
+            else:
+                params_copy = {}
+                for name, value in params.items():
+                    if name in ("start", "stop"):
+                        params_copy[name] = value + self._time_offset
+                    elif name in ("spike_times", "amplitude_times"):
+                        params_copy[name] = [v + self._time_offset for v in value]
+                    else:
+                        params_copy[name] = value
+            nest.SetStatus(nodes, params_copy)
+        else:
+            name = params
+            # todo: handle case where val is a list
+            if name in ("start", "stop"):
+                nest.SetStatus(nodes, name, val + self._time_offset)
+            elif name in ("spike_times", "amplitude_times"):
+                nest.SetStatus(nodes, name, [v + self._time_offset for v in val])
+            else:
+                nest.SetStatus(nodes, name, val)
+
     def run(self, simtime):
         """Advance the simulation for a certain time."""
         for population in self.populations:
@@ -141,7 +183,8 @@ class _State(common.control.BaseState):
                 device.connect_to_cells()
                 device._local_files_merged = False
         if not self.running and simtime > 0:
-            simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            # we simulate past the real time by one min_delay, otherwise NEST doesn't give us all the recorded data
+            simtime += self.min_delay
             self.running = True
         if simtime > 0:
             nest.Simulate(simtime)
@@ -150,17 +193,26 @@ class _State(common.control.BaseState):
         self.run(tstop - self.t)
 
     def reset(self):
-        nest.ResetNetwork()
-        nest.SetKernelStatus({'time': 0.0})
+        if self.t > 0:
+            self.run(self.max_delay)  # get spikes and recorded data out of the system
+            for recorder in self.recorders:
+                recorder._clear_simulator()
+
+        self._time_offset = self.t_kernel
+
         for p in self.populations:
             for variable, initial_value in p.initial_values.items():
                 p._set_initial_value_array(variable, initial_value)
+                p._reset()
+        for cs in self.current_sources:
+            cs._reset()
+
         self.running = False
-        self.t_start = 0.0
         self.segment_counter += 1
 
     def clear(self):
         self.populations = []
+        self.current_sources = []
         self.recording_devices = []
         self.recorders = set()
         # clear the sli stack, if this is not done --> memory leak cause the stack increases
@@ -186,6 +238,10 @@ class ID(int, common.IDMixin):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
+
+    @property
+    def local(self):
+        return self.node_collection.local
 
 
 # --- For implementation of connect() and Connector classes --------------------
@@ -214,7 +270,7 @@ class Connection(common.Connection):
     @property
     def source(self):
         """The ID of the pre-synaptic neuron."""
-        src = ID(nest.GetStatus([self.id()], 'source')[0])
+        src = ID(nest.GetStatus(self.id(), 'source')[0])
         src.parent = self.parent.pre
         return src
     presynaptic_cell = source
@@ -222,27 +278,27 @@ class Connection(common.Connection):
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
-        tgt = ID(nest.GetStatus([self.id()], 'target')[0])
+        tgt = ID(nest.GetStatus(self.id(), 'target')[0])
         tgt.parent = self.parent.post
         return tgt
     postsynaptic_cell = target
 
     def _set_weight(self, w):
-        nest.SetStatus([self.id()], 'weight', w * 1000.0)
+        nest.SetStatus(self.id(), 'weight', w * 1000.0)
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
-        w_nA = nest.GetStatus([self.id()], 'weight')[0]
+        w_nA = nest.GetStatus(self.id(), 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
             w_nA *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
         return 0.001 * w_nA
 
     def _set_delay(self, d):
-        nest.SetStatus([self.id()], 'delay', d)
+        nest.SetStatus(self.id(), 'delay', d)
 
     def _get_delay(self):
         """Synaptic delay in ms."""
-        return nest.GetStatus([self.id()], 'delay')[0]
+        return nest.GetStatus(self.id(), 'delay')[0]
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
@@ -250,10 +306,10 @@ class Connection(common.Connection):
 
 def generate_synapse_property(name):
     def _get(self):
-        return nest.GetStatus([self.id()], name)[0]
+        return nest.GetStatus(self.id(), name)[0]
 
     def _set(self, val):
-        nest.SetStatus([self.id()], name, val)
+        nest.SetStatus(self.id(), name, val)
     return property(_get, _set)
 
 

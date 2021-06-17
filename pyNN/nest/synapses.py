@@ -64,7 +64,7 @@ class NESTSynapseMixin(object):
                     "pyNN.NEST does not support tau_minus being different for different synapses")
             native_parameters.shape = (1,)
             tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
-            nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
+            nest.SetStatus(cells, [{'tau_minus': tau_minus}])
 
 
 class NativeSynapseType(BaseSynapseType, NESTSynapseMixin):

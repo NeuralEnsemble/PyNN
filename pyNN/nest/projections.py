@@ -7,6 +7,8 @@ NEST v2 implementation of the PyNN API.
 
 """
 
+from collections import defaultdict
+from pyNN.utility import connection_plot
 import numpy as np
 import nest
 import logging
@@ -31,6 +33,28 @@ def listify(obj):
         return obj
 
 
+def split_array_to_avoid_repeats(arr, **associated_arrays):
+    assert arr.dtype == int
+    n_sub_arrays = np.bincount(arr).max()
+    split_indices = [[] for i in range(n_sub_arrays)]
+    index_pointer = defaultdict(int)
+    for i, element in enumerate(arr):
+        split_index = index_pointer[element]
+        split_indices[split_index].append(i)
+        index_pointer[element] += 1
+    sub_arrays = [arr[split_index] for split_index in split_indices]
+    sub_associated = []
+    for split_index in split_indices:
+        assoc = {}
+        for key, value in associated_arrays.items():
+            if isinstance(value, np.ndarray):
+                assoc[key] = value[split_index]
+            else:
+                assoc[key] = value
+        sub_associated.append(assoc)
+    return sub_arrays, sub_associated
+
+
 class Projection(common.Projection):
     __doc__ = common.Projection.__doc__
     _simulator = simulator
@@ -44,8 +68,8 @@ class Projection(common.Projection):
                                    space, label)
         self.nest_synapse_model = self.synapse_type._get_nest_synapse_model()
         self.nest_synapse_label = Projection._nProj
-        self.synapse_type._set_tau_minus(self.post.local_cells)
-        self._sources = []
+        self.synapse_type._set_tau_minus(self.post.local_node_collection)
+        self._sources = set()
         self._connections = None
         # This is used to keep track of common synapse properties
         self._common_synapse_properties = {}
@@ -78,11 +102,11 @@ class Projection(common.Projection):
     @property
     def nest_connections(self):
         if self._connections is None or self._simulator.state.stale_connection_cache:
-            self._sources = np.unique(self._sources)
-            if self._sources.size > 0:
-                self._connections = nest.GetConnections(self._sources.tolist(),
-                                                        synapse_model=self.nest_synapse_model,
-                                                        synapse_label=self.nest_synapse_label)
+            if len(self._sources) > 0:
+                self._connections = nest.GetConnections(
+                    nest.NodeCollection(sorted(self._sources)),
+                    synapse_model=self.nest_synapse_model,
+                    synapse_label=self.nest_synapse_label)
             else:
                 self._connections = []
             self._simulator.state.stale_connection_cache = False
@@ -123,9 +147,10 @@ class Projection(common.Projection):
         Use the connection between the sample indices to distinguish
         between local and common synapse properties.
         """
-        sample_connection = nest.GetConnections(source=[int(self._sources[0])],
-                                                synapse_model=self.nest_synapse_model,
-                                                synapse_label=self.nest_synapse_label)[:1]
+        sample_connection = nest.GetConnections(
+            source=nest.NodeCollection([next(iter(self._sources))]),  # take any source from the set
+            synapse_model=self.nest_synapse_model,
+            synapse_label=self.nest_synapse_label)[:1]
 
         local_parameters = nest.GetStatus(sample_connection)[0].keys()
         all_parameters = nest.GetDefaults(self.nest_synapse_model).keys()
@@ -160,21 +185,19 @@ class Projection(common.Projection):
         `postsynaptic_index` - integer - the index of the postsynaptic neuron
         `connection_parameters` - dict whose keys are native NEST parameter names. Values may be scalars or arrays.
         """
-        #logger.debug("Connecting to index %s from %s with %s" % (postsynaptic_index, presynaptic_indices, connection_parameters))
-
-        presynaptic_cells = self.pre.all_cells[presynaptic_indices].astype(int).tolist()
-        postsynaptic_cell = self.post[postsynaptic_index]
-        postsynaptic_cell_id = [int(postsynaptic_cell)]
-        assert len(presynaptic_cells) > 0, presynaptic_cells
-        self._sources.extend(presynaptic_cells)
+        # Clean the connection parameters by removing parameters that are
+        # used by PyNN but should not be passed to NEST
+        connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
+        connection_parameters.pop('dendritic_delay_fraction', None)
+        connection_parameters.pop('w_min_always_zero_in_NEST', None)
 
         syn_dict = {
-            'model': self.nest_synapse_model,
+            'synapse_model': self.nest_synapse_model,
             'synapse_label': self.nest_synapse_label,
         }
 
         # Weights require some special handling
-        weights = connection_parameters.pop('weight')
+        weights = connection_parameters['weight']
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
             weights *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
             if "stdp" in self.nest_synapse_model:
@@ -186,90 +209,108 @@ class Projection(common.Projection):
         if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
             weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
 
-        delays = connection_parameters.pop('delay')
-
-        # Clean the connection parameters by removing parameters that are
-        # used by PyNN but should not be passed to NEST
-        connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
-        connection_parameters.pop('dendritic_delay_fraction', None)
-        connection_parameters.pop('w_min_always_zero_in_NEST', None)
+        # Prepare connections. NodeCollections can't have repeated values, so for some
+        # connector types we need to split the presynaptic cells into groups that
+        # don't have such repeats.
+        presynaptic_indices.sort()
+        try:
+            presynaptic_cell_groups = [self.pre.node_collection[presynaptic_indices]]
+            connection_parameter_groups =  [connection_parameters]
+        except ValueError as err:
+            if "All node IDs in a NodeCollection have to be unique" in str(err):
+                if any(hasattr(val, "__len__") for val in connection_parameters.values()):
+                    raise NotImplementedError("Needs re-implementing for NEST v3")
+                presynaptic_index_groups, connection_parameter_groups = \
+                    split_array_to_avoid_repeats(presynaptic_indices, **connection_parameters)
+                presynaptic_cell_groups = [self.pre.node_collection[i] for i in presynaptic_index_groups]
+            else:
+                raise
+        postsynaptic_cell = self.post[postsynaptic_index]
 
         # Create connections and set parameters
-        try:
-            # nest.Connect expects a 2D array
-            if not np.isscalar(weights):
-                weights = np.array([weights])
-            if not np.isscalar(delays):
-                delays = np.array([delays])
-            syn_dict.update({'weight': weights, 'delay': delays})
+        for presynaptic_cells, connection_parameter_group in zip(presynaptic_cell_groups,
+                                                                 connection_parameter_groups):
+            try:
+                weights = connection_parameter_group.pop('weight')
+                delays = connection_parameter_group.pop('delays')
+                # nest.Connect expects a 2D array
+                if not np.isscalar(weights):
+                    weights = np.array([weights])
+                if not np.isscalar(delays):
+                    delays = np.array([delays])
+                syn_dict.update({'weight': weights, 'delay': delays})
 
-            if postsynaptic_cell.celltype.standard_receptor_type:
-                # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
-                # the relevant "tau_syn" parameter from the post-synaptic neuron.
-                if 'tsodyks' in self.nest_synapse_model:
-                    if self.receptor_type == 'inhibitory':
-                        param_name = postsynaptic_cell.celltype.translations['tau_syn_I']['translated_name']
-                    elif self.receptor_type == 'excitatory':
-                        param_name = postsynaptic_cell.celltype.translations['tau_syn_E']['translated_name']
-                    else:
-                        raise NotImplementedError()
-                    syn_dict["tau_psc"] = nest.GetStatus(postsynaptic_cell_id, param_name)[0]
-            else:
-                syn_dict.update(
-                    {"receptor_type": postsynaptic_cell.celltype.get_receptor_type(
-                        self.receptor_type)})
-
-            # For parameters other than weight and delay, we need to know if they are "common"
-            # parameters (the same for all synapses) or "local" (different synapses can have
-            # different values), as this affects how they are set.
-            #
-            # To introspect which parameters are common, we need an existing connection, so
-            # the first time we create connections we pass just the weight and delay, and set
-            # the other parameters later. We then get the list of common parameters and cache
-            # it so that in subsequent Connect() calls we can pass all of the local
-            # (non-common) parameters.
-            if self._common_synapse_property_names is None:
-                nest.Connect(presynaptic_cells,
-                             postsynaptic_cell_id,
-                             'all_to_all',
-                             syn_dict)
-                self._identify_common_synapse_properties()
-
-                # Retrieve connections so that we can set additional
-                # parameters using nest.SetStatus
-                connections = nest.GetConnections(source=presynaptic_cells,
-                                                  target=postsynaptic_cell_id,
-                                                  synapse_model=self.nest_synapse_model,
-                                                  synapse_label=self.nest_synapse_label)
-                # not sure why we need to sort here
-                sort_indices = np.argsort(presynaptic_cells)
-                for name, value in connection_parameters.items():
-                    if name not in self._common_synapse_property_names:
-                        value = make_sli_compatible(value)
-                        if isinstance(value, np.ndarray):
-                            nest.SetStatus(connections, name, value[sort_indices].tolist())
+                if postsynaptic_cell.celltype.standard_receptor_type:
+                    # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
+                    # the relevant "tau_syn" parameter from the post-synaptic neuron.
+                    if 'tsodyks' in self.nest_synapse_model:
+                        if self.receptor_type == 'inhibitory':
+                            param_name = postsynaptic_cell.celltype.translations['tau_syn_I']['translated_name']
+                        elif self.receptor_type == 'excitatory':
+                            param_name = postsynaptic_cell.celltype.translations['tau_syn_E']['translated_name']
                         else:
-                            nest.SetStatus(connections, name, value)
-                    else:
-                        self._set_common_synapse_property(name, value)
-            else:
-                # Since we know which parameters are common, we can set the non-common
-                # parameters directly in the nest.Connect call
-                syn_dict = self._update_syn_params(syn_dict, connection_parameters)
-                nest.Connect(presynaptic_cells,
-                             postsynaptic_cell_id,
-                             'all_to_all',
-                             syn_dict)
-                # and then set the common parameters
-                for name, value in connection_parameters.items():
-                    if name in self._common_synapse_property_names:
-                        self._set_common_synapse_property(name, value)
+                            raise NotImplementedError()
+                        syn_dict["tau_psc"] = nest.GetStatus(postsynaptic_cell.node_collection,
+                                                             param_name)[0]
+                else:
+                    syn_dict.update(
+                        {"receptor_type": postsynaptic_cell.celltype.get_receptor_type(
+                            self.receptor_type)})
 
-        except nest.kernel.NESTError as e:
-            errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                e, presynaptic_cells, postsynaptic_cell,
-                weights, delays, self.nest_synapse_model)
-            raise errors.ConnectionError(errmsg)
+                # For parameters other than weight and delay, we need to know if they are "common"
+                # parameters (the same for all synapses) or "local" (different synapses can have
+                # different values), as this affects how they are set.
+                #
+                # To introspect which parameters are common, we need an existing connection, so
+                # the first time we create connections we pass just the weight and delay, and set
+                # the other parameters later. We then get the list of common parameters and cache
+                # it so that in subsequent Connect() calls we can pass all of the local
+                # (non-common) parameters.
+
+                for presynaptic_cells in presynaptic_cell_groups:
+                    if self._common_synapse_property_names is None:
+                        nest.Connect(presynaptic_cells,
+                                     postsynaptic_cell.node_collection,
+                                     'all_to_all',
+                                     syn_dict)
+                        self._identify_common_synapse_properties()
+
+                        # Retrieve connections so that we can set additional
+                        # parameters using nest.SetStatus
+                        connections = nest.GetConnections(source=presynaptic_cells,
+                                                          target=postsynaptic_cell,
+                                                          synapse_model=self.nest_synapse_model,
+                                                          synapse_label=self.nest_synapse_label)
+                        # not sure why we need to sort here
+                        sort_indices = np.argsort(presynaptic_cells)
+                        for name, value in connection_parameter_group.items():
+                            if name not in self._common_synapse_property_names:
+                                value = make_sli_compatible(value)
+                                if isinstance(value, np.ndarray):
+                                    nest.SetStatus(connections, name, value[sort_indices].tolist())
+                                else:
+                                    nest.SetStatus(connections, name, value)
+                            else:
+                                self._set_common_synapse_property(name, value)
+                    else:
+                        # Since we know which parameters are common, we can set the non-common
+                        # parameters directly in the nest.Connect call
+                        syn_dict = self._update_syn_params(syn_dict, connection_parameter_group)
+                        nest.Connect(presynaptic_cells,
+                                     postsynaptic_cell,
+                                     'all_to_all',
+                                     syn_dict)
+                        # and then set the common parameters
+                        for name, value in connection_parameter_group.items():
+                            if name in self._common_synapse_property_names:
+                                self._set_common_synapse_property(name, value)
+                    self._sources.update(presynaptic_cells.tolist())
+
+            except nest.kernel.NESTError as e:
+                errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
+                    e, presynaptic_cells, postsynaptic_cell,
+                    weights, delays, self.nest_synapse_model)
+                raise errors.ConnectionError(errmsg)
 
         # Reset the caching of the connection list, since this will have to be recalculated
         self._connections = None
@@ -281,17 +322,17 @@ class Projection(common.Projection):
                              "within a single Projection with NEST.")
         # only columns for connections that exist on this machine
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
-        sources = np.unique(self._sources).tolist()
+        sources = nest.NodeCollection(sorted(self._sources))
         if self._common_synapse_property_names is None:
             self._identify_common_synapse_properties()
         for postsynaptic_cell, connection_parameters in zip(self.post.local_cells,
                                                             parameter_space.columns()):
             connections = nest.GetConnections(source=sources,
-                                              target=[postsynaptic_cell],
+                                              target=postsynaptic_cell.node_collection,
                                               synapse_model=self.nest_synapse_model,
                                               synapse_label=self.nest_synapse_label)
             if connections:
-                source_mask = self.pre.id_to_index([x[0] for x in connections])
+                source_mask = self.pre.id_to_index(list(connections.sources()))
                 for name, value in connection_parameters.items():
                     if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
                         value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances

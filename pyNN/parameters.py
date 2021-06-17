@@ -76,7 +76,8 @@ class LazyArray(larray):
         """
         column_indices = np.arange(self.ncols)
         if mask is not None:
-            assert len(mask) == self.ncols
+            if not isinstance(mask, slice):
+                assert len(mask) == self.ncols
             column_indices = column_indices[mask]
         if isinstance(self.base_value, RandomDistribution) and self.base_value.rng.parallel_safe:
             if mask is None:

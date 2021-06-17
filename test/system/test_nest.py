@@ -160,7 +160,7 @@ def test_random_seeds():
     sim = pyNN.nest
     data = []
     for seed in (854947309, 470924491):
-        sim.setup(threads=1, rng_seeds=[seed])
+        sim.setup(threads=1, rng_seed=seed)
         p = sim.Population(3, sim.SpikeSourcePoisson(rate=100.0))
         p.record('spikes')
         sim.run(100)
@@ -186,8 +186,8 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    connections = nest.GetConnections(np.unique(
-        prj._sources).tolist(), synapse_model=prj.nest_synapse_model)
+    connections = nest.GetConnections(nest.NodeCollection(list(prj._sources)),
+                                      synapse_model=prj.nest_synapse_model)
     tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
     assert_arrays_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
 
@@ -247,7 +247,7 @@ def test_issue529():
     p1 = sim.Population(10, iaf_neuron(tau_m=20.0, tau_syn_ex=3., tau_syn_in=3.))
     p2 = sim.Population(10, iaf_neuron(tau_m=20.0, tau_syn_ex=3., tau_syn_in=3.))
 
-    nest.SetStatus(list(p2), [{'tau_minus': 20.}])
+    nest.SetStatus(p2.node_collection, {'tau_minus': 20.})
 
     stdp = sim.native_synapse_type("stdp_synapse_hom")(**{
         'lambda': 0.005,

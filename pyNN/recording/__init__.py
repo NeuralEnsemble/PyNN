@@ -286,6 +286,7 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
+                t_stop = self._simulator.state.t * pq.ms
                 sampling_period = self.sampling_interval * pq.ms
                 current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging

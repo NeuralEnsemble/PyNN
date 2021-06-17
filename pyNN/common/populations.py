@@ -843,10 +843,12 @@ class PopulationView(BasePopulation):
                 if len(self.mask) != len(self.parent):
                     raise Exception("Boolean masks should have the size of Parent Population")
                 self.mask = np.arange(len(self.parent))[self.mask]
-            if len(np.unique(self.mask)) != len(self.mask):
-                logging.warning(
-                    "PopulationView can contain only once each ID, duplicated IDs are removed")
-                self.mask = np.unique(self.mask)
+            else:
+                if len(np.unique(self.mask)) != len(self.mask):
+                    logging.warning(
+                        "PopulationView can contain only once each ID, duplicated IDs are removed")
+                    self.mask = np.unique(self.mask)
+                self.mask.sort()  # needed by NEST
         self.all_cells = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
         idx = np.argsort(self.all_cells)
         self._is_sorted = np.all(idx == np.arange(len(self.all_cells)))

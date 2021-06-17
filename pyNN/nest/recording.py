@@ -35,9 +35,9 @@ class RecordingDevice(object):
         # to be called at the end of the subclass __init__
         device_parameters.update(withgid=True, withtime=True)
         if to_memory:
-            device_parameters.update(to_file=False, to_memory=True)
+            self.device.record_to = "memory"
         else:
-            device_parameters.update(to_file=True, to_memory=False)
+            self.device.record_to = "ascii"
         self._all_ids = set([])
         self._connected = False
         simulator.state.recording_devices.append(self)
@@ -58,6 +58,9 @@ class RecordingDevice(object):
         ids = events['senders']
         # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
         values = events[nest_variable] * scale_factor
+        if variable == "times":
+            values -= simulator.state._time_offset
+
         data = {}
         recorded_ids = set(ids)
 
@@ -79,7 +82,13 @@ class RecordingDevice(object):
                     self._initial_values[variable] = {}
                 initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                data[int(id)] = [initial_value] + data.get(int(id), [])
+
+                if simulator.state.segment_counter == 0:
+                    data[int(id)] = [initial_value] + data.get(int(id), [])
+                else:
+                    if len(data[int(id)]) > 0:
+                        data[int(id)][0] = initial_value
+
                 # if `get_data()` is called in the middle of a simulation, the
                 # value at the last time point will become the initial value for
                 # the next time `get_data()` is called
@@ -90,23 +99,24 @@ class RecordingDevice(object):
 
 
 class SpikeDetector(RecordingDevice):
-    """A wrapper around the NEST spike_detector device"""
+    """A wrapper around the NEST spike_recorder device"""
 
     def __init__(self, to_memory=True):
-        self.device = nest.Create('spike_detector')
+        self.device = nest.Create('spike_recorder')
         device_parameters = {
-            "precise_times": True,
-            "precision": simulator.state.default_recording_precision
+            # these seem to have disappeared in NEST v3
+            #"precise_times": True,
+            #"precision": simulator.state.default_recording_precision
         }
         super(SpikeDetector, self).__init__(device_parameters, to_memory)
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self._all_ids),
-                     list(self.device),
-                     {'rule': 'all_to_all'},
-                     {'model': 'static_synapse',
-                      'delay': simulator.state.min_delay})
+        if len(self._all_ids) > 0:
+            nest.Connect(nest.NodeCollection(sorted(self._all_ids)),
+                         self.device,
+                         {'rule': 'all_to_all'},
+                         {'delay': simulator.state.min_delay})
         self._connected = True
 
     def get_spiketimes(self, desired_ids):
@@ -140,11 +150,11 @@ class Multimeter(RecordingDevice):
 
     def connect_to_cells(self):
         assert not self._connected
-        nest.Connect(list(self.device),
-                     list(self._all_ids),
-                     {'rule': 'all_to_all'},
-                     {'model': 'static_synapse',
-                      'delay': simulator.state.min_delay})
+        if len(self._all_ids) > 0:
+            nest.Connect(self.device,
+                         nest.NodeCollection(sorted(self._all_ids)),
+                         {'rule': 'all_to_all'},
+                         {'delay': simulator.state.min_delay})
         self._connected = True
 
     @property
