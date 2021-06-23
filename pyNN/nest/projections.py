@@ -93,7 +93,8 @@ class Projection(common.Projection):
 
     def __len__(self):
         """Return the number of connections on the local MPI node."""
-        local_nodes = nest.GetNodes([0], local_only=True)[0]
+        nest_model = self.post.celltype.nest_name[self._simulator.state.spike_precision]
+        local_nodes = nest.GetNodes({"model": nest_model}, local_only=True)
         local_connections = nest.GetConnections(target=local_nodes,
                                                 synapse_model=self.nest_synapse_model,
                                                 synapse_label=self.nest_synapse_label)
@@ -197,9 +198,8 @@ class Projection(common.Projection):
         }
 
         # Weights require some special handling
-        weights = connection_parameters['weight']
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
-            weights *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
+            connection_parameters['weight'] *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
             if "stdp" in self.nest_synapse_model:
                 syn_dict["Wmax"] = -1.2345e6  # just some very large negative value to avoid
                                               # NEST complaining about weight and Wmax having different signs
@@ -207,12 +207,19 @@ class Projection(common.Projection):
                                               # Will be overwritten below.
                 connection_parameters["Wmax"] *= -1
         if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
-            weights *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
+            connection_parameters['weight'] *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
 
         # Prepare connections. NodeCollections can't have repeated values, so for some
         # connector types we need to split the presynaptic cells into groups that
         # don't have such repeats.
-        presynaptic_indices.sort()
+
+        # note that NEST needs sorted indices
+        sort_indices = presynaptic_indices.argsort()
+        presynaptic_indices = presynaptic_indices[sort_indices]
+        for name, value in connection_parameters.items():
+            if isinstance(value, np.ndarray):
+                connection_parameters[name] = value[sort_indices]
+
         try:
             presynaptic_cell_groups = [self.pre.node_collection[presynaptic_indices]]
             connection_parameter_groups = [connection_parameters]
@@ -301,8 +308,6 @@ class Projection(common.Projection):
                         if name in self._common_synapse_property_names:
                             self._set_common_synapse_property(name, value)
 
-
-
             except nest.kernel.NESTError as e:
                 errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
                     e, presynaptic_cells, postsynaptic_cell,
@@ -334,7 +339,7 @@ class Projection(common.Projection):
                     if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
                         value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
                     if name == "tau_minus":  # set on the post-synaptic cell
-                        nest.SetStatus(self.post.local_cells.astype(int).tolist(),
+                        nest.SetStatus(self.post.node_collection[self.post.node_collection.local],
                                        {"tau_minus": simplify(value)})
                     elif name not in self._common_synapse_property_names:
                         value = make_sli_compatible(value)

@@ -23,7 +23,7 @@ class TestFunctions(unittest.TestCase):
     def test_setup(self):
         sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
                   verbosity='debug', spike_precision='off_grid',
-                  recording_precision=4, threads=2, rng_seeds=873465)
+                  recording_precision=4, threads=2, rng_seed=873465)
         ks = nest.GetKernelStatus()
         self.assertEqual(ks['resolution'], 0.05)
         self.assertEqual(ks['local_num_threads'], 2)

@@ -848,8 +848,8 @@ class PopulationView(BasePopulation):
                     logging.warning(
                         "PopulationView can contain only once each ID, duplicated IDs are removed")
                     self.mask = np.unique(self.mask)
-                self.mask.sort()  # needed by NEST
-        self.all_cells = self.parent.all_cells[self.mask]  # do we need to ensure this is ordered?
+                self.mask.sort()  # needed by NEST. Maybe emit a warning or exception if mask is not already ordered?
+        self.all_cells = self.parent.all_cells[self.mask]
         idx = np.argsort(self.all_cells)
         self._is_sorted = np.all(idx == np.arange(len(self.all_cells)))
         self.size = len(self.all_cells)

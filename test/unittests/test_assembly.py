@@ -334,8 +334,8 @@ class AssemblyTest(unittest.TestCase):
         a1 = a.sample(10, rng=MockRNG())
         # MockRNG.permutation reverses the order
         self.assertEqual(len(a1.populations), 2)
-        assert_array_equal(a1.populations[0].all_cells, p1[11:6:-1])
-        assert_array_equal(a1.populations[1].all_cells, p2[6::-1])
+        assert_array_equal(a1.populations[0].all_cells, sorted(p1[11:6:-1]))
+        assert_array_equal(a1.populations[1].all_cells, sorted(p2[6::-1]))
 
     def test_get_data_with_gather(self, sim=sim):
         t1 = 12.3
