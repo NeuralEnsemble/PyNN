@@ -266,7 +266,7 @@ class Recorder(object):
             if variable == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
                 sids = sorted(self.filter_recorded('spikes', filter_ids))
-                data = self._get_spiketimes(sids)
+                data = self._get_spiketimes(sids, clear=clear)
 
                 segment.spiketrains = []
                 for id in sids:

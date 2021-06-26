@@ -96,7 +96,7 @@ class Recorder(recording.Recorder):
             else:
                 id._cell.clear_past_spikes()
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if hasattr(id, "__len__"):
             all_spiketimes = {}
             for cell_id in id:

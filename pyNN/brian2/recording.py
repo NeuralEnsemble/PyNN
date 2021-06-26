@@ -71,7 +71,7 @@ class Recorder(recording.Recorder):
         for device in self._devices.values():
             device.resize(0)
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if is_listlike(id):
             all_spiketimes = {}
             for cell_id in id:
