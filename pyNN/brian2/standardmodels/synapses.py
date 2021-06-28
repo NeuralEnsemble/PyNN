@@ -138,44 +138,69 @@ class STDPMechanism(synapses.STDPMechanism):
     def _set_target_type(self, weight_units):
         self.translations["weight"]["forward_transform"] = lambda **P: P["weight"] * weight_units
         self.translations["weight"]["reverse_transform"] = lambda **P: P["weight"] / weight_units
+        self.weight_dependence._set_target_type(weight_units)
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
-        ('mu_plus',   'mu_plus'),
-        ('mu_minus',  'mu_minus'),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
+        ('mu_plus', 'mu_plus'),
+        ('mu_minus', 'mu_minus'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class SpikePairRule(synapses.SpikePairRule):
@@ -184,6 +209,6 @@ class SpikePairRule(synapses.SpikePairRule):
     translations = build_translations(
         ('A_plus',    'A_plus'),
         ('A_minus',   'A_minus'),
-        ('tau_plus',  'tau_plus', ms),
-        ('tau_minus', 'tau_minus', ms),
+        ('tau_plus', 'tau_plus', lambda **P: P["tau_plus"] * ms, lambda **P: P["tau_plus"] / ms),
+        ('tau_minus', 'tau_minus', lambda **P: P["tau_minus"] * ms, lambda **P: P["tau_minus"] / ms),
     )
