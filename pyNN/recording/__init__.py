@@ -309,7 +309,6 @@ class Recorder(object):
                                  source_ids, signal.channel_index)
                     assert segment.analogsignals[0].t_stop - \
                         current_time - 2 * sampling_period < 1e-10
-                    # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,

@@ -40,6 +40,7 @@ class RecordingDevice(object):
         self._all_ids = set([])
         self._connected = False
         self._overrun_data = None
+        self._clean = True  # might there be data in the pipeline that hasn't been delivered yet
         simulator.state.recording_devices.append(self)
         _set_status(self.device, device_parameters)
 
@@ -63,8 +64,9 @@ class RecordingDevice(object):
             # I'm hoping numpy optimises for the case where scale_factor = 1, otherwise should avoid this multiplication in that case
             values = events[nest_variable] * scale_factor
 
+        valid_times_index = times <= simulator.state.t
         if clear:
-            future_times_index = times > simulator.state.t
+            future_times_index = np.invert(valid_times_index)
             if future_times_index.any():
                 new_overrun_data = {
                     "ids": ids[future_times_index],
@@ -76,6 +78,9 @@ class RecordingDevice(object):
                 ids = np.hstack((self._overrun_data["ids"], ids))
                 values = np.hstack((self._overrun_data["values"], values))
             self._overrun_data = new_overrun_data
+        else:
+            ids = ids[valid_times_index]
+            values = values[valid_times_index]
 
         data = {}
         recorded_ids = set(ids)
@@ -94,13 +99,15 @@ class RecordingDevice(object):
             if variable not in self._initial_values:
                 self._initial_values[variable] = {}
             for id in desired_ids:
-                # NEST does not record values at the zeroth time step, so we
-                # add them here.
                 initial_value = self._initial_values[variable].get(int(id),
                                                                    id.get_initial_value(variable))
-                if simulator.state.segment_counter == 0:
+                if self._clean:
+                    # NEST does not record values at the zeroth time step, so we
+                    # add them here.
                     data[int(id)] = [initial_value] + data.get(int(id), [])
                 else:
+                    # The values at the zeroth time step come from a previous run,
+                    # so should be replaced
                     if len(data[int(id)]) > 0:
                         data[int(id)][0] = initial_value
 
@@ -109,6 +116,7 @@ class RecordingDevice(object):
                 # the next time `get_data()` is called
                 if clear:
                     self._initial_values[variable][int(id)] = data[int(id)][-1]
+
         return data
 
 
@@ -249,8 +257,9 @@ class Recorder(recording.Recorder):
         Should remove all recorded data held by the simulator and, ideally,
         free up the memory.
         """
-        nest.SetStatus(self._spike_detector.device, 'n_events', 0)
-        nest.SetStatus(self._multimeter.device, 'n_events', 0)
+        for rec in (self._spike_detector, self._multimeter):
+            nest.SetStatus(rec.device, 'n_events', 0)
+            rec._clean = False
 
     def store_to_cache(self, annotations=None):
         # we over-ride the implementation from the parent class so as to
