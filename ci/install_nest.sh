@@ -2,13 +2,13 @@
 
 set -e  # stop execution in case of errors
 
-if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
+if [ "$TRAVIS_PYTHON_VERSION" == "3.8" ]; then
     echo -e "\n========== Installing NEST ==========\n"
     # Specify which version of NEST to install
     #export NEST_VERSION="master"
-    export NEST_VERSION="2.20.0"
+    export NEST_VERSION="3.0"
 
-    pip install cython  #==0.28.1
+    pip install cython
 
     if [ "$NEST_VERSION" = "master" ]; then
       export NEST="nest-simulator-$NEST_VERSION"
@@ -26,10 +26,9 @@ if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
     export VENV=`python -c "import sys; print(sys.prefix)"`;
-    if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
-      ln -s /opt/python/3.7/lib/libpython3.7m.so $VENV/lib/libpython3.7.so;
-      export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}m
-    fi
+    export PYLIB=`find /opt/python/${TRAVIS_PYTHON_VERSION}/lib/ -name "libpython${TRAVIS_PYTHON_VERSION}*.so"`;
+    ln -s ${PYLIB} $VENV/lib/libpython${TRAVIS_PYTHON_VERSION}.so;
+    export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}m
     cython --version;
     cmake --version;
     cmake -DCMAKE_INSTALL_PREFIX=$VENV \
