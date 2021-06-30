@@ -26,8 +26,8 @@ if [ "$TRAVIS_PYTHON_VERSION" == "3.8" ]; then
     mkdir -p $HOME/build/$NEST
     pushd $HOME/build/$NEST
     export VENV=`python -c "import sys; print(sys.prefix)"`;
-    export PYLIB=`find /opt/python/${TRAVIS_PYTHON_VERSION}/lib/ -name "libpython${TRAVIS_PYTHON_VERSION}*.so"`;
-    ln -s ${PYLIB} $VENV/lib/libpython${TRAVIS_PYTHON_VERSION}.so;
+    export PYLIB_GLOBAL=`find /opt/python/${TRAVIS_PYTHON_VERSION}/lib/ -name "libpython${TRAVIS_PYTHON_VERSION}*.so"`;
+    ln -s ${PYLIB_GLOBAL} $VENV/lib/libpython${TRAVIS_PYTHON_VERSION}.so;
     export PYTHON_INCLUDE_DIR=$VENV/include/python${TRAVIS_PYTHON_VERSION}m
     cython --version;
     cmake --version;
