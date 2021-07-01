@@ -77,6 +77,11 @@ class Assembly(common.Assembly):
             result += p.local_node_collection
         return result
 
+    @property
+    def node_collection(self):
+        return sum((p.node_collection for p in self.populations[1:]),
+                   start=self.populations[0].node_collection)
+
 
 class PopulationView(common.PopulationView, PopulationMixin):
     __doc__ = common.PopulationView.__doc__
@@ -214,3 +219,6 @@ class Population(common.Population, PopulationMixin):
                 # and raise an Exception if not, rather than just emit a warning.
             else:
                 raise
+
+
+
