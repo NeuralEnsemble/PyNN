@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-Connection method classes for nest
+Connection method classes for NEST.
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging
@@ -32,7 +32,7 @@ from pyNN.connectors import (Connector,
                              FixedTotalNumberConnector,
                              CSAConnector as DefaultCSAConnector)
 
-from .random import NativeRNG, NEST_RDEV_TYPES
+from .random import NativeRNG
 
 
 logger = logging.getLogger("PyNN")
