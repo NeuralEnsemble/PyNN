@@ -4,7 +4,7 @@ Introduction
 
 PyNN_ (pronounced 'pine') is a simulator-independent language for building neuronal network models.
 
-In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and Brian_) as well as on certain neuromorphic hardware systems.
+In other words, you can write the code for a model once, using the PyNN API and the Python_ programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON_, NEST_ and `Brian 2`_) as well as on certain neuromorphic hardware systems.
 
 The PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (`Djurfeldt, 2012`_) or by writing your own Python code.
 
@@ -40,7 +40,7 @@ If you have questions or comments about PyNN, please post a message on the `Neur
 .. _CeCILL: http://www.cecill.info/
 .. _NEURON: http://www.neuron.yale.edu/neuron/
 .. _NEST:   http://www.nest-initiative.org/?page=Software
-.. _Brian:  http://briansimulator.org/
+.. _Brian 2:  http://briansimulator.org/
 .. _`Git repository`: https://github.com/NeuralEnsemble/PyNN
 .. _`PyNN issue tracker`: https://github.com/NeuralEnsemble/PyNN/issues
 .. _`NeuralEnsemble Google group`: http://groups.google.com/group/neuralensemble

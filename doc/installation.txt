@@ -11,7 +11,7 @@ Installing PyNN requires:
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package (>= 0.8.0)
-    * at least one of the supported simulators: e.g. NEURON, NEST, or Brian.
+    * at least one of the supported simulators: e.g. NEURON, NEST, or Brian 2.
 
 Optional dependencies are:
 
@@ -141,10 +141,10 @@ Now try it out::
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
 
-Installing Brian
-================
+Installing Brian2
+=================
 
-Instructions for downloading and installing Brian_ are available from `<https://briansimulator.org/install/>`_.
+Instructions for downloading and installing `Brian 2`_ are available from `<https://briansimulator.org/install/>`_.
 Note that this version of PyNN works with Brian 2. If you need to use Brian 1, try PyNN 0.9.6.
 
 
@@ -156,7 +156,7 @@ Note that this version of PyNN works with Brian 2. If you need to use Brian 1, t
 .. _Cheetah: http://www.cheetahtemplate.org/
 .. _mpi4py: http://mpi4py.scipy.org/
 .. _pip: http://www.pip-installer.org/
-.. _Brian: http://briansimulator.org/
+.. _Brian 2: http://briansimulator.org/
 .. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
 .. _`distutils`: http://docs.python.org/2/install/index.html
 .. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/

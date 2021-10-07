@@ -107,7 +107,7 @@ setup(
     description="A Python package for simulator-independent specification of neuronal network models",
     long_description=open("README.rst").read(),
     license="CeCILL http://www.cecill.info",
-    keywords="computational neuroscience simulation neuron nest brian neuromorphic",
+    keywords="computational neuroscience simulation neuron nest brian2 neuromorphic",
     url="http://neuralensemble.org/PyNN/",
     classifiers=['Development Status :: 4 - Beta',
                  'Environment :: Console',
