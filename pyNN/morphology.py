@@ -43,7 +43,9 @@ def load_morphology(url, replace_axon=False):
     #       in http://neurom.readthedocs.io/en/latest/definitions.html#soma
     #       and http://www.neuromorpho.org/SomaFormat.html 
     array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
-    return NeuroMLMorphology(array_morph)
+    nml_morph = NeuroMLMorphology(array_morph)
+    nml_morph.local_file = local_morph_file
+    return nml_morph
 
 
 class Morphology(object):
