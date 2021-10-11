@@ -39,7 +39,21 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.max_delay = max_delay
     simulator.state.mpi_rank = extra_params.get('rank', 0)
     simulator.state.num_processes = extra_params.get('num_processes', 1)
+    #
+    if "mcclass" in extra_params:
+        mc_attribute = ["label", "ion_channels", "post_synaptic_entities"]
+        _preset_mc_property(mc_attribute, extra_params)
+        _preset_mc_property_value(mc_attribute, extra_params)
+    #
     return rank()
+
+def _preset_mc_property(mc_attribute, params):
+    [setattr(params["mcclass"], keyword, property(params[keyword]))
+     for keyword in mc_attribute if keyword in params]
+
+def _preset_mc_property_value(mc_attribute, params):
+    [setattr(params["mcclass"], keyword, params[keyword])
+     for keyword in mc_attribute if keyword in params]
 
 
 def end(compatible_output=True):
