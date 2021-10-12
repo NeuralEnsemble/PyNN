@@ -87,6 +87,6 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     @property
     def model(self):
         return type(self.label,
-                    (ArborTemplate,),
+                    (ArborNeuronTemplate,),
                     {"ion_channels": self.ion_channels,
                      "post_synaptic_entities": self.post_synaptic_entities})

@@ -26,7 +26,7 @@ from .simulator import state
 
 logger = logging.getLogger("PyNN")
 
-class ArborTemplate(object):
+class ArborNeuronTemplate(object):
 
     def __init__(self, morphology, cm, Ra, ionic_species, **other_parameters):
         import neuroml
