@@ -20,8 +20,11 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
                                       ('morphology', 'morphology'),
                                       ('ionic_species', 'ionic_species'))
     default_initial_values = {}
-    ion_channels = {}
-    post_synaptic_entities = {}
+    # Placeholder attribute values whose elements are respective mechanism class
+    # Eg. {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
+    # Eg. {'AMPA': sim.CondExpPostSynapticResponse, 'GABA_A': sim.CondExpPostSynapticResponse}
+    #ion_channels = {}
+    #post_synaptic_entities = {}
 
     def __init__(self, **parameters):
         # replace ion channel classes with instantiated ion channel objects
