@@ -7,8 +7,6 @@ Standard base_cells for the neuron module.
 
 """
 
-from arbor import decor
-
 from pyNN.standardmodels import cells as base_cells, build_translations
 from pyNN.arbor.cells import (ArborTemplate)
 from pyNN.morphology import Morphology, NeuriteDistribution
@@ -29,7 +27,6 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     #post_synaptic_entities = {}
 
     def __init__(self, **parameters):
-        self.__decor_class__ = decor()
         # replace ion channel classes with instantiated ion channel objects
         for name, ion_channel in self.ion_channels.items():
             self.ion_channels[name] = ion_channel(**parameters.pop(name))

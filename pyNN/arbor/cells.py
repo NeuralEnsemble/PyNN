@@ -32,6 +32,8 @@ class ArborTemplate(object):
         import neuroml
         import neuroml.arraymorph
 
+        self.__decor_class__ = decor()
+
         self.traces = defaultdict(list)
         self.recording_time = False
         self.spike_source = None
