@@ -23,7 +23,7 @@ def run_command(path, working_directory):
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
                          cwd=working_directory)
-    stdout = p.communicate()[0]
+    stdout, stderr = p.communicate()
     return p.returncode, stdout
 
 
