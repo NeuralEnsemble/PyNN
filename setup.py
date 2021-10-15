@@ -23,9 +23,8 @@ def run_command(path, working_directory):
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
                          cwd=working_directory)
-    result = p.wait()
-    stdout = p.stdout.readlines()
-    return result, stdout
+    stdout = p.communicate()[0]
+    return p.returncode, stdout
 
 
 class build(_build):
