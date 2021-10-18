@@ -300,9 +300,7 @@ class Recorder(object):
                         name=variable,
                         source_population=self.population.label,
                         source_ids=source_ids)
-                    signal.channel_index = neo.ChannelIndex(
-                        index=np.arange(source_ids.size),
-                        channel_ids=np.array([self.population.id_to_index(id) for id in ids]))
+                    signal.channel_index = np.array([self.population.id_to_index(id) for id in ids])
                     segment.analogsignals.append(signal)
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node,
                                  source_ids, signal.channel_index)
@@ -321,10 +319,6 @@ class Recorder(object):
         if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(
                 filter_ids=filter_ids, variables=variables, clear=clear))
-        # collect channel indexes
-        for segment in data.segments:
-            for signal in segment.analogsignals:
-                data.channel_indexes.append(signal.channel_index)
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime

@@ -1397,7 +1397,7 @@ class Assembly(object):
         for block, p in zip(blocks, self.populations):
             for segment in block.segments:
                 for signal_array in segment.analogsignals:
-                    signal_array.channel_index.channel_ids += offset
+                    signal_array.channel_index += offset
             offset += p.size
         for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
