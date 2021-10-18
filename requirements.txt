@@ -5,6 +5,6 @@ numpy>=1.16.0
 quantities>=0.12.1
 lazyarray>=0.4.0
 neo>=0.10.0
-setuptools>=20.5;python_version!="3.3"
+setuptools>=20.5
 nose
-h5py;python_version!="3.3"
+h5py
