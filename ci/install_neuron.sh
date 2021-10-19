@@ -4,9 +4,9 @@ set -e  # stop execution in case of errors
 
 if [ "$TRAVIS_PYTHON_VERSION" == "3.9" ]; then
     echo -e "\n========== Installing NEURON ==========\n"
-    export NRN_VERSION="nrn-7.7"
+    export NRN_VERSION="nrn-8.0.0"
     if [ ! -f "$HOME/$NRN_VERSION/configure" ]; then
-        wget http://www.neuron.yale.edu/ftp/neuron/versions/v7.7/$NRN_VERSION.tar.gz -O $HOME/$NRN_VERSION.tar.gz;
+        wget https://neuron.yale.edu/ftp/neuron/versions/v8.0/8.0.0/8.0.0.tar.gz -O $HOME/$NRN_VERSION.tar.gz;
         pushd $HOME;
         tar xzf $NRN_VERSION.tar.gz;
         popd;
