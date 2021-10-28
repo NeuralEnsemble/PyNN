@@ -11,7 +11,7 @@ if [ "$TRAVIS_PYTHON_VERSION" == "3.9" ]; then
         echo 'Cloning NEURON sources from GitHub'
         git clone https://github.com/neuronsimulator/nrn -b 8.0.0 $HOME/$NRN_VERSION
         mkdir -p $HOME/$NRN_VERSION/build
-    else:
+    else
         echo 'Using cached NEURON build directory.'
     fi
     pushd $HOME/$NRN_VERSION/build
