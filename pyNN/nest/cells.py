@@ -52,7 +52,7 @@ def get_receptor_types(model_name):
 def get_recordables(model_name):
     try:
         return [name for name in nest.GetDefaults(model_name, "recordables")]
-    except nest.lib.hl_api_exceptions.NESTError as err:
+    except nest.NESTError as err:
         return []
 
 

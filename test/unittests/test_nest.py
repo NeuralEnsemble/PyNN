@@ -30,7 +30,7 @@ class TestFunctions(unittest.TestCase):
         self.assertEqual(ks['rng_seed'], 873465)
         #self.assertEqual(ks['min_delay'], 0.1)
         #self.assertEqual(ks['max_delay'], 1.0)
-        self.assertTrue(ks['off_grid_spiking'])
+        self.assertEqual(sim.state.spike_precision, "off_grid")
 
     def test_run_0(self, ):  # see https://github.com/NeuralEnsemble/PyNN/issues/191
         sim.setup(timestep=0.123, min_delay=0.246)

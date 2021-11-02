@@ -115,19 +115,18 @@ class _State(common.control.BaseState):
         return nest.Rank()
 
     def _get_spike_precision(self):
-        ogs = nest.GetKernelStatus('off_grid_spiking')
-        return ogs and "off_grid" or "on_grid"
+        return self._spike_precision
 
     def _set_spike_precision(self, precision):
-        self._spike_precision = precision
+        if nest.off_grid_spiking and precision == "on_grid":
+            raise ValueError("The option to use off-grid spiking cannot be turned off once enabled")
         if precision == 'off_grid':
-            nest.SetKernelStatus({'off_grid_spiking': True})
             self.default_recording_precision = 15
         elif precision == 'on_grid':
-            nest.SetKernelStatus({'off_grid_spiking': False})
             self.default_recording_precision = 3
         else:
             raise ValueError("spike_precision must be 'on_grid' or 'off_grid'")
+        self._spike_precision = precision
     spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
 
     def _set_verbosity(self, verbosity):
