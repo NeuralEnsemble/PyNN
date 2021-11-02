@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Definition of NativeElectrodeType class for NEST.
+
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
 import nest
 from pyNN.common import Population, PopulationView, Assembly
-from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.parameters import ParameterSpace
 from pyNN.nest.simulator import state
 from pyNN.nest.cells import get_defaults
 from pyNN.models import BaseCurrentSource

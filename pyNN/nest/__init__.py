@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-NEST v2 implementation of the PyNN API.
+NEST v3 implementation of the PyNN API.
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import warnings
-import numpy as np
 try:
     import tables  # due to freeze when importing nest before tables
 except ImportError:

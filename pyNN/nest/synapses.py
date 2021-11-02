@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Definition of NativeSynapseType class for NEST
 

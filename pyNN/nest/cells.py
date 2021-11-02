@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Definition of NativeCellType class for NEST.
 

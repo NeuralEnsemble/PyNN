@@ -219,6 +219,3 @@ class Population(common.Population, PopulationMixin):
                 # and raise an Exception if not, rather than just emit a warning.
             else:
                 raise
-
-
-

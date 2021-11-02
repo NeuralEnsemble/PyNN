@@ -1,5 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-docstring missing
+NEST v3 implementation of the PyNN API.
+
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 from numbers import Real
