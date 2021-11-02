@@ -1205,7 +1205,7 @@ class Assembly(object):
         for p in self.populations:
             count += p.size
             boundaries.append(count)
-        boundaries = np.array(boundaries, dtype=np.int)
+        boundaries = np.array(boundaries, dtype=int)
 
         if isinstance(index, (int, np.integer)):  # return an ID
             pindex = boundaries[1:].searchsorted(index, side='right')
