@@ -131,7 +131,7 @@ class WeightRecorder(object):
     def get_weights(self):
         signal = neo.AnalogSignal(self._weights, units='nA', sampling_period=self.interval * ms,
                                   name="weight")
-        signal.channel_index = neo.ChannelIndex(np.arange(len(self._weights[0])))
+        signal.channel_index = np.arange(len(self._weights[0]))
         return signal
 
 
