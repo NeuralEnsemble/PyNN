@@ -1,4 +1,4 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 """
 Implementation of the "low-level" functionality used by the common
 implementation of the API, for the NEST simulator.
@@ -15,16 +15,13 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import nest
 import logging
 import tempfile
-import numpy as np
 from pyNN import common
 from pyNN.core import reraise
 

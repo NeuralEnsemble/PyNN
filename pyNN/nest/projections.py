@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 """
-NEST v2 implementation of the PyNN API.
+NEST v3 implementation of the PyNN API.
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 from collections import defaultdict
-from pyNN.utility import connection_plot
 import numpy as np
 import nest
 import logging
-from itertools import repeat
 from pyNN import common, errors
 from pyNN.space import Space
 from pyNN.parameters import simplify
 from . import simulator
-from pyNN.random import RandomDistribution
 from .standardmodels.synapses import StaticSynapse
 from .conversion import make_sli_compatible
 
