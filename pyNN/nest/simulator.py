@@ -28,6 +28,15 @@ from pyNN.core import reraise
 logger = logging.getLogger("PyNN")
 name = "NEST"  # for use in annotating output data
 
+# The following constants contain the names of NEST model parameters that
+# relate to simulation time and so may need to be adjusted by a time offset.
+# TODO: Currently contains only parameters that occur in PyNN standard models.
+#       We should add parameters from all models that are distributed with NEST
+#       in case they are used with PyNN as "native" models.
+NEST_VARIABLES_TIME_DIMENSION = ("start", "stop")
+NEST_ARRAY_VARIABLES_TIME_DIMENSION = ("spike_times", "amplitude_times", "rate_times")
+
+
 # --- For implementation of get_time_step() and similar functions --------------
 
 
@@ -43,6 +52,18 @@ def nest_property(name, dtype):
         except nest.kernel.NESTError as e:
             reraise(e, "%s = %s (%s)" % (name, val, type(val)))
     return property(fget=_get, fset=_set)
+
+
+def apply_time_offset(parameters, offset):
+    parameters_copy = {}
+    for name, value in parameters.items():
+        if name in NEST_VARIABLES_TIME_DIMENSION:
+            parameters_copy[name] = value + self._time_offset
+        elif name in NEST_ARRAY_VARIABLES_TIME_DIMENSION:
+            parameters_copy[name] = [v + self._time_offset for v in value]
+        else:
+            parameters_copy[name] = value
+    return parameters_copy
 
 
 class _State(common.control.BaseState):
@@ -136,38 +157,19 @@ class _State(common.control.BaseState):
         """
         if self._time_offset == 0.0:
             nest.SetStatus(nodes, params, val=val)
-        elif val is None:
-            if isinstance(params, list):
-                params_copy = []
-                for item in params:
-                    item_copy = {}
-                    for name, value in item.items():
-                        if name in ("start", "stop"):
-                            item_copy[name] = value + self._time_offset
-                        elif name in ("spike_times", "amplitude_times"):
-                            item_copy[name] = [v + self._time_offset for v in value]
-                        else:
-                            item_copy[name] = value
-                    params_copy.append(item_copy)
-            else:
-                params_copy = {}
-                for name, value in params.items():
-                    if name in ("start", "stop"):
-                        params_copy[name] = value + self._time_offset
-                    elif name in ("spike_times", "amplitude_times"):
-                        params_copy[name] = [v + self._time_offset for v in value]
-                    else:
-                        params_copy[name] = value
-            nest.SetStatus(nodes, params_copy)
         else:
-            name = params
-            # todo: handle case where val is a list
-            if name in ("start", "stop"):
-                nest.SetStatus(nodes, name, val + self._time_offset)
-            elif name in ("spike_times", "amplitude_times"):
-                nest.SetStatus(nodes, name, [v + self._time_offset for v in val])
+            if val is None:
+                parameters = params
             else:
-                nest.SetStatus(nodes, name, val)
+                parameters = {params: val}
+
+            if isinstance(parameters, list):
+                params_copy = []
+                for item in parameters:
+                    params_copy.append(apply_time_offset(item, self._time_offset))
+            else:
+                params_copy = apply_time_offset(parameters, self._time_offset)
+            nest.SetStatus(nodes, params_copy)
 
     def run(self, simtime):
         """Advance the simulation for a certain time."""

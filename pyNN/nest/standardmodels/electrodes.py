@@ -39,7 +39,7 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         if isinstance(cells, (Population, PopulationView, Assembly)):
             self.cell_list = cells.node_collection
         else:
-            self.cell_list = nest.NodeCollection(cells)
+            self.cell_list = nest.NodeCollection(sorted(cells))
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
 
     def _phase_correction(self, start, freq, phase):

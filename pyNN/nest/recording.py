@@ -127,11 +127,9 @@ class SpikeDetector(RecordingDevice):
 
     def __init__(self, to_memory=True):
         self.device = nest.Create('spike_recorder')
-        device_parameters = {
-            # these seem to have disappeared in NEST v3
-            #"precise_times": True,
-            #"precision": simulator.state.default_recording_precision
-        }
+        device_parameters = {}
+        if not to_memory:
+            device_parameters["precision"] = simulator.state.default_recording_precision
         super(SpikeDetector, self).__init__(device_parameters, to_memory)
 
     def connect_to_cells(self):
