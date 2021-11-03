@@ -104,6 +104,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         a list of seeds, one for each thread on each MPI process
     `rng_seeds_seed`:
         a single seed that will be used to generate random values for `rng_seeds`
+    `t_flush`:
+        extra time to run the simulation after using reset() to ensure
+        the previous run does not influence the new one (default 200 ms)
     """
     max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     common.setup(timestep, min_delay, **extra_params)
@@ -124,6 +127,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         simulator.state.rng_seed = extra_params['rng_seeds_seed']
     else:
         simulator.state.rng_seed = extra_params.get('rng_seed', 42)
+    if "t_flush" in extra_params:
+        # see https://github.com/nest/nest-simulator/issues/1618
+        simulator.state.t_flush = extra_params["t_flush"]
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay

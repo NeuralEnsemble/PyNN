@@ -70,7 +70,7 @@ def test_reset_with_spikes(sim):
     """
     repeats = 3
     dt = 0.1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=200.0)
     p1 = sim.Population(2, sim.SpikeSourceArray(spike_times=[
         [1.2, 3.8, 9.2],
         [1.5, 1.9, 2.7, 4.8, 6.8],

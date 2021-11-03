@@ -22,6 +22,7 @@ modules.
 import nest
 import logging
 import tempfile
+import warnings
 import numpy as np
 from pyNN import common
 from pyNN.core import reraise
@@ -90,6 +91,7 @@ class _State(common.control.BaseState):
         self.populations = []  # needed for reset
         self.current_sources = []
         self._time_offset = 0.0
+        self.t_flush = 200.0
         self.stale_connection_cache = False
 
     @property
@@ -195,7 +197,12 @@ class _State(common.control.BaseState):
 
     def reset(self):
         if self.t > 0:
-            self.run(self.max_delay)  # get spikes and recorded data out of the system
+            warnings.warn(
+                "Full reset functionality is not available with NEST. "
+                "Please check carefully that the previous run is not influencing the "
+                "following one and, if so, increase the `t_flush` argument to `setup()`"
+            )
+            self.run(self.t_flush)  # get spikes and recorded data out of the system
             for recorder in self.recorders:
                 recorder._clear_simulator()
 
