@@ -58,9 +58,9 @@ def apply_time_offset(parameters, offset):
     parameters_copy = {}
     for name, value in parameters.items():
         if name in NEST_VARIABLES_TIME_DIMENSION:
-            parameters_copy[name] = value + self._time_offset
+            parameters_copy[name] = value + offset
         elif name in NEST_ARRAY_VARIABLES_TIME_DIMENSION:
-            parameters_copy[name] = [v + self._time_offset for v in value]
+            parameters_copy[name] = [v + offset for v in value]
         else:
             parameters_copy[name] = value
     return parameters_copy
@@ -199,6 +199,12 @@ class _State(common.control.BaseState):
         self._time_offset = self.t_kernel
 
         for p in self.populations:
+            if hasattr(p.celltype, "uses_parrot") and p.celltype.uses_parrot:
+                # 'uses_parrot' is a marker for spike sources,
+                # which may have parameters that need to be updated
+                # to account for time offset
+                # TODO: need to ensure that get/set parameters also works correctly
+                p._set_parameters(p.celltype.native_parameters)
             for variable, initial_value in p.initial_values.items():
                 p._set_initial_value_array(variable, initial_value)
                 p._reset()
