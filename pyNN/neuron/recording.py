@@ -113,7 +113,7 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
-            signals = np.vstack((id._cell.traces[variable] for id in ids)).T
+            signals = np.vstack([id._cell.traces[variable] for id in ids]).T
             expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = np.vstack((signals, signals[-1, :]))
