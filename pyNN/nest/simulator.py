@@ -22,6 +22,7 @@ modules.
 import nest
 import logging
 import tempfile
+import numpy as np
 from pyNN import common
 from pyNN.core import reraise
 
@@ -94,7 +95,9 @@ class _State(common.control.BaseState):
     @property
     def t(self):
         # note that we always simulate one min delay past the requested time
-        return max(self.t_kernel - self.min_delay - self._time_offset, 0.0)
+        # we round to try to reduce floating-point problems
+        # longer-term, we should probably work with integers (in units of time step)
+        return max(np.around(self.t_kernel - self.min_delay - self._time_offset, decimals=12), 0.0)
 
     t_kernel = nest_property("biological_time", float)
 
