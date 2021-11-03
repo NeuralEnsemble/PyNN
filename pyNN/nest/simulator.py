@@ -91,7 +91,7 @@ class _State(common.control.BaseState):
         self.populations = []  # needed for reset
         self.current_sources = []
         self._time_offset = 0.0
-        self.t_flush = 200.0
+        self.t_flush = -1
         self.stale_connection_cache = False
 
     @property
@@ -197,11 +197,20 @@ class _State(common.control.BaseState):
 
     def reset(self):
         if self.t > 0:
-            warnings.warn(
-                "Full reset functionality is not available with NEST. "
-                "Please check carefully that the previous run is not influencing the "
-                "following one and, if so, increase the `t_flush` argument to `setup()`"
-            )
+            if self.t_flush < 0:
+                raise ValueError(
+                    "Full reset functionality is not currently available with NEST. "
+                    "If you nevertheless want to use this functionality, pass the `t_flush`"
+                    "argument to `setup()` with a suitably large value (>> 100 ms)"
+                    "then check carefully that the previous run is not influencing the "
+                    "following one."
+                )
+            else:
+                warnings.warn(
+                    "Full reset functionality is not available with NEST. "
+                    "Please check carefully that the previous run is not influencing the "
+                    "following one and, if so, increase the `t_flush` argument to `setup()`"
+                )
             self.run(self.t_flush)  # get spikes and recorded data out of the system
             for recorder in self.recorders:
                 recorder._clear_simulator()

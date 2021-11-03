@@ -106,7 +106,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         a single seed that will be used to generate random values for `rng_seeds`
     `t_flush`:
         extra time to run the simulation after using reset() to ensure
-        the previous run does not influence the new one (default 200 ms)
+        the previous run does not influence the new one
     """
     max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     common.setup(timestep, min_delay, **extra_params)

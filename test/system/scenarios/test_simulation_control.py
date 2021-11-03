@@ -13,7 +13,7 @@ def test_reset(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
@@ -40,7 +40,7 @@ def test_reset_with_clear(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
