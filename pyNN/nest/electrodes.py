@@ -1,11 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Definition of NativeElectrodeType class for NEST.
+
+:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
 import nest
 from pyNN.common import Population, PopulationView, Assembly
-from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.parameters import ParameterSpace
 from pyNN.nest.simulator import state
 from pyNN.nest.cells import get_defaults
 from pyNN.models import BaseCurrentSource
@@ -26,6 +30,7 @@ class NestCurrentSource(BaseCurrentSource):
 
         self.min_delay = state.min_delay
         self.timestep = state.dt  # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+        state.current_sources.append(self)
 
     def inject_into(self, cells):
         for id in cells:
@@ -36,6 +41,15 @@ class NestCurrentSource(BaseCurrentSource):
         else:
             self.cell_list = cells
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
+
+    def _reset(self):
+        # after a reset, need to adjust parameters for time offset
+        updated_params = {}
+        for name, value in self.parameter_space.items():
+            if name in ("start", "stop", "amplitude_times"):
+                updated_params[name] = value
+        if updated_params:
+            state.set_status(self._device, updated_params)
 
     def _delay_correction(self, value):
         """
@@ -92,5 +106,5 @@ class NativeElectrodeType(NestCurrentSource):
     def __init__(self, **parameters):
         NestCurrentSource.__init__(self, **parameters)
         self.parameter_space.evaluate(simplify=True)
-        nest.SetStatus(self._device,
+        state.set_status(self._device,
                        make_sli_compatible(self.parameter_space.as_dict()))

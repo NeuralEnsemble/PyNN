@@ -13,7 +13,7 @@ def test_reset(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
@@ -40,7 +40,7 @@ def test_reset_with_clear(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
@@ -59,6 +59,40 @@ def test_reset_with_clear(sim):
 
 
 test_reset_with_clear.__test__ = False
+
+
+
+@register()
+def test_reset_with_spikes(sim):
+    """
+    Run the same simulation n times without recreating the network,
+    and check the results are the same each time.
+    """
+    repeats = 3
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt, t_flush=200.0)
+    p1 = sim.Population(2, sim.SpikeSourceArray(spike_times=[
+        [1.2, 3.8, 9.2],
+        [1.5, 1.9, 2.7, 4.8, 6.8],
+    ]))
+    p2 = sim.Population(2, sim.IF_curr_exp())
+    p2.record('v')
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(),
+                         sim.StaticSynapse(weight=0.5, delay=0.5))
+
+    for i in range(repeats):
+        sim.run(10.0)
+        sim.reset()
+    data = p2.get_data(clear=False)
+    sim.end()
+
+    assert len(data.segments) == repeats
+    for segment in data.segments[1:]:
+        assert_array_almost_equal(segment.analogsignals[0],
+                                  data.segments[0].analogsignals[0], 10)
+
+
+test_reset_with_spikes.__test__ = False
 
 
 @register()

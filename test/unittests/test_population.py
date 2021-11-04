@@ -235,7 +235,7 @@ class PopulationTest(unittest.TestCase):
             [7, 4, 8, 12, 0, 3, 9, 1, 2, 11, 5, 10, 6]))
         pv = p.sample(5, rng=rng)
         assert_array_equal(pv.all_cells,
-                           p.all_cells[[7, 4, 8, 12, 0]])
+                           sorted(p.all_cells[[7, 4, 8, 12, 0]]))
 
     def test_get_multiple_homogeneous_params_with_gather(self, sim=sim):
         p = sim.Population(4, sim.IF_cond_exp(

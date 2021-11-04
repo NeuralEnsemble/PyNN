@@ -266,7 +266,7 @@ class Recorder(object):
             if variable == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
                 sids = sorted(self.filter_recorded('spikes', filter_ids))
-                data = self._get_spiketimes(sids)
+                data = self._get_spiketimes(sids, clear=clear)
 
                 segment.spiketrains = []
                 for id in sids:
@@ -286,6 +286,7 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
+                t_stop = self._simulator.state.t * pq.ms
                 sampling_period = self.sampling_interval * pq.ms
                 current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
@@ -306,7 +307,6 @@ class Recorder(object):
                                  source_ids, signal.channel_index)
                     assert segment.analogsignals[0].t_stop - \
                         current_time - 2 * sampling_period < 1e-10
-                    # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,

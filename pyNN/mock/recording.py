@@ -9,7 +9,7 @@ class Recorder(recording.Recorder):
     def _record(self, variable, new_ids, sampling_interval=None):
         pass
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if hasattr(id, "__len__"):
             spks = {}
             for i in id:

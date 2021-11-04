@@ -66,7 +66,7 @@ class Recorder(recording.Recorder):
 
 
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
 
         if hasattr(id, "__len__"):
             spks = {}

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Support cell types defined in 9ML with NEST.
 
@@ -14,7 +15,6 @@ Constants:
 
 :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging
@@ -53,7 +53,7 @@ class _nest_build_nineml_celltype(type):
     def __new__(cls, name, bases, dct):
 
         import nineml.abstraction as al
-        from nineml.abstraction import flattening, writers, component_modifiers
+        from nineml.abstraction import flattening, component_modifiers
         import nest
 
         # Extract Parameters Back out from Dict:

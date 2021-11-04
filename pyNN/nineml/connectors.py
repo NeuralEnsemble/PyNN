@@ -8,7 +8,7 @@ Export of PyNN scripts as NineML.
 import nineml.user as nineml
 
 from pyNN import connectors
-from utility import build_parameter_set, catalog_url
+from .utility import build_parameter_set, catalog_url
 
 
 class ConnectorMixin(object):
