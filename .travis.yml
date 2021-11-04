@@ -9,6 +9,8 @@ matrix:
     - python: 3.9
       env: PYENV=py39
 before_install:
+  - sudo add-apt-repository -y ppa:nest-simulator/nest
+  - sudo apt-get -y update
   - sudo apt-get install -y libgsl0-dev openmpi-bin libopenmpi-dev python-dev
 install:
   - source ci/install.sh
@@ -17,7 +19,5 @@ after_success:
   - bash ci/upload_coveralls.sh
 cache:
   directories:
-    - $HOME/nest-3.0
     - $HOME/nrn-8.0.0
-    - $HOME/build/nest-3.0
     - $HOME/.cache/pip
