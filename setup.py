@@ -24,7 +24,7 @@ def run_command(path, working_directory):
                          universal_newlines=True,
                          cwd=working_directory)
     stdout, stderr = p.communicate()
-    return p.returncode, stdout
+    return p.returncode, stdout.split("\n")
 
 
 class build(_build):
