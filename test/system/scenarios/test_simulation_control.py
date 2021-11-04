@@ -92,7 +92,7 @@ def test_reset_with_spikes(sim):
                                   data.segments[0].analogsignals[0], 10)
 
 
-test_reset.__test__ = False
+test_reset_with_spikes.__test__ = False
 
 
 @register()
