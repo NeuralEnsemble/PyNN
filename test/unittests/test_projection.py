@@ -10,7 +10,7 @@ import unittest
 import numpy as np
 import os
 import sys
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 try:
     from unittest.mock import Mock, patch

@@ -1,14 +1,11 @@
-from pyNN import recording, errors
-from nose.tools import assert_equal, assert_raises
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
-import numpy as np
-import os
+
 from datetime import datetime
 from collections import defaultdict
-from pyNN.utility import assert_arrays_equal
+from unittest.mock import Mock
+from nose.tools import assert_equal, assert_raises
+
+from pyNN import recording, errors
+
 
 # def test_rename_existing():
 
