@@ -35,6 +35,7 @@ class Brian2CurrentSource(StandardCurrentSource):
         super(StandardCurrentSource, self).__init__(**parameters)
         self.cell_list = []
         self.indices = []
+        self.prev_amp_dict = {}
         self.running = False
         simulator.state.current_sources.append(self)
         parameter_space = ParameterSpace(self.default_parameters,
@@ -96,7 +97,6 @@ class Brian2CurrentSource(StandardCurrentSource):
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         self.cell_list.extend(cell_list)
-        self.prev_amp_dict = {}
         for cell in cell_list:
             cell_idx = cell.parent.id_to_index(cell)
             self.indices.extend([cell_idx])
