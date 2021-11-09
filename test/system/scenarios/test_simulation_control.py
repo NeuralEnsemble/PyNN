@@ -1,7 +1,6 @@
 
 from nose.tools import assert_almost_equal, assert_raises
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from pyNN.utility import assert_arrays_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 from .registry import register
 
 
@@ -54,7 +53,7 @@ def test_reset_with_clear(sim):
 
     for rec in data:
         assert len(rec.segments) == 1
-        assert_arrays_almost_equal(rec.segments[0].analogsignals[0],
+        assert_allclose(rec.segments[0].analogsignals[0],
                                    data[0].segments[0].analogsignals[0], 1e-11)
 
 

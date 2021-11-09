@@ -2,9 +2,9 @@
 Unit tests for pyNN/random.py.
 """
 
-import pyNN.random as random
-import numpy as np
 import unittest
+import numpy as np
+from numpy.testing import assert_allclose
 
 try:
     from neuron import h
@@ -14,13 +14,7 @@ else:
     have_nrn = True
     from pyNN.neuron.random import NativeRNG
 
-
-def assert_arrays_almost_equal(a, b, threshold):
-    if not (abs(a - b) < threshold).all():
-        err_msg = "%s != %s" % (a, b)
-        err_msg += "\nlargest difference = %g" % abs(a - b).max()
-        raise unittest.TestCase.failureException(err_msg)
-
+import pyNN.random as random
 
 # ==============================================================================
 class SimpleTests(unittest.TestCase):
@@ -158,7 +152,7 @@ class ParallelTests(unittest.TestCase):
         A = range(10)
         perm0 = rng0.permutation(A)
         perm1 = rng1.permutation(A)
-        assert_arrays_almost_equal(perm0, perm1, 1e-99)
+        assert_allclose(perm0, perm1, 1e-99)
 
 
 class NativeRNGTests(unittest.TestCase):

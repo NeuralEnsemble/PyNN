@@ -11,21 +11,9 @@ from unittest.mock import Mock
 
 import numpy as np
 from nose.tools import assert_equal, assert_raises
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 
 from pyNN import space
-
-
-def assert_arrays_almost_equal(a, b, threshold, msg=''):
-    if a.shape != b.shape:
-        raise unittest.TestCase.failureException(
-            "Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
-    if not (abs(a - b) < threshold).all():
-        err_msg = "%s != %s" % (a, b)
-        err_msg += "\nlargest difference = %g" % abs(a - b).max()
-        if msg:
-            err_msg += "\nOther information: %s" % msg
-        raise unittest.TestCase.failureException(err_msg)
 
 
 def test_distance():
@@ -135,10 +123,10 @@ class LineTest(unittest.TestCase):
         n = 4
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
-            threshold=1e-15
+            rtol=1e-15
         )
 
     def test_generate_positions(self):
@@ -146,10 +134,10 @@ class LineTest(unittest.TestCase):
         n = 2
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([[-100, 444, 987], [0, 444, 987]], float).T,
-            threshold=1e-15
+            rtol=1e-15
         )
 
     def test__eq__(self):
@@ -185,14 +173,14 @@ class Grid2D_Test(object):
         n = 4
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
             ]).T,
             1e-15)
-        assert_arrays_almost_equal(
+        assert_allclose(
             self.grid2.generate_positions(12),
             np.array([
                 [123, 456, 789], [123, 465.9, 789],
@@ -227,7 +215,7 @@ class Grid3D_Test(object):
         n = 8
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],

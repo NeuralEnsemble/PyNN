@@ -1,9 +1,8 @@
 
 import numpy as np
 from numpy import nan
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from nose.tools import assert_equal
-from pyNN.utility import assert_arrays_almost_equal
 from .registry import register
 
 
@@ -58,7 +57,7 @@ def test_set_synaptic_parameters_fully_connected(sim):
     actual = np.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_allclose(actual[ind], expected, 1e-16)
 
     positional_weights = np.array([[0, 1], [2, 3], [4, 5], [6, 7]], dtype=float)
     prj.set(weight=positional_weights)
@@ -118,7 +117,7 @@ def test_set_synaptic_parameters_partially_connected(sim):
     actual = np.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_allclose(actual[ind], expected, 1e-16)
 
     positional_weights = np.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -176,7 +175,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = np.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_allclose(actual[ind], expected, 1e-16)
 
     positional_weights = np.array([[0, nan], [2, 3], [nan, 5], [6, nan]], dtype=float)
     prj.set(weight=positional_weights)
@@ -191,7 +190,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = np.array(prj.get('weight', format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_allclose(actual[ind], expected, 1e-16)
 
     # postponing implementation of this functionality until after 0.8.0
     # u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4]
@@ -207,7 +206,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     # actual = np.array(prj.get('U', format='list'))
     # if mpi_rank == 0:
     #     ind = np.lexsort((actual[:, 1], actual[:, 0]))
-    #     assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+    #     assert_allclose(actual[ind], expected, 1e-16)
 
     f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
@@ -222,7 +221,7 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     actual = np.array(prj.get('delay', format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_almost_equal(actual[ind], expected, 1e-16)
+        assert_allclose(actual[ind], expected, 1e-16)
 
     # final sanity check
     expected = np.array([

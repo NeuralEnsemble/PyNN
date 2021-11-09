@@ -1,9 +1,9 @@
 
 import numpy as np
 from nose.tools import assert_equal, assert_almost_equal
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from pyNN.random import NumpyRNG, RandomDistribution
-from pyNN.utility import assert_arrays_almost_equal, connection_plot, init_logging
+from pyNN.utility import connection_plot, init_logging
 from .registry import register
 
 #init_logging(None, debug=True)
@@ -22,7 +22,7 @@ def all_to_all_static_no_self(sim):
     print(weights)
     delays = prj.get('delay', format='list', gather=False)
     i, j, d = np.array(delays).T
-    assert_arrays_almost_equal(d, 0.2 + 0.3 * abs(i - j), 1e-9)
+    assert_allclose(d, 0.2 + 0.3 * abs(i - j), 1e-9)
     assert_equal(d.size, p.size * (p.size - 1))
     sim.end()
 

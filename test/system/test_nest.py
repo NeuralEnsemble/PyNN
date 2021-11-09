@@ -3,7 +3,7 @@
 from nose.plugins.skip import SkipTest
 from nose.tools import assert_equal, assert_not_equal, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 try:
     import pyNN.nest

@@ -4,9 +4,9 @@ import pickle
 import numpy as np
 import quantities as pq
 from nose.tools import assert_equal, assert_true
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
-from pyNN.utility import assert_arrays_almost_equal, normalized_filename
+from pyNN.utility import normalized_filename
 from .registry import register
 
 
@@ -112,8 +112,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_arrays_almost_equal(spiketrains0[0].rescale(pq.ms).magnitude, np.array([0.075]), 1e-17)
-    assert_arrays_almost_equal(spiketrains1[0].rescale(pq.ms).magnitude, np.array([10.025, 12.34]), 1e-14)
+    assert_allclose(spiketrains0[0].rescale(pq.ms).magnitude, np.array([0.075]), 1e-17)
+    assert_allclose(spiketrains1[0].rescale(pq.ms).magnitude, np.array([10.025, 12.34]), 1e-14)
     assert_equal(spiketrains2[0].size, 0)
 
 
