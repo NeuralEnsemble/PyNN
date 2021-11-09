@@ -17,6 +17,7 @@ from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
+from pyNN.connectors import Connector
 from .populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
@@ -88,12 +89,19 @@ class Projection(object):
         self.post = postsynaptic_neurons  # } read-only
         self.label = label
         self.space = space
+        if not isinstance(connector, Connector):
+            raise TypeError(
+                "The connector argument should be an instance of a subclass of Connector. "
+                f"The argument provided was of type '{type(connector).__name__}'."
+            )
         self._connector = connector
 
         self.synapse_type = synapse_type or self._static_synapse_class()
-        assert isinstance(self.synapse_type, models.BaseSynapseType), \
-            "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(
-                synapse_type)
+        if not isinstance(self.synapse_type, models.BaseSynapseType):
+            raise TypeError(
+                "The synapse_type argument should be an instance of a subclass of BaseSynapseType. "
+                f"The argument provided was of type '{type(synapse_type).__name__}'"
+            )
 
         self.receptor_type = receptor_type
         if self.receptor_type in ("default", None):
