@@ -1,7 +1,7 @@
 
 from nose.tools import assert_almost_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
+from pyNN.utility import assert_arrays_almost_equal
 from .registry import register
 
 

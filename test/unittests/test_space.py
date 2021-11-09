@@ -5,16 +5,15 @@ Tests of the `space` module.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN import space
-import unittest
-import numpy as np
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
-from nose.tools import assert_equal, assert_raises
-from pyNN.utility import assert_arrays_equal
 from math import sqrt
+import unittest
+from unittest.mock import Mock
+
+import numpy as np
+from nose.tools import assert_equal, assert_raises
+from numpy.testing import assert_array_equal
+
+from pyNN import space
 
 
 def assert_arrays_almost_equal(a, b, threshold, msg=''):
@@ -75,7 +74,7 @@ class SpaceTest(unittest.TestCase):
                                np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
-        assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
+        assert_array_equal(s.distances(self.ABCD, self.ABCD),
                             np.array([0.0, sqrt(3), sqrt(3), sqrt(29),
                                          sqrt(3), 0.0, sqrt(12), sqrt(14),
                                          sqrt(3), sqrt(12), 0.0, sqrt(50.0),
@@ -89,7 +88,7 @@ class SpaceTest(unittest.TestCase):
         def g(j): return self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, np.arange(4)),
                                np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
-        assert_arrays_equal(np.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
+        assert_array_equal(np.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
                             np.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
                                          (sqrt(3), 0.0, sqrt(12), sqrt(14)),
                                          (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),

@@ -1,13 +1,13 @@
-from pyNN.recording import files
+import os
+from unittest.mock import Mock
 from textwrap import dedent
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
+
 from nose.tools import assert_equal
 import numpy as np
-import os
-from pyNN.utility import assert_arrays_equal
+from numpy.testing import assert_array_equal
+
+from pyNN.recording import files
+
 
 builtin_open = open
 
@@ -99,7 +99,7 @@ def test_PickleFile():
 #
 #    nbf = files.NumpyBinaryFile("tmp.npz", "r")
 #    assert_equal(nbf.get_metadata(), metadata)
-#    assert_arrays_equal(nbf.read().flatten(), np.array(data).flatten())
+#    assert_array_equal(nbf.read().flatten(), np.array(data).flatten())
 #    nbf.close()
 #
 #    os.remove("tmp.npz")
@@ -115,7 +115,7 @@ def test_HDF5ArrayFile():
 
         h5f = files.HDF5ArrayFile("tmp.h5", "r")
         assert_equal(h5f.get_metadata(), metadata)
-        assert_arrays_equal(np.array(h5f.read()).flatten(),
+        assert_array_equal(np.array(h5f.read()).flatten(),
                             np.array(data).flatten())
         h5f.close()
 

@@ -1,9 +1,9 @@
+
+
 from nose.plugins.skip import SkipTest
-from .scenarios.registry import registry
 from nose.tools import assert_equal, assert_not_equal, assert_raises
-from pyNN.utility import init_logging, assert_arrays_equal
-from pyNN.random import RandomDistribution
 import numpy as np
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 try:
     import pyNN.nest
@@ -11,8 +11,9 @@ try:
 except ImportError:
     have_nest = False
 
-import unittest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from .scenarios.registry import registry
+from pyNN.utility import init_logging
+from pyNN.random import RandomDistribution
 
 
 def test_scenarios():
@@ -40,7 +41,7 @@ def test_record_native_model():
     p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron")(**parameters))
     p1.initialize(V_m=-70.0, Theta=-50.0)
     p1.set(theta_eq=-51.5)
-    #assert_arrays_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
+    #assert_array_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
     assert_equal(p1.get('theta_eq'), -51.5)
     print(p1.get('tau_m'))
     p1.set(tau_m=RandomDistribution('uniform', low=15.0, high=20.0))
@@ -189,7 +190,7 @@ def test_tsodyks_markram_synapse():
     connections = nest.GetConnections(nest.NodeCollection(list(prj._sources)),
                                       synapse_model=prj.nest_synapse_model)
     tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
-    assert_arrays_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
+    assert_array_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
 
 
 def test_native_electrode_types():

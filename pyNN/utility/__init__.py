@@ -374,14 +374,6 @@ class SimulationProgressBar(ProgressBar):
         return t + self.interval
 
 
-def assert_arrays_equal(a, b):
-    import numpy as np
-    assert isinstance(a, np.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, np.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a, b)
-    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a, b)
-
-
 def assert_arrays_almost_equal(a, b, threshold):
     import numpy as np
     assert isinstance(a, np.ndarray), "a is a %s" % type(a)

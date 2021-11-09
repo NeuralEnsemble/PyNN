@@ -3,7 +3,7 @@ import numpy as np
 from numpy import nan
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
+from pyNN.utility import assert_arrays_almost_equal
 from .registry import register
 
 
@@ -16,7 +16,7 @@ def issue241(sim):
     spike_train3 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000], 'duration': 1234})
     spike_train4 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000]})
     spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001]})
-    assert_arrays_equal(spike_train2.get('duration'), np.array([1234, 2345]))
+    assert_array_equal(spike_train2.get('duration'), np.array([1234, 2345]))
     assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
     sim.end()
 
@@ -65,21 +65,21 @@ def test_set_synaptic_parameters_fully_connected(sim):
     expected = positional_weights
     actual = prj.get('weight', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     u_list = [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2]
     prj.set(U=u_list)
     expected = np.array([[0.9, 0.8], [0.7, 0.6], [0.5, 0.4], [0.3, 0.2]])
     actual = prj.get('U', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     f_delay = lambda d: 0.5 + d
     prj.set(delay=f_delay)
     expected = np.array([[0.5, 1.5], [1.5, 0.5], [2.5, 1.5], [3.5, 2.5]])
     actual = prj.get('delay', format='array')
     if mpi_rank == 0:
-        assert_arrays_equal(actual, expected)
+        assert_array_equal(actual, expected)
 
     # final sanity check
     expected = np.array([
@@ -95,7 +95,7 @@ def test_set_synaptic_parameters_fully_connected(sim):
     actual = np.array(prj.get(['weight', 'delay', 'U'], format='list'))
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
-        assert_arrays_equal(actual[ind], expected)
+        assert_array_equal(actual[ind], expected)
 test_set_synaptic_parameters_fully_connected.__test__ = False
 
 

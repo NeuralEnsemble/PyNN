@@ -1,13 +1,13 @@
 
 import os
+import pickle
 import numpy as np
 import quantities as pq
 from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from neo.io import get_io
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging, normalized_filename
+from pyNN.utility import assert_arrays_almost_equal, normalized_filename
 from .registry import register
-import pickle
 
 
 @register()
@@ -33,7 +33,7 @@ def test_reset_recording(sim):
     data = p.get_data()
     sim.end()
     ti = lambda i: data.segments[i].analogsignals[0].times
-    assert_arrays_equal(ti(0), ti(1))
+    assert_array_equal(ti(0), ti(1))
     assert_array_equal(data.segments[0].analogsignals[0].channel_index, np.array([3]))
     assert_array_equal(data.segments[1].analogsignals[0].channel_index, np.array([4]))
     vi = lambda i: data.segments[i].analogsignals[0]
