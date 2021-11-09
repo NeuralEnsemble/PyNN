@@ -53,8 +53,8 @@ def test_reset_with_clear(sim):
 
     for rec in data:
         assert len(rec.segments) == 1
-        assert_allclose(rec.segments[0].analogsignals[0],
-                                   data[0].segments[0].analogsignals[0], 1e-11)
+        assert_allclose(rec.segments[0].analogsignals[0].magnitude,
+                        data[0].segments[0].analogsignals[0].magnitude, 1e-11)
 
 
 test_reset_with_clear.__test__ = False

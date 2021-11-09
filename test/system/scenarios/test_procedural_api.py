@@ -1,6 +1,5 @@
 
 import numpy as np
-import quantities as pq
 from numpy.testing import assert_allclose
 from pyNN.utility import init_logging
 from .registry import register
@@ -21,7 +20,7 @@ def ticket195(sim):
     #prj = sim.Projection(pre, post, sim.FromListConnector([(0, 0, 0.01, 0.1)]))
     post.record(['spikes', 'v'])
     sim.run(100.0)
-    assert_allclose(post.get_data().segments[0].spiketrains[0], np.array([13.4]) * pq.ms, 0.5)
+    assert_allclose(post.get_data().segments[0].spiketrains[0].magnitude, np.array([13.4]), 0.5)
     sim.end()
 
 if __name__ == '__main__':
