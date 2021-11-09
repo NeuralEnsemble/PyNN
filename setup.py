@@ -3,13 +3,7 @@
 try:
     from setuptools import setup
     from setuptools.command.build_py import build_py as _build
-    from setuptools import version
-    if version.__version__ > '20.5':
-        tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
-                     'matplotlib;python_version>="3.4"', 'Cheetah3',
-                     'h5py']
-    else:
-        tests_req = ['mpi4py', 'Cheetah3']
+    tests_req = ["mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py"]
 except ImportError:
     from distutils.core import setup
     from distutils.command.build_py import build_py as _build
@@ -120,7 +114,7 @@ setup(
                  'Programming Language :: Python :: 3.9',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build_py': build},
-    install_requires=['numpy>=1.16.0', 'lazyarray>=0.4.0', 'neo>=0.10.0',
+    install_requires=['numpy>=1.16.1', 'lazyarray>=0.4.0', 'neo>=0.10.0',
                       'quantities>=0.12.1'],
     extras_require={
         'examples': ['matplotlib', 'scipy'],
