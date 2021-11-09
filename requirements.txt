@@ -3,7 +3,7 @@ docutils>=0.10
 mock>1.0
 numpy>=1.16.0
 quantities>=0.12.1
-lazyarray>=0.4.0
+lazyarray>=0.5.0
 neo>=0.10.0
 setuptools>=20.5
 nose

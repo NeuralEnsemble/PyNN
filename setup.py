@@ -114,7 +114,7 @@ setup(
                  'Programming Language :: Python :: 3.9',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build_py': build},
-    install_requires=['numpy>=1.16.1', 'lazyarray>=0.4.0', 'neo>=0.10.0',
+    install_requires=['numpy>=1.16.1', 'lazyarray>=0.5.0', 'neo>=0.10.0',
                       'quantities>=0.12.1'],
     extras_require={
         'examples': ['matplotlib', 'scipy'],
