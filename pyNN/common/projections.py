@@ -13,6 +13,7 @@ import numpy as np
 import logging
 import operator
 from copy import deepcopy
+from warnings import warn
 from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
@@ -131,11 +132,15 @@ class Projection(object):
             weights = ps["weight"]
             if weights.shape is None:
                 weights.shape = self.shape
-            wl = weights[self.pre.size - 1, self.post.size - 1]
-            if wl >= 0:
+            try:
+                wl = weights[self.pre.size - 1, self.post.size - 1]
+                if wl >= 0:
+                    self.receptor_type = self.post.receptor_types[0]
+                else:
+                    self.receptor_type = self.post.receptor_types[1]
+            except TypeError:  # for example, if using a native RNG with no Python interface
+                warn("Unable to guess receptor type")
                 self.receptor_type = self.post.receptor_types[0]
-            else:
-                self.receptor_type = self.post.receptor_types[1]
         else:
             self.receptor_type = self.post.receptor_types[0]
 

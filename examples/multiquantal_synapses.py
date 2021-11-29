@@ -53,8 +53,8 @@ for label in synapse_types:
 
 spike_source.record('spikes')
 
-if "nest" in sim.__name__:
-    print(sim.nest.GetStatus([projections['depressing, n=5'].nest_connections[0]]))
+#if "nest" in sim.__name__:
+#    print(sim.nest.GetStatus([projections['depressing, n=5'].nest_connections[0]]))
 
 # === Run the simulation =====================================================
 

@@ -85,7 +85,7 @@ class CSAConnector(DefaultCSAConnector):
 class NESTConnectorMixin(object):
 
     def synapse_parameters(self, projection):
-        params = {'model': projection.nest_synapse_model}
+        params = {'synapse_model': projection.nest_synapse_model}
         parameter_space = self._parameters_from_synapse_type(projection, distance_map=None)
         for name, value in parameter_space.items():
             if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):
@@ -94,7 +94,8 @@ class NESTConnectorMixin(object):
                 if isinstance(value.base_value.rng, NativeRNG):
                     logger.warning(
                         "Random values will be created inside NEST with NEST's own RNGs")
-                    params[name] = value.evaluate().repr()
+                    # todo: re-enable support for clipped and clipped_to_boundary
+                    params[name] = value.evaluate().as_nest_object()
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
@@ -124,8 +125,8 @@ class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 
     def native_connect(self, projection):
         syn_params = self.synapse_parameters(projection)
-        rule_params = {'autapses': self.allow_self_connections,
-                       'multapses': False,
+        rule_params = {'allow_autapses': self.allow_self_connections,
+                       'allow_multapses': False,
                        'rule': 'pairwise_bernoulli',
                        'p': self.p_connect}
         projection._connect(rule_params, syn_params)
@@ -142,8 +143,8 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 
     def native_connect(self, projection):
         syn_params = self.synapse_parameters(projection)
-        rule_params = {'autapses': self.allow_self_connections,
-                       'multapses': False,
+        rule_params = {'allow_autapses': self.allow_self_connections,
+                       'allow_multapses': False,
                        'rule': 'all_to_all'}
         projection._connect(rule_params, syn_params)
 

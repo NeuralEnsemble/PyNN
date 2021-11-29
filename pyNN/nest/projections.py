@@ -132,12 +132,14 @@ class Projection(common.Projection):
 
 
         syn_params.update({'synapse_label': self.nest_synapse_label})
-        nest.Connect(self.pre.all_cells.astype(int).tolist(),
-                     self.post.all_cells.astype(int).tolist(),
+        nest.Connect(self.pre.node_collection,
+                     self.post.node_collection,
                      rule_params, syn_params)
         self._simulator.state.stale_connection_cache = True
-        self._sources = [cid[0] for cid in nest.GetConnections(synapse_model=self.nest_synapse_model,
-                                                               synapse_label=self.nest_synapse_label)]
+        self._sources.update(
+            nest.GetConnections(synapse_model=self.nest_synapse_model,
+                                synapse_label=self.nest_synapse_label).sources()
+        )
 
     def _identify_common_synapse_properties(self):
         """

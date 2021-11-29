@@ -8,6 +8,7 @@ NEST v3 implementation of the PyNN API.
 
 from numbers import Real
 from copy import copy
+import nest.random
 from pyNN.random import NativeRNG
 
 NEST_RDEV_TYPES = ['binomial', 'binomial_clipped', 'binomial_clipped_to_boundary',
@@ -21,26 +22,26 @@ NEST_RDEV_TYPES = ['binomial', 'binomial_clipped', 'binomial_clipped_to_boundary
 
 class NativeRNG(NativeRNG):
     """
-    Signals that the random numbers will be drawn by NEST's own RNGs and 
+    Signals that the random numbers will be drawn by NEST's own RNGs and
     takes care of transforming pyNN parameters for the random distributions
     to NEST parameters.
     """
     translations = {
-        'binomial':       {'n': 'n', 'p': 'p'},
-        'gamma':          {'theta': 'scale', 'k': 'order'},
+        #'binomial':       {'n': 'n', 'p': 'p'},
+        #'gamma':          {'theta': 'scale', 'k': 'order'},
         'exponential':    {'beta': 'lambda'},
-        'lognormal':      {'mu': 'mu', 'sigma': 'sigma'},
-        'normal':         {'mu': 'mu', 'sigma': 'sigma'},
-        'normal_clipped': {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
-        'normal_clipped_to_boundary':
-                          {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
-        'poisson':        {'lambda_': 'lambda'},
-        'uniform':        {'low': 'low', 'high': 'high'},
-        'uniform_int':    {'low': 'low', 'high': 'high'},
-        'vonmises':       {'mu': 'mu', 'kappa': 'kappa'},
+        'lognormal':      {'mu': 'mean', 'sigma': 'std'},
+        'normal':         {'mu': 'mean', 'sigma': 'std'},
+        #'normal_clipped': {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
+        #'normal_clipped_to_boundary':
+        #                  {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
+        #'poisson':        {'lambda_': 'lambda'},
+        'uniform':        {'low': 'min', 'high': 'max'},
+        #'uniform_int':    {'low': 'low', 'high': 'high'},
+        #'vonmises':       {'mu': 'mu', 'kappa': 'kappa'},
     }
 
-    def next(self, n=None, distribution=None, parameters=None, mask_local=None):
+    def next(self, n=None, distribution=None, parameters=None, mask=None):
         # we ignore `n` and `mask_local`; they are needed for interface consistency
         parameter_map = self.translations[distribution]
         return NESTRandomDistribution(distribution,
@@ -51,8 +52,9 @@ class NESTRandomDistribution(object):
 
     scale_parameters = {
         'gamma': ('scale',),
-        'normal': ('mu', 'sigma'),
-        'uniform': ('low', 'high'),
+        'normal': ('mean', 'std'),
+        'lognormal': ('mean', 'std'),
+        'uniform': ('min', 'max'),
     }
 
     def __init__(self, name, parameters):
@@ -68,6 +70,10 @@ class NESTRandomDistribution(object):
         D = {'distribution': self.name}
         D.update(self.parameters)
         return D
+
+    def as_nest_object(self):
+        cls = getattr(nest.random, self.name)
+        return cls(**self.parameters)
 
     def __mul__(self, value):
         if not isinstance(value, Real):
