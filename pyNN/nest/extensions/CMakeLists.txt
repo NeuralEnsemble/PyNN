@@ -20,9 +20,9 @@ set( MODULE_NAME pynn_extensions )
 # 2) Add all your sources here
 set( MODULE_SOURCES
     pynn_extensions.h pynn_extensions.cpp
-    simple_stochastic_connection.h
-    stochastic_stp_connection.h
-    stochastic_stp_connection_impl.h
+    simple_stochastic_synapse.h
+    stochastic_stp_synapse.h
+    stochastic_stp_synapse_impl.h
     )
 
 # 3) We require a header name like this:
