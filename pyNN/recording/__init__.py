@@ -88,7 +88,14 @@ def gather_blocks(data, ordered=True):
     merged = data
     if mpi_comm.rank == MPI_ROOT:
         merged = blocks[0]
+        # the following business with setting sig.segment is a workaround for a bug in Neo
+        for seg in merged.segments:
+            for sig in seg.analogsignals:
+                sig.segment = seg
         for block in blocks[1:]:
+            for seg, mseg in zip(block.segments, merged.segments):
+                for sig in seg.analogsignals:
+                    sig.segment = mseg
             merged.merge(block)
     if ordered:
         for segment in merged.segments:

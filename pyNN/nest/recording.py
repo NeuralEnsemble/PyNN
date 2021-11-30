@@ -6,10 +6,11 @@ NEST v3 implementation of the PyNN API.
 :license: CeCILL, see LICENSE for details.
 """
 
+from collections import defaultdict
 import numpy as np
 import logging
 import nest
-from pyNN import recording
+from pyNN import recording, errors
 from pyNN.nest import simulator
 
 # todo: this information should come from the cell type classes
@@ -202,6 +203,26 @@ class Recorder(recording.Recorder):
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
         recording.Recorder.__init__(self, population, file)
+        self.recorded_all = defaultdict(set)
+
+    def record(self, variables, ids, sampling_interval=None):
+        """
+        Add the cells in `ids` to the sets of recorded cells for the given variables.
+        """
+        logger.debug('Recorder.record(<%d cells>)' % len(ids))
+        self._check_sampling_interval(sampling_interval)
+
+        # for NEST we need all ids, not just local ones, otherwise simulations
+        # sometimes hang with MPI if some nodes aren't recording anything
+        all_ids = set(ids)
+        local_ids = set([id for id in ids if id.local])
+        for variable in recording.normalize_variables_arg(variables):
+            if not self.population.can_record(variable):
+                raise errors.RecordingError(variable, self.population.celltype)
+            new_ids = all_ids.difference(self.recorded_all[variable])
+            self.recorded[variable] = self.recorded[variable].union(local_ids)
+            self.recorded_all[variable] = self.recorded_all[variable].union(all_ids)
+            self._record(variable, new_ids, sampling_interval)
 
     def _record(self, variable, new_ids, sampling_interval=None):
         """
