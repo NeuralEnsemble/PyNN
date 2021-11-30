@@ -56,7 +56,7 @@ def savez(file, *args, **kwds):
             raise ValueError("Cannot use un-named variables and keyword %s" % key)
         namedict[key] = val
 
-    zip = zipfile.ZipFile(file, mode="wb")
+    zip = zipfile.ZipFile(file, mode="w")
 
     # Place to write temporary .npy files
     #  before storing them in the zip. We need to path this to have a working
@@ -215,7 +215,7 @@ class NumpyBinaryFile(BaseFile):
     def write(self, data, metadata):
         __doc__ = BaseFile.write.__doc__
         self._check_open()
-        metadata_array = np.array(metadata.items(), dtype=(str, float))
+        metadata_array = np.array(list(metadata.items()), dtype=object)
         savez(self.fileobj, data=data, metadata=metadata_array)
 
     def read(self):
@@ -229,7 +229,7 @@ class NumpyBinaryFile(BaseFile):
         __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         D = {}
-        for name, value in np.load(self.fileobj)['metadata']:
+        for name, value in np.load(self.fileobj, allow_pickle=True)['metadata']:
             try:
                 D[name] = eval(value)
             except Exception:
