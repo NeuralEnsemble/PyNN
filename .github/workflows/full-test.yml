@@ -40,6 +40,6 @@ jobs:
       run: |
         python setup.py install
     - name: Run unit tests
+      working-directory: ./test
       run: |
-        cd test
         nosetests --nologcapture -v unittests
