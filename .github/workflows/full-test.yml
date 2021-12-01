@@ -35,6 +35,9 @@ jobs:
     - name: Install NEURON
       run: |
         python -m pip install neuron
+    - name: Install PyNN itself
+      run: |
+        python setup.py install
     - name: Run unit tests
       run: |
         nosetests --nologcapture -v test/unittests
