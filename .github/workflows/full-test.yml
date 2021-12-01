@@ -24,11 +24,17 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install basic dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pip install coverage coveralls nose-testconfig
-        pip install -r requirements.txt
+        python -m pip install coverage coveralls nose-testconfig
+        python -m pip install -r requirements.txt
+    - name: Install Brian 2
+      run: |
+        python -m pip install brian2
+    - name: Install NEURON
+      run: |
+        python -m pip install neuron
     - name: Run unit tests
       run: |
-        nosetests --nologcapture test/unittests
+        nosetests --nologcapture -v test/unittests
