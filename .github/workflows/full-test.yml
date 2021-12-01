@@ -42,4 +42,4 @@ jobs:
     - name: Run unit tests
       working-directory: test
       run: |
-        nosetests --nologcapture -v unittests
+        nosetests --nologcapture --exe --verbosity=3 unittests
