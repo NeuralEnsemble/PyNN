@@ -2,7 +2,6 @@
 from nose.plugins.skip import SkipTest
 from numpy.testing import assert_array_almost_equal
 
-import pyNN.nest as sim
 from pyNN.random import RandomDistribution as RD
 from pyNN.network import Network
 from pyNN.serialization import export_to_sonata, import_from_sonata, asciify
@@ -13,9 +12,15 @@ try:
 except ImportError:
     HAVE_H5PY = False
 
+try:
+    import pyNN.nest as sim
+    HAVE_NEST = True
+except ImportError:
+    HAVE_NEST = False
+
 
 def test():
-    if not HAVE_H5PY:
+    if not HAVE_H5PY and HAVE_NEST:
         raise SkipTest
 
     sim.setup()
