@@ -40,4 +40,5 @@ jobs:
         python setup.py install
     - name: Run unit tests
       run: |
-        nosetests --nologcapture -v test/unittests
+        cd test
+        nosetests --nologcapture -v unittests
