@@ -42,3 +42,6 @@ jobs:
     - name: Run unit tests
       run: |
         nosetests --nologcapture --where=test/unittests --verbosity=3 test_assembly.py test_brian.py test_connectors_parallel.py test_connectors_serial.py test_core.py test_descriptions.py test_files.py test_idmixin.py test_lowlevelapi.py test_neuron.py test_parameters.py test_population.py test_populationview.py test_projection.py test_random.py test_recording.py test_simulation_control.py test_space.py test_standardmodels.py test_utility_functions.py
+    - name: Run system tests
+      run: |
+        nosetests --nologcapture --where=test/system test_brian2.py test_neuron.py test_serialization.py
