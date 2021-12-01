@@ -41,4 +41,4 @@ jobs:
         python setup.py install
     - name: Run unit tests
       run: |
-        nosetests --nologcapture --where=test/unittests --verbosity=3 test_population.py
+        nosetests --nologcapture --where=test/unittests --verbosity=3 test_*.py
