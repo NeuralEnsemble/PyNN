@@ -5,7 +5,7 @@ name: Run all tests
 
 on:
   push:
-    branches: [ add-gh-actions ]
+    branches: [ $default-branch ]
   pull_request:
     branches: [ $default-branch ]
 
