@@ -11,7 +11,7 @@ on:
 
 jobs:
   test:
-    name: Test on (${{ matrix.os }})
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -31,4 +31,4 @@ jobs:
         pip install -r requirements.txt
     - name: Run unit tests
       run: |
-        nosetest --nologcapture test/unittests
+        nosetests --nologcapture test/unittests
