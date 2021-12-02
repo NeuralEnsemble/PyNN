@@ -405,6 +405,8 @@ class RandomDistribution(object):
                 raise KeyError(errmsg % (available_distributions[self.name], tuple(named.keys())))
             return named
         elif len(named) == 0:
+            if isinstance(positional, dict):
+                raise TypeError("Positional parameters should be a tuple, not a dict")
             expected_parameter_names = available_distributions[self.name]
             if len(positional) != len(expected_parameter_names):
                 errmsg = "Incorrect number of parameters for random distribution. For %s received %s"
