@@ -477,7 +477,7 @@ def simplify(value):
     If `value` is a homogeneous array, return the single value that all elements
     share. Otherwise, pass the value through.
     """
-    if isinstance(value, np.ndarray):
+    if isinstance(value, np.ndarray) and len(value.shape) > 0:  #  latter condition is for Brian scalar quantities
         if (value == value[0]).all():
             return value[0]
         else:
