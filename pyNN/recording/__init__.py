@@ -307,11 +307,11 @@ class Recorder(object):
                         sampling_period=sampling_period,
                         name=variable,
                         source_population=self.population.label,
-                        source_ids=source_ids)
-                    signal.channel_index = np.array([self.population.id_to_index(id) for id in ids])
+                        source_ids=source_ids,
+                        array_annotations={"channel_index": np.array([self.population.id_to_index(id) for id in ids])})
                     segment.analogsignals.append(signal)
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                 source_ids, signal.channel_index)
+                                 source_ids, signal.array_annotations["channel_index"])
                     assert segment.analogsignals[0].t_stop - \
                         current_time - 2 * sampling_period < 1e-10
         return segment

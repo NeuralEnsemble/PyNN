@@ -58,11 +58,11 @@ def plot_signal(ax, signal, index=None, label='', **options):
                                              signal.units._dimensionality.string)
     handle_options(ax, options)
     if index is None:
-        label = "%s (Neuron %d)" % (label, signal.channel_index or 0)
+        label = "%s (Neuron %d)" % (label, signal.array_annotations["channel_index"] or 0)
     else:
-        label = "%s (Neuron %d)" % (label, signal.channel_index[index])
+        label = "%s (Neuron %d)" % (label, signal.array_annotations["channel_index"][index])
         signal = signal[:, index]
-    ax.plot(signal.times.rescale(ms), signal, label=label, **options)
+    ax.plot(signal.times.rescale(ms), signal.magnitude, label=label, **options)
     ax.legend()
 
 
@@ -77,8 +77,8 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     handle_options(ax, options)
     offset = options.pop("y_offset", None)
     show_legend = options.pop("legend", True)
-    for i in signal_array.channel_index.argsort():
-        channel = signal_array.channel_index[i]
+    for i in signal_array.array_annotations["channel_index"].argsort():
+        channel = signal_array.array_annotations["channel_index"][i]
         signal = signal_array[:, i]
         if label_prefix:
             label = "%s (Neuron %d)" % (label_prefix, channel)
@@ -86,7 +86,7 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
             label = "Neuron %d" % channel
         if offset:
             signal += i * offset
-        ax.plot(signal.times.rescale(ms), signal, label=label, **options)
+        ax.plot(signal.times.rescale(ms), signal.magnitude, label=label, **options)
     if show_legend:
         ax.legend()
 
@@ -212,6 +212,9 @@ class Figure(object):
             makedirs(dirname)
         self.fig.savefig(filename)
 
+    def show(self):
+        self.fig.show()
+
 
 class Panel(object):
     """
@@ -288,8 +291,8 @@ def comparison_plot(segments, labels, title='', annotations=None,
                 units[array.name] = array.units
             elif array.units != units[array.name]:
                 array = array.rescale(units[array.name])
-            for i in array.channel_index.index.argsort():
-                channel = array.channel_index.index[i]
+            for i in array.array_annotations["channel_index"].argsort():
+                channel = array.array_annotations["channel_index"][i]
                 signal = array[:, i]
                 by_var_and_channel[array.name][channel].append(signal)
     # each panel plots the signals for a given variable.
