@@ -5,23 +5,18 @@ Downloads
 Source distributions
 --------------------
 
-The `latest stable version of PyNN`_ (0.9.6) may be downloaded from the
+The `latest stable version of PyNN`_ (0.10.0) may be downloaded from the
 `Python Package Index`_. This is recommended for
 anyone using PyNN for the first time.
 
 If you need support for a previous version of the API, the packages can be downloaded from
-the links below. This is recommended for anyone who needs a simulator/hardware backend that
-does not yet support the 0.8 API.
+the links below.
 
 Older versions:
 
+    * `0.9.6 <https://pypi.python.org/pypi/PyNN/0.9.6>`_
     * `0.8.0 <https://pypi.python.org/pypi/PyNN/0.8.0>`_
     * `0.7.5 <https://pypi.python.org/pypi/PyNN/0.7.5>`_
-    * `0.7.4 <https://pypi.python.org/pypi/PyNN/0.7.4>`_
-    * `0.7.3 <https://pypi.python.org/pypi/PyNN/0.7.3>`_
-    * `0.7.2 <https://pypi.python.org/pypi/PyNN/0.7.2>`_
-    * `0.7.1 <https://pypi.python.org/pypi/PyNN/0.7.1>`_
-    * `0.7.0 <https://pypi.python.org/pypi/PyNN/0.7.0>`_
     * `0.6.0 <https://pypi.python.org/pypi/PyNN/0.6.0>`_
     * `0.5.0 <https://pypi.python.org/pypi/PyNN/0.5.0>`_
 
@@ -34,11 +29,3 @@ See :doc:`developers/contributing`.
 
 .. _`latest stable version of PyNN`: https://pypi.python.org/pypi/PyNN/
 .. _`Python Package Index`: https://pypi.python.org/pypi/PyNN/
-.. _`INCF Software Centre`: http://software.incf.org/software/pynn/download
-.. _`Debian unstable (Sid)`: http://packages.debian.org/sid/python-pynn
-.. _`Ubuntu 12.04 (Precise)`: http://packages.ubuntu.com/source/precise/python/pynn
-.. _`Ubuntu 14.04 (Trusty)`: http://packages.ubuntu.com/source/trusty/python/pynn
-.. _`Ubuntu 15.04 (Vivid)`: http://packages.ubuntu.com/vivid/python-pynn
-.. _`Debian 7.0 (Wheezy)`: http://packages.debian.org/wheezy/python-pynn
-.. _`Debian 8.0 (Jessie)`: http://packages.debian.org/jessie/python-pynn
-.. _NeuroDebian: http://neuro.debian.net/
