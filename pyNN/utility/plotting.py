@@ -213,7 +213,7 @@ class Figure(object):
         self.fig.savefig(filename)
 
     def show(self):
-        self.fig.show()
+        plt.show()
 
 
 class Panel(object):
