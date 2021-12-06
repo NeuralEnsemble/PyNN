@@ -32,8 +32,8 @@ The easiest way to get PyNN is to use pip_::
 If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.10.0.dev.tar.gz
-    $ cd PyNN-0.10.0.dev
+    $ tar xzf PyNN-0.10.0.tar.gz
+    $ cd PyNN-0.10.0
     $ python setup.py install
 
 This will install it to your Python :file:`site-packages` directory, and may

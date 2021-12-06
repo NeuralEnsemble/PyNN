@@ -4,7 +4,7 @@ Defines a common implementation of the built-in PyNN Connector classes.
 Simulator modules may use these directly, or may implement their own versions
 for improved performance.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
