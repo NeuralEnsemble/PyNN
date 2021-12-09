@@ -58,13 +58,20 @@ def load_mechanisms(path):
         return
     # in case NEURON is assuming a different architecture to Python,
     # we try multiple possibilities
-    arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc', 'umac']
-    for arch in arch_list:
-        lib_path = os.path.join(path, arch, '.libs', 'libnrnmech.so')
+    if platform.system() == 'Windows':
+        lib_path = os.path.join(path, 'nrnmech.dll')
         if os.path.exists(lib_path):
             h.nrn_load_dll(lib_path)
             nrn_dll_loaded.append(path)
             return
+    else:
+        arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc', 'umac']
+        for arch in arch_list:
+            lib_path = os.path.join(path, arch, '.libs', 'libnrnmech.so')
+            if os.path.exists(lib_path):
+                h.nrn_load_dll(lib_path)
+                nrn_dll_loaded.append(path)
+                return
     raise IOError("NEURON mechanisms not found in %s. You may need to run 'nrnivmodl' in this directory." % path)
 
 
