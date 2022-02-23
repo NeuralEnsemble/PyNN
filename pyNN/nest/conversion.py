@@ -1,5 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-Conversion functions to nest-compatible data types.
+Conversion functions to NEST-compatible data types.
+
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np

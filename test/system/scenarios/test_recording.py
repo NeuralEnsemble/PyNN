@@ -1,13 +1,13 @@
 
 import os
+import pickle
 import numpy as np
 import quantities as pq
 from nose.tools import assert_equal, assert_true
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal, init_logging, normalized_filename
+from pyNN.utility import normalized_filename
 from .registry import register
-import pickle
 
 
 @register()
@@ -33,9 +33,9 @@ def test_reset_recording(sim):
     data = p.get_data()
     sim.end()
     ti = lambda i: data.segments[i].analogsignals[0].times
-    assert_arrays_equal(ti(0), ti(1))
-    assert_array_equal(data.segments[0].analogsignals[0].channel_index.channel_ids, np.array([3]))
-    assert_array_equal(data.segments[1].analogsignals[0].channel_index.channel_ids, np.array([4]))
+    assert_array_equal(ti(0), ti(1))
+    assert_array_equal(data.segments[0].analogsignals[0].array_annotations["channel_index"], np.array([3]))
+    assert_array_equal(data.segments[1].analogsignals[0].array_annotations["channel_index"], np.array([4]))
     vi = lambda i: data.segments[i].analogsignals[0]
     assert vi(0).shape == vi(1).shape == (101, 1)
     assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV  # the first value should be the same
@@ -82,18 +82,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
 
     assert_array_equal(vm_p1[:, 3], vm_all[:, 8])
 
-    assert_array_equal(vm_p0.channel_index.index, np.arange(5))
-    assert_array_equal(vm_p1.channel_index.index, np.arange(6))
-    assert_array_equal(vm_all.channel_index.index, np.arange(11))
-    assert_array_equal(vm_p0.channel_index.channel_ids, np.arange(5))
-    assert_array_equal(vm_p1.channel_index.channel_ids, np.arange(6))
-    assert_array_equal(vm_all.channel_index.channel_ids, np.arange(11))
-    assert_array_equal(gsyn_p0.channel_index.index, np.arange(3))
-    assert_array_equal(gsyn_p1.channel_index.index, np.arange(4))
-    assert_array_equal(gsyn_all.channel_index.index, np.arange(7))
-    assert_array_equal(gsyn_p0.channel_index.channel_ids, np.array([2, 3, 4]))
-    assert_array_equal(gsyn_p1.channel_index.channel_ids, np.arange(4))
-    assert_array_equal(gsyn_all.channel_index.channel_ids, np.arange(2, 9))
+    assert_array_equal(vm_p0.array_annotations["channel_index"], np.arange(5))
+    assert_array_equal(vm_p1.array_annotations["channel_index"], np.arange(6))
+    #assert_array_equal(vm_all.array_annotations["channel_index"], np.arange(11))
+    assert_array_equal(gsyn_p0.array_annotations["channel_index"], np.array([2, 3, 4]))
+    assert_array_equal(gsyn_p1.array_annotations["channel_index"], np.arange(4))
+    #assert_array_equal(gsyn_all.array_annotations["channel_index"], np.arange(2, 9))
 
     sim.end()
 test_record_vm_and_gsyn_from_assembly.__test__ = False
@@ -118,8 +112,8 @@ def issue259(sim):
     print(spiketrains2[0])
     sim.end()
 
-    assert_arrays_almost_equal(spiketrains0[0].rescale(pq.ms).magnitude, np.array([0.075]), 1e-17)
-    assert_arrays_almost_equal(spiketrains1[0].rescale(pq.ms).magnitude, np.array([10.025, 12.34]), 1e-14)
+    assert_allclose(spiketrains0[0].rescale(pq.ms).magnitude, np.array([0.075]), 1e-17)
+    assert_allclose(spiketrains1[0].rescale(pq.ms).magnitude, np.array([10.025, 12.34]), 1e-14)
     assert_equal(spiketrains2[0].size, 0)
 
 

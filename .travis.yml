@@ -2,12 +2,14 @@ language: python
 dist: bionic
 matrix:
   include:
-    - python: 3.6
-      env: PYENV=py36
     - python: 3.7
       env: PYENV=py37
+    - python: 3.8
+      env: PYENV=py38
+    - python: 3.9
+      env: PYENV=py39
 before_install:
-  - sudo apt-get install -y libgsl0-dev  openmpi-bin libopenmpi-dev python-dev
+  - sudo apt-get install -y libgsl0-dev openmpi-bin libopenmpi-dev python-dev
 install:
   - source ci/install.sh
 script:  bash ci/test_script.sh
@@ -15,8 +17,7 @@ after_success:
   - bash ci/upload_coveralls.sh
 cache:
   directories:
-    - $HOME/nest-2.20.0
-    - $HOME/nrn-7.7
-    - $HOME/build/nest-2.20.0
-    - $HOME/build/nrn-7.7
+    - $HOME/nest-3.0
+    - $HOME/nrn-8.0.0
+    - $HOME/build/nest-3.0
     - $HOME/.cache/pip

@@ -1,7 +1,7 @@
 """
 Tests of the parameters module.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -9,7 +9,7 @@ import unittest
 import operator
 import numpy as np
 from lazyarray import larray
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_equal
 from pyNN.parameters import LazyArray, ParameterSpace, Sequence
 from pyNN import random, errors

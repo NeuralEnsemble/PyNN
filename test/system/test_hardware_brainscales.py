@@ -1,23 +1,18 @@
-from nose.plugins.skip import SkipTest
-from .scenarios.registry import registry
-from nose.tools import assert_equal, assert_not_equal
-from pyNN.utility import init_logging, assert_arrays_equal
-import numpy as np
 import logging
-from pyNN.parameters import Sequence
-from numpy.testing import assert_array_equal
-from numpy import nan_to_num
-
 import unittest
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+from nose.plugins.skip import SkipTest
+from numpy import nan_to_num
 
 try:
     import pyNN.hardware.brainscales as sim
     have_hardware_brainscales = True
 except ImportError:
     have_hardware_brainscales = False
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 
 class HardwareTest(unittest.TestCase):

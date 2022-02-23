@@ -1,7 +1,6 @@
 
 from nose.tools import assert_almost_equal, assert_raises
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from pyNN.utility import assert_arrays_equal, assert_arrays_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 from .registry import register
 
 
@@ -13,7 +12,7 @@ def test_reset(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
@@ -40,7 +39,7 @@ def test_reset_with_clear(sim):
     """
     repeats = 3
     dt = 1
-    sim.setup(timestep=dt, min_delay=dt)
+    sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
     p = sim.Population(1, sim.IF_curr_exp(i_offset=0.1))
     p.record('v')
 
@@ -54,11 +53,45 @@ def test_reset_with_clear(sim):
 
     for rec in data:
         assert len(rec.segments) == 1
-        assert_arrays_almost_equal(rec.segments[0].analogsignals[0],
-                                   data[0].segments[0].analogsignals[0], 1e-11)
+        assert_allclose(rec.segments[0].analogsignals[0].magnitude,
+                        data[0].segments[0].analogsignals[0].magnitude, 1e-11)
 
 
 test_reset_with_clear.__test__ = False
+
+
+
+@register()
+def test_reset_with_spikes(sim):
+    """
+    Run the same simulation n times without recreating the network,
+    and check the results are the same each time.
+    """
+    repeats = 3
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt, t_flush=200.0)
+    p1 = sim.Population(2, sim.SpikeSourceArray(spike_times=[
+        [1.2, 3.8, 9.2],
+        [1.5, 1.9, 2.7, 4.8, 6.8],
+    ]))
+    p2 = sim.Population(2, sim.IF_curr_exp())
+    p2.record('v')
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(),
+                         sim.StaticSynapse(weight=0.5, delay=0.5))
+
+    for i in range(repeats):
+        sim.run(10.0)
+        sim.reset()
+    data = p2.get_data(clear=False)
+    sim.end()
+
+    assert len(data.segments) == repeats
+    for segment in data.segments[1:]:
+        assert_array_almost_equal(segment.analogsignals[0],
+                                  data.segments[0].analogsignals[0], 10)
+
+
+test_reset_with_spikes.__test__ = False
 
 
 @register()

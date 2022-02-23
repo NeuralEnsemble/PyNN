@@ -12,7 +12,7 @@ The network used is made of:
 Usage: python connections.py <simulator> --plot-figure=name_figure
 
     <simulator> is either mock, neuron, nest, brian,...
-    
+
 It gives the results as png file, whose name is name_figure_ConnectorType, for each ConnectorType used.
 The connection parameters used are defined in the __main__ loop at the bottom of the file
 
@@ -28,10 +28,10 @@ from math import *
 from pyNN.utility import get_simulator, Timer, ProgressBar, init_logging, normalized_filename
 
 from pyNN.random import NumpyRNG, RandomDistribution
-from pyNN.connectors import IndexBasedExpression
+from pyNN.core import IndexBasedExpression
 from numpy import nan_to_num, array, ones, savetxt
 
-   
+
 def initialize():
     global sim
     global options
@@ -42,7 +42,7 @@ def initialize():
     global n_ext
     global n_exc
     global n_inh
-    
+
     sim, options = get_simulator(
         ("--plot-figure", "Plot the connections to a file."))
 
@@ -74,7 +74,7 @@ def initialize():
 
     if options.simulator == "neuroml":
         extra["file"] = "connections.xml"
-        
+
 
 def build_connections(connector_type, connector_parameters):
 
@@ -202,13 +202,13 @@ def build_connection_parameters():
     global connection_list
     global path
     global array_connections
-    
+
     connection_list = [
                 (0, 0, 0.1, 0.1),
                 (3, 0, 0.2, 0.11),
                 (2, 3, 0.3, 0.12),
                 (5, 1, 0.4, 0.13),
-                (0, 1, 0.5, 0.14), 
+                (0, 1, 0.5, 0.14),
                 ]
     path = "test.connections"
     if os.path.exists(path):
@@ -217,13 +217,13 @@ def build_connection_parameters():
 
     array_connections = ones((60, 60), dtype=bool)
     array_connections[15, 15] = False
-        
+
 
 class IndexBasedProbability(IndexBasedExpression):
 
     def __call__(self, i, j):
-        return array((i + j) % 3 == 0, dtype=float)        
-    
+        return array((i + j) % 3 == 0, dtype=float)
+
 
 def displacement_expression(d):
     return 0.5 * ((d[0] >= -1) * (d[0] <= 2)) + 0.25 * (d[1] >= 0) * (d[1] <= 1)
@@ -236,13 +236,13 @@ def displacement_expression(d):
 # ===========================================================================
 
 if __name__ == "__main__":
-    
+
     # === Initializes =======================================================
     initialize()
     build_connection_parameters()
-    
+
     # === Loop over connector types =========================================
-    
+
     connector_type = [
         [ sim.FixedProbabilityConnector, {'p_connect': 1.0, 'rng': rng} ],
         [ sim.AllToAllConnector, {'allow_self_connections': False} ],
@@ -256,4 +256,4 @@ if __name__ == "__main__":
         ]
     for conn in connector_type:
         build_connections(conn[0], conn[1])
-    
+

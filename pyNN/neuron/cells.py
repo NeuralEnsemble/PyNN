@@ -2,7 +2,7 @@
 """
 Definition of cell classes for the neuron module.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -532,6 +532,9 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         # should allow user to set specific seeds somewhere, e.g. in setup()
         self.seed(state.mpi_rank + state.native_rng_baseseed)
 
+    def __new__(cls, *arg, **kwargs):
+        return super().__new__(cls, *arg, **kwargs)
+
     def _set_interval(self, value):
         self.switch.weight[0] = -1
         self.switch.event(h.t + 1e-12, 0)
@@ -559,6 +562,9 @@ class RandomPoissonRefractorySpikeSource(hclass(h.PoissonStimRefractory)):
         self.source_section = None
         self.seed(state.mpi_rank + state.native_rng_baseseed)
 
+    def __new__(cls, *arg, **kwargs):
+        return super().__new__(cls, *arg, **kwargs)
+
 
 class RandomGammaSpikeSource(hclass(h.GammaStim)):
 
@@ -576,6 +582,9 @@ class RandomGammaSpikeSource(hclass(h.GammaStim)):
         self.source_section = None
         self.seed(state.mpi_rank + state.native_rng_baseseed)
 
+    def __new__(cls, *arg, **kwargs):
+        return super().__new__(cls, *arg, **kwargs)
+
 
 class VectorSpikeSource(hclass(h.VecStim)):
 
@@ -588,6 +597,9 @@ class VectorSpikeSource(hclass(h.VecStim)):
         self.source_section = None
         self.rec = None
         self._recorded_spikes = np.array([])
+
+    def __new__(cls, *arg, **kwargs):
+        return super().__new__(cls, *arg, **kwargs)
 
     def _set_spike_times(self, spike_times):
         # spike_times should be a Sequence object

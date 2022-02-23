@@ -3,7 +3,7 @@
 Common implementation of the Projection class, to be sub-classed by
 backend-specific Projection classes.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -13,10 +13,12 @@ import numpy as np
 import logging
 import operator
 from copy import deepcopy
+from warnings import warn
 from pyNN import recording, errors, models, core, descriptions
 from pyNN.parameters import ParameterSpace, LazyArray
 from pyNN.space import Space
 from pyNN.standardmodels import StandardSynapseType
+from pyNN.connectors import Connector
 from .populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
@@ -88,12 +90,19 @@ class Projection(object):
         self.post = postsynaptic_neurons  # } read-only
         self.label = label
         self.space = space
+        if not isinstance(connector, Connector):
+            raise TypeError(
+                "The connector argument should be an instance of a subclass of Connector. "
+                f"The argument provided was of type '{type(connector).__name__}'."
+            )
         self._connector = connector
 
         self.synapse_type = synapse_type or self._static_synapse_class()
-        assert isinstance(self.synapse_type, models.BaseSynapseType), \
-            "The synapse_type argument must be a models.BaseSynapseType object, not a %s" % type(
-                synapse_type)
+        if not isinstance(self.synapse_type, models.BaseSynapseType):
+            raise TypeError(
+                "The synapse_type argument should be an instance of a subclass of BaseSynapseType. "
+                f"The argument provided was of type '{type(synapse_type).__name__}'"
+            )
 
         self.receptor_type = receptor_type
         if self.receptor_type in ("default", None):
@@ -123,11 +132,15 @@ class Projection(object):
             weights = ps["weight"]
             if weights.shape is None:
                 weights.shape = self.shape
-            wl = weights[self.pre.size - 1, self.post.size - 1]
-            if wl >= 0:
+            try:
+                wl = weights[self.pre.size - 1, self.post.size - 1]
+                if wl >= 0:
+                    self.receptor_type = self.post.receptor_types[0]
+                else:
+                    self.receptor_type = self.post.receptor_types[1]
+            except TypeError:  # for example, if using a native RNG with no Python interface
+                warn("Unable to guess receptor type")
                 self.receptor_type = self.post.receptor_types[0]
-            else:
-                self.receptor_type = self.post.receptor_types[1]
         else:
             self.receptor_type = self.post.receptor_types[0]
 

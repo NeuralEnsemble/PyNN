@@ -1,6 +1,6 @@
 """
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -129,7 +129,7 @@ class Recorder(recording.Recorder):
             else:
                 id._cell.clear_past_spikes()
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if hasattr(id, "__len__"):
             all_spiketimes = {}
             for cell_id in id:
@@ -146,7 +146,7 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         if len(ids) > 0:
-            signals = np.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
+            signals = np.vstack([id._cell.traces[variable] for id in ids]).T
             expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = np.vstack((signals, signals[-1, :]))

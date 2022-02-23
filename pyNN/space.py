@@ -17,7 +17,7 @@ Classes:
   Cuboid          - representation of a cuboidal volume, for use with RandomStructure.
   Sphere          - representation of a spherical volume, for use with RandomStructure.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -245,8 +245,8 @@ class Grid2D(BaseStructure):
     def calculate_size(self, n):
         """docstring goes here"""
         nx = math.sqrt(n * self.aspect_ratio)
-        if n % nx != 0:
-            raise Exception("Invalid size: n=%g, nx=%d" % (n, nx))
+        if not math.isclose(n % nx, 0, rel_tol=1e-12, abs_tol=1e-12):
+            raise Exception(f"Invalid size: n={n}, nx={nx}")
         nx = int(round(nx))
         ny = n // nx
         return nx, ny

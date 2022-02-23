@@ -10,7 +10,7 @@ Classes:
     RandomDistribution - produces random numbers from a specific distribution
 
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -405,6 +405,8 @@ class RandomDistribution(object):
                 raise KeyError(errmsg % (available_distributions[self.name], tuple(named.keys())))
             return named
         elif len(named) == 0:
+            if isinstance(positional, dict):
+                raise TypeError("Positional parameters should be a tuple, not a dict")
             expected_parameter_names = available_distributions[self.name]
             if len(positional) != len(expected_parameter_names):
                 errmsg = "Incorrect number of parameters for random distribution. For %s received %s"

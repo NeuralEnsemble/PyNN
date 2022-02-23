@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -278,6 +278,7 @@ class SpikeSourceInhGamma(cells.SpikeSourceInhGamma):
     nest_name = {"on_grid": 'inh_gamma_generator',
                  "off_grid":  'inh_gamma_generator'}
     always_local = True
+    uses_parrot = True
     extra_parameters = {
         'origin': 1.0
     }

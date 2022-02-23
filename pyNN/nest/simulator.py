@@ -1,4 +1,4 @@
-# encoding: utf-8
+# -*- coding: utf-8 -*-
 """
 Implementation of the "low-level" functionality used by the common
 implementation of the API, for the NEST simulator.
@@ -15,21 +15,29 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import nest
 import logging
 import tempfile
+import warnings
 import numpy as np
 from pyNN import common
 from pyNN.core import reraise
 
 logger = logging.getLogger("PyNN")
 name = "NEST"  # for use in annotating output data
+
+# The following constants contain the names of NEST model parameters that
+# relate to simulation time and so may need to be adjusted by a time offset.
+# TODO: Currently contains only parameters that occur in PyNN standard models.
+#       We should add parameters from all models that are distributed with NEST
+#       in case they are used with PyNN as "native" models.
+NEST_VARIABLES_TIME_DIMENSION = ("start", "stop")
+NEST_ARRAY_VARIABLES_TIME_DIMENSION = ("spike_times", "amplitude_times", "rate_times")
+
 
 # --- For implementation of get_time_step() and similar functions --------------
 
@@ -46,6 +54,18 @@ def nest_property(name, dtype):
         except nest.kernel.NESTError as e:
             reraise(e, "%s = %s (%s)" % (name, val, type(val)))
     return property(fget=_get, fset=_set)
+
+
+def apply_time_offset(parameters, offset):
+    parameters_copy = {}
+    for name, value in parameters.items():
+        if name in NEST_VARIABLES_TIME_DIMENSION:
+            parameters_copy[name] = value + offset
+        elif name in NEST_ARRAY_VARIABLES_TIME_DIMENSION:
+            parameters_copy[name] = [v + offset for v in value]
+        else:
+            parameters_copy[name] = value
+    return parameters_copy
 
 
 class _State(common.control.BaseState):
@@ -69,20 +89,26 @@ class _State(common.control.BaseState):
         self.tempdirs = []
         self.recording_devices = []
         self.populations = []  # needed for reset
+        self.current_sources = []
+        self._time_offset = 0.0
+        self.t_flush = -1
         self.stale_connection_cache = False
 
     @property
     def t(self):
-        # note that we always simulate one time step past the requested time
-        return max(nest.GetKernelStatus('time') - self.dt, 0.0)
+        # note that we always simulate one min delay past the requested time
+        # we round to try to reduce floating-point problems
+        # longer-term, we should probably work with integers (in units of time step)
+        return max(np.around(self.t_kernel - self.min_delay - self._time_offset, decimals=12), 0.0)
+
+    t_kernel = nest_property("biological_time", float)
 
     dt = nest_property('resolution', float)
 
     threads = nest_property('local_num_threads', int)
 
-    grng_seed = nest_property('grng_seed', int)
-
-    rng_seeds = nest_property('rng_seeds', list)
+    rng_seed = nest_property('rng_seed', int)
+    grng_seed = nest_property('rng_seed', int)
 
     @property
     def min_delay(self):
@@ -112,24 +138,43 @@ class _State(common.control.BaseState):
         return nest.Rank()
 
     def _get_spike_precision(self):
-        ogs = nest.GetKernelStatus('off_grid_spiking')
-        return ogs and "off_grid" or "on_grid"
+        return self._spike_precision
 
     def _set_spike_precision(self, precision):
-        self._spike_precision = precision
+        if nest.off_grid_spiking and precision == "on_grid":
+            raise ValueError("The option to use off-grid spiking cannot be turned off once enabled")
         if precision == 'off_grid':
-            nest.SetKernelStatus({'off_grid_spiking': True})
             self.default_recording_precision = 15
         elif precision == 'on_grid':
-            nest.SetKernelStatus({'off_grid_spiking': False})
             self.default_recording_precision = 3
         else:
             raise ValueError("spike_precision must be 'on_grid' or 'off_grid'")
+        self._spike_precision = precision
     spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
 
     def _set_verbosity(self, verbosity):
         nest.set_verbosity('M_{}'.format(verbosity.upper()))
     verbosity = property(fset=_set_verbosity)
+
+    def set_status(self, nodes, params, val=None):
+        """
+        Wrapper around nest.SetStatus() to handle time offset
+        """
+        if self._time_offset == 0.0:
+            nest.SetStatus(nodes, params, val=val)
+        else:
+            if val is None:
+                parameters = params
+            else:
+                parameters = {params: val}
+
+            if isinstance(parameters, list):
+                params_copy = []
+                for item in parameters:
+                    params_copy.append(apply_time_offset(item, self._time_offset))
+            else:
+                params_copy = apply_time_offset(parameters, self._time_offset)
+            nest.SetStatus(nodes, params_copy)
 
     def run(self, simtime):
         """Advance the simulation for a certain time."""
@@ -141,7 +186,8 @@ class _State(common.control.BaseState):
                 device.connect_to_cells()
                 device._local_files_merged = False
         if not self.running and simtime > 0:
-            simtime += self.dt  # we simulate past the real time by one time step, otherwise NEST doesn't give us all the recorded data
+            # we simulate past the real time by one min_delay, otherwise NEST doesn't give us all the recorded data
+            simtime += self.min_delay
             self.running = True
         if simtime > 0:
             nest.Simulate(simtime)
@@ -150,17 +196,46 @@ class _State(common.control.BaseState):
         self.run(tstop - self.t)
 
     def reset(self):
-        nest.ResetNetwork()
-        nest.SetKernelStatus({'time': 0.0})
+        if self.t > 0:
+            if self.t_flush < 0:
+                raise ValueError(
+                    "Full reset functionality is not currently available with NEST. "
+                    "If you nevertheless want to use this functionality, pass the `t_flush`"
+                    "argument to `setup()` with a suitably large value (>> 100 ms)"
+                    "then check carefully that the previous run is not influencing the "
+                    "following one."
+                )
+            else:
+                warnings.warn(
+                    "Full reset functionality is not available with NEST. "
+                    "Please check carefully that the previous run is not influencing the "
+                    "following one and, if so, increase the `t_flush` argument to `setup()`"
+                )
+            self.run(self.t_flush)  # get spikes and recorded data out of the system
+            for recorder in self.recorders:
+                recorder._clear_simulator()
+
+        self._time_offset = self.t_kernel
+
         for p in self.populations:
+            if hasattr(p.celltype, "uses_parrot") and p.celltype.uses_parrot:
+                # 'uses_parrot' is a marker for spike sources,
+                # which may have parameters that need to be updated
+                # to account for time offset
+                # TODO: need to ensure that get/set parameters also works correctly
+                p._set_parameters(p.celltype.native_parameters)
             for variable, initial_value in p.initial_values.items():
                 p._set_initial_value_array(variable, initial_value)
+                p._reset()
+        for cs in self.current_sources:
+            cs._reset()
+
         self.running = False
-        self.t_start = 0.0
         self.segment_counter += 1
 
     def clear(self):
         self.populations = []
+        self.current_sources = []
         self.recording_devices = []
         self.recorders = set()
         # clear the sli stack, if this is not done --> memory leak cause the stack increases
@@ -186,6 +261,10 @@ class ID(int, common.IDMixin):
         """Create an ID object with numerical value `n`."""
         int.__init__(n)
         common.IDMixin.__init__(self)
+
+    @property
+    def local(self):
+        return self.node_collection.local
 
 
 # --- For implementation of connect() and Connector classes --------------------
@@ -214,7 +293,7 @@ class Connection(common.Connection):
     @property
     def source(self):
         """The ID of the pre-synaptic neuron."""
-        src = ID(nest.GetStatus([self.id()], 'source')[0])
+        src = ID(nest.GetStatus(self.id(), 'source')[0])
         src.parent = self.parent.pre
         return src
     presynaptic_cell = source
@@ -222,27 +301,27 @@ class Connection(common.Connection):
     @property
     def target(self):
         """The ID of the post-synaptic neuron."""
-        tgt = ID(nest.GetStatus([self.id()], 'target')[0])
+        tgt = ID(nest.GetStatus(self.id(), 'target')[0])
         tgt.parent = self.parent.post
         return tgt
     postsynaptic_cell = target
 
     def _set_weight(self, w):
-        nest.SetStatus([self.id()], 'weight', w * 1000.0)
+        nest.SetStatus(self.id(), 'weight', w * 1000.0)
 
     def _get_weight(self):
         """Synaptic weight in nA or µS."""
-        w_nA = nest.GetStatus([self.id()], 'weight')[0]
+        w_nA = nest.GetStatus(self.id(), 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
             w_nA *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
         return 0.001 * w_nA
 
     def _set_delay(self, d):
-        nest.SetStatus([self.id()], 'delay', d)
+        nest.SetStatus(self.id(), 'delay', d)
 
     def _get_delay(self):
         """Synaptic delay in ms."""
-        return nest.GetStatus([self.id()], 'delay')[0]
+        return nest.GetStatus(self.id(), 'delay')[0]
 
     weight = property(_get_weight, _set_weight)
     delay = property(_get_delay, _set_delay)
@@ -250,10 +329,10 @@ class Connection(common.Connection):
 
 def generate_synapse_property(name):
     def _get(self):
-        return nest.GetStatus([self.id()], name)[0]
+        return nest.GetStatus(self.id(), name)[0]
 
     def _set(self, val):
-        nest.SetStatus([self.id()], name, val)
+        nest.SetStatus(self.id(), name, val)
     return property(_get, _set)
 
 

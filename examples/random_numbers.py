@@ -66,9 +66,9 @@ p2.sample(3, rng=python_rng).record("v")  # can't use native RNG here
 connector_native = sim.FixedProbabilityConnector(p_connect=0.7, rng=native_rng)
 connector_python = sim.FixedProbabilityConnector(p_connect=0.7, rng=python_rng)
 
-synapse_type_native = sim.StaticSynapse(weight=RandomDistribution('gamma', k=2.0, theta=0.5, rng=native_rng),
+synapse_type_native = sim.StaticSynapse(weight=RandomDistribution('normal', mu=0.5, sigma=0.01, rng=native_rng),
                                         delay=0.5)
-synapse_type_python = sim.StaticSynapse(weight=RandomDistribution('gamma', k=2.0, theta=0.5, rng=python_rng),
+synapse_type_python = sim.StaticSynapse(weight=RandomDistribution('normal', mu=0.5, sigma=0.01, rng=python_rng),
                                         delay=0.5)
 
 projection_native = sim.Projection(p1, p2, connector_native, synapse_type_native)
@@ -98,8 +98,8 @@ if options.plot_figure:
     weights_python[np.isnan(weights_python)] = 0
     weights_native[np.isnan(weights_native)] = 0
     Figure(
-        Panel(weights_python, cmap='gray_r', xlabel="Python RNG"),
-        Panel(weights_native, cmap='gray_r', xlabel="Native RNG"),
+        Panel(weights_python, cmap='gray_r', vmin=0.45, vmax=0.55, xlabel="Python RNG"),
+        Panel(weights_native, cmap='gray_r', vmin=0.45, vmax=0.55, xlabel="Native RNG"),
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(filename)
     print(filename)

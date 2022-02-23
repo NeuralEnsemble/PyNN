@@ -12,7 +12,7 @@ Functions:
     Timer    - a convenience wrapper around the time.time() function from the
                standard library.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -372,22 +372,6 @@ class SimulationProgressBar(ProgressBar):
     def __call__(self, t):
         self.set_level(t / self.t_stop)
         return t + self.interval
-
-
-def assert_arrays_equal(a, b):
-    import numpy as np
-    assert isinstance(a, np.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, np.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a, b)
-    assert (a.flatten() == b.flatten()).all(), "%s != %s" % (a, b)
-
-
-def assert_arrays_almost_equal(a, b, threshold):
-    import numpy as np
-    assert isinstance(a, np.ndarray), "a is a %s" % type(a)
-    assert isinstance(b, np.ndarray), "b is a %s" % type(b)
-    assert a.shape == b.shape, "%s != %s" % (a, b)
-    assert (abs(a - b) < threshold).all(), "max(|a - b|) = %s" % (abs(a - b)).max()
 
 
 def sort_by_column(a, col):

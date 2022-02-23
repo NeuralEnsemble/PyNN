@@ -5,7 +5,7 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -91,7 +91,14 @@ def gather_blocks(data, ordered=True):
     merged = data
     if mpi_comm.rank == MPI_ROOT:
         merged = blocks[0]
+        # the following business with setting sig.segment is a workaround for a bug in Neo
+        for seg in merged.segments:
+            for sig in seg.analogsignals:
+                sig.segment = seg
         for block in blocks[1:]:
+            for seg, mseg in zip(block.segments, merged.segments):
+                for sig in seg.analogsignals:
+                    sig.segment = mseg
             merged.merge(block)
     if ordered:
         for segment in merged.segments:
@@ -287,10 +294,8 @@ class Recorder(object):
         for variable in variables_to_include:
             if variable.name == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
-                sids = sorted(self.filter_recorded(Variable(name='spikes',
-                                                            location=None),
-                                                   filter_ids))
-                data = self._get_spiketimes(sids)
+                sids = sorted(self.filter_recorded('spikes', filter_ids))
+                data = self._get_spiketimes(sids, clear=clear)
 
                 segment.spiketrains = []
                 for id in sids:
@@ -310,6 +315,7 @@ class Recorder(object):
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array = self._get_all_signals(variable, ids, clear=clear)
                 t_start = self._recording_start_time
+                t_stop = self._simulator.state.t * pq.ms
                 sampling_period = self.sampling_interval * pq.ms
                 current_time = self._simulator.state.t * pq.ms
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
@@ -329,16 +335,13 @@ class Recorder(object):
                         sampling_period=sampling_period,
                                     name=signal_name,
                         source_population=self.population.label,
-                        source_ids=source_ids)
-                    signal.channel_index = neo.ChannelIndex(
-                        index=np.arange(source_ids.size),
-                        channel_ids=np.array([self.population.id_to_index(id) for id in ids]))
+                        source_ids=source_ids,
+                        array_annotations={"channel_index": np.array([self.population.id_to_index(id) for id in ids])})
                     segment.analogsignals.append(signal)
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                 source_ids, signal.channel_index)
+                                 source_ids, signal.array_annotations["channel_index"])
                     assert segment.analogsignals[0].t_stop - \
                         current_time - 2 * sampling_period < 1e-10
-                    # need to add `Unit` and `RecordingChannelGroup` objects
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
@@ -352,11 +355,8 @@ class Recorder(object):
         data.segments = [filter_by_variables(segment, localized_variables)
                          for segment in self.cache]
         if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
-            data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=localized_variables, clear=clear))
-        # collect channel indexes
-        for segment in data.segments:
-            for signal in segment.analogsignals:
-                data.channel_indexes.append(signal.channel_index)
+            data.segments.append(self._get_current_segment(
+                filter_ids=filter_ids, variables=variables, clear=clear))
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime

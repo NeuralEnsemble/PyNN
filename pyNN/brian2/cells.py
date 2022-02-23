@@ -71,8 +71,6 @@ class BaseNeuronGroup(brian2.NeuronGroup):
 
             if not hasattr(self, name):
                 self.add_attribute(name)
-            if name == "tau_refrac":
-                self.tau_refrac = value
             else:
                 setattr(self, name, value)
         # self._S0 = self._S[:, 0]  # store parameter values in case of reset.
@@ -80,6 +78,14 @@ class BaseNeuronGroup(brian2.NeuronGroup):
                 # TODO: Brian2 does not have _S0a
         self.add_attribute('initial_values')
         self.initial_values = {}
+
+    def _get_tau_refrac(self):
+        return self._refractory
+
+    def _set_tau_refrac(self, value):
+        self._refractory = simplify(value)
+
+    tau_refrac = property(fget=_get_tau_refrac, fset=_set_tau_refrac)
 
     def initialize(self):
         for variable, values in self.initial_values.items():

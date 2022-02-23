@@ -2,7 +2,7 @@
 Tests of the common implementation of the PopulationView class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -250,7 +250,7 @@ class PopulationViewTest(unittest.TestCase):
         rng.permutation = Mock(return_value=np.array([3, 1, 0, 2, 4]))
         pv2 = pv1.sample(3, rng=rng)
         assert_array_equal(pv2.all_cells,
-                           p.all_cells[[10, 3, 0]])
+                           sorted(p.all_cells[[10, 3, 0]]))
 
     def test_get_multiple_homogeneous_params_with_gather(self, sim=sim):
         p = sim.Population(10, sim.IF_cond_exp, {

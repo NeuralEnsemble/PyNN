@@ -70,6 +70,6 @@ Developers' Guide
 .. * :ref:`modindex`
 .. * :ref:`search`
 
-.. _`version 0.9`: http://neuralensemble.org/docs/PyNN/
+.. _`version 0.9`: http://neuralensemble.org/docs/PyNN/0.9/
 .. _`version 0.8`: http://neuralensemble.org/docs/PyNN/0.8/
 .. _`version 0.7 and earlier`: http://neuralensemble.org/docs/PyNN/0.7/

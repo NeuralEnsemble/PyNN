@@ -80,3 +80,29 @@ def test_tsodyks_markram_synapse():
     sim.run(100.0)
     tau_psc = prj._brian2_synapses[0][0].tau_syn_ * 1e3  # s --> ms
     assert_array_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
+
+
+def test_issue648():
+    """
+    https://github.com/NeuralEnsemble/PyNN/issues/648
+
+    For a population of size 2:
+
+      cells[0].inject(dc_source)
+      cells[1].inject(dc_source)
+
+    should give the same results as:
+
+      cells.inject(dc_source)
+    """
+    if not have_brian2:
+        raise SkipTest
+    sim = pyNN.brian2
+    sim.setup()
+    cells = sim.Population(2, sim.IF_curr_exp(v_rest = -65.0, v_thresh=-55.0,
+                                              tau_refrac=5.0, i_offset=-1.0))
+    dc_source = sim.DCSource(amplitude=0.5, start=25, stop=50)
+    cells[0].inject(dc_source)
+    cells[1].inject(dc_source)
+    cells.record(['v'])
+    sim.run(100)

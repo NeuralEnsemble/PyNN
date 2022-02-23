@@ -45,6 +45,8 @@ class PopulationView(common.PopulationView):
         for name, value in parameter_space.items():
             if name == "spike_time_sequences":
                 self.brian2_group._set_spike_time_sequences(value, self.mask)
+            elif name == "tau_refrac":  # cannot be heterogeneous
+                self.tau_refrac = value
             else:
                 getattr(self.brian2_group, name)[self.mask] = value
 
@@ -118,12 +120,9 @@ class Population(common.Population):
         parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
             if (name == "tau_refrac"):
-                value = value / ms
                 value = simplify(value)
-                #brian2.NeuronGroup.__setattr__(self.brian2_group, "_refractory", value)
                 self.brian2_group.tau_refrac = value
             elif (name == "v_reset"):
-                value = value / mV
                 value = simplify(value)
                 self.brian2_group.v_reset = value
             else:

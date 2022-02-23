@@ -4,7 +4,7 @@ Defines a common implementation of the built-in PyNN Connector classes.
 Simulator modules may use these directly, or may implement their own versions
 for improved performance.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -559,7 +559,7 @@ class FromListConnector(Connector):
         #  - order of sorting/filtering by local
         #  - use np.unique, or just do in1d(self.conn_list)?
         idx = np.argsort(self.conn_list[:, 1])
-        targets = np.unique(self.conn_list[:, 1]).astype(np.int)
+        targets = np.unique(self.conn_list[:, 1]).astype(int)
         local = np.in1d(targets,
                            np.arange(projection.post.size)[projection.post._mask_local],
                            assume_unique=True)
@@ -575,7 +575,7 @@ class FromListConnector(Connector):
         logger.debug("right = %s", right)
 
         for tgt, l, r in zip(local_targets, left, right):
-            sources = self.conn_list[l:r, 0].astype(np.int)
+            sources = self.conn_list[l:r, 0].astype(int)
             connection_parameters = deepcopy(projection.synapse_type.parameter_space)
 
             connection_parameters.shape = (r - l,)

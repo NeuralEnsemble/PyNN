@@ -8,7 +8,7 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -37,9 +37,9 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
             if id.local and not id.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         if isinstance(cells, (Population, PopulationView, Assembly)):
-            self.cell_list = [cell for cell in cells]
+            self.cell_list = cells.node_collection
         else:
-            self.cell_list = cells
+            self.cell_list = nest.NodeCollection(sorted(cells))
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
 
     def _phase_correction(self, start, freq, phase):

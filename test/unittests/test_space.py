@@ -1,32 +1,19 @@
 """
 Tests of the `space` module.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN import space
-import unittest
-import numpy as np
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
-from nose.tools import assert_equal, assert_raises
-from pyNN.utility import assert_arrays_equal
 from math import sqrt
+import unittest
+from unittest.mock import Mock
 
+import numpy as np
+from nose.tools import assert_equal, assert_raises
+from numpy.testing import assert_array_equal, assert_allclose
 
-def assert_arrays_almost_equal(a, b, threshold, msg=''):
-    if a.shape != b.shape:
-        raise unittest.TestCase.failureException(
-            "Shape mismatch: a.shape=%s, b.shape=%s" % (a.shape, b.shape))
-    if not (abs(a - b) < threshold).all():
-        err_msg = "%s != %s" % (a, b)
-        err_msg += "\nlargest difference = %g" % abs(a - b).max()
-        if msg:
-            err_msg += "\nOther information: %s" % msg
-        raise unittest.TestCase.failureException(err_msg)
+from pyNN import space
 
 
 def test_distance():
@@ -75,7 +62,7 @@ class SpaceTest(unittest.TestCase):
                                np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
         self.assertArraysEqual(s.distances(self.A, self.ABCD),
                                s.distances(self.ABCD, self.A).T)
-        assert_arrays_equal(s.distances(self.ABCD, self.ABCD),
+        assert_array_equal(s.distances(self.ABCD, self.ABCD),
                             np.array([0.0, sqrt(3), sqrt(3), sqrt(29),
                                          sqrt(3), 0.0, sqrt(12), sqrt(14),
                                          sqrt(3), sqrt(12), 0.0, sqrt(50.0),
@@ -89,7 +76,7 @@ class SpaceTest(unittest.TestCase):
         def g(j): return self.ABCD[j]
         self.assertArraysEqual(s.distance_generator(f, g)(0, np.arange(4)),
                                np.array([0.0, sqrt(3), sqrt(3), sqrt(29)]))
-        assert_arrays_equal(np.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
+        assert_array_equal(np.fromfunction(s.distance_generator(f, g), shape=(4, 4), dtype=int),
                             np.array([(0.0, sqrt(3), sqrt(3), sqrt(29)),
                                          (sqrt(3), 0.0, sqrt(12), sqrt(14)),
                                          (sqrt(3), sqrt(12), 0.0, sqrt(50.0)),
@@ -136,10 +123,10 @@ class LineTest(unittest.TestCase):
         n = 4
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
-            threshold=1e-15
+            rtol=1e-15
         )
 
     def test_generate_positions(self):
@@ -147,10 +134,10 @@ class LineTest(unittest.TestCase):
         n = 2
         positions = line.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([[-100, 444, 987], [0, 444, 987]], float).T,
-            threshold=1e-15
+            rtol=1e-15
         )
 
     def test__eq__(self):
@@ -186,14 +173,14 @@ class Grid2D_Test(object):
         n = 4
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([
                 [0, 0, 0], [0, 1, 0],
                 [1, 0, 0], [1, 1, 0]
             ]).T,
             1e-15)
-        assert_arrays_almost_equal(
+        assert_allclose(
             self.grid2.generate_positions(12),
             np.array([
                 [123, 456, 789], [123, 465.9, 789],
@@ -228,7 +215,7 @@ class Grid3D_Test(object):
         n = 8
         positions = self.grid1.generate_positions(n)
         assert_equal(positions.shape, (3, n))
-        assert_arrays_almost_equal(
+        assert_allclose(
             positions,
             np.array([
                 [0, 0, 0], [0, 0, 1], [0, 1, 0], [0, 1, 1],

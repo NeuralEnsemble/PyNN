@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-NEST v2 implementation of the PyNN API.
+NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import warnings
-import numpy as np
 try:
     import tables  # due to freeze when importing nest before tables
 except ImportError:
@@ -18,11 +16,6 @@ import nest
 from . import simulator
 from pyNN import common, recording, errors, space, __doc__
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
-
-try:
-    nest.GetStatus([np.int32(0)])
-except nest.kernel.NESTError:
-    raise Exception("NEST built without NumPy support. Try rebuilding NEST after installing np.")
 
 # if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
 #    raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
@@ -111,6 +104,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         a list of seeds, one for each thread on each MPI process
     `rng_seeds_seed`:
         a single seed that will be used to generate random values for `rng_seeds`
+    `t_flush`:
+        extra time to run the simulation after using reset() to ensure
+        the previous run does not influence the new one
     """
     max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     common.setup(timestep, min_delay, **extra_params)
@@ -121,13 +117,19 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     # set kernel RNG seeds
     simulator.state.num_threads = extra_params.get('threads') or 1
     if 'grng_seed' in extra_params:
-        simulator.state.grng_seed = extra_params['grng_seed']
+        warnings.warn("The setup argument 'grng_seed' is now 'rng_seed'")
+        simulator.state.rng_seed = extra_params['grng_seed']
     if 'rng_seeds' in extra_params:
-        simulator.state.rng_seeds = extra_params['rng_seeds']
+        warnings.warn("The setup argument 'rng_seeds' is no longer available. Taking the first value for the global seed.")
+        simulator.state.rng_seed = extra_params['rng_seeds'][0]
+    if 'rng_seeds_seed' in extra_params:
+        warnings.warn("The setup argument 'rng_seeds_seed' is now 'rng_seed'")
+        simulator.state.rng_seed = extra_params['rng_seeds_seed']
     else:
-        rng = NumpyRNG(extra_params.get('rng_seeds_seed', 42))
-        n = simulator.state.num_processes * simulator.state.threads
-        simulator.state.rng_seeds = rng.next(n, 'uniform_int', {'low': 0, 'high': 100000}).tolist()
+        simulator.state.rng_seed = extra_params.get('rng_seed', 42)
+    if "t_flush" in extra_params:
+        # see https://github.com/nest/nest-simulator/issues/1618
+        simulator.state.t_flush = extra_params["t_flush"]
     # set resolution
     simulator.state.dt = timestep
     # Set min_delay and max_delay
