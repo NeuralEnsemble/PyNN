@@ -231,11 +231,13 @@ class Recorder(recording.Recorder):
         (http://www.nest-initiative.org/index.php/Analog_recording_with_multimeter, 14/11/11)
         we record all analog variables for all requested cells.
         """
-        if variable == 'spikes':
+        if variable.location is not None:
+            raise ValueError("Recording from specific cell locations is not supported for NEST")
+        if variable.name == 'spikes':
             self._spike_detector.add_ids(new_ids)
         else:
             self.sampling_interval = sampling_interval
-            self._multimeter.add_variable(variable)
+            self._multimeter.add_variable(variable.name)
             self._multimeter.add_ids(new_ids)
 
     def _get_sampling_interval(self):
@@ -262,7 +264,7 @@ class Recorder(recording.Recorder):
         return self._spike_detector.get_spiketimes(ids, clear=clear)
 
     def _get_all_signals(self, variable, ids, clear=False):
-        data = self._multimeter.get_data(variable, ids, clear=clear)
+        data = self._multimeter.get_data(variable.name, ids, clear=clear)
         if len(ids) > 0:
             # JACOMMENT: this is very expensive but not sure how to get rid of it
             return np.array([data[i] for i in ids]).T

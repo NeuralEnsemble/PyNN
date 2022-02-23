@@ -1,0 +1,116 @@
+============
+Installation
+============
+
+The following instructions are for Linux and Mac OS X. It should be possible to
+install and run PyNN on Windows, but this has not been tested.
+
+Installing PyNN requires:
+
+    * Python (version 2.7, 3.4-3.6)
+    * a recent version of the NumPy_ package
+    * the lazyarray_ package
+    * the Neo_ package (>= 0.5.0)
+    * the NEURON simulator
+
+Optional dependencies are:
+
+    * mpi4py_ (if you wish to run distributed simulations using MPI)
+    * either Jinja2_ or Cheetah_ (templating engines)
+    * the CSA_ library
+
+Installing PyNN
+===============
+
+.. note:: it is easiest if you install NEURON *before* you install PyNN (see below).
+
+To obtain the development branch of PyNN with support for multicompartmental models:
+
+    $ pip install https://github.com/NeuralEnsemble/PyNN/archive/mc.zip
+
+We strongly recommend that you install in a
+virtualenv_ or a Conda_ environment. We assume you have already installed
+NEURON. If this is not the case, see below for
+installation instructions.
+
+Test it using something like the following::
+
+    >>> import pyNN.neuron as sim
+    >>> sim.setup()
+    >>> sim.end()
+
+(This assumes you have NEURON installed).
+
+Make sure you install NEURON *before* you install PyNN.
+The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::
+
+    >>> import pyNN.neuron as sim
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
+    See http://www.neuron.yale.edu/neuron/credits
+
+    loading membrane mechanisms from /home/docker/dev/PyNN/pyNN/neuron/nmodl/x86_64/.libs/libnrnmech.so
+    Additional mechanisms from files
+     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gap.mod gsfa_grr.mod hh_traub.mod
+     izhikevich.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod
+     stdwa_songabbott.mod stdwa_symm.mod stdwa_vogels2011.mod tmgsyn.mod tmisyn.mod
+     tsodyksmarkram.mod vecstim.mod
+
+If you installed PyNN before installing NEURON, or if you update your PyNN installation,
+you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
+
+Installing NEURON
+=================
+
+Download the sources for the latest release of NEURON, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
+Also download Interviews from the same location.
+
+Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_,
+except that when you run :command:`configure`, add the options :option:`--with-nrnpython` and, optionally, :option:`--with-paranrn`, i.e.::
+
+    $ ./configure --prefix=`pwd` --with-nrnpython --with-paranrn
+    $ make
+    $ make install
+
+Make sure that you add the Interviews and NEURON :file:`bin` directories to your path.
+Test that the Python support has been enabled by running::
+
+    $ nrniv -python
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
+    See http://www.neuron.yale.edu/neuron/credits
+
+    >>> import hoc
+    >>> import nrn
+
+Now you can compile and install NEURON as a Python package::
+
+    $ cd src/nrnpython
+    $ python setup.py install
+
+Now test everything worked::
+
+    $ python
+    >>> import neuron
+    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
+    See http://www.neuron.yale.edu/neuron/credits
+
+If you run into problems, check out the `NEURON Forum`_.
+
+
+.. _PyNN: http://neuralensemble.org/PyNN
+.. _NumPy: http://www.numpy.org/
+.. _lazyarray: https://pypi.python.org/pypi/lazyarray
+.. _CSA: https://software.incf.org/software/csa/
+.. _Jinja2: http://jinja.pocoo.org/
+.. _Cheetah: http://www.cheetahtemplate.org/
+.. _mpi4py: http://mpi4py.scipy.org/
+.. _pip: http://www.pip-installer.org/
+.. _`PyNN download page`: https://neuralensemble.org/trac/PyNN/wiki/Download
+.. _`distutils`: http://docs.python.org/2/install/index.html
+.. _`GNU Scientific Library`: http://www.gnu.org/software/gsl/
+.. _`NEURON Forum`: http://www.neuron.yale.edu/phpBB/index.php
+.. _Neo: http://neuralensemble.org/neo
+.. _virtualenv: https://virtualenv.readthedocs.org/
+.. _Conda: http://conda.pydata.org

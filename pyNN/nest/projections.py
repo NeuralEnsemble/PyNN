@@ -176,7 +176,7 @@ class Projection(common.Projection):
         return syn_dict
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
-                            **connection_parameters):
+                            location_selector=None, **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
 

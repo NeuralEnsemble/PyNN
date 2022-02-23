@@ -24,9 +24,11 @@ from pyNN.neuron.standardmodels.cells import *
 from pyNN.neuron.connectors import *
 from pyNN.neuron.standardmodels.synapses import *
 from pyNN.neuron.standardmodels.electrodes import *
+from pyNN.neuron.standardmodels.ion_channels import *
 from pyNN.neuron.populations import Population, PopulationView, Assembly
 from pyNN.neuron.projections import Projection
 from pyNN.neuron.cells import NativeCellType, IntFire1, IntFire2, IntFire4
+from . import neuroml
 try:
     from . import nineml
 except ImportError:

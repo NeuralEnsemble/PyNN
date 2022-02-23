@@ -1,0 +1,292 @@
+=============================================================
+Multicompartmental modelling with PyNN: extensions to the API
+=============================================================
+
+Cell types
+==========
+
+A :class:`Population` in PyNN is a group of neurons all of the same type,
+specified by a sub-class of :class:`CellType`, such as :class:`IF_cond_exp`.
+The cell type class defines the equations of the model, but not the model parameters:
+these are specified when an instance of the cell type is created,
+and may be different for different neurons within the :class:`Population`.
+For example:
+
+.. code-block:: python
+
+    cell_type = sim.IF_cond_exp(tau_m=RandomDistribution('normal', (15.0, 2.0)),
+                                cm=0.2,
+                                v_thresh=lambda i: -50.0 + 0.01*i)
+    population = sim.Population(100, cell_type)
+
+Here we create 100 neurons.
+They all have the same equations (integrate-and-fire model),
+and they all have the same value for the membrane capacitance (`cm` parameter),
+but each neuron has a different membrane time constant (parameter `tau_m`), drawn from a normal distribution,
+and each neuron has a different firing threshold (parameter `v_thresh`,
+determined by a function of its position within the population).
+
+
+The most common way to specify cell types in earlier versions of PyNN is through choosing a model from the PyNN
+standard library.
+These are models that have the same behaviour in all supported simulators.
+The standard library approach is not applicable to morphologically and biophysically-detailed neuron models,
+as the number of possible combinations of morphologies, ion-channel models and synapse models is infinite.
+
+The approach we are proposing for PyNN 2.0 therefore is to compose cell types from sub-components, e.g.:
+
+.. code-block:: python
+
+    pyramidal_cell_class = sim.MultiCompartmentNeuron  # standard base class for multi-compartment neurons
+    pyramidal_cell_class.label = "PyramidalNeuron"
+    pyramidal_cell_class.ion_channels = {'pas': sim.PassiveLeak,  # standard library of ion channel models
+                                         'na': sim.NaChannel,
+                                         'kdr': sim.KdrChannel}
+    pyramidal_cell_class.post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticResponse,  # standard library of synapse models
+                                                   'GABA_A': sim.CondExpPostSynapticResponse}
+
+.. note:: an alternative would be to use a factory function, but the resulting class would be effectively the same
+
+.. note:: here we are using ion channel and synapse models from a standard library, but we also plan to support
+          LEMS (NeuroML) and NineML model specifications for this.
+
+
+Parameterization
+================
+
+When it come to instantiating such a cell type in order to create a population, three extensions are needed when compared
+to the point-neuron case:
+
+**Hierarchical parameter sets**
+    Ion channel parameters should be in a separate dictionary nested inside the main parameter dictionary.
+
+**More complex parameter types**
+    For the standard library of point neurons, most of the parameters are floats, with :class:`Sequence` being the only special case.
+    For morphologically-detailed neurons, one of the parameters should be a representation of an entire morphology, since
+    different neurons within a population can be expected to have different morphologies.
+
+**Spatial parameterization within neuron morphologies**
+    Point neurons may have parameter values that depend on the position of the neuron in space.
+    Neurons with axons and dendrites may have parameters whose value depends on location *within* a single neuron.
+
+
+In the "mc" branch of PyNN, and in the underlying "lazyarray" package,
+we have extended the parameter set machinery to handle hierarchical parameters,
+and parameters of arbitrary type.
+
+Spatial parameterization is described in the next section.
+
+
+Morphologies
+============
+
+A number of existing Python tools for handling neuronal morphologies already exist
+(e.g. libNeuroML_, `Brian 2`_, NeuroM_, btmorph_)
+In the interest of integrating with other open-source simulation tools and standards wherever possible,
+rather than reinventing the wheel (see :doc:`mc_aims`), we would like to make use of these tools within PyNN,
+and give users a choice of tools where there is overlap.
+
+Our proposed implementation of this is to define an interface through a parent :class:`Morphology`,
+which can be sub-classed for the different Python representations of neuronal morphology,
+e.g. :class:`NeuroMLMorphology`, :class:`BrianMorphology`.
+
+
+Once we have a standard interface for working with morphologies, we can define tools for spatial parameterization,
+and, more generally, for specifying points and regions within the neurites, in a format-independent way.
+
+This feature is at an early stage of elaboration.
+
+The general principle is to present an interface to the user that treats the neuron as a continuous
+tree structure, and hides details of the spatial discretization, while mapping points and regions defined by the user
+to the particular section/segment used internally by the simulator.
+
+Selecting points and regions
+----------------------------
+
+For simple morphologies, each section/segment/compartment of the neuron can be given an explicit label.
+Where we wish to distinguish a point *within* a section, we can add a `fraction_along` parameter.
+By default, a label is taken to refer to the centre of a section.
+
+Thus, for example, if we specify a two-compartment neuron using NeuroML:
+
+.. code-block:: python
+
+    from neuroml import Segment, Point3DWithDiam as P
+    from pyNN.morphology import NeuroMLMorphology
+
+    soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
+                   distal=P(x=18.8, y=0, z=0, diameter=18.8),
+                   name="soma")
+    dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
+                   distal=P(x=-500, y=0, z=0, diameter=2),
+                   name="dendrite",
+                   parent=soma)
+
+    cell_type = cell_class(morphology=NeuroMLMorphology(segments=(soma, dend)),
+                           ...other parameters...)
+    cells = sim.Population(n, cell_type)
+
+
+Then we can, for example, specify where to inject a current using the segment labels:
+
+.. code-block:: python
+
+    step_current = sim.DCSource(amplitude=0.1, start=50.0, stop=150.0)
+    step_current.inject_into(cells[0:1], location="soma")
+    step_current.inject_into(cells[1:2], location="dendrite")
+
+or, similarly, where to record the membrane voltage:
+
+.. code-block:: python
+
+    cells.record('v', locations=['soma', 'dendrite'])
+
+
+For detailed morphologies it is less easy/useful to address/label specific sections,
+with the exception of the soma and perhaps the axon initial segment.
+We create such a morphology using, for example:
+
+.. code-block:: python
+
+    from pyNN.morphology import load_morphology
+
+    pyr_morph = load_morphology("oi15rpy4-1.CNG.swc")
+    pyramidal_cell_class = sim.MultiCompartmentNeuron
+    ...
+
+    pyramidal_cell_type = pyramidal_cell_class(morphology=pyr_morph,
+                                               ...other parameters...)
+    pyramidal_cells = sim.Population(n, pyramidal_cell_type)
+
+
+In this scenario, we wish to express locations such as
+"a point 400 µm from the soma along the apical dendrites"
+(where we don't particularly care which branch of the apical dendrites we inject the current into).
+We propose an API something like:
+
+.. code-block:: python
+
+    step_current.inject_into(cells, location=sample(apical_dendrites(distance_along=400.0)))
+
+
+where :func:`sample` and :func:`apical_dendrites` are Python callables (currently implemented as subclasses of a
+base class :class:`MorphologyFilter`, but could be functions) that can be chained together as shown.
+Other filters could be :func:`basal_dendrites`, :func:`dendrites`, :func:`axon`,
+:func:`after_branch_point`, :func:`longest_dendrite`.
+
+.. note:: identifying apical and basal dendrites depends on the morphology description file providing these labels.
+          This is the case for SWC files, and it is also supported by NeuroML.
+          (todo: check whether Neurolucida files contain this information)
+
+Some of the same filters can be used in specifying regions of the dendritic tree in which to place ion channels
+or synapses, for example:
+
+.. code-block:: python
+
+    pyramidal_cell = pyramidal_cell_class(
+                        morphology=pyr_morph,
+                        pas={"conductance_density": uniform('all', 0.0003),
+                             "e_rev":-54.3},
+                        na={"conductance_density": uniform('soma', 0.120),
+                               "e_rev": 50.0},
+                        kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0),
+                             "e_rev": -77.0},
+                        cm=1.0,
+                        Ra=500.0,
+                        AMPA={"density": uniform('all', 0.05),  # number per µm
+                              "e_rev": 0.0,
+                              "tau_syn": 2.0},
+                        GABA_A={"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
+                                "e_rev": -70.0,
+                                "tau_syn": 5.0})
+
+Here we combine morphology filters like :func:`apical_dendrites` with spatial distribution functions like
+:func:`uniform` and :func:`by_distance` (all defined in the module :mod:`pyNN.morphology`).
+
+We can also record state variables from entire regions of the neurites, e.g.:
+
+.. code-block:: python
+
+    pyramidal_cells.record('v', locations={"dend": apical_dendrites()})
+
+where `"dend"` is a label that will be given to the :class:`AnalogSignal` containing the membrane potential recorded
+from the apical dendrites (one channel per section/segment/compartment per neuron).
+
+
+Projections
+===========
+
+In making synaptic connections onto neurons with detailed morphologies,
+we have to consider not only which post-synaptic neuron to connect to and which synapse *type* to use,
+but also in which location within the morphology the synapse should be.
+
+There are two possible strategies when placing the post-synaptic component of synapses on neurons:
+
+1. place the post-synaptic mechanisms when creating the population (parameterized in the cell type),
+   then when making connections select from this pre-existing list;
+2. place the post-synaptic mechanisms at the moment of creating connections.
+
+Both strategies are in fairly widespread use, so it would be worthwhile to support both approaches in PyNN.
+
+For Strategy 1, we specify the synaptic density when creating the cell type,
+as seen in the "pyramidal_cell" example above.
+It should also be possible to specify the placement of individual synapses in labelled sections,
+in the simple, few-compartment case (todo).
+
+For Strategy 2, post-synaptic parameters are specified in the :class:`Connector` class, see next section.
+
+
+In making synaptic connections *from* neurons with detailed morphologies,
+we need to consider the location of the source of the action potential.
+Where the axon is represented explicitly, this location could be any point in the axon (terminal section or en-passant).
+Where the axon is not represented explicitly or is truncated, this location will be the soma, action initial segment,
+or terminal point of the truncation.
+In this case the synaptic delay should include a distance-dependent component, where the distance could be
+as-the-crow-flies, or the path length along the original axon (before truncation).
+In both cases, this is specified using the `source` argument of the :class:`Projection` constructor.
+
+
+Connectors
+==========
+
+As noted above, for a given type of synapse, we have to consider both which post-synaptic neuron to connect to
+and in which location within the morphology the synapse should be.
+
+In principle, these two choices could be independent, or the choice of location could depend on which post-synaptic
+neuron was chosen.
+
+To support the second, more general case, we propose that the PyNN :class:`Connector` classes should implement
+the algorithms for both choices in a single class. The first case, of independent choices, is likely to be fairly
+common however, so we also propose to extend the standard connectors from earlier versions of PyNN with a
+`location_selector` argument, so for example we might create a projection with:
+
+.. code-block:: python
+
+    sim.Projection(inputs, pyramidal_cells,
+                   connector=sim.AllToAllConnector(location_selector=sample(apical_dendrites())),
+                   synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
+                   receptor_type="AMPA")
+
+This will connect all inputs to all pyramidal cells, selecting one synapse location at random from the apical dendrites
+(this random location would be different for each neuron in the pyramidal cell population).
+
+If Strategy 1 (as described above) is being used,
+the random sample is over those post-synaptic mechanisms already placed in the apical dendrites.
+
+If Strategy 2 is being used, the random sample is over all possible locations in the apical dendrites,
+and the post-synaptic mechanism is inserted at the same time as the connection is created.
+In this scenario, it should be possible to set post-synaptic model and parameters at the same time, for example:
+
+.. code-block:: python
+
+        sim.Projection(inputs, pyramidal_cells,
+                   connector=sim.AllToAllConnector(location_selector=sample(apical_dendrites())),
+                   synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
+                   receptor_type=sim.CondExpPostSynapticResponse(tau_syn=RandomDistribution('normal', (0.2, 0.01))))
+
+
+
+.. _libNeuroML: https://libneuroml.readthedocs.io/en/latest/
+.. _`Brian 2`: http://briansimulator.org
+.. _NeuroM: http://neurom.readthedocs.io/en/stable/
+.. _btmorph: https://github.com/btorb/btmorph_v2

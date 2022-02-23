@@ -4,8 +4,10 @@
 :license: CeCILL, see LICENSE for details.
 """
 
+from collections import defaultdict
 import numpy as np
 from pyNN import recording
+from pyNN.morphology import MorphologyFilter
 from pyNN.neuron import simulator
 import re
 from neuron import h
@@ -21,7 +23,7 @@ class Recorder(recording.Recorder):
 
     def _record(self, variable, new_ids, sampling_interval=None):
         """Add the cells in `new_ids` to the set of recorded cells."""
-        if variable == 'spikes':
+        if variable.name == 'spikes':
             for id in new_ids:
                 if id._cell.rec is not None:
                     id._cell.rec.record(id._cell.spike_times)
@@ -33,22 +35,52 @@ class Recorder(recording.Recorder):
                 self._record_state_variable(id._cell, variable)
 
     def _record_state_variable(self, cell, variable):
-        if hasattr(cell, 'recordable') and variable in cell.recordable:
-            hoc_var = cell.recordable[variable]
-        elif variable == 'v':
-            hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
-        elif variable == 'gsyn_exc':
-            hoc_var = cell.esyn._ref_g
-        elif variable == 'gsyn_inh':
-            hoc_var = cell.isyn._ref_g
+        if variable.location is None:
+            if hasattr(cell, 'recordable') and variable in cell.recordable:
+                hoc_var = cell.recordable[variable]
+            elif variable.name == 'v':
+                hoc_var = cell.source_section(0.5)._ref_v  # or use "seg.v"?
+            elif variable.name == 'gsyn_exc':
+                hoc_var = cell.esyn._ref_g
+            elif variable.name == 'gsyn_inh':
+                hoc_var = cell.isyn._ref_g
+            else:
+                source, var_name = self._resolve_variable(cell, variable.name)
+                hoc_var = getattr(source, "_ref_%s" % var_name)
+            hoc_vars = [hoc_var]
         else:
-            source, var_name = self._resolve_variable(cell, variable)
-            hoc_var = getattr(source, "_ref_%s" % var_name)
-        cell.traces[variable] = vec = h.Vector()
-        if self.sampling_interval == self._simulator.state.dt:
-            vec.record(hoc_var)
-        else:
-            vec.record(hoc_var, self.sampling_interval)
+            if isinstance(variable.location, str):
+                if variable.location in cell.section_labels:
+                    sections = [cell.section_labels[variable.location]]
+                elif variable.location == "soma":
+                    sections = [cell.sections[cell.morphology.soma_index]]
+                else:
+                    raise ValueError("Cell has no location labelled '{}'".format(variable.location))
+            elif isinstance(variable.location, MorphologyFilter):
+                section_indices = variable.location(cell.morphology)  # todo: support lists of sections
+                if hasattr(section_indices, "__len__"):
+                    sections = [cell.sections[index] for index in section_indices]
+                else:
+                    sections = [cell.sections[section_indices]]
+            else:
+                raise ValueError("Invalid location specification: {}".format(variable.location))
+            hoc_vars = []
+            for section in sections:
+                source = section(0.5)
+                if variable.name == 'v':
+                    hoc_vars.append(source._ref_v)
+                else:
+                    ion_channel, var_name = variable.name.split(".")
+                    mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
+                    mechanism = getattr(source, mechanism_name)
+                    hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
+        for hoc_var in hoc_vars:
+            vec = h.Vector()
+            if self.sampling_interval == self._simulator.state.dt:
+                vec.record(hoc_var)
+            else:
+                vec.record(hoc_var, self.sampling_interval)
+            cell.traces[variable].append(vec)
         if not cell.recording_time:
             cell.record_times = h.Vector()
             if self.sampling_interval == self._simulator.state.dt:
@@ -77,7 +109,7 @@ class Recorder(recording.Recorder):
     def _reset(self):
         """Reset the list of things to be recorded."""
         for id in set.union(*self.recorded.values()):
-            id._cell.traces = {}
+            id._cell.traces = defaultdict(list)
             id._cell.spike_times = h.Vector(0)
         id._cell.recording_time == 0
         id._cell.record_times = None
@@ -90,7 +122,8 @@ class Recorder(recording.Recorder):
         for id in set.union(*self.recorded.values()):
             if hasattr(id._cell, "traces"):
                 for variable in id._cell.traces:
-                    id._cell.traces[variable].resize(0)
+                    for vec in id._cell.traces[variable]:
+                        vec.resize(0)
             if id._cell.rec is not None:
                 id._cell.spike_times.resize(0)
             else:
@@ -123,7 +156,7 @@ class Recorder(recording.Recorder):
 
     def _local_count(self, variable, filter_ids=None):
         N = {}
-        if variable == 'spikes':
+        if variable.name == 'spikes':
             for id in self.filter_recorded(variable, filter_ids):
                 N[int(id)] = id._cell.spike_times.size()
         else:

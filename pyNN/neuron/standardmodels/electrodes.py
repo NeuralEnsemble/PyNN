@@ -16,6 +16,7 @@ from neuron import h
 import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.morphology import MorphologyFilter
 from pyNN.neuron import simulator
 
 
@@ -128,15 +129,31 @@ class NeuronCurrentSource(StandardCurrentSource):
     def get_native_parameters(self):
         return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_native_names()))
 
-    def inject_into(self, cells):
+    def inject_into(self, cells, location=None):
         __doc__ = StandardCurrentSource.inject_into.__doc__
         for id in cells:
             if id.local:
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
-                if not (id in self._h_iclamps):
+                if location is None:
+                    sec = id._cell.source_section
+                else:
+                    if isinstance(location, str):
+                        if location in id._cell.section_labels:
+                            sec = id._cell.section_labels[location]
+                        elif location == "soma":
+                            soma_index = id._cell.morphology.soma_index
+                            sec = id._cell.sections[soma_index]
+                        else:
+                            raise ValueError("Cell has no location labelled '{}'".format(location))
+                    elif isinstance(location, MorphologyFilter):
+                        sec_index = location(id._cell.morphology)  # todo: support lists of sections
+                        sec = id._cell.sections[sec_index]
+                    else:
+                        raise ValueError()
+                if not (id in self._h_iclamps):  # to modify for multi-compartment cells with multiple injection points
                     self.cell_list += [id]
-                    self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
+                    self._h_iclamps[id] = h.IClamp(0.5, sec=sec)
                     self._devices.append(self._h_iclamps[id])
 
     def record(self):

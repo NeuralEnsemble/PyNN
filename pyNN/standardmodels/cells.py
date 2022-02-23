@@ -28,8 +28,10 @@ Spike sources (input neurons)
 :license: CeCILL, see LICENSE for details.
 """
 
+from six import with_metaclass
 from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ArrayParameter, Sequence
+from pyNN.morphology import uniform
 
 
 class IF_curr_alpha(StandardCellType):
@@ -689,3 +691,71 @@ class SpikeSourceArray(StandardCellType):
     units = {
         'spike_times': 'ms',
     }
+
+
+# === Multi-compartment neurons =====
+
+class Section(object):
+    """
+
+    """
+
+    def __init__(self, name, parent):
+        self.name = name
+        self.parent = parent
+
+    def insert(self, **ion_channels):
+        for name, mechanism in ion_channels.items():
+            if name in self.parent.ion_channels:
+                assert self.parent.ion_channels[name]["mechanism"] == mechanism
+                self.parent.ion_channels[name]["sections"].extend([self.name])
+            else:
+                self.parent.ion_channels[name] = {
+                    "mechanism": mechanism,
+                    "sections": [self.name]
+                }
+
+class HasSections(type):
+
+    def __getattribute__(self, name):
+        #print("getattribute", name)
+        try:
+            value = type.__getattribute__(self, name)
+        except AttributeError:
+            value = Section(name=name, parent=self)
+            setattr(self, name, value)
+        return value
+
+
+class MultiCompartmentNeuron(with_metaclass(HasSections, StandardCellType)):
+#class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
+    default_parameters = {
+        "morphology": None,
+        "cm": uniform('all', 1.0),
+        "Ra": 35.4,
+        "ionic_species": None
+    }
+    recordable = ['spikes']
+    injectable = True
+    receptor_types = ()
+    units = {
+        'v': 'mV',
+        'gsyn_exc': 'uS',
+        'gsyn_inh': 'uS',
+        'na.m': 'dimensionless',  # hack - should go in ion channel model
+        'na.h': 'dimensionless',
+        'kdr.n': 'dimensionless'
+    }
+
+    def translate(self, parameters):
+        sub_ps = {}
+        for name, ion_channel in self.ion_channels.items():
+            ic_params = parameters.pop(name)
+            sub_ps[name] = ion_channel.translate(ic_params)
+        for name, pse in self.post_synaptic_entities.items():
+            pse_params = parameters.pop(name)
+            sub_ps[name] = pse.translate(pse_params)
+        ps = super(MultiCompartmentNeuron, self).translate(parameters)
+        for name, value in sub_ps.items():
+            ps[name] = value
+        return ps

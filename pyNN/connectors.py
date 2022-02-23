@@ -56,12 +56,13 @@ class Connector(object):
             connection routine. An example would be `progress_bar.set_level`.
     """
 
-    def __init__(self, safe=True, callback=None):
+    def __init__(self, location_selector=None, safe=True, callback=None):
         """
         docstring needed
         """
         self.safe = safe
         self.callback = callback
+        self.location_selector = location_selector
         if callback is not None:
             assert callable(callback)
 
@@ -231,7 +232,9 @@ class MapConnector(Connector):
                     # Connect the neurons
                     #logger.debug("Connecting to %d from %s" % (postsynaptic_index, source_mask))
                     projection._convergent_connect(
-                        source_mask, postsynaptic_index, **connection_parameters)
+                        source_mask, postsynaptic_index,
+                        location_selector=self.location_selector,
+                        **connection_parameters)
                     if self.callback:
                         self.callback(count / projection.post.local_size)
 
@@ -291,12 +294,13 @@ class AllToAllConnector(MapConnector):
     """
     parameter_names = ('allow_self_connections',)
 
-    def __init__(self, allow_self_connections=True, safe=True,
-                 callback=None):
+    def __init__(self, allow_self_connections=True,
+                 location_selector=None,
+                 safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert isinstance(allow_self_connections, bool)
         self.allow_self_connections = allow_self_connections
 
@@ -330,11 +334,12 @@ class FixedProbabilityConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'p_connect')
 
     def __init__(self, p_connect, allow_self_connections=True,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.allow_self_connections = allow_self_connections
         self.p_connect = float(p_connect)
@@ -374,11 +379,12 @@ class DistanceDependentProbabilityConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'd_expression')
 
     def __init__(self, d_expression, allow_self_connections=True,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert isinstance(d_expression, str) or callable(d_expression)
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         try:
@@ -431,11 +437,12 @@ class IndexBasedProbabilityConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'index_expression')
 
     def __init__(self, index_expression, allow_self_connections=True,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert callable(index_expression)
         assert isinstance(index_expression, IndexBasedExpression)
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
@@ -481,6 +488,7 @@ class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
             return self._disp_function(disp)
 
     def __init__(self, disp_function, allow_self_connections=True,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         super(DisplacementDependentProbabilityConnector, self).__init__(
             self.DisplacementExpression(disp_function),
@@ -511,11 +519,12 @@ class FromListConnector(Connector):
     """
     parameter_names = ('conn_list',)
 
-    def __init__(self, conn_list, column_names=None, safe=True, callback=None):
+    def __init__(self, conn_list, column_names=None, 
+                 location_selector=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe=safe, callback=callback)
+        Connector.__init__(self, location_selector, safe=safe, callback=callback)
         self.conn_list = np.array(conn_list)
         if len(conn_list) > 0:
             n_columns = self.conn_list.shape[1]
@@ -576,7 +585,9 @@ class FromListConnector(Connector):
                 connection_parameters = projection.synapse_type.translate(
                     connection_parameters)
             connection_parameters.evaluate()
-            projection._convergent_connect(sources, tgt, **connection_parameters)
+            projection._convergent_connect(sources, tgt,
+                                           location_selector=self.location_selector,
+                                           **connection_parameters)
 
 
 class FromFileConnector(FromListConnector):
@@ -606,11 +617,12 @@ class FromFileConnector(FromListConnector):
     """
     parameter_names = ('file', 'distributed')
 
-    def __init__(self, file, distributed=False, safe=True, callback=None):
+    def __init__(self, file, distributed=False, 
+                 location_selector=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe=safe, callback=callback)
+        Connector.__init__(self, location_selector, safe=safe, callback=callback)
         if isinstance(file, str):
             file = files.StandardTextFile(file, mode='r')
         self.file = file
@@ -634,11 +646,12 @@ class FixedNumberConnector(MapConnector):
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True, with_replacement=False,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.allow_self_connections = allow_self_connections
         self.with_replacement = with_replacement
@@ -909,11 +922,12 @@ class SmallWorldConnector(Connector):
     parameter_names = ('allow_self_connections', 'degree', 'rewiring', 'n_connections')
 
     def __init__(self, degree, rewiring, allow_self_connections=True,
-                 n_connections=None, rng=None, safe=True, callback=None):
+                 n_connections=None, location_selector=None,
+                 rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert 0 <= rewiring <= 1
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.rewiring = rewiring
@@ -940,10 +954,10 @@ class CSAConnector(MapConnector):
     parameter_names = ('cset',)
 
     if haveCSA:
-        def __init__(self, cset, safe=True, callback=None):
+        def __init__(self, cset, location_selector=None, safe=True, callback=None):
             """
             """
-            Connector.__init__(self, safe=safe, callback=callback)
+            Connector.__init__(self, location_selector, safe=safe, callback=callback)
             self.cset = cset
             arity = csa.arity(cset)
             assert arity in (0, 2), 'must specify mask or connection-set with arity 0 or 2'
@@ -960,8 +974,9 @@ class CSAConnector(MapConnector):
         if csa.arity(self.cset) == 2:
             # Connection-set with arity 2
             for (i, j, weight, delay) in c:
-                projection._convergent_connect(
-                    [projection.pre[i]], projection.post[j], weight, delay)
+                projection._convergent_connect([projection.pre[i]], projection.post[j],
+                                               location_selector=self.location_selector,
+                                               weight=weight, delay=delay)
         elif csa.arity(self.cset) == 0:
             # inefficient implementation as a starting point
             connection_map = np.zeros((projection.pre.size, projection.post.size), dtype=bool)
@@ -984,7 +999,8 @@ class CloneConnector(MapConnector):
 
         `reference_projection` -- the projection to clone the connectivity pattern from
         """
-        MapConnector.__init__(self, safe, callback=callback)
+        MapConnector.__init__(self, location_selector=None,
+                              safe=safe, callback=callback)
         self.reference_projection = reference_projection
 
     def connect(self, projection):
@@ -1009,11 +1025,11 @@ class ArrayConnector(MapConnector):
     """
     parameter_names = ('array',)
 
-    def __init__(self, array, safe=True, callback=None):
+    def __init__(self, array, location_selector=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         self.array = array
 
     def connect(self, projection):
@@ -1025,11 +1041,12 @@ class FixedTotalNumberConnector(FixedNumberConnector):
     parameter_names = ('allow_self_connections', 'n')
 
     def __init__(self, n, allow_self_connections=True, with_replacement=True,
+                 location_selector=None,
                  rng=None, safe=True, callback=None):
         """
         Create a new connector.
         """
-        Connector.__init__(self, safe, callback)
+        Connector.__init__(self, location_selector, safe, callback)
         assert isinstance(allow_self_connections, bool) or allow_self_connections == 'NoMutual'
         self.allow_self_connections = allow_self_connections
         self.with_replacement = with_replacement

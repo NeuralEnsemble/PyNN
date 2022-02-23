@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="Ca_HVA">
+
+    <notes>NeuroML file containing a single Channel description</notes>
+
+    <ionChannel id="Ca_HVA" conductance="10pS" type="ionChannelHH" species="ca">
+
+        <notes>High voltage activated Ca2+ current. 
+            
+Comment from original mod file: 
+Reuveni, Friedman, Amitai, and Gutnick, J.Neurosci. 1993</notes>
+                
+        <annotation>
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about="Ca_HVA">
+                    
+                    <bqmodel:isDescribedBy xmlns:bqmodel="http://biomodels.net/model-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Models of Neocortical Layer 5b Pyramidal Cells Capturing a Wide Range of Dendritic and Perisomatic Active Properties,
+            Etay Hay, Sean Hill, Felix Schürmann, Henry Markram and Idan Segev, PLoS Comp Biol 2011</rdf:li>
+                            <rdf:li rdf:resource="http://www.ncbi.nlm.nih.gov/pubmed/21829333"/>
+                        </rdf:Bag>
+                    </bqmodel:isDescribedBy>
+
+                
+                    <bqbiol:isVersionOf xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Calcium channels</rdf:li>
+                            <rdf:li rdf:resource="http://senselab.med.yale.edu/neurondb/channelGene2.aspx#table1"/>
+                        </rdf:Bag>
+                    </bqbiol:isVersionOf>
+
+                </rdf:Description>
+            </rdf:RDF>
+        </annotation>
+
+        <gate id="m" type="gateHHrates" instances="2">
+            <forwardRate type="HHExpLinearRate" rate="0.209per_ms" scale="3.8mV" midpoint="-27mV"/>
+            <reverseRate type="HHExpRate" rate="0.94per_ms" scale="-17mV" midpoint="-75mV"/>
+        </gate>
+
+        <gate id="h" type="gateHHrates" instances="1">
+            <forwardRate type="HHExpRate" rate="0.000457per_ms" scale="-50mV" midpoint="-13mV"/>
+            <reverseRate type="HHSigmoidRate" rate="0.0065per_ms" scale="28mV" midpoint="-15mV"/>
+        </gate>
+                            
+    </ionChannel>
+
+</neuroml>

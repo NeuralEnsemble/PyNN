@@ -9,12 +9,15 @@ Definition of cell classes for the neuron module.
 
 import logging
 from math import pi
+from collections import defaultdict
 from functools import reduce
 import numpy as np
 from neuron import h, nrn, hclass
+import numpy.random
 
 from pyNN import errors
 from pyNN.models import BaseCellType
+from pyNN.morphology import NeuriteDistribution, IonChannelDistribution
 from .recording import recordable_pattern
 from .simulator import state
 
@@ -50,7 +53,7 @@ def guess_units(variable):
 
 class NativeCellType(BaseCellType):
 
-    def can_record(self, variable):
+    def can_record(self, variable, location=None):
         # crude check, could be improved
         return bool(recordable_pattern.match(variable))
 
@@ -78,7 +81,7 @@ class BaseSingleCompartmentNeuron(nrn.Section):
 
         # for recording
         self.spike_times = h.Vector(0)
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.recording_time = 0
 
         self.v_init = None
@@ -648,7 +651,7 @@ class ArtificialCell(object):
         # needed for PyNN
         self.source_section = dummy  # todo: only need a single dummy for entire network, not one per cell
         self.parameter_names = ('tau', 'refrac')
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.spike_times = h.Vector(0)
         self.rec = h.NetCon(self.source, None)
         self.recording_time = False
@@ -710,3 +713,168 @@ class IntFire4(NativeCellType):
     receptor_types = ['default']
     model = ArtificialCell
     extra_parameters = {"mechanism_name": "IntFire4"}
+
+
+PROXIMAL = 0
+DISTAL = 1
+
+
+class NeuronTemplate(object):
+
+    def __init__(self, morphology, cm, Ra, ionic_species, **other_parameters):
+        import neuroml
+        import neuroml.arraymorph
+
+        self.traces = defaultdict(list)
+        self.recording_time = False
+        self.spike_source = None
+        self.spike_times = h.Vector(0)
+
+        # create morphology
+        self.morphology = morphology
+        self.ionic_species = ionic_species
+        self.sections = {}
+        self.section_labels = {}
+        for receptor_name in self.post_synaptic_entities:
+            self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
+
+        if isinstance(morphology._morphology, neuroml.arraymorph.ArrayMorphology):
+            M = morphology._morphology
+            for i in range(len(morphology._morphology)):
+                vertex = M.vertices[i]
+                parent_index = M.connectivity[i]
+                parent = M.vertices[parent_index]
+                section = nrn.Section()
+                for v in (vertex, parent):
+                    x, y, z, d = v
+                    h.pt3dadd(x, y, z, d, sec=section)
+                section.nseg = 1
+                section.cm = cm
+                section.Ra = Ra
+                # ignore fractions_along for now
+                if i > 1:
+                    section.connect(self.sections[parent_index], DISTAL, PROXIMAL)
+                self.sections[i] = section
+            self.morphology._soma_index = 0  # fragile temporary hack - should be index of the vertex with no parent
+        elif isinstance(morphology._morphology, neuroml.Morphology):
+            unresolved_connections = []
+            for index, segment in enumerate(morphology.segments):
+                section = nrn.Section(name=segment.name)
+                section.L = segment.length
+                section(PROXIMAL).diam = segment.proximal.diameter
+                section(DISTAL).diam = segment.distal.diameter
+                section.nseg = 1
+                if isinstance(cm, NeuriteDistribution):
+                    section.cm = cm.value_in(self.morphology, index)
+                else:
+                    section.cm = cm
+                section.Ra = Ra
+                segment_id = segment.id
+                assert segment_id is not None
+                if segment.parent:
+                    parent_id = segment.parent.id
+                    connection_point = DISTAL  # should generalize
+                    if segment.parent.id in self.sections:
+                        section.connect(self.sections[parent_id], connection_point, PROXIMAL)
+                    else:
+                        unresolved_connections.append((segment_id, parent_id))
+                self.sections[segment_id] = section
+                if segment.name == "soma":
+                    self.morphology._soma_index = segment_id
+                if segment.name is not None:
+                    self.section_labels[segment.name] = section
+                segment._section = section
+            for section_id, parent_id in unresolved_connections:
+                self.sections[section_id].connect(self.sections[parent_id], DISTAL, PROXIMAL)
+        else:
+            raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
+
+        # insert ion channels
+        for name, ion_channel in self.ion_channels.items():
+            parameters = other_parameters[name]
+            mechanism_name = ion_channel.model
+            conductance_density = parameters[ion_channel.conductance_density_parameter]
+            for index, id in enumerate(self.sections):
+                g = conductance_density.value_in(self.morphology, index)
+                if g is not None and g > 0:
+                    section = self.sections[id]
+                    section.insert(mechanism_name)
+                    varname = ion_channel.conductance_density_parameter + "_" + ion_channel.model
+                    setattr(section, varname, g)
+                    ##print(index, mechanism_name, ion_channel.conductance_density_parameter, g)
+                    # temporary hack - we're not using the leak conductance from the hh mechanism,
+                    # so set the conductance to zero
+                    if mechanism_name == "hh":
+                        setattr(section, "gl_hh", 0.0)
+                    for param_name, value in parameters.items():
+                        if param_name != ion_channel.conductance_density_parameter:
+                            if isinstance(value, IonChannelDistribution):
+                                value = value.value_in(self.morphology, index)
+                            try:
+                                setattr(section, param_name + "_" + ion_channel.model, value)
+                            except AttributeError:  # e.g. parameters not defined within a mechanism, e.g. ena
+                                setattr(section, param_name, value)
+                            ##print(index, mechanism_name, param_name, value)
+
+        # insert post-synaptic mechanisms
+        for name, pse in self.post_synaptic_entities.items():
+            parameters = other_parameters[name]
+            mechanism_name = pse.model
+            synapse_model = getattr(h, mechanism_name)
+            density_function = parameters["density"]
+            for index, id in enumerate(self.sections):
+                density = density_function.value_in(self.morphology, index)
+                if density > 0:
+                    n_synapses, remainder = divmod(density, 1)
+                    rnd = numpy.random  # todo: use the RNG from the parent Population
+                    if rnd.uniform() < remainder:
+                        n_synapses += 1
+                    section = self.sections[id]
+                    for i in range(int(n_synapses)):
+                        self.morphology.synaptic_receptors[name][id].append(synapse_model(0.5, sec=section))
+
+        # handle ionic species
+        def set_in_section(section, index, name, value):
+            if isinstance(value, IonChannelDistribution):  # should be "NeuriteDistribution"
+                value = value.value_in(self.morphology, index)
+            if value is not None:
+                if name == "eca":     # tmp hack
+                    section.push()
+                    h.ion_style("ca_ion", 1, 1, 0, 1, 0)
+                    h.pop_section()
+                try:
+                    setattr(section, name, value)
+                except (NameError, AttributeError) as err:  # section does not contain ion
+                    if "the mechanism does not exist" not in str(err):
+                        raise
+
+        for ion_name, parameters in self.ionic_species.items():
+            for index, id in enumerate(self.sections):
+                section = self.sections[id]
+                set_in_section(section, index, "e{}".format(ion_name), parameters.reversal_potential)
+                if parameters.internal_concentration:
+                    set_in_section(section, index, "{}i".format(ion_name), parameters.internal_concentration)
+                if parameters.external_concentration:
+                    set_in_section(section, index, "{}o".format(ion_name), parameters.external_concentration)
+
+
+        # set source section
+        if self.spike_source:
+            self.source_section = self.sections[self.spike_source]
+        elif "axon_initial_segment" in self.sections:
+            self.source_section = self.sections["axon_initial_segment"]
+        else:
+            self.source_section = self.sections[morphology.soma_index]
+        self.source = self.source_section(0.5)._ref_v
+        self.rec = h.NetCon(self.source, None, sec=self.source_section)
+
+    def memb_init(self):
+        for state_var in ('v',):
+            initial_value = getattr(self, '{0}_init'.format(state_var))
+            assert initial_value is not None
+            if state_var == 'v':
+                for section in self.sections.values():
+                    for seg in section:
+                        seg.v = initial_value
+            else:
+                raise NotImplementedError()
