@@ -25,13 +25,15 @@ def get_defaults(model_name):
     valid_types = (int, float, Sequence, np.ndarray)
     defaults = nest.GetDefaults(model_name)
     variables = defaults.get('recordables', [])
-    ignore = ['archiver_length', 'available', 'Ca', 'capacity', 'elementsize',
-              'frozen', 'instantiations', 'local', 'model', 'needs_prelim_update',
-              'recordables', 'state', 't_spike', 'tau_minus', 'tau_minus_triplet',
-              'thread', 'vp', 'receptor_types', 'events', 'global_id',
-              'element_type', 'type', 'type_id', 'has_connections', 'n_synapses',
-              'thread_local_id', 'node_uses_wfr', 'supports_precise_spikes',
-              'synaptic_elements', 'y_0', 'y_1', 'allow_offgrid_spikes', 'shift_now_spikes', 'post_trace']
+    ignore = ['allow_offgrid_spikes', 'archiver_length', 'available', 'Ca',
+              'capacity', 'elementsize', 'element_type', 'events', 'frozen',
+              'global_id', 'has_connections', 'instantiations', 'local',
+              'model', 'model_id', 'needs_prelim_update', 'node_uses_wfr',
+              'n_synapses', 'post_trace', 'receptor_types', 'recordables',
+              'shift_now_spikes', 'state', 'supports_precise_spikes',
+              'synaptic_elements', 'thread', 'thread_local_id', 'type',
+              'type_id', 't_spike', 'tau_minus', 'tau_minus_triplet', 'vp',
+              'y_0', 'y_1']
     default_params = {}
     default_initial_values = {}
     for name, value in defaults.items():
