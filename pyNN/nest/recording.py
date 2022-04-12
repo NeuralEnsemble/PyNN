@@ -27,8 +27,8 @@ def _set_status(obj, parameters):
     """Wrapper around nest.SetStatus() to add a more informative error message."""
     try:
         nest.SetStatus(obj, parameters)
-    except nest.kernel.NESTError as e:
-        raise nest.kernel.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
+    except nest.NESTError as e:
+        raise nest.NESTError("%s. Parameter dictionary was: %s" % (e, parameters))
 
 
 class RecordingDevice(object):

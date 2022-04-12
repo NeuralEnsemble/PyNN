@@ -161,7 +161,7 @@ class Population(common.Population, PopulationMixin):
                                    size=self.size)
         try:
             self.node_collection = nest.Create(nest_model, self.size, params=params)
-        except nest.kernel.NESTError as err:
+        except nest.NESTError as err:
             if "UnknownModelName" in err.args[0] and "cond" in err.args[0]:
                 raise errors.InvalidModelError("%s Have you compiled NEST with the GSL (Gnu Scientific Library)?" % err)
             if "Spike times must be sorted in non-descending order" in err.args[0]:
@@ -212,7 +212,7 @@ class Population(common.Population, PopulationMixin):
                 simulator.state.set_status(self.node_collection, variable, local_values)
             else:
                 simulator.state.set_status(self.node_collection[self._mask_local], variable, local_values)
-        except nest.kernel.NESTError as e:
+        except nest.NESTError as e:
             if "Unused dictionary items" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)
                 # should perhaps check whether value-to-be-set is the same as current value,

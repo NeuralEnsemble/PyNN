@@ -23,7 +23,7 @@ def get_synapse_defaults(model_name):
               'property_object', 'element_type', 'type', 'sizeof',
               'has_delay', 'synapse_model', 'requires_symmetric',
               'weight_recorder', 'init_flag', 'next_readout_time',
-              'synapse_id']
+              'synapse_id', 'synapse_modelid']
     default_params = {}
     for name, value in defaults.items():
         if name not in ignore:
@@ -44,7 +44,7 @@ class NESTSynapseMixin(object):
         synapse_defaults.pop("tau_minus", None)
         try:
             nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        except nest.lib.hl_api_exceptions.NESTError as err:
+        except nest.NESTError as err:
             if not state.extensions_loaded:
                 raise NoModelAvailableError(
                     "{self.__class__.__name__} is not available."
