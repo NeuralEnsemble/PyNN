@@ -81,6 +81,11 @@ NET_RECEIVE(w, available, t_last (ms)) {
 	t_last = t
 }
 
+VERBATIM
+double nrn_random_pick(void* r);
+void* nrn_random_arg(int argpos);
+ENDVERBATIM
+
 PROCEDURE setRNG() {
     : This function takes a NEURON Random object declared in hoc and makes it usable by this mod file
     : The Random must be in uniform(1) mode
