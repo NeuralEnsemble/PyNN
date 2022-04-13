@@ -9,7 +9,7 @@ Functions:
     init_logging()    - convenience function for setting up logging to file and
                         to the screen.
 
-    Timer    - a convenience wrapper around the time.time() function from the
+    Timer    - a convenience wrapper around the time.perf_counter() function from the
                standard library.
 
 :copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
@@ -240,7 +240,7 @@ class Timer(object):
 
     def start(self):
         """Start/restart timing."""
-        self._start_time = time.time()
+        self._start_time = time.perf_counter()
         self._last_check = self._start_time
 
     def elapsed_time(self, format=None):
@@ -255,7 +255,7 @@ class Timer(object):
             >>> timer.elapsed_time(format='long')
             16 minutes, 27 seconds
         """
-        current_time = time.time()
+        current_time = time.perf_counter()
         elapsed_time = current_time - self._start_time
         if format == 'long':
             elapsed_time = Timer.time_in_words(elapsed_time)
@@ -278,7 +278,7 @@ class Timer(object):
         If called with ``format='long'``, return a text representation of the
         time.
         """
-        current_time = time.time()
+        current_time = time.perf_counter()
         time_since_last_check = current_time - self._last_check
         self._last_check = current_time
         if format == 'long':
