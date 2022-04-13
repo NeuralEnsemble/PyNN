@@ -103,11 +103,11 @@ class Recorder(recording.Recorder):
                 if cell_id._cell.rec is None:  # SpikeSourceArray
                     spikes = cell_id._cell.get_recorded_spike_times()
                 else:
-                    spikes = np.array(cell_id._cell.spike_times)
+                    spikes = cell_id._cell.spike_times.as_numpy()
                 all_spiketimes[cell_id] = spikes[spikes <= simulator.state.t + 1e-9]
             return all_spiketimes
         else:
-            spikes = np.array(id._cell.spike_times)
+            spikes = id._cell.spike_times.as_numpy()
             return spikes[spikes <= simulator.state.t + 1e-9]
 
     def _get_all_signals(self, variable, ids, clear=False):

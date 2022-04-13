@@ -612,7 +612,7 @@ class VectorSpikeSource(hclass(h.VecStim)):
             self._recorded_spikes = np.hstack((self._recorded_spikes, spike_times.value))
 
     def _get_spike_times(self):
-        return self._spike_times
+        return self._spike_times.as_numpy()
 
     spike_times = property(fget=_get_spike_times,
                            fset=_set_spike_times)

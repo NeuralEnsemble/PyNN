@@ -51,7 +51,7 @@ def nest_property(name, dtype):
     def _set(self, val):
         try:
             nest.SetKernelStatus({name: dtype(val)})
-        except nest.kernel.NESTError as e:
+        except nest.NESTError as e:
             reraise(e, "%s = %s (%s)" % (name, val, type(val)))
     return property(fget=_get, fset=_set)
 
@@ -76,7 +76,7 @@ class _State(common.control.BaseState):
         try:
             nest.Install('pynn_extensions')
             self.extensions_loaded = True
-        except nest.kernel.NESTError as err:
+        except nest.NESTError as err:
             self.extensions_loaded = False
         self.initialized = False
         self.optimize = False

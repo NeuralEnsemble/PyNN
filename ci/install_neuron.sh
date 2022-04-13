@@ -4,12 +4,12 @@ set -e  # stop execution in case of errors
 
 if [ "$TRAVIS_PYTHON_VERSION" == "3.9" ]; then
     echo -e "\n========== Installing NEURON ==========\n"
-    export NRN_VERSION="nrn-8.0.0"
+    export NRN_VERSION="nrn-8.1"
     export VENV=`python -c "import sys; print(sys.prefix)"`
 
     if [ ! -f "$HOME/$NRN_VERSION/build/CMakeCache.txt" ]; then
         echo 'Cloning NEURON sources from GitHub'
-        git clone https://github.com/neuronsimulator/nrn -b 8.0.0 $HOME/$NRN_VERSION
+        git clone https://github.com/neuronsimulator/nrn -b release/8.1 $HOME/$NRN_VERSION
         mkdir -p $HOME/$NRN_VERSION/build
     else
         echo 'Using cached NEURON build directory.'

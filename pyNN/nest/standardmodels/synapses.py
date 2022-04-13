@@ -53,7 +53,7 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
             logger.warning(", ".join(model for model in base_model))
             base_model = list(base_model)[0]
             logger.warning("By default, %s is used" % base_model)
-        available_models = nest.Models(mtype='synapses')
+        available_models = nest.synapse_models
         if base_model not in available_models:
             raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
                              "Possible models in your NEST build are: %s" % (base_model, available_models))

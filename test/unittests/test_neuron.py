@@ -389,12 +389,12 @@ class TestRecorder(unittest.TestCase):
 
     def test__get_spikes(self):
         self.rec.recorded['spikes'] = self.cells
-        self.cells[0]._cell.spike_times = np.arange(101.0, 111.0)
-        self.cells[1]._cell.spike_times = np.arange(13.0, 23.0)
+        self.cells[0]._cell.spike_times.from_python(np.arange(101.0, 111.0))
+        self.cells[1]._cell.spike_times.from_python(np.arange(13.0, 23.0))
         simulator.state.t = 111.0
         sdata = self.rec._get_current_segment(variables=['spikes'], filter_ids=None)
         self.assertEqual(len(sdata.spiketrains), 2)
-        assert_array_equal(np.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
+        assert_array_equal(np.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times.as_numpy())
 
     # def test__get_gsyn(self):
     #    self.rg.recorded['gsyn_exc'] = self.cells
