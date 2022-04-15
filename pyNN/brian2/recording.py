@@ -71,18 +71,11 @@ class Recorder(recording.Recorder):
         for device in self._devices.values():
             device.resize(0)
 
-    def _get_spiketimes(self, id, clear=False):
-        if is_listlike(id):
-            all_spiketimes = {}
-            for cell_id in id:
-                i = cell_id - self.population.first_id
-                spiky = self._devices['spikes'].spike_trains()
-                all_spiketimes[cell_id] = spiky[i] / ms
-            return all_spiketimes
-        else:
-            i = id - self.population.first_id
-            spiky = self._devices['spikes'].spike_trains()
-            return spiky[i] / ms
+    def _get_spiketimes(self, requested_ids, clear=False):
+        id_array = self._devices["spikes"].i + self.population.first_id
+        times_array = self._devices["spikes"].t / ms
+        mask = np.in1d(id_array, requested_ids)
+        return id_array[mask], times_array[mask]
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
