@@ -33,7 +33,7 @@ def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_
         v_thresh = fake_aps
         spike_indices = signal >= v_thresh - 0.05 * mV
         signal[spike_indices] = 0.0 * mV
-    panel.plot(signal.times, signal[:, index], colour, linewidth=linewidth, label=label)
+    panel.plot(signal.times, signal.magnitude[:, index], colour, linewidth=linewidth, label=label)
     #plt.setp(plt.gca().get_xticklabels(), visible=False)
     if not hide_axis_labels:
         panel.set_xlabel("time (%s)" % signal.times.units._dimensionality.string)
