@@ -24,7 +24,7 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: "Install Linux system dependencies"
+    - name: Install Linux system dependencies
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt-get install libltdl-dev libgsl0-dev python3-all-dev openmpi-bin libopenmpi-dev
