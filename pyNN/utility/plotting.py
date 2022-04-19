@@ -96,7 +96,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(0, spiketrains[0].t_stop / ms)
+    ax.set_xlim(spiketrains[0].t_start, spiketrains[0].t_stop / ms)
     handle_options(ax, options)
     max_index = 0
     min_index = sys.maxsize
@@ -118,11 +118,11 @@ def plot_spiketrainlist(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(0, spiketrains._spiketrain_metadata["t_stop"] / ms)
+    ax.set_xlim(spiketrains.t_start, spiketrains.t_stop / ms)
     handle_options(ax, options)
     channel_ids, spike_times = spiketrains.multiplexed
-    max_id = spiketrains._all_channel_ids.max()
-    min_id = spiketrains._all_channel_ids.min()
+    max_id = max(spiketrains.all_channel_ids)
+    min_id = min(spiketrains.all_channel_ids)
     ax.plot(channel_ids, spike_times, 'k.', **options)
     ax.set_ylabel("Neuron index")
     ax.set_ylim(-0.5 + min_id, max_id + 0.5)

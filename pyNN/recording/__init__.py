@@ -280,7 +280,6 @@ class Recorder(object):
                 data = self._get_spiketimes(sids, clear=clear)
 
                 if isinstance(data, dict):
-                    segment.spiketrains = []
                     for id in sids:
                         times = pq.Quantity(data.get(int(id), []), pq.ms)
                         if times.size > 0 and times.max() > t_stop:
