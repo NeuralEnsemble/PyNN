@@ -24,7 +24,11 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install basic dependencies
+    - name: "Install Linux system dependencies"
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt-get install libltdl-dev libgsl0-dev python3-all-dev openmpi-bin libopenmpi-dev
+    - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install coverage coveralls nose-testconfig
@@ -36,6 +40,15 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         python -m pip install neuron
+    - name: Install NEST
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        python -m pip install cython
+        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.3.tar.gz -O $HOME/nest-simulator-3.3.tar.gz
+        tar xzf $HOME/nest-simulator-3.3.tar.gz
+        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON $HOME/nest-simulator-3.3
+        make
+        make install
     - name: Install PyNN itself
       run: |
         python setup.py install
