@@ -44,11 +44,9 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         python -m pip install cython
-        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.3.tar.gz -O $HOME/nest-simulator-3.3.tar.gz
-        pwd
-        tar xzvf --directory $HOME $HOME/nest-simulator-3.3.tar.gz
-        ls $HOME
-        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON $HOME/nest-simulator-3.3
+        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.3.tar.gz
+        tar xzvf nest-simulator-3.3.tar.gz
+        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.3
         make
         make install
     - name: Install PyNN itself
