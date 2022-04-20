@@ -17,6 +17,12 @@ class BaseSynapse(object):
     connection_type = Connection
     presynaptic_type = None
 
+    def _get_minimum_delay(self):
+        d = state.min_delay
+        if d == 'auto':
+            d = state.dt
+        return d
+
 
 class StaticSynapse(BaseSynapse, synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
@@ -26,9 +32,6 @@ class StaticSynapse(BaseSynapse, synapses.StaticSynapse):
         ('delay', 'delay')
     )
     model = None
-
-    def _get_minimum_delay(self):
-        return state.min_delay
 
 
 class ElectricalSynapse(BaseSynapse, synapses.ElectricalSynapse):
@@ -41,9 +44,6 @@ class ElectricalSynapse(BaseSynapse, synapses.ElectricalSynapse):
         ('weight', 'weight'),
     )
     model = 'Gap'
-
-    def _get_minimum_delay(self):
-        return state.min_delay
 
 
 class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
@@ -73,9 +73,6 @@ class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
             raise NotImplementedError(
                 "STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
 
-    def _get_minimum_delay(self):
-        return state.min_delay
-
 
 class TsodyksMarkramSynapse(BaseSynapse, synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
@@ -90,9 +87,6 @@ class TsodyksMarkramSynapse(BaseSynapse, synapses.TsodyksMarkramSynapse):
     model = 'TsodyksMarkramWA'
     postsynaptic_variable = None
 
-    def _get_minimum_delay(self):
-        return state.min_delay
-
 
 class SimpleStochasticSynapse(BaseSynapse, synapses.SimpleStochasticSynapse):
     translations = build_translations(
@@ -102,9 +96,6 @@ class SimpleStochasticSynapse(BaseSynapse, synapses.SimpleStochasticSynapse):
     )
     model = 'SimpleStochasticWA'
     postsynaptic_variable = None
-
-    def _get_minimum_delay(self):
-        return state.min_delay
 
 
 class StochasticTsodyksMarkramSynapse(BaseSynapse, synapses.StochasticTsodyksMarkramSynapse):
@@ -119,9 +110,6 @@ class StochasticTsodyksMarkramSynapse(BaseSynapse, synapses.StochasticTsodyksMar
     model = 'StochasticTsodyksMarkramWA'
     postsynaptic_variable = None
 
-    def _get_minimum_delay(self):
-        return state.min_delay
-
 
 class MultiQuantalSynapse(BaseSynapse, synapses.MultiQuantalSynapse):
 
@@ -135,9 +123,6 @@ class MultiQuantalSynapse(BaseSynapse, synapses.MultiQuantalSynapse):
     )
     model = 'QuantalSTPWA'
     postsynaptic_variable = None
-
-    def _get_minimum_delay(self):
-        return state.min_delay
 
 
 class AdditiveWeightDependence(BaseSynapse, synapses.AdditiveWeightDependence):
