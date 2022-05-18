@@ -312,7 +312,7 @@ class ID(int, common.IDMixin):
         int.__init__(n)
         common.IDMixin.__init__(self)
 
-    def _build_cell(self, cell_model, cell_parameters):
+    def _build_cell(self, cell_model, cell_parameters, post_synaptic_receptor_models=None):
         """
         Create a cell in NEURON, and register its global ID.
 
@@ -322,9 +322,26 @@ class ID(int, common.IDMixin):
                         explicitly described that yet).
         `cell_parameters` -- a ParameterSpace containing the parameters used to
                              initialise the cell model.
+
+        todo: update for post_synaptic_receptor_models                     
         """
         gid = int(self)
+
+        if post_synaptic_receptor_models:                   # extract post-synaptic receptor parameters
+            psr_parameters = {}
+            for receptor_name in post_synaptic_receptor_models:
+                psr_parameters[receptor_name] = cell_parameters.pop(receptor_name)
+
         self._cell = cell_model(**cell_parameters)          # create the cell object
+
+        if post_synaptic_receptor_models:                   # create and parameterize post-synaptic receptor objects
+            self._cell.set_parameters()
+            for receptor_name, psr_model in post_synaptic_receptor_models.items():
+                psr_obj = psr_model(0.5, sec=self._cell)
+                setattr(self._cell, receptor_name, psr_obj)
+                for pname, value in psr_parameters[receptor_name].items():
+                    setattr(psr_obj, pname, value)
+
         state.register_gid(gid, self._cell.source, section=self._cell.source_section)
         if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
             state.parallel_context.threshold(int(self), self._cell.get_threshold())  # the problem is that self._cell does not know its own gid

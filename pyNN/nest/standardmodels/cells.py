@@ -6,8 +6,15 @@ Standard cells for nest
 
 """
 
+import logging
+from collections import defaultdict
+import nest
+from pyNN import errors
+from pyNN.parameters import ArrayParameter, LazyArray
 from pyNN.standardmodels import cells, build_translations
 from .. import simulator
+
+logger = logging.getLogger("PyNN")
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -385,3 +392,117 @@ class GIF_cond_exp(cells.GIF_cond_exp):
     nest_name = {"on_grid": "gif_cond_exp",
                  "off_grid": "gif_cond_exp"}
     standard_receptor_type = True
+
+
+class AdExp(cells.AdExp):
+
+    translations = build_translations(
+        ('cm',         'C_m',       1000.0),  # nF -> pF
+        ('tau_refrac', 't_ref'),
+        ('v_spike',    'V_peak'),
+        ('v_reset',    'V_reset'),
+        ('v_rest',     'E_L'),
+        ('tau_m',      'g_L',       "cm/tau_m*1000.0", "C_m/g_L"),
+        ('i_offset',   'I_e',       1000.0),  # nA -> pA
+        ('a',          'a'),
+        ('b',          'b',         1000.0),  # nA -> pA.
+        ('delta_T',    'Delta_T'),
+        ('tau_w',      'tau_w'),
+        ('v_thresh',   'V_th')
+    )
+    #nest_name = {"on_grid": "aeif_cond_alpha_multisynapse",
+    #             "off_grid": "aeif_cond_alpha_multisynapse"}
+    possible_models = set(["aeif_cond_alpha_multisynapse"])
+    standard_receptor_type = False
+
+
+class PointNeuron(cells.PointNeuron):
+    standard_receptor_type = False
+
+    def get_receptor_type(self, name):
+        return self.receptor_types.index(name) + 1  # port numbers start at 1
+
+    @property
+    def possible_models(self):
+        """
+        A list of available synaptic plasticity models for the current
+        configuration (weight dependence, timing dependence, ...) in the
+        current simulator.
+        """
+        pm = self.neuron.possible_models
+        for psr in self.post_synaptic_receptors.values():
+            pm = pm.intersection(psr.possible_models)
+        if len(pm) == 0:
+            raise errors.NoModelAvailableError("No possible models for this combination")
+        return pm
+
+    @property
+    def nest_name(self):
+        # todo: make this work with on_grid, off_grid
+        available_models = nest.node_models
+        suitable_models = self.possible_models.intersection(available_models)
+        if len(suitable_models) == 0:
+            errmsg = "Model not available in this build of NEST. " \
+                     "You requested one of: {}" \
+                     "Available models are: {}"
+            raise errors.NoModelAvailableError(errmsg.format(self.possible_models, available_models))
+        elif len(suitable_models) > 1:
+            logger.warning("Several models are available for this set of components")
+            logger.warning(", ".join(model for model in suitable_models))
+            model = list(suitable_models)[0]
+            logger.warning("By default, %s is used" % model)
+        else:
+            model, = suitable_models  # take the only entry
+        return {"on_grid": model,
+                "off_grid": model}
+
+    @property
+    def native_parameters(self):
+        """
+        A :class:`ParameterSpace` containing parameter names and values
+        translated from the standard PyNN names and units to simulator-specific
+        ("native") names and units.
+        """
+        translated_parameters = self.neuron.native_parameters
+        # work-in-progress: this assumes all receptors have the same model
+        #                   this will not be true in the general case
+        # also, not all models with multiple receptor types are "multisynapse" models, e.g. ht_neuron
+
+        # transform list of dicts into dict of lists
+        receptor_params = defaultdict(list)
+        for name in self.receptor_types:
+            psr = self.post_synaptic_receptors[name]
+            for name, value in psr.native_parameters.items():
+                receptor_params[name].append(value)
+
+        # merge list of lazyarray values into a single lazyarray
+        # for now, assume homogeneous parameters
+        for name, list_of_values in receptor_params.items():
+            ops = [value.operations for value in list_of_values]
+            for op in ops[1:]:
+                assert op == ops[0]
+            if all(value.is_homogeneous for value in list_of_values):
+                arrval = ArrayParameter([value.base_value for value in list_of_values])
+            else:
+                raise NotImplementedError("to do")
+            lval = LazyArray(arrval, dtype=ArrayParameter)
+            if ops:
+                lval.operations = ops[0]
+            receptor_params[name] = lval
+
+        translated_parameters.update(**receptor_params)
+        return translated_parameters
+
+    def get_native_names(self, *names):
+        neuron_names = self.neuron.get_native_names(*[name for name in names if "." not in name])
+        for name in names:
+            if "." in name:
+                psr_name, param_name = name.split(".")
+                index = self.receptor_types.index(psr_name)
+                tr_name = self.post_synaptic_receptors[psr_name].get_native_names(param_name)
+                neuron_names.append("{}[{}]".format(tr_name, index))
+        return neuron_names
+
+    def reverse_translate(self, native_parameters):
+        standard_parameters = self.neuron.reverse_translate(native_parameters)
+        return standard_parameters

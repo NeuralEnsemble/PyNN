@@ -8,11 +8,12 @@ Standard base_cells for the neuron module.
 """
 
 from pyNN.standardmodels import cells as base_cells, build_translations
-from pyNN.neuron.cells import (StandardIF, SingleCompartmentTraub,
+from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
                                RandomGammaSpikeSource,
                                RandomPoissonRefractorySpikeSource,
-                               BretteGerstnerIF, GsfaGrrIF, Izhikevich_,
+                               BretteGerstnerIF,
+                               BretteGerstnerIFStandardReceptors, GsfaGrrIF, Izhikevich_,
                                GIFNeuron)
 import logging
 
@@ -34,7 +35,7 @@ class IF_curr_alpha(base_cells.IF_curr_alpha):
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
     )
-    model = StandardIF
+    model = StandardIFStandardReceptors
     extra_parameters = {'syn_type': 'current',
                         'syn_shape': 'alpha'}
 
@@ -54,7 +55,7 @@ class IF_curr_exp(base_cells.IF_curr_exp):
         ('tau_syn_E',  'tau_e'),
         ('tau_syn_I',  'tau_i'),
     )
-    model = StandardIF
+    model = StandardIFStandardReceptors
     extra_parameters = {'syn_type': 'current',
                         'syn_shape': 'exp'}
 
@@ -76,7 +77,7 @@ class IF_cond_alpha(base_cells.IF_cond_alpha):
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
-    model = StandardIF
+    model = StandardIFStandardReceptors
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'alpha'}
 
@@ -98,7 +99,7 @@ class IF_cond_exp(base_cells.IF_cond_exp):
         ('e_rev_E',    'e_e'),
         ('e_rev_I',    'e_i')
     )
-    model = StandardIF
+    model = StandardIFStandardReceptors
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
 
@@ -116,7 +117,7 @@ class IF_facets_hardware1(base_cells.IF_facets_hardware1):
         ('tau_syn_I',  'tau_i'),
         ('e_rev_I',    'e_i')
     )
-    model = StandardIF
+    model = StandardIFStandardReceptors
     extra_parameters = {'syn_type':  'conductance',
                         'syn_shape': 'exp',
                         'i_offset':  0.0,
@@ -246,19 +247,37 @@ class EIF_cond_alpha_isfa_ista(base_cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I',    'e_i'),
         ('tau_syn_I',  'tau_i'),
     )
-    model = BretteGerstnerIF
+    model = BretteGerstnerIFStandardReceptors
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'alpha'}
 
 
 class EIF_cond_exp_isfa_ista(base_cells.EIF_cond_exp_isfa_ista):
-
     __doc__ = base_cells.EIF_cond_exp_isfa_ista.__doc__
 
     translations = EIF_cond_alpha_isfa_ista.translations
-    model = BretteGerstnerIF
+    model = BretteGerstnerIFStandardReceptors
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
+
+
+class AdExp(base_cells.AdExp):
+
+    translations = build_translations(
+        ('cm',         'c_m'),
+        ('tau_refrac', 't_refrac'),
+        ('v_spike',    'v_spike'),
+        ('v_reset',    'v_reset'),
+        ('v_rest',     'v_rest'),
+        ('tau_m',      'tau_m'),
+        ('i_offset',   'i_offset'),
+        ('a',          'A',        0.001), # nS --> uS
+        ('b',          'B'),
+        ('delta_T',    'delta'),
+        ('tau_w',      'tau_w'),
+        ('v_thresh',   'v_thresh'),
+    )
+    model = BretteGerstnerIF
 
 
 class Izhikevich(base_cells.Izhikevich):
@@ -297,3 +316,31 @@ class GIF_cond_exp(base_cells.GIF_cond_exp):
     model = GIFNeuron
     extra_parameters = {'syn_type': 'conductance',
                         'syn_shape': 'exp'}
+
+
+class PointNeuron(base_cells.PointNeuron):
+    
+    def __init__(self, neuron, **post_synaptic_receptors):
+        super(PointNeuron, self).__init__(neuron, **post_synaptic_receptors)
+        self.model = neuron.model
+    
+    @property
+    def native_parameters(self):
+        translated_parameters = self.neuron.native_parameters
+        for name, psr in self.post_synaptic_receptors.items():
+            translated_parameters.add_child(name, psr.native_parameters)
+        return translated_parameters
+
+    def get_native_names(self, *names):
+        neuron_names = self.neuron.get_native_names(*[name for name in names if "." not in name])
+        for name in names:
+            if "." in name:
+                psr_name, param_name = name.split(".")
+                index = self.receptor_types.index(psr_name)
+                tr_name = self.post_synaptic_receptors[psr_name].get_native_names(param_name)
+                neuron_names.append("{}[{}]".format(tr_name, index))
+        return neuron_names
+
+    def reverse_translate(self, native_parameters):
+        standard_parameters = self.neuron.reverse_translate(native_parameters)
+        return standard_parameters

@@ -128,6 +128,9 @@ class ArrayParameter(object):
         """Return the maximum value."""
         return self.value.max()
 
+    def __getitem__(self, item):
+        return self.value[item]
+
     def __add__(self, val):
         """
         Return a new :class:`ArrayParameter` in which all values in the original
@@ -248,6 +251,7 @@ class ParameterSpace(object):
 
         """
         self._parameters = {}
+        self.children = {}
         self.schema = schema
         self._shape = shape
         self.component = component
@@ -257,6 +261,8 @@ class ParameterSpace(object):
     def _set_shape(self, shape):
         for value in self._parameters.values():
             value.shape = shape
+        for child in self.children.values():
+            child.shape = shape
         self._shape = shape
     shape = property(fget=lambda self: self._shape, fset=_set_shape,
                      doc="Size of the lazy arrays contained within the parameter space")
@@ -365,6 +371,8 @@ class ParameterSpace(object):
                 except ValueError:
                     raise errors.InvalidParameterValueError(f"{name} should not be of type {type(value)}")
             self._evaluated_shape = partial_shape(mask, self._shape)
+        for child in self.children.values():
+            child.evaluate(mask, simplify)
         self._evaluated = True
         # should possibly update self.shape according to mask?
 
@@ -379,6 +387,8 @@ class ParameterSpace(object):
         for name, value in self._parameters.items():
             D[name] = value
             assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+        for name, child in self.children.items():
+            D[name] = child.as_dict()
         return D
 
     def __iter__(self):
@@ -412,6 +422,13 @@ class ParameterSpace(object):
                 else:
                     D[name] = value
                 assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+            for name, child in self.children.items():
+                D[name] = {}
+                for cname, cvalue in child.items():
+                    if is_listlike(cvalue):
+                        D[name][cname] = cvalue[i]
+                    else:
+                        D[name][cname] = cvalue
             yield D
 
     def columns(self):
@@ -473,6 +490,15 @@ class ParameterSpace(object):
                 new_base_value[mask] = value.base_value
                 self._parameters[name].base_value = new_base_value
         self.shape = new_shape
+
+    def add_child(self, name, child_space):
+        self.children[name] = child_space
+
+    def flatten(self):
+        for child_name, child in self.children.items():
+            for name, value in child.items():
+                self._parameters["{}.{}".format(child_name, name)] = value
+        self.children = {}
 
 
 def simplify(value):

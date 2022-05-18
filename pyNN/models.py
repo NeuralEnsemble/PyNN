@@ -78,6 +78,16 @@ class BaseCellType(BaseModelType):
         return variable in self.recordable
 
 
+class BaseCellTypeComponent(BaseModelType):
+    """docstring needed"""
+    pass
+
+
+class BasePostSynapticResponse(BaseModelType):
+    """docstring needed"""
+    pass
+
+
 class BaseCurrentSource(BaseModelType):
     """Base class for current source model classes."""
     pass

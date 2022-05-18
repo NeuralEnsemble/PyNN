@@ -7,6 +7,7 @@ nrnpython implementation of the PyNN API.
 
 """
 
+from collections import defaultdict
 import numpy as np
 import logging
 from pyNN import common
@@ -30,6 +31,56 @@ class PopulationMixin(object):
 
     def _get_parameters(self, *names):
         """
+        Return a ParameterSpace containing PyNN parameters
+        
+        `names` should be PyNN names
+        """
+        def _get_component_parameters(component, names, component_label=None):
+            if component.computed_parameters_include(names):
+                native_names = component.get_native_names()  # need all parameters in order to calculate values
+            else:
+                native_names = component.get_native_names(*names)
+            
+            native_parameter_space = self._get_native_parameters(*native_names, component_label=component_label)
+            ps = component.reverse_translate(native_parameter_space)
+            # extract values for this component from any ArrayParameters
+            for name, value in ps.items():
+                if isinstance(value.base_value, ArrayParameter):
+                    index = self.celltype.receptor_types.index(component_label)
+                    ps[name] = LazyArray(value.base_value[index])
+                    ps[name].operations = value.operations
+            return ps
+
+        if isinstance(self.celltype, StandardCellType):
+            if any("." in name for name in names):
+                names_by_component = defaultdict(list)
+                for name in names:
+                    parts = name.split(".")
+                    if len(parts) == 1:
+                        names_by_component["neuron"].append(parts[0])
+                    elif len(parts) == 2:
+                        names_by_component[parts[0]].append(parts[1])
+                    else:
+                        raise ValueError("Invalid name: {}".format(name))
+                    if "neuron" in names_by_component:
+                        parameter_space = _get_component_parameters(self.celltype.neuron,
+                                                                    names_by_component.pop("neuron"))
+                    else:
+                        parameter_space = ParameterSpace({})
+                    for component_label in names_by_component:
+                        parameter_space.add_child(
+                            component_label,
+                            _get_component_parameters(self.celltype.post_synaptic_receptors[component_label],
+                                                      names_by_component[component_label],
+                                                      component_label))
+            else:
+                parameter_space = _get_component_parameters(self.celltype, names)
+        else:
+            parameter_space = self._get_native_parameters(*names)
+        return parameter_space
+
+    def _get_native_parameters(self, *names, component_label=None):
+        """
         return a ParameterSpace containing native parameters
         """
         parameter_dict = {}
@@ -37,7 +88,12 @@ class PopulationMixin(object):
             if name == 'spike_times':  # hack
                 parameter_dict[name] = [Sequence(getattr(id._cell, name)) for id in self]
             else:
-                val = np.array([getattr(id._cell, name) for id in self])
+                if component_label:
+                    val = np.array([getattr(getattr(id._cell, component_label), name)
+                                    for id in self])
+                else:
+                    val = np.array([getattr(id._cell, name) 
+                                    for id in self])
                 if isinstance(val[0], tuple) or len(val.shape) == 2:
                     val = np.array([ArrayParameter(v) for v in val])
                     val = LazyArray(simplify(val), shape=(self.local_size,), dtype=ArrayParameter)
@@ -112,13 +168,19 @@ class Population(common.Population, PopulationMixin):
             parameter_space = self.celltype.parameter_space
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(mask=None)
+
+        if hasattr(self.celltype, "post_synaptic_receptors"):
+            psrs = { name: psr.model for name, psr in self.celltype.post_synaptic_receptors.items() }
+        else:
+            psrs = None
+
         for i, (id, is_local, params) in enumerate(zip(self.all_cells, self._mask_local, parameter_space)):
             self.all_cells[i] = simulator.ID(id)
             self.all_cells[i].parent = self
             if is_local:
                 if hasattr(self.celltype, "extra_parameters"):
                     params.update(self.celltype.extra_parameters)
-                self.all_cells[i]._build_cell(self.celltype.model, params)
+                self.all_cells[i]._build_cell(self.celltype.model, params, psrs)
         simulator.initializer.register(*self.all_cells[self._mask_local])
         simulator.state.gid_counter += self.size
 
