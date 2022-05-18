@@ -91,8 +91,10 @@ class Population(common.Population):
             parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
+
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
+        parameter_space.flatten(with_prefix=False)
         self.brian2_group = self.celltype.brian2_model(self.size,
                                                        self.celltype.eqs,
                                                        **parameter_space)

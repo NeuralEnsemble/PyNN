@@ -494,10 +494,13 @@ class ParameterSpace(object):
     def add_child(self, name, child_space):
         self.children[name] = child_space
 
-    def flatten(self):
+    def flatten(self, with_prefix=True):
         for child_name, child in self.children.items():
             for name, value in child.items():
-                self._parameters["{}.{}".format(child_name, name)] = value
+                if with_prefix:
+                    self._parameters["{}.{}".format(child_name, name)] = value
+                else:
+                    self._parameters[name] = value
         self.children = {}
 
 

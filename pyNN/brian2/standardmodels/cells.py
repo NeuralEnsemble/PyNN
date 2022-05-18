@@ -7,13 +7,21 @@ Standard cells for the Brian2 module.
 """
 
 from copy import deepcopy
+import logging
 import brian2
 from brian2 import mV, ms, nF, nA, uS, Hz, nS
 from pyNN.standardmodels import cells, build_translations
 from ..cells import (ThresholdNeuronGroup, SpikeGeneratorGroup, PoissonGroup,
                      BiophysicalNeuronGroup, AdaptiveNeuronGroup, AdaptiveNeuronGroup2,
                      IzhikevichNeuronGroup)
-import logging
+from .receptors import (conductance_based_alpha_synapses,
+                        conductance_based_exponential_synapses,
+                        current_based_alpha_synapses,
+                        current_based_exponential_synapses,
+                        conductance_based_synapse_translations,
+                        current_based_synapse_translations,
+                        conductance_based_variable_translations,
+                        current_based_variable_translations)
 
 logger = logging.getLogger("PyNN")
 
@@ -62,46 +70,6 @@ adapt_iaf = brian2.Equations('''
             ''')
 
 
-conductance_based_exponential_synapses = brian2.Equations('''
-                dge/dt = -ge/tau_syn_e  : siemens
-                dgi/dt = -gi/tau_syn_i  : siemens
-                i_syn = ge*(e_rev_e - v) + gi*(e_rev_i - v)  : amp
-                tau_syn_e               : second
-                tau_syn_i               : second
-                e_rev_e                 : volt
-                e_rev_i                 : volt
-            ''')
-
-conductance_based_alpha_synapses = brian2.Equations('''
-                dge/dt = (2.7182818284590451*ye-ge)/tau_syn_e  : siemens
-                dye/dt = -ye/tau_syn_e                         : siemens
-                dgi/dt = (2.7182818284590451*yi-gi)/tau_syn_i  : siemens
-                dyi/dt = -yi/tau_syn_i                         : siemens
-                i_syn = ge*(e_rev_e - v) + gi*(e_rev_i - v)    : amp
-                tau_syn_e               : second
-                tau_syn_i               : second
-                e_rev_e                 : volt
-                e_rev_i                 : volt
-        ''')
-
-current_based_exponential_synapses = brian2.Equations('''
-                die/dt = -ie/tau_syn_e  : amp
-                dii/dt = -ii/tau_syn_i  : amp
-                i_syn = ie + ii         : amp
-                tau_syn_e               : second
-                tau_syn_i               : second
-            ''')
-
-current_based_alpha_synapses = brian2.Equations('''
-                die/dt = (2.7182818284590451*ye-ie)/tau_syn_e : amp
-                dye/dt = -ye/tau_syn_e                        : amp
-                dii/dt = (2.7182818284590451*yi-ii)/tau_syn_e : amp
-                dyi/dt = -yi/tau_syn_e                        : amp
-                i_syn = ie + ii                               : amp
-                tau_syn_e                                     : second
-                tau_syn_i                                     : second
-            ''')
-
 leaky_iaf_translations = build_translations(
                 ('v_rest',     'v_rest',     lambda **p: p["v_rest"] * mV, lambda **p: p["v_rest"] / mV),
                 ('v_reset',    'v_reset',    lambda **p: p["v_reset"] * mV, lambda **p: p["v_reset"] / mV),
@@ -140,26 +108,6 @@ adapt_iaf_translations = build_translations(
                 ('tau_rr',     'tau_r',      lambda **p: p["tau_rr"] * ms, lambda **p: p["tau_r"] / ms),
                 ('e_rev_rr',   'E_r',        lambda **p: p["e_rev_rr"] * mV, lambda **p: p["E_r"] / mV),
                 ('q_rr',       'q_r',        lambda **p: p["q_rr"] * nS, lambda **p: p["q_r"] / nS))
-
-conductance_based_synapse_translations = build_translations(
-                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
-                ('e_rev_E',    'e_rev_e',    lambda **p: p["e_rev_E"] * mV, lambda **p: p["e_rev_e"] / mV),
-                ('e_rev_I',    'e_rev_i',    lambda **p: p["e_rev_I"] * mV, lambda **p: p["e_rev_i"] / mV))
-
-current_based_synapse_translations = build_translations(
-                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
-
-conductance_based_variable_translations = build_translations(
-                ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
-                ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
-                ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
-current_based_variable_translations = build_translations(
-
-                ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
-                ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
-                ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
 
 
 class IF_curr_alpha(cells.IF_curr_alpha):
@@ -228,6 +176,16 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
                 ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
                 ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
     post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
+    brian2_model = AdaptiveNeuronGroup
+
+
+class AdExp(cells.AdExp):
+    eqs = adexp_iaf
+    translations = deepcopy(adexp_iaf_translations)
+    state_variable_translations = build_translations(
+                ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
+                ('w', 'w', lambda p: p * nA, lambda p: p/ nA)
+    )
     brian2_model = AdaptiveNeuronGroup
 
 
@@ -343,3 +301,31 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
     eqs = None
     brian2_model = SpikeGeneratorGroup
+
+
+class PointNeuron(cells.PointNeuron):
+    
+    def __init__(self, neuron, **post_synaptic_receptors):
+        super(PointNeuron, self).__init__(neuron, **post_synaptic_receptors)
+        self.eqs = neuron.eqs
+        self.translations = deepcopy(neuron.translations)
+        self.state_variable_translations = neuron.state_variable_translations
+        self.post_synaptic_variables = {}
+        synaptic_current_equation = "i_syn ="
+        for psr_label, psr in post_synaptic_receptors.items():
+            self.eqs += psr.eqs(psr_label)
+            self.translations.update(psr.translations(psr_label))
+            self.state_variable_translations.update(psr.state_variable_translations(psr_label))
+            self.post_synaptic_variables.update({psr_label: psr.post_synaptic_variable(psr_label)})
+            synaptic_current_equation += f" {psr.synaptic_current(psr_label)} +"
+        synaptic_current_equation = synaptic_current_equation.strip("+")
+        synaptic_current_equation += "  : amp"
+        self.eqs += brian2.Equations(synaptic_current_equation)
+        self.brian2_model = neuron.brian2_model
+
+    @property
+    def native_parameters(self):
+        translated_parameters = self.neuron.native_parameters
+        for name, psr in self.post_synaptic_receptors.items():
+            translated_parameters.add_child(name, psr.native_parameters(name))
+        return translated_parameters
