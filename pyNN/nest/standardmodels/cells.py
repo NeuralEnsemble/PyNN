@@ -412,7 +412,7 @@ class AdExp(cells.AdExp):
     )
     #nest_name = {"on_grid": "aeif_cond_alpha_multisynapse",
     #             "off_grid": "aeif_cond_alpha_multisynapse"}
-    possible_models = set(["aeif_cond_alpha_multisynapse"])
+    possible_models = set(["aeif_cond_alpha_multisynapse","aeif_cond_beta_multisynapse"])
     standard_receptor_type = False
 
 
