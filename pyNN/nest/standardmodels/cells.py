@@ -427,18 +427,6 @@ class AdExp(cells.AdExp):
 class PointNeuron(cells.PointNeuron, NestCellsMixin):
     standard_receptor_type = False
 
-    #def __init__(self, neuron, **post_synaptic_receptors):
-    #    super(PointNeuron, self).__init__(neuron, **post_synaptic_receptors)
-    #    for i, name in enumerate(self.post_synaptic_receptors.keys()):
-    #        pynn_name = '{}_gsyn'.format(name)
-    #        nest_name = 'g_{}'.format(i + 1)
-    #        self.variable_map[pynn_name] = nest_name
-    #        self.reverse_variable_map[nest_name] = pynn_name
-    #        self.scale_factors[pynn_name] = 0.001 
-    #        self.units[pynn_name] = 'uS'
-    #        self.neuron.default_initial_values[nest_name] = 0.0
-
-
     def get_receptor_type(self, name):
         return self.receptor_types.index(name) + 1  # port numbers start at 1
 
