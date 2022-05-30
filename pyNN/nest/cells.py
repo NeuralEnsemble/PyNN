@@ -20,6 +20,12 @@ UNITS_MAP = {
     'I_syn_in': 'pA'
 }
 
+VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
+                'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
+REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
+SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001,
+                 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
+
 
 def get_defaults(model_name):
     valid_types = (int, float, Sequence, np.ndarray)
@@ -77,6 +83,9 @@ def native_cell_type(model_name):
                  'injectable': ("V_m" in default_initial_values),
                  'recordable': recordable,
                  'units': dict(((var, UNITS_MAP.get(var, 'unknown')) for var in recordable)),
+                 'variable_map': VARIABLE_MAP,
+                 'reverse_variable_map': REVERSE_VARIABLE_MAP,
+                 'scale_factors': SCALE_FACTORS,
                  'standard_receptor_type': (receptor_types == ['excitatory', 'inhibitory']),
                  'nest_name': {"on_grid": model_name, "off_grid": model_name},
                  'conductance_based': ("g" in (s[0] for s in recordable)),
