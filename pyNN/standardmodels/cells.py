@@ -539,10 +539,10 @@ class PointNeuron(StandardCellType):
         self.post_synaptic_receptors = post_synaptic_receptors
         for psr in post_synaptic_receptors.values():
             psr.set_parent(self)
-            self.variable_map_update(psr)
         self.parameter_space = deepcopy(self.neuron.parameter_space)
         for name, psr in self.post_synaptic_receptors.items():
             self.parameter_space.add_child(name, psr.parameter_space)
+            self.attributes_psr_update(name)
 
     @property
     def receptor_types(self):
@@ -582,7 +582,8 @@ class PointNeuron(StandardCellType):
         return self.neuron.computed_parameters_include(parameter_names) or reduce(operator.or_,
                                                                                   [psr.computed_parameters_include(parameter_names)
                                                                                    for psr in self.post_synaptic_receptors.values()])
-    def variable_map_update(self, variable):
+    def attributes_psr_update(self, psr):
+        """Update the attributes based on the given post-synaptic receptor"""
         pass
 
 
