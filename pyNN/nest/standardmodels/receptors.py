@@ -9,4 +9,14 @@ class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
         ('tau_syn', 'tau_syn')
     )
 
+class CondBetaPostSynapticResponse(receptors.CondBetaPostSynapticResponse):
+    possible_models = set(["aeif_cond_beta_multisynapse"])
+
+    translations = build_translations(
+        ('e_syn', 'E_rev'),
+        ('tau_rise', 'tau_rise'),
+        ('tau_decay', 'tau_decay')
+    )
+
 AlphaPSR = CondAlphaPostSynapticResponse  # alias
+BetaPSR = CondBetaPostSynapticResponse  # alias

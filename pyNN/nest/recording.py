@@ -13,13 +13,6 @@ import nest
 from pyNN import recording, errors
 from pyNN.nest import simulator
 
-# todo: this information should come from the cell type classes
-VARIABLE_MAP = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
-                'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
-REVERSE_VARIABLE_MAP = dict((v, k) for k, v in VARIABLE_MAP.items())
-SCALE_FACTORS = {'v': 1, 'gsyn_exc': 0.001,
-                 'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
-
 logger = logging.getLogger("PyNN")
 
 
@@ -51,13 +44,11 @@ class RecordingDevice(object):
         assert not self._connected
         self._all_ids = self._all_ids.union(new_ids)
 
-    def get_data(self, variable, desired_ids, clear=False):
+    def get_data(self, variable, nest_variable, scale_factor, desired_ids, clear=False):
         """
         Return recorded data as a dictionary containing one numpy array for
         each neuron, ids as keys.
         """
-        scale_factor = SCALE_FACTORS.get(variable, 1)
-        nest_variable = VARIABLE_MAP.get(variable, variable)
         events = nest.GetStatus(self.device, 'events')[0]
         ids = events['senders']
         times = events["times"] - simulator.state._time_offset
@@ -149,7 +140,7 @@ class SpikeDetector(RecordingDevice):
 
         Equivalent to `get_data('times', desired_ids)`
         """
-        return self.get_data('times', desired_ids, clear=clear)
+        return self.get_data('times', 'times', 1, desired_ids, clear=clear)
 
     def get_spike_counts(self, desired_ids):
         events = nest.GetStatus(self.device, 'events')[0]
@@ -186,7 +177,7 @@ class Multimeter(RecordingDevice):
 
     def add_variable(self, variable):
         current_variables = self.variables
-        current_variables.add(VARIABLE_MAP.get(variable, variable))
+        current_variables.add(variable)
         _set_status(self.device, {'record_from': list(current_variables)})
 
 
@@ -235,7 +226,8 @@ class Recorder(recording.Recorder):
             self._spike_detector.add_ids(new_ids)
         else:
             self.sampling_interval = sampling_interval
-            self._multimeter.add_variable(variable)
+            nest_variable = self.population.celltype.variable_map.get(variable, variable)
+            self._multimeter.add_variable(nest_variable)
             self._multimeter.add_ids(new_ids)
 
     def _get_sampling_interval(self):
@@ -262,7 +254,9 @@ class Recorder(recording.Recorder):
         return self._spike_detector.get_spiketimes(ids, clear=clear)
 
     def _get_all_signals(self, variable, ids, clear=False):
-        data = self._multimeter.get_data(variable, ids, clear=clear)
+        nest_variable = self.population.celltype.variable_map.get(variable, variable) 
+        scale_factor = self.population.celltype.scale_factors.get(variable, 1) 
+        data = self._multimeter.get_data(variable, nest_variable, scale_factor, ids, clear=clear)
         if len(ids) > 0:
             # JACOMMENT: this is very expensive but not sure how to get rid of it
             return np.array([data[i] for i in ids]).T
