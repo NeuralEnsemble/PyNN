@@ -115,9 +115,9 @@ class Recorder(recording.Recorder):
         if len(ids) > 0:
             signals = np.vstack([id._cell.traces[variable] for id in ids]).T
             if self.record_times:
+                assert not simulator.state.cvode.use_local_dt()
                 # the following line assumes all cells are sampled at the same time
                 # which should be true if cvode.use_local_dt() returns False
-                assert not simulator.state.cvode.use_local_dt()
                 times = np.array(ids[0]._cell.recorded_times)
             else:
                 expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
