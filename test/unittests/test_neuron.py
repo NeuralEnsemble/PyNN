@@ -380,7 +380,7 @@ class TestRecorder(unittest.TestCase):
     #    self.rv.recorded['v'] = self.cells
     #    self.cells[0]._cell.vtrace = np.arange(-65.0, -64.0, 0.1)
     #    self.cells[1]._cell.vtrace = np.arange(-64.0, -65.0, -0.1)
-    #    self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = np.arange(0.0, 1.0, 0.1)
+    #    self.cells[0]._cell.recorded_times = self.cells[1]._cell.recorded_times = np.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
     #    vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
     #    self.assertEqual(len(vdata.analogsignals), 1)
@@ -405,7 +405,7 @@ class TestRecorder(unittest.TestCase):
     #        cell._cell.gsyn_trace['inhibitory'] = np.arange(1.01, 1.0199, 0.001)
     #        cell._cell.gsyn_trace['excitatory_TM'] = np.arange(2.01, 2.0199, 0.001)
     #        cell._cell.gsyn_trace['inhibitory_TM'] = np.arange(4.01, 4.0199, 0.001)
-    #        cell._cell.record_times = self.cells[1]._cell.record_times = np.arange(0.0, 1.0, 0.1)
+    #        cell._cell.recorded_times = self.cells[1]._cell.recorded_times = np.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
     #    gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
     #    self.assertEqual(len(gdata.analogsignals), 2)

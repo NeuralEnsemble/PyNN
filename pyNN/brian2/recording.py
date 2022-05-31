@@ -106,7 +106,8 @@ class Recorder(recording.Recorder):
         values = tmp
         if clear:
             self._devices[variable].resize(0)
-        return values
+        times = None
+        return values, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

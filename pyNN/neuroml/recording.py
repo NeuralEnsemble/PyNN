@@ -79,7 +79,8 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         n_samples = int(round(self._simulator.state.t/self._simulator.state.dt)) + 1
-        return np.vstack([np.random.uniform(size=n_samples) for id in ids]).T
+        times = None
+        return np.vstack([np.random.uniform(size=n_samples) for id in ids]).T, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

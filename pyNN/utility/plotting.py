@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
-from neo import AnalogSignal, SpikeTrain
+from neo import AnalogSignal, IrregularlySampledSignal, SpikeTrain
 
 
 DEFAULT_FIG_SETTINGS = {
@@ -252,7 +252,7 @@ class Panel(object):
                 scatterplot(axes, datum, label=label, **properties)
             elif isinstance(datum, Histogram):
                 plot_hist(axes, datum, label=label, **properties)
-            elif isinstance(datum, AnalogSignal):
+            elif isinstance(datum, (AnalogSignal, IrregularlySampledSignal)):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)

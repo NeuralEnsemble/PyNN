@@ -263,11 +263,12 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         data = self._multimeter.get_data(variable, ids, clear=clear)
+        times = None
         if len(ids) > 0:
             # JACOMMENT: this is very expensive but not sure how to get rid of it
-            return np.array([data[i] for i in ids]).T
+            return np.array([data[i] for i in ids]).T, times
         else:
-            return np.array([])
+            return np.array([]), times
 
     def _local_count(self, variable, filter_ids):
         assert variable == 'spikes'

@@ -222,6 +222,10 @@ class Recorder(object):
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
         self.sampling_interval = self._simulator.state.dt
+        if hasattr(self._simulator.state, "record_sample_times"):
+            self.record_times = self._simulator.state.record_sample_times
+        else:
+            self.record_times = False
 
     def record(self, variables, ids, sampling_interval=None):
         """
@@ -291,29 +295,40 @@ class Recorder(object):
                     )
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
-                signal_array = self._get_all_signals(variable, ids, clear=clear)
-                t_start = self._recording_start_time
-                t_stop = self._simulator.state.t * pq.ms
-                sampling_period = self.sampling_interval * pq.ms
-                current_time = self._simulator.state.t * pq.ms
+                signal_array, times_array = self._get_all_signals(variable, ids, clear=clear)
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = np.fromiter(ids, dtype=int)
-                    signal = neo.AnalogSignal(
-                        signal_array,
-                        units=units,
-                        t_start=t_start,
-                        sampling_period=sampling_period,
-                        name=variable,
+                    if self.record_times:
+                        # for now we assume that all channels have the same sample times
+                        assert signal_array.shape[0] == times_array.size
+                        signal = neo.IrregularlySampledSignal(
+                            times_array, signal_array, units=units, time_units=pq.ms
+                        )
+                    else:
+                        t_start = self._recording_start_time
+                        t_stop = self._simulator.state.t * pq.ms
+                        sampling_period = self.sampling_interval * pq.ms
+                        current_time = self._simulator.state.t * pq.ms
+                        signal = neo.AnalogSignal(
+                            signal_array,
+                            units=units,
+                            t_start=t_start,
+                            sampling_period=sampling_period
+                        )
+                        assert signal.t_stop - current_time - 2 * sampling_period < 1e-10
+                    signal.name = variable
+                    signal.annotate(
                         source_population=self.population.label,
-                        source_ids=source_ids,
-                        array_annotations={"channel_index": np.array([self.population.id_to_index(id) for id in ids])})
-                    segment.analogsignals.append(signal)
+                        source_ids=source_ids
+                    )
+                    signal.array_annotations = {
+                        "channel_index": np.array([self.population.id_to_index(id) for id in ids])
+                    }
                     logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                 source_ids, signal.array_annotations["channel_index"])
-                    assert segment.analogsignals[0].t_stop - \
-                        current_time - 2 * sampling_period < 1e-10
+                                     source_ids, signal.array_annotations["channel_index"])
+                    segment.analogsignals.append(signal)
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
