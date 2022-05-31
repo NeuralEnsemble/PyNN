@@ -516,7 +516,7 @@ class PointNeuron(cells.PointNeuron, NestCellsMixin):
         return standard_parameters
 
     def attributes_psr_update(self, psr):
-        pynn_name = '{}_gsyn'.format(psr)
+        pynn_name = '{}.gsyn'.format(psr)
         nest_name = 'g_{}'.format(self.get_receptor_type(psr))
         self.variable_map[pynn_name] = nest_name
         self.reverse_variable_map[nest_name] = pynn_name

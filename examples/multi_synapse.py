@@ -42,7 +42,7 @@ celltype = sim.PointNeuron(
 
 neurons = sim.Population(1, celltype, initial_values={'v': -60.0})
 
-neurons.record(['v', 'AMPA_gsyn', 'NMDA_gsyn', 'GABAA_gsyn', 'GABAB_gsyn'])  #, 'AMPA.gsyn', 'NMDA.gsyn', 'GABAA.gsyn', 'GABAB.gsyn'])
+neurons.record(['v', 'AMPA.gsyn', 'NMDA.gsyn', 'GABAA.gsyn', 'GABAB.gsyn'])
 
 print("tau_m = ", neurons.get("tau_m"))
 print("GABAA.e_syn = ", neurons.get("GABAA.e_syn"))
@@ -82,58 +82,25 @@ if options.plot_figure:
     figure_filename = filename.replace("pkl", "png")
     Figure(
         Panel(data.filter(name='v')[0],
-              ylabel="Membrane potential (mV)",
-              xticks=True, xlabel="Time (ms)",
-              yticks=True), #ylim=(-66, -48)),
+              xticks=False, yticks=True,
+              ylabel="Membrane potential (mV)"), #ylim=(-66, -48)),
+        Panel(data.filter(name='AMPA.gsyn')[0],
+              xticks=False, yticks=True,
+              ylabel="AMPA Conductance (uS)"),
+        Panel(data.filter(name='NMDA.gsyn')[0],
+              xticks=False, yticks=True,
+              ylabel="NMDA Conductance (uS)"),
+        Panel(data.filter(name='GABAA.gsyn')[0],
+              xticks=False, yticks=True,
+              ylabel="GABAA Conductance (uS)"),
+        Panel(data.filter(name='GABAB.gsyn')[0],
+              xticks=True, yticks=True, 
+              xlabel="Time (ms)",
+              ylabel="GABAB Conductance (uS)"),
         title="Neuron with multiple synapse time constants",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
     print(figure_filename)
-
-    figure_filename_cond_ampa = filename.replace(".pkl", "_cond_ampa.png")
-    Figure(
-         Panel(data.filter(name='AMPA_gsyn')[0],
-               xticks=True, xlabel="Time (ms)",
-               ylabel="AMPA Conductance (uS)",
-               yticks=True),
-        title="Neuron with multiple synapse time constants",
-        annotations="Simulated with %s" % options.simulator.upper()
-    ).save(figure_filename_cond_ampa)
-    print(figure_filename_cond_ampa)
-
-    figure_filename_cond_nmda = filename.replace(".pkl", "_cond_nmda.png")
-    Figure(
-         Panel(data.filter(name='NMDA_gsyn')[0],
-               xticks=True, xlabel="Time (ms)",
-               ylabel="NMDA Conductance (uS)",
-               yticks=True),
-        title="Neuron with multiple synapse time constants",
-        annotations="Simulated with %s" % options.simulator.upper()
-    ).save(figure_filename_cond_nmda)
-    print(figure_filename_cond_nmda)
-
-    figure_filename_cond_gabaa = filename.replace(".pkl", "_cond_gabaa.png")
-    Figure(
-         Panel(data.filter(name='GABAA_gsyn')[0],
-               xticks=True, xlabel="Time (ms)",
-               ylabel="GABAA Conductance (uS)",
-               yticks=True),
-        title="Neuron with multiple synapse time constants",
-        annotations="Simulated with %s" % options.simulator.upper()
-    ).save(figure_filename_cond_gabaa)
-    print(figure_filename_cond_gabaa)
-
-    figure_filename_cond_gabab = filename.replace(".pkl", "_cond_gabab.png")
-    Figure(
-         Panel(data.filter(name='GABAB_gsyn')[0],
-               xticks=True, xlabel="Time (ms)",
-               ylabel="GABAB Conductance (uS)",
-               yticks=True),
-        title="Neuron with multiple synapse time constants",
-        annotations="Simulated with %s" % options.simulator.upper()
-    ).save(figure_filename_cond_gabab)
-    print(figure_filename_cond_gabab)
-
 
 # === Clean up and quit ========================================================
 

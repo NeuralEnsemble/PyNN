@@ -550,7 +550,7 @@ class PointNeuron(StandardCellType):
 
     @property
     def recordable(self):
-        return ['spikes', 'v', 'w']  + ['{}_gsyn'.format(name) for name in self.receptor_types]
+        return ['spikes', 'v', 'w']  + ['{}.gsyn'.format(name) for name in self.receptor_types]
 
     @property
     def units(self):
