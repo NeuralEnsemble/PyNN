@@ -300,12 +300,32 @@ class Recorder(object):
                 if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = np.fromiter(ids, dtype=int)
+                    channel_index = np.array([self.population.id_to_index(id) for id in ids])
                     if self.record_times:
-                        # for now we assume that all channels have the same sample times
-                        assert signal_array.shape[0] == times_array.size
-                        signal = neo.IrregularlySampledSignal(
-                            times_array, signal_array, units=units, time_units=pq.ms
-                        )
+                        if signal_array.shape == times_array.shape:
+                            # in the current version of Neo, all channels in IrregularlySampledSignal
+                            # must have the same sample times, so we need to create here a list of
+                            # signals
+                            signals = [
+                                neo.IrregularlySampledSignal(
+                                    times_array[:, i], signal_array[:, i], units=units, time_units=pq.ms,
+                                    name=variable, source_ids=[source_id],
+                                    source_population=self.population.label,
+                                    array_annotations = {"channel_index": [i]}
+                                )
+                                for i, source_id in zip(channel_index, source_ids)
+                            ]
+                        else:
+                            # all channels have the same sample times
+                            assert signal_array.shape[0] == times_array.size
+                            signals = [
+                                neo.IrregularlySampledSignal(
+                                    times_array, signal_array, units=units, time_units=pq.ms,
+                                    name=variable, source_ids=source_ids,
+                                    source_population=self.population.label,
+                                    array_annotations = {"channel_index": channel_index}
+                                )
+                            ]
                     else:
                         t_start = self._recording_start_time
                         t_stop = self._simulator.state.t * pq.ms
@@ -315,20 +335,16 @@ class Recorder(object):
                             signal_array,
                             units=units,
                             t_start=t_start,
-                            sampling_period=sampling_period
+                            sampling_period=sampling_period,
+                            name=variable, source_ids=source_ids,
+                            source_population=self.population.label,
+                            array_annotations = {"channel_index": channel_index}
                         )
                         assert signal.t_stop - current_time - 2 * sampling_period < 1e-10
-                    signal.name = variable
-                    signal.annotate(
-                        source_population=self.population.label,
-                        source_ids=source_ids
-                    )
-                    signal.array_annotations = {
-                        "channel_index": np.array([self.population.id_to_index(id) for id in ids])
-                    }
-                    logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                     source_ids, signal.array_annotations["channel_index"])
-                    segment.analogsignals.append(signal)
+                        signals = [signal]
+                        logger.debug("%d **** ids=%s, channels=%s", mpi_node,
+                                        source_ids, signal.array_annotations["channel_index"])
+                    segment.analogsignals.extend(signals)
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
