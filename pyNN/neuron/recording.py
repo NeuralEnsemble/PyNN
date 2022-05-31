@@ -43,6 +43,8 @@ class Recorder(recording.Recorder):
             hoc_var = cell.isyn._ref_g
         else:
             source, var_name = self._resolve_variable(cell, variable)
+            if hasattr(self.population.celltype, "variable_map"):
+                var_name = self.population.celltype.variable_map[variable]
             hoc_var = getattr(source, "_ref_%s" % var_name)
         cell.traces[variable] = vec = h.Vector()
         if self.sampling_interval == self._simulator.state.dt:

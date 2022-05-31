@@ -176,6 +176,7 @@ class Multimeter(RecordingDevice):
         return set(nest.GetStatus(self.device, 'record_from')[0])
 
     def add_variable(self, variable):
+        """variable should be the NEST variable name"""
         current_variables = self.variables
         current_variables.add(variable)
         _set_status(self.device, {'record_from': list(current_variables)})
@@ -226,7 +227,11 @@ class Recorder(recording.Recorder):
             self._spike_detector.add_ids(new_ids)
         else:
             self.sampling_interval = sampling_interval
-            nest_variable = self.population.celltype.variable_map.get(variable, variable)
+            if hasattr(self.population.celltype, "variable_map"):
+                # only true for PyNN standard cells
+                nest_variable = self.population.celltype.variable_map[variable]
+            else:
+                nest_variable = variable
             self._multimeter.add_variable(nest_variable)
             self._multimeter.add_ids(new_ids)
 
@@ -254,8 +259,14 @@ class Recorder(recording.Recorder):
         return self._spike_detector.get_spiketimes(ids, clear=clear)
 
     def _get_all_signals(self, variable, ids, clear=False):
-        nest_variable = self.population.celltype.variable_map.get(variable, variable) 
-        scale_factor = self.population.celltype.scale_factors.get(variable, 1) 
+        if hasattr(self.population.celltype, "variable_map"):
+            nest_variable = self.population.celltype.variable_map[variable]
+        else:
+            nest_variable = variable
+        if hasattr(self.population.celltype, "scale_factors"):
+            scale_factor = self.population.celltype.scale_factors[variable]
+        else:
+            scale_factor = 1
         data = self._multimeter.get_data(variable, nest_variable, scale_factor, ids, clear=clear)
         if len(ids) > 0:
             # JACOMMENT: this is very expensive but not sure how to get rid of it

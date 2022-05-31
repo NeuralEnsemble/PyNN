@@ -254,7 +254,8 @@ class Population(common.Population, PopulationMixin):
                     self._simulator.set_status(self.node_collection, name, value)
 
     def _set_initial_value_array(self, variable, value):
-        variable = self.celltype.variable_map.get(variable, variable)
+        if hasattr(self.celltype, "variable_map"):
+            variable = self.celltype.variable_map[variable]
         if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
             local_values = value.evaluate()[self._mask_local]
         else:

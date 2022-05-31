@@ -9,5 +9,8 @@ class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
         ('tau_syn', 'tau')
     )
     model = h.AlphaSyn
+    recordable = ["gsyn"]
+    variable_map = {"gsyn": "g"}
+
 
 AlphaPSR = CondAlphaPostSynapticResponse  # alias

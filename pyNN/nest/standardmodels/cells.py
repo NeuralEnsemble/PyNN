@@ -16,15 +16,8 @@ from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
-class NestCellsMixin(object):
-    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
-                    'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
-    reverse_variable_map = dict((v, k) for k, v in variable_map.items())
-    scale_factors = {'v': 1, 'gsyn_exc': 0.001,
-                     'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
 
-
-class IF_curr_alpha(cells.IF_curr_alpha, NestCellsMixin):
+class IF_curr_alpha(cells.IF_curr_alpha):
 
     __doc__ = cells.IF_curr_alpha.__doc__
 
@@ -39,13 +32,14 @@ class IF_curr_alpha(cells.IF_curr_alpha, NestCellsMixin):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
-
+    variable_map = {'v': 'V_m', 'isyn_exc': 'I_syn_ex', 'isyn_inh': 'I_syn_in'}
+    scale_factors = {'v': 1, 'isyn_exc': 0.001, 'isyn_inh': 0.001}
     nest_name = {"on_grid": "iaf_psc_alpha",
                  "off_grid": "iaf_psc_alpha"}
     standard_receptor_type = True
 
 
-class IF_curr_exp(cells.IF_curr_exp, NestCellsMixin):
+class IF_curr_exp(cells.IF_curr_exp):
 
     __doc__ = cells.IF_curr_exp.__doc__
 
@@ -60,12 +54,14 @@ class IF_curr_exp(cells.IF_curr_exp, NestCellsMixin):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
+    variable_map = {'v': 'V_m', 'isyn_exc': 'I_syn_ex', 'isyn_inh': 'I_syn_in'}
+    scale_factors = {'v': 1, 'isyn_exc': 0.001, 'isyn_inh': 0.001}
     nest_name = {"on_grid": 'iaf_psc_exp',
                  "off_grid": 'iaf_psc_exp_ps'}
     standard_receptor_type = True
 
 
-class IF_cond_alpha(cells.IF_cond_alpha, NestCellsMixin):
+class IF_cond_alpha(cells.IF_cond_alpha):
 
     __doc__ = cells.IF_cond_alpha.__doc__
 
@@ -82,12 +78,14 @@ class IF_cond_alpha(cells.IF_cond_alpha, NestCellsMixin):
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
     nest_name = {"on_grid": "iaf_cond_alpha",
                  "off_grid": "iaf_cond_alpha"}
     standard_receptor_type = True
 
 
-class IF_cond_exp(cells.IF_cond_exp, NestCellsMixin):
+class IF_cond_exp(cells.IF_cond_exp):
 
     __doc__ = cells.IF_cond_exp.__doc__
 
@@ -104,12 +102,14 @@ class IF_cond_exp(cells.IF_cond_exp, NestCellsMixin):
         ('e_rev_E',    'E_ex'),
         ('e_rev_I',    'E_in'),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
     nest_name = {"on_grid": "iaf_cond_exp",
                  "off_grid": "iaf_cond_exp"}
     standard_receptor_type = True
 
 
-class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr, NestCellsMixin):
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
 
     __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
 
@@ -132,12 +132,16 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr, NestCellsMixin):
         ('e_rev_rr',   'E_rr'),
         ('q_rr',       'q_rr')
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
+                    'g_rr': 'g_rr', 'g_sfa': 'g_sfa'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 
+                     'g_rr': 0.001, 'g_sfa': 0.001}
     nest_name = {"on_grid": "iaf_cond_exp_sfa_rr",
                  "off_grid": "iaf_cond_exp_sfa_rr"}
     standard_receptor_type = True
 
 
-class IF_facets_hardware1(cells.IF_facets_hardware1, NestCellsMixin):
+class IF_facets_hardware1(cells.IF_facets_hardware1):
 
     __doc__ = cells.IF_facets_hardware1.__doc__
 
@@ -152,6 +156,8 @@ class IF_facets_hardware1(cells.IF_facets_hardware1, NestCellsMixin):
         ('tau_syn_I',  'tau_syn_in'),
         ('g_leak',     'g_L')
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001}
     nest_name = {"on_grid": "iaf_cond_exp",
                  "off_grid": "iaf_cond_exp"}
     standard_receptor_type = True
@@ -162,7 +168,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1, NestCellsMixin):
     }
 
 
-class HH_cond_exp(cells.HH_cond_exp, NestCellsMixin):
+class HH_cond_exp(cells.HH_cond_exp):
 
     __doc__ = cells.HH_cond_exp.__doc__
 
@@ -181,12 +187,16 @@ class HH_cond_exp(cells.HH_cond_exp, NestCellsMixin):
         ('tau_syn_I',  'tau_syn_in'),
         ('i_offset',   'I_e',   1000.0),  # nA --> pA
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
+                    'm': 'Act_m', 'n': 'Act_n', 'h': 'Inact_h'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 
+                     'm': 1, 'n': 1, 'h': 1}
     nest_name = {"on_grid": "hh_cond_exp_traub",
                  "off_grid": "hh_cond_exp_traub"}
     standard_receptor_type = True
 
 
-class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista, NestCellsMixin):
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
 
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
 
@@ -208,6 +218,8 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista, NestCellsMixin):
         ('e_rev_I',    'E_in'),
         ('tau_syn_I',  'tau_syn_in'),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'w': 'w'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001}
     nest_name = {"on_grid": "aeif_cond_alpha",
                  "off_grid": "aeif_cond_alpha"}
     standard_receptor_type = True
@@ -333,7 +345,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     always_local = True
 
 
-class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista, NestCellsMixin):
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
 
@@ -355,12 +367,14 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista, NestCellsMixin):
         ('e_rev_I',    'E_in'),
         ('tau_syn_I',  'tau_syn_in'),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'w': 'w'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'w': 0.001}
     nest_name = {"on_grid": "aeif_cond_exp",
                  "off_grid": "aeif_cond_exp"}
     standard_receptor_type = True
 
 
-class Izhikevich(cells.Izhikevich, NestCellsMixin):
+class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
 
     translations = build_translations(
@@ -370,13 +384,16 @@ class Izhikevich(cells.Izhikevich, NestCellsMixin):
         ('d',        'd'),
         ('i_offset', 'I_e', 1000.0),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 'u': 1}
+    # todo: check 'u' scale factor
     nest_name = {"on_grid": "izhikevich",
                  "off_grid": "izhikevich"}
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
 
 
-class GIF_cond_exp(cells.GIF_cond_exp, NestCellsMixin):
+class GIF_cond_exp(cells.GIF_cond_exp):
 
     translations = build_translations(
         ('v_rest',     'E_L'),
@@ -397,6 +414,10 @@ class GIF_cond_exp(cells.GIF_cond_exp, NestCellsMixin):
         ('a_eta',     'q_stc',    1000.0),  # nA -> pA
         ('a_gamma',   'q_sfa'),
     )
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
+                    'i_eta': 'I_stc', 'v_t': 'E_sfa'}
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001,
+                     'gsyn_inh': 0.001, 'i_eta': 0.001, 'v_t': 1}
     nest_name = {"on_grid": "gif_cond_exp",
                  "off_grid": "gif_cond_exp"}
     standard_receptor_type = True
@@ -418,13 +439,13 @@ class AdExp(cells.AdExp):
         ('tau_w',      'tau_w'),
         ('v_thresh',   'V_th')
     )
-    #nest_name = {"on_grid": "aeif_cond_alpha_multisynapse",
-    #             "off_grid": "aeif_cond_alpha_multisynapse"}
+    variable_map = {'v': 'V_m', 'w': 'w'}
+    scale_factors = {'v': 1, 'w': 0.001}
     possible_models = set(["aeif_cond_alpha_multisynapse","aeif_cond_beta_multisynapse"])
     standard_receptor_type = False
 
 
-class PointNeuron(cells.PointNeuron, NestCellsMixin):
+class PointNeuron(cells.PointNeuron):
     standard_receptor_type = False
 
     def get_receptor_type(self, name):
@@ -463,6 +484,14 @@ class PointNeuron(cells.PointNeuron, NestCellsMixin):
             model, = suitable_models  # take the only entry
         return {"on_grid": model,
                 "off_grid": model}
+
+    @property
+    def variable_map(self):
+        var_map = self.neuron.variable_map.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, translated_variable in psr.variable_map.items():
+                var_map[f"{name}.{variable}"] = f"{translated_variable}_{self.get_receptor_type(name)}"
+        return var_map
 
     @property
     def native_parameters(self):
@@ -514,13 +543,3 @@ class PointNeuron(cells.PointNeuron, NestCellsMixin):
     def reverse_translate(self, native_parameters):
         standard_parameters = self.neuron.reverse_translate(native_parameters)
         return standard_parameters
-
-    def attributes_psr_update(self, psr):
-        pynn_name = '{}.gsyn'.format(psr)
-        nest_name = 'g_{}'.format(self.get_receptor_type(psr))
-        self.variable_map[pynn_name] = nest_name
-        self.reverse_variable_map[nest_name] = pynn_name
-        self.scale_factors[pynn_name] = 0.001
-        self.units[pynn_name] = 'uS'
-        self.neuron.default_initial_values[pynn_name] = 0.0
-

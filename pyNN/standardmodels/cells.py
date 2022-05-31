@@ -507,6 +507,7 @@ class AdExp(StandardCellTypeComponent):
         'tau_w':    144.0,     # Adaptation time constant in ms
         'v_thresh': -50.4,     # Spike initiation threshold in mV
     }
+    recordable = ['spikes', 'v', 'w']
     injectable = True
     default_initial_values = {
         'v': -70.6,  # 'v_rest',
@@ -542,7 +543,6 @@ class PointNeuron(StandardCellType):
         self.parameter_space = deepcopy(self.neuron.parameter_space)
         for name, psr in self.post_synaptic_receptors.items():
             self.parameter_space.add_child(name, psr.parameter_space)
-            self.attributes_psr_update(name)
 
     @property
     def receptor_types(self):
@@ -550,18 +550,35 @@ class PointNeuron(StandardCellType):
 
     @property
     def recordable(self):
-        return ['spikes', 'v', 'w']  + ['{}.gsyn'.format(name) for name in self.receptor_types]
+        return self.neuron.recordable + [
+            f"{receptor_type_name}.{variable}"
+            for receptor_type_name in self.receptor_types
+            for variable in self.post_synaptic_receptors[receptor_type_name].recordable
+        ]
+
+    @property
+    def scale_factors(self):
+        scf = self.neuron.scale_factors.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, scale_factor in psr.scale_factors.items():
+                scf[f"{name}.{variable}"] = scale_factor
+        return scf
 
     @property
     def units(self):
-        _units = self.neuron.units
-        #for name in self.receptor_types:
-        #    _units['{}.gsyn'.format(name)] = 'uS'
+        _units = self.neuron.units.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, un in psr.units.items():
+                _units[f"{name}.{variable}"] = un
         return _units
 
     @property
     def default_initial_values(self):
-        return self.neuron.default_initial_values
+        divs = self.neuron.default_initial_values.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, div in psr.default_initial_values.items():
+                divs[f"{name}.{variable}"] = div
+        return divs
 
     def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
@@ -579,13 +596,10 @@ class PointNeuron(StandardCellType):
         return self.neuron.computed_parameters() + list(set.union(*[set(psr.computed_parameters()) for psr in self.post_synaptic_receptors.values()]))
 
     def computed_parameters_include(self, parameter_names):
-        return self.neuron.computed_parameters_include(parameter_names) or reduce(operator.or_,
-                                                                                  [psr.computed_parameters_include(parameter_names)
-                                                                                   for psr in self.post_synaptic_receptors.values()])
-    def attributes_psr_update(self, psr):
-        """Update the attributes based on the given post-synaptic receptor"""
-        pass
-
+        return (self.neuron.computed_parameters_include(parameter_names) 
+                or reduce(operator.or_,
+                          [psr.computed_parameters_include(parameter_names)
+                           for psr in self.post_synaptic_receptors.values()]))
 
 
 class Izhikevich(StandardCellType):

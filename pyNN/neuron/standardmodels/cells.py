@@ -278,6 +278,7 @@ class AdExp(base_cells.AdExp):
         ('v_thresh',   'v_thresh'),
     )
     model = BretteGerstnerIF
+    variable_map = {"v": "v", "w": "w"}
 
 
 class Izhikevich(base_cells.Izhikevich):
@@ -344,3 +345,11 @@ class PointNeuron(base_cells.PointNeuron):
     def reverse_translate(self, native_parameters):
         standard_parameters = self.neuron.reverse_translate(native_parameters)
         return standard_parameters
+
+    @property
+    def variable_map(self):
+        var_map = self.neuron.variable_map.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, translated_variable in psr.variable_map.items():
+                var_map[f"{name}.{variable}"] = translated_variable
+        return var_map

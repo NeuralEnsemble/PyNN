@@ -104,6 +104,8 @@ class PopulationMixin(object):
         return ParameterSpace(parameter_dict, shape=(self.local_size,))
 
     def _set_initial_value_array(self, variable, initial_values):
+        if hasattr(self.celltype, "variable_map"):
+            variable = self.celltype.variable_map[variable]
         if initial_values.is_homogeneous:
             value = initial_values.evaluate(simplify=True)
             for cell in self:  # only on local node
