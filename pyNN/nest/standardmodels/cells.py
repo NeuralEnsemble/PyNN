@@ -16,8 +16,15 @@ from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
+class NestCellsMixin(object):
+    variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in', 'u': 'U_m',
+                    'w': 'w', 'i_eta': 'I_stc', 'v_t': 'E_sfa'}
+    reverse_variable_map = dict((v, k) for k, v in variable_map.items())
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001,
+                     'gsyn_inh': 0.001, 'w': 0.001, 'i_eta': 0.001, 'v_t': 1}
 
-class IF_curr_alpha(cells.IF_curr_alpha):
+
+class IF_curr_alpha(cells.IF_curr_alpha, NestCellsMixin):
 
     __doc__ = cells.IF_curr_alpha.__doc__
 
@@ -32,12 +39,13 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
+
     nest_name = {"on_grid": "iaf_psc_alpha",
                  "off_grid": "iaf_psc_alpha"}
     standard_receptor_type = True
 
 
-class IF_curr_exp(cells.IF_curr_exp):
+class IF_curr_exp(cells.IF_curr_exp, NestCellsMixin):
 
     __doc__ = cells.IF_curr_exp.__doc__
 
@@ -57,7 +65,7 @@ class IF_curr_exp(cells.IF_curr_exp):
     standard_receptor_type = True
 
 
-class IF_cond_alpha(cells.IF_cond_alpha):
+class IF_cond_alpha(cells.IF_cond_alpha, NestCellsMixin):
 
     __doc__ = cells.IF_cond_alpha.__doc__
 
@@ -79,7 +87,7 @@ class IF_cond_alpha(cells.IF_cond_alpha):
     standard_receptor_type = True
 
 
-class IF_cond_exp(cells.IF_cond_exp):
+class IF_cond_exp(cells.IF_cond_exp, NestCellsMixin):
 
     __doc__ = cells.IF_cond_exp.__doc__
 
@@ -101,7 +109,7 @@ class IF_cond_exp(cells.IF_cond_exp):
     standard_receptor_type = True
 
 
-class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr, NestCellsMixin):
 
     __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
 
@@ -129,7 +137,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     standard_receptor_type = True
 
 
-class IF_facets_hardware1(cells.IF_facets_hardware1):
+class IF_facets_hardware1(cells.IF_facets_hardware1, NestCellsMixin):
 
     __doc__ = cells.IF_facets_hardware1.__doc__
 
@@ -154,7 +162,7 @@ class IF_facets_hardware1(cells.IF_facets_hardware1):
     }
 
 
-class HH_cond_exp(cells.HH_cond_exp):
+class HH_cond_exp(cells.HH_cond_exp, NestCellsMixin):
 
     __doc__ = cells.HH_cond_exp.__doc__
 
@@ -178,7 +186,7 @@ class HH_cond_exp(cells.HH_cond_exp):
     standard_receptor_type = True
 
 
-class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista, NestCellsMixin):
 
     __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
 
@@ -325,7 +333,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     always_local = True
 
 
-class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista, NestCellsMixin):
 
     __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
 
@@ -352,7 +360,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     standard_receptor_type = True
 
 
-class Izhikevich(cells.Izhikevich):
+class Izhikevich(cells.Izhikevich, NestCellsMixin):
     __doc__ = cells.Izhikevich.__doc__
 
     translations = build_translations(
@@ -368,7 +376,7 @@ class Izhikevich(cells.Izhikevich):
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
 
 
-class GIF_cond_exp(cells.GIF_cond_exp):
+class GIF_cond_exp(cells.GIF_cond_exp, NestCellsMixin):
 
     translations = build_translations(
         ('v_rest',     'E_L'),
@@ -412,11 +420,11 @@ class AdExp(cells.AdExp):
     )
     #nest_name = {"on_grid": "aeif_cond_alpha_multisynapse",
     #             "off_grid": "aeif_cond_alpha_multisynapse"}
-    possible_models = set(["aeif_cond_alpha_multisynapse"])
+    possible_models = set(["aeif_cond_alpha_multisynapse","aeif_cond_beta_multisynapse"])
     standard_receptor_type = False
 
 
-class PointNeuron(cells.PointNeuron):
+class PointNeuron(cells.PointNeuron, NestCellsMixin):
     standard_receptor_type = False
 
     def get_receptor_type(self, name):
@@ -506,3 +514,13 @@ class PointNeuron(cells.PointNeuron):
     def reverse_translate(self, native_parameters):
         standard_parameters = self.neuron.reverse_translate(native_parameters)
         return standard_parameters
+
+    def attributes_psr_update(self, psr):
+        pynn_name = '{}_gsyn'.format(psr)
+        nest_name = 'g_{}'.format(self.get_receptor_type(psr))
+        self.variable_map[pynn_name] = nest_name
+        self.reverse_variable_map[nest_name] = pynn_name
+        self.scale_factors[pynn_name] = 0.001
+        self.units[pynn_name] = 'uS'
+        self.neuron.default_initial_values[pynn_name] = 0.0
+
