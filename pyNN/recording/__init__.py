@@ -326,6 +326,7 @@ class Recorder(object):
                                     array_annotations = {"channel_index": channel_index}
                                 )
                             ]
+                        segment.irregularlysampledsignals.extend(signals)
                     else:
                         t_start = self._recording_start_time
                         t_stop = self._simulator.state.t * pq.ms
@@ -341,10 +342,9 @@ class Recorder(object):
                             array_annotations = {"channel_index": channel_index}
                         )
                         assert signal.t_stop - current_time - 2 * sampling_period < 1e-10
-                        signals = [signal]
                         logger.debug("%d **** ids=%s, channels=%s", mpi_node,
                                         source_ids, signal.array_annotations["channel_index"])
-                    segment.analogsignals.extend(signals)
+                        segment.analogsignals.append(signal)
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
