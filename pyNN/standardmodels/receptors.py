@@ -6,9 +6,26 @@
 from pyNN.standardmodels import StandardPostSynapticResponse
 
 
+class CondExpPostSynapticResponse(StandardPostSynapticResponse):
+    """
+
+    """
+
+    default_parameters = {
+        'e_syn': 0.0,   # synaptic reversal potential in mV.
+        'tau_syn': 5.0  # time constant of the synaptic conductance in ms.
+    }
+    default_initial_values = {
+        "gsyn": 0.0
+    }
+    units = {
+        "gsyn": "uS"
+    }
+
+
 class CondAlphaPostSynapticResponse(StandardPostSynapticResponse):
     """
-    
+
     """
 
     default_parameters = {
@@ -25,7 +42,7 @@ class CondAlphaPostSynapticResponse(StandardPostSynapticResponse):
 
 class CondBetaPostSynapticResponse(StandardPostSynapticResponse):
     """
-    
+
     """
 
     default_parameters = {

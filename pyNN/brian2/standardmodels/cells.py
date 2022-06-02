@@ -304,7 +304,7 @@ class SpikeSourceArray(cells.SpikeSourceArray):
 
 
 class PointNeuron(cells.PointNeuron):
-    
+
     def __init__(self, neuron, **post_synaptic_receptors):
         super(PointNeuron, self).__init__(neuron, **post_synaptic_receptors)
         self.eqs = neuron.eqs
@@ -322,6 +322,16 @@ class PointNeuron(cells.PointNeuron):
         synaptic_current_equation += "  : amp"
         self.eqs += brian2.Equations(synaptic_current_equation)
         self.brian2_model = neuron.brian2_model
+
+    def get_native_names(self, *names):
+        neuron_names = self.neuron.get_native_names(*[name for name in names if "." not in name])
+        for name in names:
+            if "." in name:
+                psr_name, param_name = name.split(".")
+                index = self.receptor_types.index(psr_name)
+                tr_name = self.post_synaptic_receptors[psr_name].get_native_names(param_name)
+                neuron_names.append("{}[{}]".format(tr_name, index))
+        return neuron_names
 
     @property
     def native_parameters(self):
