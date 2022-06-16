@@ -46,8 +46,18 @@ coba_exp = sim.Population(2, sim.IF_cond_exp(tau_m=10.0, i_offset=[0.0, 1.0]),
                           initial_values={"v": [-65, -55]}, label="Exponential, conductance-based")
 coba_alpha = sim.Population(2, sim.IF_cond_alpha(tau_m=10.0, i_offset=[0.0, 1.0]),
                             initial_values={"v": [-65, -55]}, label="Alpha, conductance-based")
-v_step = sim.Population(2, sim.Izhikevich(i_offset=[0.0, 0.002]),
-                        initial_values={"v": [-70, -67], "u": [-14, -13.4]}, label="Izhikevich")
+v_step_izh = sim.Population(2, sim.Izhikevich(i_offset=[0.0, 0.002]),
+                            initial_values={"v": [-70, -67], "u": [-14, -13.4]}, label="Izhikevich")
+
+all_neurons = cuba_exp + cuba_alpha + coba_exp + coba_alpha + v_step_izh
+
+try:
+    v_step_if = sim.Population(2, sim.IF_curr_delta(tau_m=10.0, i_offset=[0.0, 1.0]),
+                               initial_values={"v": [-65, -55]}, label="Voltage step")
+except NotImplementedError:
+    v_step_if = None
+else:
+    all_neurons += v_step_if
 
 # we next create a spike source, which will emit spikes at the specified times
 
@@ -56,13 +66,11 @@ stimulus = sim.Population(1, sim.SpikeSourceArray(spike_times=spike_times), labe
 
 # now we connect the spike source to each of the neuron populations, with differing synaptic weights
 
-all_neurons = cuba_exp + cuba_alpha + coba_exp + coba_alpha + v_step
-
 connections = [sim.Projection(stimulus, population,
                               connector=sim.AllToAllConnector(),
                               synapse_type=sim.StaticSynapse(weight=w, delay=2.0),
                               receptor_type="excitatory")
-               for population, w in zip(all_neurons.populations, [1.6, 4.0, 0.03, 0.12, 1.0])]
+               for population, w in zip(all_neurons.populations, [1.6, 4.0, 0.03, 0.12, 2.0, 4.0])]
 
 # finally, we set up recording of the membrane potential
 
@@ -96,7 +104,7 @@ all_neurons.write_data(filename, annotations={'script_name': __file__})
 if options.plot_figure:
     from pyNN.utility.plotting import Figure, Panel
     figure_filename = filename.replace("pkl", "png")
-    Figure(
+    panels = [
         Panel(cuba_exp.get_data().segments[0].filter(name='v')[0],
               ylabel="Membrane potential (mV)",
               data_labels=[cuba_exp.label], yticks=True, ylim=(-66, -50)),
@@ -106,9 +114,17 @@ if options.plot_figure:
               data_labels=[coba_exp.label], yticks=True, ylim=(-66, -50)),
         Panel(coba_alpha.get_data().segments[0].filter(name='v')[0],
               data_labels=[coba_alpha.label], yticks=True, ylim=(-66, -50)),
-        Panel(v_step.get_data().segments[0].filter(name='v')[0],
+        Panel(v_step_izh.get_data().segments[0].filter(name='v')[0],
               xticks=True, xlabel="Time (ms)",
-              data_labels=[v_step.label], yticks=True, ylim=(-71, -65)),
+              data_labels=[v_step_izh.label], yticks=True, ylim=(-71, -65))
+    ]
+    if v_step_if:
+        panels.insert(-1,
+            Panel(v_step_if.get_data().segments[0].filter(name='v')[0],
+                  data_labels=[v_step_if.label], yticks=True, ylim=(-66, -50)),
+        )
+    Figure(
+        *panels,
         title="Responses of standard neuron models to synaptic input",
         annotations="Simulated with %s" % options.simulator.upper()
     ).save(figure_filename)
