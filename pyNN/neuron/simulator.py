@@ -172,6 +172,7 @@ class _State(common.control.BaseState):
         self.clear()
         self.default_maxstep = 10.0
         self.native_rng_baseseed = 0
+        self.record_sample_times = False
 
     t = h_property('t')
 

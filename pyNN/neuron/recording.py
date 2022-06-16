@@ -45,16 +45,16 @@ class Recorder(recording.Recorder):
             source, var_name = self._resolve_variable(cell, variable)
             hoc_var = getattr(source, "_ref_%s" % var_name)
         cell.traces[variable] = vec = h.Vector()
-        if self.sampling_interval == self._simulator.state.dt:
+        if self.sampling_interval == self._simulator.state.dt or self.record_times:
             vec.record(hoc_var)
         else:
             vec.record(hoc_var, self.sampling_interval)
         if not cell.recording_time:
-            cell.record_times = h.Vector()
-            if self.sampling_interval == self._simulator.state.dt:
-                cell.record_times.record(h._ref_t)
+            cell.recorded_times = h.Vector()
+            if self.sampling_interval == self._simulator.state.dt or self.record_times:
+                cell.recorded_times.record(h._ref_t)
             else:
-                cell.record_times.record(h._ref_t, self.sampling_interval)
+                cell.recorded_times.record(h._ref_t, self.sampling_interval)
             cell.recording_time += 1
 
     # could be staticmethod
@@ -80,7 +80,7 @@ class Recorder(recording.Recorder):
             id._cell.traces = {}
             id._cell.spike_times = h.Vector(0)
         id._cell.recording_time == 0
-        id._cell.record_times = None
+        id._cell.recorded_times = None
 
     def _clear_simulator(self):
         """
@@ -111,15 +111,21 @@ class Recorder(recording.Recorder):
             return spikes[spikes <= simulator.state.t + 1e-9]
 
     def _get_all_signals(self, variable, ids, clear=False):
-        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        times = None
         if len(ids) > 0:
             signals = np.vstack([id._cell.traces[variable] for id in ids]).T
-            expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
-            if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
-                signals = np.vstack((signals, signals[-1, :]))
+            if self.record_times:
+                assert not simulator.state.cvode.use_local_dt()
+                # the following line assumes all cells are sampled at the same time
+                # which should be true if cvode.use_local_dt() returns False
+                times = np.array(ids[0]._cell.recorded_times)
+            else:
+                expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
+                if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
+                    signals = np.vstack((signals, signals[-1, :]))
         else:
             signals = np.array([])
-        return signals
+        return signals, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}
