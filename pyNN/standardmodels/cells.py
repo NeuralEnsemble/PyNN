@@ -130,15 +130,12 @@ class IF_curr_delta(StandardCellType):
     }
     recordable = ['spikes', 'v']
     conductance_based = False
+    voltage_based_synapses = True
     default_initial_values = {
-        'v': -65.0,  # 'v_rest',
-        'isyn_exc': 0.0,
-        'isyn_inh': 0.0,
+        'v': -65.0,
     }
     units = {
         'v': 'mV',
-        'isyn_exc': 'nA',
-        'isyn_inh': 'nA',
         'v_rest': 'mV',
         'cm': 'nF',
         'tau_m': 'ms',

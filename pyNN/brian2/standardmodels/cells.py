@@ -102,6 +102,10 @@ current_based_alpha_synapses = brian2.Equations('''
                 tau_syn_i                                     : second
             ''')
 
+voltage_step_synapses = brian2.Equations('''
+                i_syn = 0 * amp  : amp
+            ''')
+
 leaky_iaf_translations = build_translations(
                 ('v_rest',     'v_rest',     lambda **p: p["v_rest"] * mV, lambda **p: p["v_rest"] / mV),
                 ('v_reset',    'v_reset',    lambda **p: p["v_reset"] * mV, lambda **p: p["v_reset"] / mV),
@@ -156,7 +160,6 @@ conductance_based_variable_translations = build_translations(
                 ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
                 ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
 current_based_variable_translations = build_translations(
-
                 ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
                 ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
                 ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
@@ -179,6 +182,17 @@ class IF_curr_exp(cells.IF_curr_exp):
     translations.update(current_based_synapse_translations)
     state_variable_translations = current_based_variable_translations
     post_synaptic_variables = {'excitatory': 'ie', 'inhibitory': 'ii'}
+    brian2_model = ThresholdNeuronGroup
+
+
+class IF_curr_delta(cells.IF_curr_delta):
+    __doc__ = cells.IF_curr_delta.__doc__
+    eqs = leaky_iaf + voltage_step_synapses
+    translations = deepcopy(leaky_iaf_translations)
+    state_variable_translations = build_translations(
+        ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
+    )
+    post_synaptic_variables = {'excitatory': 'v', 'inhibitory': 'v'}
     brian2_model = ThresholdNeuronGroup
 
 
