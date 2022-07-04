@@ -26,14 +26,13 @@ noise = sim.Population(2, sim.SpikeSourcePoisson(rate=[80000, 15000]))
 neuron.record("v")
 
 
-# weight = [0.0012, -0.001]  # nA
-weight = 0.0012
+weight = [[0.0012], [-0.001]]
 delay = 1.0
 
-connections = sim.Projection(
-    neuron, noise,
-    sim.AllToAllConnector(), 
-    sim.StaticSynapse(weight=weight, delay=delay))
+
+
+connections_exc = sim.Projection(noise[0:1], neuron, sim.AllToAllConnector(), receptor_type="excitatory", synapse_type=sim.StaticSynapse(weight=0.0012, delay=delay))
+connections_inh = sim.Projection(noise[1:2], neuron, sim.AllToAllConnector(), receptor_type="inhibitory", synapse_type=sim.StaticSynapse(weight=-0.001, delay=delay))
 
 sim.run(1000.0)
 
