@@ -21,6 +21,7 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
 from neo import AnalogSignal, IrregularlySampledSignal, SpikeTrain
+from neo.core.spiketrainlist import SpikeTrainList
 
 
 DEFAULT_FIG_SETTINGS = {
@@ -95,7 +96,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(0, spiketrains[0].t_stop / ms)
+    ax.set_xlim(spiketrains[0].t_start, spiketrains[0].t_stop / ms)
     handle_options(ax, options)
     max_index = 0
     min_index = sys.maxsize
@@ -107,6 +108,24 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
         min_index = min(min_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
     ax.set_ylim(-0.5 + min_index, max_index + 0.5)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+
+
+def plot_spiketrainlist(ax, spiketrains, label='', **options):
+    """
+    Plot all spike trains in a Segment in a raster plot.
+    """
+    ax.set_xlim(spiketrains.t_start, spiketrains.t_stop / ms)
+    handle_options(ax, options)
+    channel_ids, spike_times = spiketrains.multiplexed
+    max_id = max(spiketrains.all_channel_ids)
+    min_id = min(spiketrains.all_channel_ids)
+    ax.plot(channel_ids, spike_times, 'k.', **options)
+    ax.set_ylabel("Neuron index")
+    ax.set_ylim(-0.5 + min_id, max_id + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -256,6 +275,8 @@ class Panel(object):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
+            elif isinstance(datum, SpikeTrainList):
+                plot_spiketrainlist(axes, datum, label=label, **properties)
             elif isinstance(datum, np.ndarray):
                 if datum.ndim == 2:
                     plot_array_as_image(axes, datum, label=label, **properties)

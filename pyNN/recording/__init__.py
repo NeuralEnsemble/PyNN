@@ -279,19 +279,36 @@ class Recorder(object):
                 sids = sorted(self.filter_recorded('spikes', filter_ids))
                 data = self._get_spiketimes(sids, clear=clear)
 
-                segment.spiketrains = []
-                for id in sids:
-                    times = pq.Quantity(data.get(int(id), []), pq.ms)
+                if isinstance(data, dict):
+                    for id in sids:
+                        times = pq.Quantity(data.get(int(id), []), pq.ms)
+                        if times.size > 0 and times.max() > t_stop:
+                            warn("Recorded at least one spike after t_stop")
+                            times = times[times <= t_stop]
+                        segment.spiketrains.append(
+                            neo.SpikeTrain(times,
+                                        t_start=self._recording_start_time,
+                                        t_stop=t_stop,
+                                        units='ms',
+                                        source_population=self.population.label,
+                                        source_id=int(id), source_index=self.population.id_to_index(int(id)))
+                        )
+                else:
+                    assert isinstance(data, tuple)
+                    id_array, times = data
+                    times *= pq.ms
                     if times.size > 0 and times.max() > t_stop:
                         warn("Recorded at least one spike after t_stop")
-                        times = times[times <= t_stop]
-                    segment.spiketrains.append(
-                        neo.SpikeTrain(times,
-                                       t_start=self._recording_start_time,
-                                       t_stop=t_stop,
-                                       units='ms',
-                                       source_population=self.population.label,
-                                       source_id=int(id), source_index=self.population.id_to_index(int(id)))
+                        mask = times <= t_stop
+                        times = times[mask]
+                        id_array = id_array[mask]
+                    segment.spiketrains = neo.spiketrainlist.SpikeTrainList.from_spike_time_array(
+                        times, id_array, 
+                        np.array(sids, dtype=int),
+                        t_stop=t_stop, 
+                        units="ms",
+                        t_start=self._recording_start_time,
+                        source_population=self.population.label
                     )
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))

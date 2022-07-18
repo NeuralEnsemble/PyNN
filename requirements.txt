@@ -4,7 +4,8 @@ mock>1.0
 numpy>=1.16.0
 quantities>=0.12.1
 lazyarray>=0.5.0
-neo>=0.10.0
+#neo>=0.10.0
+git+https://github.com/NeuralEnsemble/python-neo.git@master#egg=neo
 setuptools>=20.5
 nose
 h5py
