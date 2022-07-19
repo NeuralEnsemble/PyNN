@@ -78,13 +78,22 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     handle_options(ax, options)
     offset = options.pop("y_offset", None)
     show_legend = options.pop("legend", True)
-    for i in signal_array.array_annotations["channel_index"].argsort():
-        channel = signal_array.array_annotations["channel_index"][i]
-        signal = signal_array[:, i]
-        if label_prefix:
-            label = "%s (Neuron %d)" % (label_prefix, channel)
+    if "channel_index" in signal_array.array_annotations:
+        channel_iterator = signal_array.array_annotations["channel_index"].argsort()
+    else:
+        channel_iterator = range(signal_array.shape[1])
+    for i in channel_iterator:
+        if "channel_index" in signal_array.array_annotations:
+            channel = signal_array.array_annotations["channel_index"][i]
+            if label_prefix:
+                label = "%s (Neuron %d)" % (label_prefix, channel)
+            else:
+                label = "Neuron %d" % channel
+        elif label_prefix:
+            label = "%s (%d)" % (label_prefix, i)
         else:
-            label = "Neuron %d" % channel
+            label = str(i)
+        signal = signal_array[:, i]
         if offset:
             signal += i * offset
         ax.plot(signal.times.rescale(ms), signal.magnitude, label=label, **options)
