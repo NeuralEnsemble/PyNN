@@ -18,6 +18,7 @@ Classes:
 
 """
 
+import warnings
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
 import numpy as np
