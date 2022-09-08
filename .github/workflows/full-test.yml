@@ -40,7 +40,7 @@ jobs:
     - name: Install NEURON
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install neuron
+        python -m pip install neuron==8.1.0
         python -m pip install nrnutils
     - name: Install NEST
       if: startsWith(matrix.os, 'ubuntu')
