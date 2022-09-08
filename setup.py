@@ -25,6 +25,8 @@ class build(_build):
     """At the end of the build process, try to compile NEURON and NEST extensions."""
 
     def run(self):
+        self.distribution.convert_2to3_doctests = []  # workaround for bug
+        # see https://app.travis-ci.com/github/NeuralEnsemble/PyNN/jobs/582235672
         _build.run(self)
         # try to compile NEURON extensions
         nrnivmodl = self.find("nrnivmodl")
