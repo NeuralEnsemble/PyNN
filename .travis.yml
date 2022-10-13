@@ -8,6 +8,8 @@ matrix:
       env: PYENV=py38
     - python: 3.9
       env: PYENV=py39
+    - python: 3.10
+      env: PYENV=py310
 before_install:
   - sudo apt-get install -y libgsl0-dev openmpi-bin libopenmpi-dev python-dev
 install:
@@ -18,6 +20,6 @@ after_success:
 cache:
   directories:
     - $HOME/nest-simulator-3.3
-    - $HOME/nrn-8.1
+    - $HOME/nrn-8.2.1
     - $HOME/build/nest-simulator-3.3
     - $HOME/.cache/pip
