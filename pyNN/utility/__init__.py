@@ -12,7 +12,7 @@ Functions:
     Timer    - a convenience wrapper around the time.perf_counter() function from the
                standard library.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """

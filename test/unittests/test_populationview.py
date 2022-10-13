@@ -2,7 +2,7 @@
 Tests of the common implementation of the PopulationView class, using the
 pyNN.mock backend.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

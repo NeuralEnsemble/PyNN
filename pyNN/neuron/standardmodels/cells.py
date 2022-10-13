@@ -2,7 +2,7 @@
 """
 Standard base_cells for the neuron module.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
