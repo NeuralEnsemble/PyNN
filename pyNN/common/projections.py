@@ -168,7 +168,7 @@ class Projection(object):
         return 'Projection("%s")' % self.label
 
     def __getitem__(self, i):
-        """Return the *i*th connection within the Projection."""
+        """Return the /i/th connection within the Projection."""
         raise NotImplementedError
 
     def __iter__(self):
