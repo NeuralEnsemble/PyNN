@@ -31,7 +31,7 @@ jobs:
     - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov
+        python -m pip install pytest pytest-cov coveralls
         python -m pip install mpi4py
         python -m pip install -r requirements.txt
     - name: Install Brian 2
