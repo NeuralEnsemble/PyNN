@@ -3,7 +3,6 @@ import numpy as np
 from numpy import nan
 from numpy.testing import assert_array_equal, assert_allclose
 from .fixtures import run_with_simulators
-import pytest
 
 
 @run_with_simulators("nest", "neuron", "brian2")

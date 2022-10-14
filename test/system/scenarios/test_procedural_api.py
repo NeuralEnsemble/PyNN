@@ -3,7 +3,6 @@ import numpy as np
 from numpy.testing import assert_allclose
 from pyNN.utility import init_logging
 from .fixtures import run_with_simulators
-import pytest
 
 
 @run_with_simulators("nest", "neuron", "brian2")

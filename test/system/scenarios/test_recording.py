@@ -7,7 +7,6 @@ from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
 from pyNN.utility import normalized_filename
 from .fixtures import run_with_simulators
-import pytest
 
 
 @run_with_simulators("neuron", "brian2")

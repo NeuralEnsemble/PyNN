@@ -5,7 +5,6 @@ from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from pyNN.utility import init_logging
 from .fixtures import run_with_simulators
-import pytest
 
 
 logger = logging.getLogger("TEST")

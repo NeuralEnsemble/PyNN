@@ -3,7 +3,6 @@ import glob
 import os
 from pyNN.random import NumpyRNG, RandomDistribution
 from .fixtures import run_with_simulators
-import pytest
 
 
 @run_with_simulators("nest", "neuron", "brian2")
