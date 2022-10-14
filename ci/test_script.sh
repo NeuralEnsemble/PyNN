@@ -7,3 +7,5 @@ if [ "$TRAVIS_PYTHON_VERSION" == "3.9" ]; then
 else
     pytest --verbose test/unittests
 fi
+
+exit $?
