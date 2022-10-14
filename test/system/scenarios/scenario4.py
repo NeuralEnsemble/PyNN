@@ -4,14 +4,16 @@ import logging
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from pyNN.utility import init_logging
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pytest
 
 
 logger = logging.getLogger("TEST")
 
 
-@register(exclude=["brian2"])  # to fix for Brian 2
-def scenario4(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
+def test_scenario4(sim):
     """
     Network with spatial structure
     """
@@ -64,4 +66,4 @@ def scenario4(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    scenario4(sim)
+    test_scenario4(sim)

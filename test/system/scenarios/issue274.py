@@ -1,10 +1,13 @@
-from .registry import register
 
 from pyNN.random import RandomDistribution as rnd
+import pyNN.nest
+import pyNN.neuron
+import pyNN.brian2
+import pytest
 
 
-@register()
-def issue274(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_issue274(sim):
     """Issue with offset in GIDs"""
     sim.setup(min_delay=0.5)
 
@@ -24,4 +27,4 @@ def issue274(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    issue274(sim)
+    test_issue274(sim)

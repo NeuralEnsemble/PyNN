@@ -1,14 +1,14 @@
 # encoding: utf-8
 
-from nose.tools import assert_equal
-from nose.plugins.skip import SkipTest
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pytest
 
 
-@register(exclude=["brian2"])
-def scenario3(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
+def test_scenario3(sim):
     """
     Simple feed-forward network network with additive STDP. The second half of
     the presynaptic neurons fires faster than the second half, so their
@@ -17,7 +17,7 @@ def scenario3(sim):
     try:
         import scipy.stats
     except ImportError:
-        raise SkipTest
+        pytest.skip("Test requires scipy")
 
     init_logging(logfile=None, debug=True)
     second = 1000.0
@@ -52,8 +52,8 @@ def scenario3(sim):
     pre.set(start=0.0)
     pre[:50].set(rate=r1)
     pre[50:].set(rate=r2)
-    assert_equal(pre[49].rate, r1)
-    assert_equal(pre[50].rate, r2)
+    assert pre[49].rate == r1
+    assert pre[50].rate == r2
     post.set(**cell_parameters)
     post.initialize(v=RandomDistribution('normal', mu=v_reset, sigma=5.0))
 
@@ -98,4 +98,4 @@ def scenario3(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    scenario3(sim)
+    test_scenario3(sim)

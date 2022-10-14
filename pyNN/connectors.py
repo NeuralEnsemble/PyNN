@@ -14,7 +14,6 @@ from pyNN import errors, descriptions
 from pyNN.recording import files
 from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
-from pyNN.common import Population
 import numpy as np
 from itertools import repeat
 import logging
@@ -252,6 +251,7 @@ class MapConnector(Connector):
         self._standard_connect(projection, connection_map.by_column, distance_map)
 
     def _get_connection_map_no_self_connections(self, projection):
+        from pyNN.common import Population
         if (isinstance(projection.pre, Population)
                 and isinstance(projection.post, Population)
                 and projection.pre == projection.post):
@@ -267,6 +267,7 @@ class MapConnector(Connector):
         return connection_map
 
     def _get_connection_map_no_mutual_connections(self, projection):
+        from pyNN.common import Population
         if (isinstance(projection.pre, Population)
             and isinstance(projection.post, Population)
                 and projection.pre == projection.post):

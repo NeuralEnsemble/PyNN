@@ -1,10 +1,13 @@
 
 import numpy as np
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pyNN.brian2
+import pytest
 
 
-@register()
-def ticket166(sim, plot_figure=False):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
     works (see http://neuralensemble.org/trac/PyNN/ticket/166)
@@ -54,4 +57,4 @@ if __name__ == '__main__':
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
-    ticket166(sim, plot_figure=args.plot_figure)
+    test_ticket166(sim, plot_figure=args.plot_figure)

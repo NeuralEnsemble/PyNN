@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from nose.plugins.skip import SkipTest
+
 from numpy import nan_to_num
 
 try:
@@ -9,6 +9,8 @@ try:
     have_hardware_brainscales = True
 except ImportError:
     have_hardware_brainscales = False
+
+import pytest
 
 
 logger = logging.getLogger()
@@ -19,7 +21,7 @@ class HardwareTest(unittest.TestCase):
 
     def setUp(self):
         if not have_hardware_brainscales:
-            raise SkipTest
+            pytest.skip("BrainScaleS module not available")
         extra = {
             'loglevel': 0,
             'ignoreHWParameterRanges': True,
@@ -93,12 +95,12 @@ class HardwareTest(unittest.TestCase):
         # yield scenario, sim
         # sim.end()
         # else:
-        #raise SkipTest
+        #pytest.skip
 
 
 def test_restart_loop():
     if not have_hardware_brainscales:
-        raise SkipTest
+        pytest.skip("BrainScaleS module not available")
     extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)
     sim.end()
@@ -113,7 +115,7 @@ def test_restart_loop():
 
 # def test_several_runs():
     if not have_hardware_brainscales:
-        raise SkipTest
+        pytest.skip("BrainScaleS module not available")
     #extra = {'loglevel':0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     # sim.setup(**extra)
     # sim.run(10.0)
@@ -123,14 +125,14 @@ def test_restart_loop():
 
 def test_sim_without_clearing():
     if not have_hardware_brainscales:
-        raise SkipTest
+        pytest.skip("BrainScaleS module not available")
     extra = {'loglevel': 0, 'useSystemSim': True, 'hardware': sim.hardwareSetup['one-hicann']}
     sim.setup(**extra)
 
 
 def test_sim_without_setup():
     if not have_hardware_brainscales:
-        raise SkipTest
+        pytest.skip("BrainScaleS module not available")
     sim.end()
 
 

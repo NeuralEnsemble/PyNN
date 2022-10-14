@@ -3,15 +3,17 @@ Tests of the fine-grained connection API
 
 """
 
-from nose.tools import assert_equal, assert_almost_equal, assert_is_instance
 from numpy.testing import assert_array_equal
 import numpy as np
 from pyNN import common
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pyNN.brian2
+import pytest
 
 
-@register()
-def connections_attribute(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_connections_attribute(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
@@ -19,15 +21,12 @@ def connections_attribute(sim):
                          sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
-    assert_equal(len(connections), len(prj))
-    assert_is_instance(connections[0], common.Connection)
+    assert len(connections) == len(prj)
+    assert isinstance(connections[0], common.Connection)
 
 
-connections_attribute.__test__ = False
-
-
-@register()
-def connection_access_weight_and_delay(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_connection_access_weight_and_delay(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
@@ -35,8 +34,8 @@ def connection_access_weight_and_delay(sim):
                          sim.StaticSynapse(weight=0.05, delay=0.5))
 
     connections = list(prj.connections)
-    assert_almost_equal(connections[2].weight, 0.05, places=9)
-    assert_almost_equal(connections[2].delay, 0.5, places=9)
+    assert connections[2].weight == pytest.approx(0.05)  # places=9)
+    assert connections[2].delay == pytest.approx(0.5)  # places=9)
     connections[2].weight = 0.0123
     connections[2].delay = 1.0
     target = np.empty((prj.size(), 2))
@@ -48,11 +47,8 @@ def connection_access_weight_and_delay(sim):
                        target)
 
 
-connection_access_weight_and_delay.__test__ = False
-
-
-@register()
-def issue672(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_issue672(sim):
     """
     Check that creating new Projections does not mess up existing ones.
     """
@@ -74,8 +70,8 @@ def issue672(sim):
     assert_array_equal(wA, wB)
 
 
-# @register()
-# def update_synaptic_plasticity_parameters(sim):
+# @pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+# def test_update_synaptic_plasticity_parameters(sim):
 #     sim.setup()
 #     p1 = sim.Population(3, sim.IF_cond_exp(), label="presynaptic")
 #     p2 = sim.Population(2, sim.IF_cond_exp(), label="postsynaptic")
@@ -96,8 +92,8 @@ def issue672(sim):
 #                        np.array([[0.01, 0.011], [0.012, 0.013], [0.014, 0.015]]))
 
 
-@register(exclude=["brian2"])
-def issue652(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
+def test_issue652(sim):
     """Correctly handle A_plus = 0 in SpikePairRule."""
     sim.setup()
 
@@ -124,8 +120,8 @@ def issue652(sim):
     )
 
     a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
-    assert_equal(a_plus[~np.isnan(a_plus)][0], 0.0)
-    assert_equal(a_minus[~np.isnan(a_minus)][0], 0.0)
+    assert a_plus[~np.isnan(a_plus)][0] == 0.0
+    assert a_minus[~np.isnan(a_minus)][0] == 0.0
 
     synapse_type = sim.STDPMechanism(
         weight=synaptic_weight,
@@ -144,11 +140,11 @@ def issue652(sim):
     )
 
     a_plus, a_minus = connection_to_input.get(["A_plus", "A_minus"], format="array")
-    assert_equal(a_plus[~np.isnan(a_plus)][0], 0.0)
-    assert_equal(a_minus[~np.isnan(a_minus)][0], 0.5)
+    assert a_plus[~np.isnan(a_plus)][0] == 0.0
+    assert a_minus[~np.isnan(a_minus)][0] == 0.5
 
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    connections_attribute(sim)
+    test_connections_attribute(sim)

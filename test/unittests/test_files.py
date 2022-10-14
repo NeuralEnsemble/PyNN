@@ -2,7 +2,6 @@ import os
 from unittest.mock import Mock
 from textwrap import dedent
 
-from nose.tools import assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal
 
@@ -22,7 +21,7 @@ def test__savetxt():
     target = [(('0.000000 2.300000\n',), {}),
               (('1.000000 3.400000\n',), {}),
               (('2.000000 4.300000\n',), {})]
-    assert_equal(mock_file.write.call_args_list, target)
+    assert mock_file.write.call_args_list == target
     files.open = builtin_open
 
 
@@ -60,8 +59,7 @@ def test_close():
 #              (('1.0\t3.4\n',), {}),
 #              (('2.0\t4.3\n',), {})]
 #    stf.write(data, metadata)
-#    assert_equal(stf.fileobj.write.call_args_list,
-#                 target)
+#    assert stf.fileobj.write.call_args_list == target
 #    files.open = builtin_open
 
 
@@ -84,8 +82,8 @@ def test_PickleFile():
     pf.close()
 
     pf = files.PickleFile("tmp.pickle", "rb")
-    assert_equal(pf.get_metadata(), metadata)
-    assert_equal(pf.read(), data)
+    assert pf.get_metadata() == metadata
+    assert pf.read() == data
     pf.close()
 
     os.remove("tmp.pickle")
@@ -98,7 +96,7 @@ def test_PickleFile():
 #    nbf.close()
 #
 #    nbf = files.NumpyBinaryFile("tmp.npz", "r")
-#    assert_equal(nbf.get_metadata(), metadata)
+#    assert nbf.get_metadata() == metadata
 #    assert_array_equal(nbf.read().flatten(), np.array(data).flatten())
 #    nbf.close()
 #
@@ -114,7 +112,7 @@ def test_HDF5ArrayFile():
         h5f.close()
 
         h5f = files.HDF5ArrayFile("tmp.h5", "r")
-        assert_equal(h5f.get_metadata(), metadata)
+        assert h5f.get_metadata() == metadata
         assert_array_equal(np.array(h5f.read()).flatten(),
                             np.array(data).flatten())
         h5f.close()

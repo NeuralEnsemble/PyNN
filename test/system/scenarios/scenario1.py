@@ -1,13 +1,15 @@
 
 import glob
 import os
-from nose.tools import assert_equal
 from pyNN.random import NumpyRNG, RandomDistribution
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pyNN.brian2
+import pytest
 
 
-@register()
-def scenario1(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_scenario1(sim):
     """
     Balanced network of integrate-and-fire neurons.
     """
@@ -62,7 +64,7 @@ def scenario1(sim):
 
     all_cells.record('spikes')
     cells['excitatory'][0:2].record('v')
-    assert_equal(cells['excitatory'][0:2].grandparent, all_cells)
+    assert cells['excitatory'][0:2].grandparent == all_cells
 
     sim.run(tstop)
 
@@ -73,8 +75,8 @@ def scenario1(sim):
     sim.end()
 
 
-@register()
-def scenario1a(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_scenario1a(sim):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"
     API.
@@ -131,5 +133,5 @@ def scenario1a(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    scenario1(sim)
-    scenario1a(sim)
+    test_scenario1(sim)
+    test_scenario1a(sim)

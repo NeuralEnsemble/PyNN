@@ -63,7 +63,7 @@ class RecordingDevice(object):
         if variable == "times":
             values = times
         else:
-            # I'm hoping numpy optimises for the case where scale_factor = 1, 
+            # I'm hoping numpy optimises for the case where scale_factor = 1,
             # otherwise should avoid this multiplication in that case
             values = events[nest_variable] * scale_factor
 

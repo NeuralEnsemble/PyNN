@@ -1,5 +1,5 @@
 
-from nose.plugins.skip import SkipTest
+
 from numpy.testing import assert_array_almost_equal
 
 from pyNN.random import RandomDistribution as RD
@@ -18,10 +18,11 @@ try:
 except ImportError:
     HAVE_NEST = False
 
+import pytest
 
 def test():
     if not HAVE_H5PY and HAVE_NEST:
-        raise SkipTest
+        pytest.skip("Either h5py or nest is not available")
 
     sim.setup()
 

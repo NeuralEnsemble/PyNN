@@ -2,12 +2,14 @@
 import numpy as np
 from numpy import nan
 from numpy.testing import assert_array_equal, assert_allclose
-from nose.tools import assert_equal
-from .registry import register
+import pyNN.nest
+import pyNN.neuron
+import pyNN.brian2
+import pytest
 
 
-@register()
-def issue241(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_issue241(sim):
     # "Nest SpikeSourcePoisson populations require all parameters to be passed to constructor"
     sim.setup()
     spike_train1 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000], 'duration': [1234]})
@@ -16,12 +18,12 @@ def issue241(sim):
     spike_train4 = sim.Population(1, sim.SpikeSourcePoisson, {'rate': [5], 'start': [1000]})
     spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001]})
     assert_array_equal(spike_train2.get('duration'), np.array([1234, 2345]))
-    assert_equal(spike_train3.get(['rate', 'start', 'duration']), [5, 1000, 1234])
+    assert spike_train3.get(['rate', 'start', 'duration']) == [5, 1000, 1234]
     sim.end()
 
 
-@register()
-def issue302(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_issue302(sim):
     # "Setting attributes fails for Projections where either the pre- or post-synaptic Population has size 1"
     sim.setup()
     p1 = sim.Population(1, sim.IF_cond_exp())
@@ -35,7 +37,7 @@ def issue302(sim):
     sim.end()
 
 
-@register()
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
 def test_set_synaptic_parameters_fully_connected(sim):
     sim.setup()
     mpi_rank = sim.rank()
@@ -95,10 +97,9 @@ def test_set_synaptic_parameters_fully_connected(sim):
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
         assert_array_equal(actual[ind], expected)
-test_set_synaptic_parameters_fully_connected.__test__ = False
 
 
-@register()
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
 def test_set_synaptic_parameters_partially_connected(sim):
     sim.setup()
     mpi_rank = sim.rank()
@@ -152,10 +153,9 @@ def test_set_synaptic_parameters_partially_connected(sim):
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
         assert_array_equal(actual[ind], expected)
-test_set_synaptic_parameters_partially_connected.__test__ = False
 
 
-@register()
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
 def test_set_synaptic_parameters_multiply_connected(sim):
     sim.setup()
     mpi_rank = sim.rank()
@@ -236,25 +236,24 @@ def test_set_synaptic_parameters_multiply_connected(sim):
     if mpi_rank == 0:
         ind = np.lexsort((actual[:, 1], actual[:, 0]))
         assert_array_equal(actual[ind], expected)
-test_set_synaptic_parameters_multiply_connected.__test__ = False
 
 
-@register()
-def issue505(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+def test_issue505(sim):
     sim.setup(timestep=0.05, min_delay=0.05)
     p = sim.Population(2, sim.IF_cond_exp())
     projection = sim.Projection(p, p, sim.AllToAllConnector(), sim.TsodyksMarkramSynapse(U=0.543))
     U = projection.get('U', format='list', with_address=False)
-    assert_equal(U, [0.543, 0.543, 0.543, 0.543])
+    assert U == [0.543, 0.543, 0.543, 0.543]
     delay = projection.get('delay', format='list', with_address=False)
-    assert_equal(delay, [0.05, 0.05, 0.05, 0.05])
+    assert delay == [0.05, 0.05, 0.05, 0.05]
 
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    issue241(sim)
-    issue302(sim)
+    test_issue241(sim)
+    test_issue302(sim)
     test_set_synaptic_parameters_fully_connected(sim)
     test_set_synaptic_parameters_partially_connected(sim)
-    issue505(sim)
+    test_issue505(sim)

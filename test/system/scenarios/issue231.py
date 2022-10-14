@@ -2,13 +2,14 @@
 min_delay should be calculated automatically if not set
 """
 
-from nose.tools import assert_equal
-from .registry import register
+import pyNN.nest
+import pyNN.brian2
+import pytest
 
 
 # for NEURON, this only works when run with MPI and more than one process
-@register(exclude="neuron")
-def issue231(sim):
+@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.brian2))
+def test_issue231(sim):
     sim.setup(min_delay='auto')
 
     p1 = sim.Population(13, sim.IF_cond_exp())
@@ -18,11 +19,11 @@ def issue231(sim):
     synapse = sim.StaticSynapse(delay=0.5)
     prj = sim.Projection(p1, p2, connector, synapse)
     sim.run(100.0)
-    assert_equal(sim.get_min_delay(), 0.5)
+    assert sim.get_min_delay() == 0.5
     sim.end()
 
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    issue231(sim)
+    test_issue231(sim)
