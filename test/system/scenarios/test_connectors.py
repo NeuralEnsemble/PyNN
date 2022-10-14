@@ -3,9 +3,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.utility import connection_plot, init_logging
-import pyNN.nest
-import pyNN.neuron
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
@@ -15,8 +13,9 @@ import pytest
 # TODO: add some tests with projections between Assemblies and PopulationViews
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_all_to_all_static_no_self(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_all_to_all_static_no_self(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p = sim.Population(5, sim.IF_cond_exp())
     synapse_type = sim.StaticSynapse(weight=RandomDistribution('gamma', k=2.0, theta=0.5), delay="0.2+0.3*d")
@@ -30,8 +29,9 @@ def test_all_to_all_static_no_self(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_all_to_all_tsodyksmarkram(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_all_to_all_tsodyksmarkram(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -48,8 +48,9 @@ def test_all_to_all_tsodyksmarkram(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_pre_no_replacement(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_pre_no_replacement(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -79,8 +80,9 @@ def test_fixed_number_pre_no_replacement(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_pre_with_replacement(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_pre_with_replacement(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -96,8 +98,9 @@ def test_fixed_number_pre_with_replacement(sim):
         assert column.sum() == 1.5
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_pre_with_replacement_heterogeneous_parameters(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -116,8 +119,9 @@ def test_fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_post_no_replacement(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_post_no_replacement(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -146,8 +150,9 @@ def test_fixed_number_post_no_replacement(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_post_with_replacement(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_post_with_replacement(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -169,8 +174,9 @@ def test_fixed_number_post_with_replacement(sim):
         assert row.sum() == (row.size - n_nan)*0.5
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_fixed_number_post_with_replacement_heterogeneous_parameters(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_fixed_number_post_with_replacement_heterogeneous_parameters(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
     p2 = sim.Population(7, sim.IF_cond_exp())
@@ -189,9 +195,10 @@ def test_fixed_number_post_with_replacement_heterogeneous_parameters(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_issue309(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_issue309(sim_name):
     # check that FixedProbability(1) gives the same results as AllToAll
+    sim = get_simulator(sim_name)
     sim.setup()
     p = sim.Population(5, sim.IF_cond_exp())
     synapse_type = sim.StaticSynapse(weight=0.1, delay="0.2+0.3*d")
@@ -205,8 +212,9 @@ def test_issue309(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_issue622(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_issue622(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")
 

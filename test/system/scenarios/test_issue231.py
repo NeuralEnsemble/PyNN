@@ -1,15 +1,14 @@
 """
 min_delay should be calculated automatically if not set
 """
-
-import pyNN.nest
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
 # for NEURON, this only works when run with MPI and more than one process
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.brian2))
-def test_issue231(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "brian2"))
+def test_issue231(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup(min_delay='auto')
 
     p1 = sim.Population(13, sim.IF_cond_exp())

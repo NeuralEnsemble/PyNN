@@ -9,14 +9,13 @@ from numpy.testing import assert_array_equal
 import quantities as pq
 from pyNN.parameters import Sequence
 from pyNN.errors import InvalidParameterValueError
-import pyNN.nest
-import pyNN.neuron
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_EIF_cond_alpha_isfa_ista(sim_name, plot_figure=False):
+    sim = get_simulator(sim_name)
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
         i_offset=1.0, tau_refrac=2.0, v_spike=-40))
@@ -39,8 +38,9 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     return data
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_HH_cond_exp(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_HH_cond_exp(sim_name, plot_figure=False):
+    sim = get_simulator(sim_name)
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
         'gbar_Na': 20.0,
@@ -72,8 +72,9 @@ def test_HH_cond_exp(sim, plot_figure=False):
 
 
 # exclude brian2 - see issue 370
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def issue367(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def issue367(sim_name, plot_figure=False):
+    sim = get_simulator(sim_name)
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
     v_thresh = -50
@@ -103,8 +104,9 @@ def issue367(sim, plot_figure=False):
     return data
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_SpikeSourcePoisson(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_SpikeSourcePoisson(sim_name, plot_figure=False):
+    sim = get_simulator(sim_name)
     try:
         from scipy.stats import kstest
     except ImportError:
@@ -152,12 +154,13 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
     return data
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_SpikeSourceGamma(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_SpikeSourceGamma(sim_name, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
         pytest.skip("scipy not available")
+    sim = get_simulator(sim_name)
     sim.setup()
     params = {
         "beta": [100.0, 200.0, 1000.0],
@@ -208,12 +211,13 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
     return data
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_SpikeSourcePoissonRefractory(sim_name, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
         pytest.skip("scipy not available")
+    sim = get_simulator(sim_name)
     sim.setup()
     params = {
         "rate": [100, 100, 50.0],
@@ -266,17 +270,19 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     return data
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_issue511(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_issue511(sim_name):
     """Giving SpikeSourceArray an array of non-ordered spike times should produce an InvalidParameterValueError error"""
+    sim = get_simulator(sim_name)
     sim.setup()
     celltype = sim.SpikeSourceArray(spike_times=[[2.4, 4.8, 6.6, 9.4], [3.5, 6.8, 9.6, 8.3]])
     with pytest.raises(InvalidParameterValueError):
         sim.Population(2, celltype)
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_update_SpikeSourceArray(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_update_SpikeSourceArray(sim_name, plot_figure=False):
+    sim = get_simulator(sim_name)
     sim.setup()
     sources = sim.Population(2, sim.SpikeSourceArray(spike_times=[]))
     sources.record('spikes')

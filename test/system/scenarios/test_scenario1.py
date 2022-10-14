@@ -2,17 +2,16 @@
 import glob
 import os
 from pyNN.random import NumpyRNG, RandomDistribution
-import pyNN.nest
-import pyNN.neuron
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_scenario1(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_scenario1(sim_name):
     """
     Balanced network of integrate-and-fire neurons.
     """
+    sim = get_simulator(sim_name)
     cell_params = {
         'tau_m': 20.0, 'tau_syn_E': 5.0, 'tau_syn_I': 10.0, 'v_rest': -60.0,
         'v_reset': -60.0, 'v_thresh': -50.0, 'cm': 1.0, 'tau_refrac': 5.0,
@@ -75,12 +74,13 @@ def test_scenario1(sim):
     sim.end()
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_scenario1a(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_scenario1a(sim_name):
     """
     Balanced network of integrate-and-fire neurons, built with the "low-level"
     API.
     """
+    sim = get_simulator(sim_name)
     cell_params = {
         'tau_m': 10.0, 'tau_syn_E': 2.0, 'tau_syn_I': 5.0, 'v_rest': -60.0,
         'v_reset': -65.0, 'v_thresh': -55.0, 'cm': 0.5, 'tau_refrac': 2.5,

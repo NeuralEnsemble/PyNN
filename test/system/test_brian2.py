@@ -8,10 +8,12 @@ try:
 except ImportError:
     have_brian2 = False
 
+import pytest
+
 
 def test_ticket235():
     if not have_brian2:
-        pytest.skip
+        pytest.skip("Test requires Brian 2")
     pynnn = pyNN.brian2
     pynnn.setup()
     p1 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
@@ -51,7 +53,7 @@ def test_ticket235():
 
 def test_tsodyks_markram_synapse():
     if not have_brian2:
-        pytest.skip
+        pytest.skip("Test requires Brian 2")
     sim = pyNN.brian2
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
@@ -84,7 +86,7 @@ def test_issue648():
       cells.inject(dc_source)
     """
     if not have_brian2:
-        pytest.skip
+        pytest.skip("Test requires Brian 2")
     sim = pyNN.brian2
     sim.setup()
     cells = sim.Population(2, sim.IF_curr_exp(v_rest = -65.0, v_thresh=-55.0,

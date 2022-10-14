@@ -2,13 +2,12 @@
 
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
-import pyNN.nest
-import pyNN.neuron
+from .fixtures import get_simulator
 import pytest
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_scenario3(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_scenario3(sim_name):
     """
     Simple feed-forward network network with additive STDP. The second half of
     the presynaptic neurons fires faster than the second half, so their
@@ -18,6 +17,8 @@ def test_scenario3(sim):
         import scipy.stats
     except ImportError:
         pytest.skip("Test requires scipy")
+
+    sim = get_simulator(sim_name)
 
     init_logging(logfile=None, debug=True)
     second = 1000.0

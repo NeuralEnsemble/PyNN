@@ -1,14 +1,13 @@
 
 import numpy as np
-import pyNN.nest
-import pyNN.neuron
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_simple_stochastic_synapse(sim, plot_figure=False):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_simple_stochastic_synapse(sim_name, plot_figure=False):
     # in this test we connect
+    sim = get_simulator(sim_name)
     sim.setup(min_delay=0.5)
     t_stop = 1000.0
     spike_times = np.arange(2.5, t_stop, 5.0)
@@ -54,4 +53,4 @@ if __name__ == '__main__':
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
-    test_simple_stochastic_synapse(sim, plot_figure=args.plot_figure)
+    test_simple_stochastic_synapse(sim_name, plot_figure=args.plot_figure)

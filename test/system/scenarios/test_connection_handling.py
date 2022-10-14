@@ -2,18 +2,16 @@
 Tests of the fine-grained connection API
 
 """
-
 from numpy.testing import assert_array_equal
 import numpy as np
 from pyNN import common
-import pyNN.nest
-import pyNN.neuron
-import pyNN.brian2
+from .fixtures import get_simulator
 import pytest
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_connections_attribute(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_connections_attribute(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
@@ -25,8 +23,9 @@ def test_connections_attribute(sim):
     assert isinstance(connections[0], common.Connection)
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_connection_access_weight_and_delay(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_connection_access_weight_and_delay(sim_name):
+    sim = get_simulator(sim_name)
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
     p2 = sim.Population(3, sim.IF_cond_exp())
@@ -47,11 +46,12 @@ def test_connection_access_weight_and_delay(sim):
                        target)
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-def test_issue672(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+def test_issue672(sim_name):
     """
     Check that creating new Projections does not mess up existing ones.
     """
+    sim = get_simulator(sim_name)
     sim.setup(verbosity="error")
 
     p1 = sim.Population(5, sim.IF_curr_exp())
@@ -70,8 +70,9 @@ def test_issue672(sim):
     assert_array_equal(wA, wB)
 
 
-# @pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
-# def test_update_synaptic_plasticity_parameters(sim):
+# @pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
+# def test_update_synaptic_plasticity_parameters(sim_name):
+#     sim = get_simulator(sim_name)
 #     sim.setup()
 #     p1 = sim.Population(3, sim.IF_cond_exp(), label="presynaptic")
 #     p2 = sim.Population(2, sim.IF_cond_exp(), label="postsynaptic")
@@ -92,9 +93,10 @@ def test_issue672(sim):
 #                        np.array([[0.01, 0.011], [0.012, 0.013], [0.014, 0.015]]))
 
 
-@pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron))
-def test_issue652(sim):
+@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
+def test_issue652(sim_name):
     """Correctly handle A_plus = 0 in SpikePairRule."""
+    sim = get_simulator(sim_name)
     sim.setup()
 
     neural_population1 = sim.Population(10, sim.IF_cond_exp())
