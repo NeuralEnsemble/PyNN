@@ -1,16 +1,15 @@
 
 import numpy as np
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_ticket166(sim_name, plot_figure=False):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
     works (see http://neuralensemble.org/trac/PyNN/ticket/166)
     """
-    sim = get_simulator(sim_name)
 
     dt = 0.1  # ms
     t_step = 100.0  # ms

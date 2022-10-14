@@ -1,11 +1,11 @@
 
 import numpy as np
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_scenario2(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_scenario2(sim):
     """
     Array of neurons, each injected with a different current.
 
@@ -18,7 +18,6 @@ def test_scenario2(sim_name):
     we set the refractory period to be very large, so each neuron fires only
     once (except neuron[0], which never reaches threshold).
     """
-    sim = get_simulator(sim_name)
     n = 83
     t_start = 25.0
     duration = 100.0

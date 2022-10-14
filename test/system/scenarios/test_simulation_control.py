@@ -1,16 +1,15 @@
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_reset(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_reset(sim):
     """
     Run the same simulation n times without recreating the network,
     and check the results are the same each time.
     """
-    sim = get_simulator(sim_name)
     repeats = 3
     dt = 1
     sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
@@ -29,13 +28,12 @@ def test_reset(sim_name):
                                   data.segments[0].analogsignals[0], 10)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_reset_with_clear(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_reset_with_clear(sim):
     """
     Run the same simulation n times without recreating the network,
     and check the results are the same each time.
     """
-    sim = get_simulator(sim_name)
     repeats = 3
     dt = 1
     sim.setup(timestep=dt, min_delay=dt, t_flush=10.0)
@@ -56,13 +54,12 @@ def test_reset_with_clear(sim_name):
                         data[0].segments[0].analogsignals[0].magnitude, 1e-11)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_reset_with_spikes(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_reset_with_spikes(sim):
     """
     Run the same simulation n times without recreating the network,
     and check the results are the same each time.
     """
-    sim = get_simulator(sim_name)
     repeats = 3
     dt = 0.1
     sim.setup(timestep=dt, min_delay=dt, t_flush=200.0)
@@ -87,13 +84,12 @@ def test_reset_with_spikes(sim_name):
                                   data.segments[0].analogsignals[0], 10)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_setup(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_setup(sim):
     """
     Run the same simulation n times, recreating the network each time,
     and check the results are the same each time.
     """
-    sim = get_simulator(sim_name)
 
     n = 3
     data = []
@@ -115,9 +111,8 @@ def test_setup(sim_name):
         assert_array_equal(signals[0], data[0].segments[0].analogsignals[0])
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_run_until(sim_name):
-    sim = get_simulator(sim_name)
+@run_with_simulators("nest", "neuron", "brian2")
+def test_run_until(sim):
 
     sim.setup(timestep=0.1)
     p = sim.Population(1, sim.IF_cond_exp())

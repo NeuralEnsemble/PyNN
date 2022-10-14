@@ -1,13 +1,12 @@
 
 from pyNN.random import RandomDistribution as rnd
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue274(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue274(sim):
     """Issue with offset in GIDs"""
-    sim = get_simulator(sim_name)
     sim.setup(min_delay=0.5)
 
     p0 = sim.Population(13, sim.IF_cond_exp())

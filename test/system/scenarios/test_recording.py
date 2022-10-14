@@ -6,12 +6,12 @@ import quantities as pq
 from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
 from pyNN.utility import normalized_filename
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 
-@pytest.mark.parametrize("sim_name", ("neuron", "brian2"))
-def test_reset_recording(sim_name):
+@run_with_simulators("neuron", "brian2")
+def test_reset_recording(sim):
     """
     Check that record(None) resets the list of things to record.
 
@@ -20,7 +20,6 @@ def test_reset_recording(sim_name):
     The main point is to check that the first neuron is not recorded in the
     second run.
     """
-    sim = get_simulator(sim_name)
     sim.setup()
     p = sim.Population(7, sim.IF_cond_exp())
     p[3].i_offset = 0.1
@@ -43,10 +42,9 @@ def test_reset_recording(sim_name):
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_record_vm_and_gsyn_from_assembly(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
-    sim = get_simulator(sim_name)
     init_logging(logfile=None, debug=True)
     dt = 0.1
     tstop = 100.0
@@ -93,12 +91,11 @@ def test_record_vm_and_gsyn_from_assembly(sim_name):
     sim.end()
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
-def test_issue259(sim_name):
+@run_with_simulators("nest", "neuron")
+def test_issue259(sim):
     """
     A test that retrieving data with "clear=True" gives correct spike trains.
     """
-    sim = get_simulator(sim_name)
     sim.setup(timestep=0.05, spike_precision="off_grid")
     p = sim.Population(1, sim.SpikeSourceArray(spike_times=[0.075, 10.025, 12.34, 1000.025]))
     p.record('spikes')
@@ -118,12 +115,11 @@ def test_issue259(sim_name):
     assert spiketrains2[0].size == 0
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_sampling_interval(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_sampling_interval(sim):
     """
     A test of the sampling_interval argument.
     """
-    sim = get_simulator(sim_name)
     sim.setup(0.1)
     p1 = sim.Population(3, sim.IF_cond_exp())
     p2 = sim.Population(4, sim.IF_cond_exp())
@@ -139,10 +135,9 @@ def test_sampling_interval(sim_name):
     sim.end()
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_mix_procedural_and_oo(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_mix_procedural_and_oo(sim):
     # cf Issues #217, #234
-    sim = get_simulator(sim_name)
     fn_proc = "test_write_procedural.pkl"
     fn_oo = "test_write_oo.pkl"
     sim.setup(timestep=0.1, min_delay=0.1)
@@ -161,8 +156,8 @@ def test_mix_procedural_and_oo(sim_name):
     os.remove(fn_oo)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
-def test_record_with_filename(sim_name):
+@run_with_simulators("nest", "neuron")
+def test_record_with_filename(sim):
     """
     Test to ensure that Simulator and Population recording work properly
     The following 12 scenarios are explored:
@@ -187,7 +182,6 @@ def test_record_with_filename(sim_name):
 
     cf Issues #449, #490, #491
     """
-    sim = get_simulator(sim_name)
     # START ***** defining methods needed for test *****
 
     def get_file_data(filename):
@@ -359,12 +353,11 @@ def test_record_with_filename(sim_name):
     assert (annot_bool)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron"))
-def test_issue499(sim_name):
+@run_with_simulators("nest", "neuron")
+def test_issue499(sim):
     """
     Test to check that sim.end() does not erase the recorded data
     """
-    sim = get_simulator(sim_name)
     sim.setup(min_delay=1.0, timestep = 0.1)
     cells = sim.Population(1, sim.IF_curr_exp())
     dcsource = sim.DCSource(amplitude=0.5, start=20, stop=80)

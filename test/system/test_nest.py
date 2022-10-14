@@ -14,7 +14,7 @@ import pytest
 
 def test_record_native_model():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     nest = pyNN.nest
     from pyNN.random import RandomDistribution
 
@@ -59,7 +59,7 @@ def test_record_native_model():
 
 def test_native_stdp_model():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     nest = pyNN.nest
     from pyNN.utility import init_logging
 
@@ -81,7 +81,7 @@ def test_native_stdp_model():
 
 def test_ticket240():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     nest = pyNN.nest
     nest.setup(threads=4)
     parameters = {'tau_m': 17.0}
@@ -97,7 +97,7 @@ def test_ticket240():
 
 def test_ticket244():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     nest = pyNN.nest
     nest.setup(threads=4)
     p1 = nest.Population(4, nest.IF_curr_exp())
@@ -113,7 +113,7 @@ def test_ticket244():
 def test_ticket236():
     """Calling get_spike_counts() in the middle of a run should not stop spike recording"""
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     pynnn = pyNN.nest
     pynnn.setup()
     p1 = pynnn.Population(2, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
@@ -129,7 +129,7 @@ def test_ticket236():
 
 def test_issue237():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     sim = pyNN.nest
     n_exc = 10
     sim.setup()
@@ -143,7 +143,7 @@ def test_issue237():
 
 def test_random_seeds():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     sim = pyNN.nest
     data = []
     for seed in (854947309, 470924491):
@@ -157,7 +157,7 @@ def test_random_seeds():
 
 def test_tsodyks_markram_synapse():
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
     sim.setup()
@@ -182,7 +182,7 @@ def test_tsodyks_markram_synapse():
 def test_native_electrode_types():
     """ Test of NativeElectrodeType class. (See issue #506)"""
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     sim = pyNN.nest
     dt = 0.1
     sim.setup(timestep=0.1, min_delay=0.1)
@@ -222,7 +222,7 @@ def test_native_electrode_types():
 def test_issue529():
     # A combination of NEST Common synapse properties and FromListConnector doesn't work
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 
@@ -264,7 +264,7 @@ def test_issue529():
 def test_issue662a():
     """Setting tau_minus to a random distribution fails..."""
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 
@@ -290,7 +290,7 @@ def test_issue662a():
 def test_issue662b():
     """Setting tau_minus to a random distribution fails..."""
     if not have_nest:
-        pytest.skip
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 

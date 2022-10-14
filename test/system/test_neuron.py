@@ -26,7 +26,7 @@ def test_ticket168():
     http://neuralensemble.org/trac/PyNN/ticket/168
     """
     if not have_neuron:
-        pytest.skip
+        pytest.skip("neuron not available")
     pynn = pyNN.neuron
     pynn.setup()
     cell = pynn.Population(1, pynn.SpikeSourcePoisson(), label="cell")
@@ -144,7 +144,7 @@ def test_electrical_synapse():
 
 def test_record_native_model():
     if not have_neuron:
-        pytest.skip
+        pytest.skip("neuron not available")
     nrn = pyNN.neuron
 
     init_logging(logfile=None, debug=True)
@@ -189,7 +189,7 @@ def test_record_native_model():
 
 def test_tsodyks_markram_synapse():
     if not have_neuron:
-        pytest.skip
+        pytest.skip("neuron not available")
     sim = pyNN.neuron
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
@@ -210,7 +210,7 @@ def test_tsodyks_markram_synapse():
 
 def test_artificial_cells():
     if not have_neuron:
-        pytest.skip
+        pytest.skip("neuron not available")
     sim = pyNN.neuron
     sim.setup()
     input = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))

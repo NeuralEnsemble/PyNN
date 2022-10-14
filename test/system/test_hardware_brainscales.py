@@ -83,20 +83,6 @@ class HardwareTest(unittest.TestCase):
         # ).save("result")
 
 
-# def test_scenarios():
-    #extra = {'loglevel':0, 'useSystemSim': True}
-    #extra['hardware'] = sim.hardwareSetup['small']
-
-    # for scenario in registry:
-        # if "hardware.brainscales" not in scenario.exclude:
-        #scenario.description = scenario.__name__
-        # if have_hardware_brainscales:
-        # sim.setup(**extra)
-        # yield scenario, sim
-        # sim.end()
-        # else:
-        #pytest.skip
-
 
 def test_restart_loop():
     if not have_hardware_brainscales:

@@ -12,7 +12,7 @@ import pytest
 
 def test_save_validate_network():
     if not have_neuroml:
-        pytest.skip("test requires NeuroML module")
+        pytest.skip("neuroml module not available")
     sim = pyNN.neuroml
     reference='Test0'
 

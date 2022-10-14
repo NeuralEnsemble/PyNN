@@ -4,7 +4,7 @@ from numpy.testing import assert_array_equal
 import quantities as pq
 import numpy as np
 
-from .fixtures import get_simulator
+from .fixtures import run_with_simulators
 import pytest
 
 try:
@@ -14,12 +14,11 @@ except ImportError:
     have_scipy = False
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_changing_electrode(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_changing_electrode(sim):
     """
     Check that changing the values of the electrodes on the fly is taken into account
     """
-    sim = get_simulator(sim_name)
     repeats = 2
     dt = 0.1
     simtime = 100
@@ -42,13 +41,12 @@ def test_changing_electrode(sim_name):
     assert data[int(simtime / dt), 0] < data[-1, 0]
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_ticket226(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_ticket226(sim):
     """
     Check that the start time of DCSources is correctly taken into account
     http://neuralensemble.org/trac/PyNN/ticket/226)
     """
-    sim = get_simulator(sim_name)
     sim.setup(timestep=0.1, min_delay=0.1)
 
     cell = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
@@ -66,10 +64,9 @@ def test_ticket226(sim_name):
     assert v_10p1 > -59.99, v_10p1
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue165(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue165(sim):
     """Ensure that anonymous current sources are not lost."""
-    sim = get_simulator(sim_name)
     sim.setup(timestep=0.1)
     p = sim.Population(1, sim.IF_cond_exp())
     p.inject(sim.DCSource(amplitude=1.0, start=10.0, stop=20.0))
@@ -81,10 +78,9 @@ def test_issue165(sim_name):
     assert data[150, 0] > -65.0
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue321(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue321(sim):
     """Check that non-zero currents at t=0 are taken into account."""
-    sim = get_simulator(sim_name)
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(3, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=-60.0,
                                                 v_reset=-60.0))
@@ -106,8 +102,8 @@ def test_issue321(sim_name):
     assert abs((v[-3:, 1] - v[-3:, 0]).max()) < 0.2
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue437(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue437(sim):
     """
     Checks whether NoisyCurrentSource works properly, by verifying that:
     1) no change in vm before start time
@@ -120,7 +116,6 @@ def test_issue437(sim_name):
     """
     if not have_scipy:
         pytest.skip("scipy not available")
-    sim = get_simulator(sim_name)
     v_rest = -60.0  # for this test keep v_rest < v_reset
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(2, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=v_rest,
@@ -181,8 +176,8 @@ def test_issue437(sim_name):
     assert (abs(dt_0_mode - dt_0) < 1e-9 or abs(dt_1_mode - dt_1) < 1e-9)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue442(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue442(sim):
     """
     Checks whether ACSource works properly, by verifying that:
     1) no change in vm before start time
@@ -191,7 +186,6 @@ def test_issue442(sim_name):
     4) accurate frequency of output signal
     5) offset included in output signal
     """
-    sim = get_simulator(sim_name)
     v_rest = -60.0
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(1, sim.IF_curr_alpha(tau_m=20.0, cm=1.0, v_rest=v_rest,
@@ -240,14 +234,13 @@ def test_issue442(sim_name):
     assert (v0[peak_ind[0]] < v0[peak_ind[1]] and v0[peak_ind[1]] < v0[peak_ind[2]])
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue445(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue445(sim):
     """
     This test basically checks if a new value of current is calculated at every
     time step, and that the total number of time steps is as expected theoretically
     Note: NEST excluded as recording of electrode currents still to be implemented
     """
-    sim = get_simulator(sim_name)
     sim_dt = 0.1
     simtime = 200.0
     sim.setup(timestep=sim_dt, min_delay=1.0)
@@ -272,14 +265,13 @@ def test_issue445(sim_name):
     assert ((len(i_t_ac) - ((max(i_t_ac)-min(i_t_ac))/sim_dt + 1)) < 1e-9)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue451(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue451(sim):
     """
     Modification of test: test_changing_electrode
     Difference: incorporates a start and stop time for stimulus
     Check that changing the values of the electrodes on the fly is taken into account
     """
-    sim = get_simulator(sim_name)
     repeats = 2
     dt = 0.1
     simtime = 100
@@ -302,13 +294,12 @@ def test_issue451(sim_name):
     assert (all((val.item()-v_rest) < 1e-9 for val in v[:, 0]))
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue483(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue483(sim):
     """
     Test to ensure that length of recorded voltage vector is as expected
     (checks for the specific scenario that failed earlier)
     """
-    sim = get_simulator(sim_name)
     dt = 0.1
     sim.setup(timestep=dt, min_delay=dt)
     p = sim.Population(1, sim.IF_curr_exp())
@@ -326,8 +317,8 @@ def test_issue483(sim_name):
     assert (len(v) == (int(simtime/dt) + 1))
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue487(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue487(sim):
     """
     Test to ensure that DCSource and StepCurrentSource work properly
     for repeated runs. Problem existed under "neuron".
@@ -337,7 +328,6 @@ def test_issue487(sim_name):
     3) DCSource active only during second run (earlier resulted in no current input)
     4) StepCurrentSource active only during second run (earlier resulted in current initiation at end of first run)
     """
-    sim = get_simulator(sim_name)
     dt = 0.1
     sim.setup(timestep=dt, min_delay=dt)
 
@@ -384,8 +374,8 @@ def test_issue487(sim_name):
     assert (np.isclose(v_step_2_arr[0:int(step_2.times[0]/dt)], v_rest).all())
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue_465_474_630(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue_465_474_630(sim):
     """
     Checks the current traces recorded for each of the four types of
     electrodes in pyNN, and verifies that:
@@ -394,7 +384,6 @@ def test_issue_465_474_630(sim_name):
     3) Changes in current value occur at the expected time instant
     4) Change in Vm begins at the immediate next time instant following current injection
     """
-    sim = get_simulator(sim_name)
     sim_dt = 0.1
     sim.setup(min_delay=1.0, timestep=sim_dt)
 
@@ -490,8 +479,8 @@ def test_issue_465_474_630(sim_name):
                               v_rest) and v_step[int(start / sim_dt) + 1] != v_rest * pq.mV)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue497(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue497(sim):
     """
     This is a test to check that the specified phase for the ACSource is valid
     at the specified start time (and not, for example, at t=0 as NEST currently does)
@@ -502,7 +491,6 @@ def test_issue497(sim_name):
     > 'frequency' of other signal updated on the fly
     > Test to ensure that initial specified phases applicable at t = start
     """
-    sim = get_simulator(sim_name)
     sim_dt = 0.1
     sim.setup(min_delay=1.0, timestep=sim_dt)
 
@@ -546,8 +534,8 @@ def test_issue497(sim_name):
     assert (abs(i_ac2[int(start2 / sim_dt), 0] - amplitude * pq.nA) < 1e-9)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue512(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue512(sim):
     """
     Test to ensure that StepCurrentSource times are handled similarly across
     all simulators. Multiple combinations of step times tested for:
@@ -556,10 +544,9 @@ def test_issue512(sim_name):
     Note: exact matches of times not appropriate owing to floating point
     rounding errors. If absolute difference <1e-9, then considered equal.
     """
-    sim = get_simulator(sim_name)
 
     def get_len(data):
-        if "nest" in str(sim_name):
+        if "nest" in str(sim):
             # as NEST uses LazyArray
             return len(data.evaluate())
         else:
@@ -580,7 +567,7 @@ def test_issue512(sim_name):
                                  amplitudes=[0.5, -0.5, 0.5])
     assert get_len(step.times) == 2
     assert get_len(step.amplitudes) == 2
-    if "brian" in str(sim_name):
+    if "brian" in str(sim):
         # Brian requires time in seconds (s)
         assert (abs(step.times[0]-0.4*1e-3) < 1e-9)
         assert (abs(step.times[1]-0.9*1e-3) < 1e-9)
@@ -595,7 +582,7 @@ def test_issue512(sim_name):
         assert (step.amplitudes[1] == 0.5)
         # NEST and NEURON require time in ms
         # But NEST has time stamps reduced by min_delay
-        if "nest" in str(sim_name):
+        if "nest" in str(sim):
             assert (abs(step.times[0]-0.3) < 1e-9)
             assert (abs(step.times[1]-0.8) < 1e-9)
         else:  # neuron
@@ -617,7 +604,7 @@ def test_issue512(sim_name):
                                  amplitudes=[0.5, -0.5, 0.5])
     assert get_len(step.times) == 2
     assert get_len(step.amplitudes) == 2
-    if "brian" in str(sim_name):
+    if "brian" in str(sim):
         # Brian requires time in seconds (s)
         assert (abs(step.times[0]-0.45*1e-3) < 1e-9)
         assert (abs(step.times[1]-0.86*1e-3) < 1e-9)
@@ -632,7 +619,7 @@ def test_issue512(sim_name):
         assert (step.amplitudes[1] == 0.5)
         # NEST and NEURON require time in ms
         # But NEST has time stamps reduced by min_delay
-        if "nest" in str(sim_name):
+        if "nest" in str(sim):
             assert (abs(step.times[0]-0.44) < 1e-9)
             assert (abs(step.times[1]-0.85) < 1e-9)
         else:  # neuron
@@ -640,13 +627,12 @@ def test_issue512(sim_name):
             assert (abs(step.times[1]-0.86) < 1e-9)
 
 
-@pytest.mark.parametrize("sim_name", ("nest", "neuron", "brian2"))
-def test_issue631(sim_name):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue631(sim):
     """
     Test to ensure that recording of multiple electrode currents do not
     interfere with one another.
     """
-    sim = get_simulator(sim_name)
     sim_dt = 0.1
     sim.setup(timestep=sim_dt, min_delay=sim_dt)
 
