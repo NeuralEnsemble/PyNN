@@ -56,9 +56,11 @@ jobs:
         python setup.py install
     - name: Run unit and system tests
       run: |
-        pytest -v --cov=pyNN test
+        pytest -v --cov=pyNN --cov-report=term --cov-report=lcov --cov-report=xml test
     - name: Upload coverage data
-      run: coveralls --service=github
+      run: |
+        ls -al
+        coveralls --service=github
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         COVERALLS_FLAG_NAME: ${{ matrix.test-name }}
@@ -72,6 +74,7 @@ jobs:
     - name: Finished
       run: |
         pip3 install --upgrade coveralls
+        ls -al
         coveralls --service=github --finish
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
