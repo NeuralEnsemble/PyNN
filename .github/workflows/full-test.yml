@@ -54,6 +54,9 @@ jobs:
     - name: Install PyNN itself
       run: |
         pip install -e .
+    - name: Compile NEURON mechanisms (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
         pushd pyNN/neuron/nmodl
         nrnivmodl
         popd
