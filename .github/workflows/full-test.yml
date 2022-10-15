@@ -53,7 +53,7 @@ jobs:
         make install
     - name: Install PyNN itself
       run: |
-        python setup.py install
+        pip install -e .
     - name: Run unit and system tests
       run: |
         pytest -v --cov=pyNN --cov-report=term --cov-report=lcov --cov-report=xml test
