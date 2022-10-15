@@ -8,4 +8,4 @@ pip install pytest pytest-cov
 source ci/install_brian.sh
 source ci/install_nest.sh
 source ci/install_neuron.sh
-python setup.py install
+python setup.py develop
