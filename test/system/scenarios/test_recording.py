@@ -3,14 +3,13 @@ import os
 import pickle
 import numpy as np
 import quantities as pq
-from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
 from pyNN.utility import normalized_filename
-from .registry import register
+from .fixtures import run_with_simulators
 
 
-@register()
+@run_with_simulators("neuron", "brian2")
 def test_reset_recording(sim):
     """
     Check that record(None) resets the list of things to record.
@@ -40,10 +39,9 @@ def test_reset_recording(sim):
     assert vi(0).shape == vi(1).shape == (101, 1)
     assert vi(0)[0, 0] == vi(1)[0, 0] == p.initial_values['v'].evaluate(simplify=True) * pq.mV  # the first value should be the same
     assert not (vi(0)[1:, 0] == vi(1)[1:, 0]).any()            # none of the others should be, because of different i_offset
-test_reset_recording.__test__ = False
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_record_vm_and_gsyn_from_assembly(sim):
     from pyNN.utility import init_logging
     init_logging(logfile=None, debug=True)
@@ -57,10 +55,10 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     cells.record('v')
     cells[2:9].record(['gsyn_exc', 'gsyn_inh'])
 #    for p in cells.populations:
-#        assert_equal(p.recorders['v'].recorded, set(p.all_cells))
+#        assert p.recorders['v'].recorded, set(p.all_cells))
 
-#    assert_equal(cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
-#    assert_equal(cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
+#    assert cells.populations[0].recorders['gsyn'].recorded, set(cells.populations[0].all_cells[2:5]))
+#    assert cells.populations[1].recorders['gsyn'].recorded, set(cells.populations[1].all_cells[0:4]))
     sim.run(tstop)
     data0 = cells.populations[0].get_data().segments[0]
     data1 = cells.populations[1].get_data().segments[0]
@@ -73,12 +71,12 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     gsyn_all = data_all.filter(name='gsyn_exc')[0]
 
     n_points = int(tstop / dt) + 1
-    assert_equal(vm_p0.shape, (n_points, 5))
-    assert_equal(vm_p1.shape, (n_points, 6))
-    assert_equal(vm_all.shape, (n_points, 11))
-    assert_equal(gsyn_p0.shape, (n_points, 3))
-    assert_equal(gsyn_p1.shape, (n_points, 4))
-    assert_equal(gsyn_all.shape, (n_points, 7))
+    assert vm_p0.shape == (n_points, 5)
+    assert vm_p1.shape == (n_points, 6)
+    assert vm_all.shape == (n_points, 11)
+    assert gsyn_p0.shape == (n_points, 3)
+    assert gsyn_p1.shape == (n_points, 4)
+    assert gsyn_all.shape == (n_points, 7)
 
     assert_array_equal(vm_p1[:, 3], vm_all[:, 8])
 
@@ -90,11 +88,10 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     #assert_array_equal(gsyn_all.array_annotations["channel_index"], np.arange(2, 9))
 
     sim.end()
-test_record_vm_and_gsyn_from_assembly.__test__ = False
 
 
-@register(exclude=["brian2"])  # brian does not support off_grid. To fix?
-def issue259(sim):
+@run_with_simulators("nest", "neuron")
+def test_issue259(sim):
     """
     A test that retrieving data with "clear=True" gives correct spike trains.
     """
@@ -114,10 +111,10 @@ def issue259(sim):
 
     assert_allclose(spiketrains0[0].rescale(pq.ms).magnitude, np.array([0.075]), 1e-17)
     assert_allclose(spiketrains1[0].rescale(pq.ms).magnitude, np.array([10.025, 12.34]), 1e-14)
-    assert_equal(spiketrains2[0].size, 0)
+    assert spiketrains2[0].size == 0
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_sampling_interval(sim):
     """
     A test of the sampling_interval argument.
@@ -130,15 +127,14 @@ def test_sampling_interval(sim):
     sim.run(10.0)
     d1 = p1.get_data().segments[0].analogsignals[0]
     d2 = p2.get_data().segments[0].analogsignals[0]
-    assert_equal(d1.sampling_period, 1.0 * pq.ms)
-    assert_equal(d1.shape, (11, 3))
-    assert_equal(d2.sampling_period, 0.5 * pq.ms)
-    assert_equal(d2.shape, (21, 4))
+    assert d1.sampling_period == 1.0 * pq.ms
+    assert d1.shape == (11, 3)
+    assert d2.sampling_period == 0.5 * pq.ms
+    assert d2.shape == (21, 4)
     sim.end()
-test_sampling_interval.__test__ = False
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_mix_procedural_and_oo(sim):
     # cf Issues #217, #234
     fn_proc = "test_write_procedural.pkl"
@@ -157,10 +153,9 @@ def test_mix_procedural_and_oo(sim):
 
     os.remove(fn_proc)
     os.remove(fn_oo)
-test_mix_procedural_and_oo.__test__ = False
 
 
-@register(exclude=['brian2'])  # todo: known to fail with Brian, but should work
+@run_with_simulators("nest", "neuron")
 def test_record_with_filename(sim):
     """
     Test to ensure that Simulator and Population recording work properly
@@ -274,92 +269,91 @@ def test_record_with_filename(sim):
     # retrieve data from the created files, and perform appropriate checks
     # scenario 1
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_2vars))
-    assert_true (nCells == 1)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == 1)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 2
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var1))
-    assert_true (nCells == -1)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == -1)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 3
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell1_var2))
-    assert_true (nCells == 1)
-    assert_true (nspikes1 == -1)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == 1)
+    assert (nspikes1 == -1)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 4
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_2vars))
-    assert_true (nCells == 1)
-    assert_true (nspikes1 == 0)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == 1)
+    assert (nspikes1 == 0)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 5
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var1))
-    assert_true (nCells == -1)
-    assert_true (nspikes1 == 0)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == -1)
+    assert (nspikes1 == 0)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 6
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_cell2_var2))
-    assert_true (nCells == 1)
-    assert_true (nspikes1 == -1)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == 1)
+    assert (nspikes1 == -1)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 7
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_2vars))
-    assert_true (nCells == 2)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == 0)
-    assert_true (annot_bool)
+    assert (nCells == 2)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == 0)
+    assert (annot_bool)
 
     # scenario 8
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var1))
-    assert_true (nCells == -1)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == 0)
-    assert_true (annot_bool)
+    assert (nCells == -1)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == 0)
+    assert (annot_bool)
 
     # scenario 9
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_sim_popl_var2))
-    assert_true (nCells == 2)
-    assert_true (nspikes1 == -1)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
+    assert (nCells == 2)
+    assert (nspikes1 == -1)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
     # scenario 10
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_2vars))
-    assert_true (nCells == 2)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == 0)
-    assert_true (annot_bool)
+    assert (nCells == 2)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == 0)
+    assert (annot_bool)
 
     # scenario 11
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var1))
-    assert_true (nCells == -1)
-    assert_true (nspikes1 > 0)
-    assert_true (nspikes2 == 0)
-    assert_true (annot_bool)
+    assert (nCells == -1)
+    assert (nspikes1 > 0)
+    assert (nspikes2 == 0)
+    assert (annot_bool)
 
     # scenario 12
     nCells, nspikes1, nspikes2, annot_bool = eval_num_cells(get_file_data(filename_rec_var2))
-    assert_true (nCells == 2)
-    assert_true (nspikes1 == -1)
-    assert_true (nspikes2 == -1)
-    assert_true (annot_bool)
-test_record_with_filename.__test__ = False
+    assert (nCells == 2)
+    assert (nspikes1 == -1)
+    assert (nspikes2 == -1)
+    assert (annot_bool)
 
 
-@register()
-def issue499(sim):
+@run_with_simulators("nest", "neuron")
+def test_issue499(sim):
     """
     Test to check that sim.end() does not erase the recorded data
     """
@@ -373,7 +367,7 @@ def issue499(sim):
     sim.end()
     vm = cells.get_data().segments[0].filter(name="v")[0]
     v_dc = vm[:, 0]
-    assert_true (len(v_dc)!=0)
+    assert (len(v_dc)!=0)
 
 
 if __name__ == '__main__':
@@ -381,8 +375,8 @@ if __name__ == '__main__':
     sim, args = get_simulator()
     test_reset_recording(sim)
     test_record_vm_and_gsyn_from_assembly(sim)
-    issue259(sim)
+    test_issue259(sim)
     test_sampling_interval(sim)
     test_mix_procedural_and_oo(sim)
     test_record_with_filename(sim)
-    issue499(sim)
+    test_issue499(sim)

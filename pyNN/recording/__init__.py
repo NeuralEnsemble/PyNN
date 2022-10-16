@@ -303,9 +303,9 @@ class Recorder(object):
                         times = times[mask]
                         id_array = id_array[mask]
                     segment.spiketrains = neo.spiketrainlist.SpikeTrainList.from_spike_time_array(
-                        times, id_array, 
+                        times, id_array,
                         np.array(sids, dtype=int),
-                        t_stop=t_stop, 
+                        t_stop=t_stop,
                         units="ms",
                         t_start=self._recording_start_time,
                         source_population=self.population.label

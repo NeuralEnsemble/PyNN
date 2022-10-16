@@ -1,14 +1,15 @@
 
 import numpy as np
-from .registry import register
+from .fixtures import run_with_simulators
 
 
-@register()
-def ticket166(sim, plot_figure=False):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_ticket166(sim, plot_figure=False):
     """
     Check that changing the spike_times of a SpikeSourceArray mid-simulation
     works (see http://neuralensemble.org/trac/PyNN/ticket/166)
     """
+
     dt = 0.1  # ms
     t_step = 100.0  # ms
     lag = 3.0  # ms
@@ -54,4 +55,4 @@ if __name__ == '__main__':
     sim, args = get_simulator(("--plot-figure",
                                {"help": "generate a figure",
                                 "action": "store_true"}))
-    ticket166(sim, plot_figure=args.plot_figure)
+    test_ticket166(sim, plot_figure=args.plot_figure)

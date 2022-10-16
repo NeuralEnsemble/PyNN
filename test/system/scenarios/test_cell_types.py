@@ -1,6 +1,5 @@
 
 import numpy as np
-from nose.plugins.skip import SkipTest
 try:
     import scipy
     have_scipy = True
@@ -8,14 +7,13 @@ except ImportError:
     have_scipy = False
 from numpy.testing import assert_array_equal
 import quantities as pq
-from nose.tools import assert_greater, assert_less, assert_raises
 from pyNN.parameters import Sequence
 from pyNN.errors import InvalidParameterValueError
+from .fixtures import run_with_simulators
+import pytest
 
-from .registry import register
 
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
@@ -39,10 +37,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     return data
 
 
-test_EIF_cond_alpha_isfa_ista.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -74,10 +69,8 @@ def test_HH_cond_exp(sim, plot_figure=False):
     assert first_spike / pq.ms - 2.95 < 0.01
 
 
-test_HH_cond_exp.__test__ = False
-
-
-@register(exclude=['brian2'])  # see issue 370
+# exclude brian2 - see issue 370
+@run_with_simulators("nest", "neuron")
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -108,15 +101,12 @@ def issue367(sim, plot_figure=False):
     return data
 
 
-issue367.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_SpikeSourcePoisson(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "rate": [100, 200, 1000.0],
@@ -155,20 +145,17 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
                       args=(0, expected_mean_isi),  # args are (loc, scale)
                       alternative='two-sided')
         print(expected_rate, expected_mean_isi, isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourcePoisson.__test__ = False
-
-
-@register(exclude=['brian2'])
+@run_with_simulators("nest", "neuron")
 def test_SpikeSourceGamma(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "beta": [100.0, 200.0, 1000.0],
@@ -214,20 +201,17 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
                       args=(alpha, 0, 1000.0/beta),  # args are (a, loc, scale)
                       alternative='two-sided')
         print(alpha, beta, expected_mean_isi, isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourceGamma.__test__ = False
-
-
-@register(exclude=['brian2'])
+@run_with_simulators("nest", "neuron")
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "rate": [100, 100, 50.0],
@@ -275,23 +259,21 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
                       args=(0, poisson_mean_isi),  # args are (loc, scale)
                       alternative='two-sided')
         print(expected_rate, poisson_mean_isi, corrected_isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourcePoissonRefractory.__test__ = False
-
-
-@register()
-def issue511(sim):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue511(sim):
     """Giving SpikeSourceArray an array of non-ordered spike times should produce an InvalidParameterValueError error"""
     sim.setup()
     celltype = sim.SpikeSourceArray(spike_times=[[2.4, 4.8, 6.6, 9.4], [3.5, 6.8, 9.6, 8.3]])
-    assert_raises(InvalidParameterValueError, sim.Population, 2, celltype)
+    with pytest.raises(InvalidParameterValueError):
+        sim.Population(2, celltype)
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_update_SpikeSourceArray(sim, plot_figure=False):
     sim.setup()
     sources = sim.Population(2, sim.SpikeSourceArray(spike_times=[]))
@@ -311,7 +293,6 @@ def test_update_SpikeSourceArray(sim, plot_figure=False):
     assert_array_equal(data[0].magnitude, np.array([12, 15, 18, 22, 25]))
 
 
-test_update_SpikeSourceArray.__test__ = False
 
 # todo: add test of Izhikevich model
 
@@ -327,5 +308,5 @@ if __name__ == '__main__':
     test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)
-    issue511(sim)
+    test_issue511(sim)
     test_update_SpikeSourceArray(sim, plot_figure=args.plot_figure)

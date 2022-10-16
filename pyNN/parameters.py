@@ -6,10 +6,7 @@ Parameter set handling
 """
 
 import numpy as np
-try:
-    from collections import Sized
-except ImportError:
-    from collections.abc import Sized
+from collections.abc import Sized
 from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution, NativeRNG

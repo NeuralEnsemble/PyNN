@@ -5,7 +5,6 @@ try:
 except ImportError:
     from mock import Mock
 from inspect import isfunction
-from nose.tools import assert_equal
 
 
 def test_build_create():
@@ -58,7 +57,7 @@ def test_build_record():
     record_function(('v', 'spikes'), source, "filename")
     source.record.assert_called_with(('v', 'spikes'), to_file="filename", sampling_interval=None)
     # below check needs to be re-implmented with pyNN.mock
-    # assert_equal(simulator.state.write_on_end, [(source, ('v', 'spikes'), "filename")])
+    # assert simulator.state.write_on_end == [(source, ('v', 'spikes'), "filename")]
 
 
 def test_build_record_with_assembly():
@@ -75,4 +74,4 @@ def test_build_record_with_assembly():
     record_function('foo', source, "filename")
     source.record.assert_called_with('foo', to_file="filename", sampling_interval=None)
     # below check needs to be re-implmented with pyNN.mock
-    # assert_equal(simulator.state.write_on_end, [(source, 'foo', "filename")])  # not sure this is what we want - won't file get over-written?
+    # assert simulator.state.write_on_end == [(source, 'foo', "filename")]  # not sure this is what we want - won't file get over-written?

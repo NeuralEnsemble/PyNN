@@ -10,8 +10,8 @@ import unittest
 from unittest.mock import Mock
 
 import numpy as np
-from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
+import pytest
 
 from pyNN import space
 
@@ -22,20 +22,20 @@ def test_distance():
     A = lambda *x: np.array(x)
     cell1.position = A(2.3, 4.5, 6.7)
     cell2.position = A(2.3, 4.5, 6.7)
-    assert_equal(space.distance(cell1, cell2), 0.0)
+    assert space.distance(cell1, cell2) == 0.0
     cell2.position = A(5.3, 4.5, 6.7)
-    assert_equal(space.distance(cell1, cell2), 3.0)
+    assert space.distance(cell1, cell2) == 3.0
     cell2.position = A(5.3, 8.5, 6.7)
-    assert_equal(space.distance(cell1, cell2), 5.0)
+    assert space.distance(cell1, cell2) == 5.0
     cell2.position = A(5.3, 8.5, -5.3)
-    assert_equal(space.distance(cell1, cell2), 13.0)
-    assert_equal(space.distance(cell1, cell2, mask=A(0, 1)), 5.0)
-    assert_equal(space.distance(cell1, cell2, mask=A(2)), 12.0)
-    assert_equal(space.distance(cell1, cell2, offset=A(-3.0, -4.0, 12.0)), 0.0)
+    assert space.distance(cell1, cell2) == 13.0
+    assert space.distance(cell1, cell2, mask=A(0, 1)) == 5.0
+    assert space.distance(cell1, cell2, mask=A(2)) == 12.0
+    assert space.distance(cell1, cell2, offset=A(-3.0, -4.0, 12.0)) == 0.0
     cell2.position = A(10.6, 17.0, -10.6)
-    assert_equal(space.distance(cell1, cell2, scale_factor=0.5), 13.0)
+    assert space.distance(cell1, cell2, scale_factor=0.5) == 13.0
     cell2.position = A(-1.7, 8.5, -5.3)
-    assert_equal(space.distance(cell1, cell2, periodic_boundaries=A(7.0, 1e12, 1e12)), 13.0)
+    assert space.distance(cell1, cell2, periodic_boundaries=A(7.0, 1e12, 1e12)) == 13.0
 
 
 class SpaceTest(unittest.TestCase):
@@ -122,7 +122,7 @@ class LineTest(unittest.TestCase):
         line = space.Line()
         n = 4
         positions = line.generate_positions(n)
-        assert_equal(positions.shape, (3, n))
+        assert positions.shape == (3, n)
         assert_allclose(
             positions,
             np.array([[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0]], float).T,
@@ -133,7 +133,7 @@ class LineTest(unittest.TestCase):
         line = space.Line(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         n = 2
         positions = line.generate_positions(n)
-        assert_equal(positions.shape, (3, n))
+        assert positions.shape == (3, n)
         assert_allclose(
             positions,
             np.array([[-100, 444, 987], [0, 444, 987]], float).T,
@@ -144,35 +144,37 @@ class LineTest(unittest.TestCase):
         line1 = space.Line()
         line2 = space.Line(1.0, 0.0, 0.0, 0.0)
         line3 = space.Line(dx=2.0)
-        assert_equal(line1, line2)
+        assert line1 == line2
         assert line1 != line3
 
     def test_get_parameters(self):
         params = dict(dx=100.0, x0=-100.0, y=444.0, z=987.0)
         line = space.Line(**params)
-        assert_equal(line.get_parameters(), params)
+        assert line.get_parameters() == params
 
 
-class Grid2D_Test(object):
+class Grid2D_Test(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.grid1 = space.Grid2D()
         self.grid2 = space.Grid2D(aspect_ratio=3.0, dx=11.1, dy=9.9, x0=123, y0=456, z=789)
 
     def test_calculate_size(self):
-        assert_equal(self.grid1.calculate_size(n=1), (1, 1))
-        assert_equal(self.grid1.calculate_size(n=4), (2, 2))
-        assert_equal(self.grid1.calculate_size(n=9), (3, 3))
-        assert_raises(Exception, self.grid1.calculate_size, n=10)
-        assert_equal(self.grid2.calculate_size(n=3), (3, 1))
-        assert_equal(self.grid2.calculate_size(n=12), (6, 2))
-        assert_equal(self.grid2.calculate_size(n=27), (9, 3))
-        assert_raises(Exception, self.grid2.calculate_size, n=4)
+        assert self.grid1.calculate_size(n=1) == (1, 1)
+        assert self.grid1.calculate_size(n=4) == (2, 2)
+        assert self.grid1.calculate_size(n=9) == (3, 3)
+        with pytest.raises(Exception):
+            self.grid1.calculate_size(n=10)
+        assert self.grid2.calculate_size(n=3) == (3, 1)
+        assert self.grid2.calculate_size(n=12) == (6, 2)
+        assert self.grid2.calculate_size(n=27) == (9, 3)
+        with pytest.raises(Exception):
+            self.grid2.calculate_size(n=4)
 
     def test_generate_positions(self):
         n = 4
         positions = self.grid1.generate_positions(n)
-        assert_equal(positions.shape, (3, n))
+        assert positions.shape == (3, n)
         assert_allclose(
             positions,
             np.array([
@@ -193,9 +195,9 @@ class Grid2D_Test(object):
             1e-15)
 
 
-class Grid3D_Test(object):
+class Grid3D_Test(unittest.TestCase):
 
-    def setup(self):
+    def setUp(self):
         self.grid1 = space.Grid3D()
         self.grid2 = space.Grid3D(aspect_ratioXY=3.0,
                                   aspect_ratioXZ=2.0,
@@ -203,18 +205,20 @@ class Grid3D_Test(object):
                                   x0=123, y0=456, z0=789)
 
     def test_calculate_size(self):
-        assert_equal(self.grid1.calculate_size(n=1), (1, 1, 1))
-        assert_equal(self.grid1.calculate_size(n=8), (2, 2, 2))
-        assert_equal(self.grid1.calculate_size(n=27), (3, 3, 3))
-        assert_raises(Exception, self.grid1.calculate_size, n=10)
-        assert_equal(self.grid2.calculate_size(n=36), (6, 2, 3))
-        assert_equal(self.grid2.calculate_size(n=288), (12, 4, 6))
-        assert_raises(Exception, self.grid2.calculate_size, n=100)
+        assert self.grid1.calculate_size(n=1) == (1, 1, 1)
+        assert self.grid1.calculate_size(n=8) == (2, 2, 2)
+        assert self.grid1.calculate_size(n=27) == (3, 3, 3)
+        with pytest.raises(Exception):
+            self.grid1.calculate_size(n=10)
+        assert self.grid2.calculate_size(n=36) == (6, 2, 3)
+        assert self.grid2.calculate_size(n=288) == (12, 4, 6)
+        with pytest.raises(Exception):
+            self.grid2.calculate_size(n=100)
 
     def test_generate_positions(self):
         n = 8
         positions = self.grid1.generate_positions(n)
-        assert_equal(positions.shape, (3, n))
+        assert positions.shape == (3, n)
         assert_allclose(
             positions,
             np.array([
@@ -224,17 +228,17 @@ class Grid3D_Test(object):
             1e-15)
 
 
-class TestSphere(object):
+class TestSphere(unittest.TestCase):
 
     def test__create(self):
         s = space.Sphere(2.5)
-        assert_equal(s.radius, 2.5)
+        assert s.radius == 2.5
 
     def test_sample(self):
         n = 1000
         s = space.Sphere(2.5)
         positions = s.sample(n, np.random)
-        assert_equal(positions.shape, (n, 3))
+        assert positions.shape == (n, 3)
         for axis in range(2):
             assert 1 < max(positions[:, axis]) < 2.5
             assert -1 > min(positions[:, axis]) > -2.5
@@ -242,27 +246,27 @@ class TestSphere(object):
         assert max(s2) < 6.25
 
 
-class TestCuboid(object):
+class TestCuboid(unittest.TestCase):
 
     def test_sample(self):
         n = 1000
         c = space.Cuboid(3, 4, 5)
         positions = c.sample(n, np.random)
-        assert_equal(positions.shape, (n, 3))
+        assert positions.shape == (n, 3)
         assert 1 < max(positions[:, 0]) < 1.5, max(positions[:, 0])
         assert -1 > min(positions[:, 0]) > -1.5
         assert -1.5 > min(positions[:, 1]) > -2.0
         assert -2 > min(positions[:, 2]) > -2.5
 
 
-class TestRandomStructure(object):
+class TestRandomStructure(unittest.TestCase):
 
     def test_generate_positions(self):
         n = 1000
         s = space.Sphere(2.5)
         rs = space.RandomStructure(boundary=s, origin=(1.0, 1.0, 1.0))
         positions = rs.generate_positions(n)
-        assert_equal(positions.shape, (3, n))
+        assert positions.shape == (3, n)
         for axis in range(2):
             assert 3 < max(positions[axis, :]) < 3.5
             assert -1 > min(positions[axis, :]) > -1.5

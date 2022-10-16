@@ -1,10 +1,10 @@
-from .registry import register
 
 from pyNN.random import RandomDistribution as rnd
+from .fixtures import run_with_simulators
 
 
-@register()
-def issue274(sim):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue274(sim):
     """Issue with offset in GIDs"""
     sim.setup(min_delay=0.5)
 
@@ -24,4 +24,4 @@ def issue274(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    issue274(sim)
+    test_issue274(sim)

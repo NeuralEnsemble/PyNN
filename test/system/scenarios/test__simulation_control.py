@@ -1,10 +1,10 @@
 
-from nose.tools import assert_almost_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
-from .registry import register
+from .fixtures import run_with_simulators
+import pytest
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_reset(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -28,10 +28,7 @@ def test_reset(sim):
                                   data.segments[0].analogsignals[0], 10)
 
 
-test_reset.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_reset_with_clear(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -57,11 +54,7 @@ def test_reset_with_clear(sim):
                         data[0].segments[0].analogsignals[0].magnitude, 1e-11)
 
 
-test_reset_with_clear.__test__ = False
-
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_reset_with_spikes(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -91,15 +84,13 @@ def test_reset_with_spikes(sim):
                                   data.segments[0].analogsignals[0], 10)
 
 
-test_reset_with_spikes.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_setup(sim):
     """
     Run the same simulation n times, recreating the network each time,
     and check the results are the same each time.
     """
+
     n = 3
     data = []
     dt = 1
@@ -120,24 +111,20 @@ def test_setup(sim):
         assert_array_equal(signals[0], data[0].segments[0].analogsignals[0])
 
 
-test_setup.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_run_until(sim):
+
     sim.setup(timestep=0.1)
     p = sim.Population(1, sim.IF_cond_exp())
     sim.run_until(12.7)
-    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    assert sim.get_current_time() == pytest.approx(12.7)  # places=10
     sim.run_until(12.7)
-    assert_almost_equal(sim.get_current_time(), 12.7, 10)
+    assert sim.get_current_time() == pytest.approx(12.7)  # places=10)
     sim.run_until(99.9)
-    assert_almost_equal(sim.get_current_time(), 99.9, 10)
-    assert_raises(ValueError, sim.run_until, 88.8)
+    assert sim.get_current_time() == pytest.approx(99.9)  # places=10)
+    with pytest.raises(ValueError):
+        sim.run_until(88.8)
     sim.end()
-
-
-test_run_until.__test__ = False
 
 
 if __name__ == '__main__':
