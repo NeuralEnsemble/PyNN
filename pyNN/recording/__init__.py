@@ -100,7 +100,7 @@ def gather_blocks(data, ordered=True):
     if ordered:
         for segment in merged.segments:
             ordered_spiketrains = sorted(
-                segment.spiketrains, key=lambda s: s.annotations['source_id'])
+                segment.spiketrains, key=lambda s: s.annotations['channel_id'])
             segment.spiketrains = ordered_spiketrains
     return merged
 
