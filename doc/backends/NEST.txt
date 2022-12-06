@@ -69,6 +69,22 @@ simulations. *Front. Neuroinform.* **4**:113.
 `doi:10.3389/fninf.2010.00113 <http://dx.doi.org/10.3389/fninf.2010.00113>`_
 
 
+Random number generator
+-----------------------
+
+To set the seed for the `NEST random number generator`_:
+
+.. code-block:: python
+
+    setup(rng_seed=12345)
+
+You can also choose the type of RNG:
+
+.. code-block:: python
+
+    setup(rng_type="Philox_32", rng_seed=12345)
+
+
 Using native cell models
 ========================
 
@@ -149,3 +165,4 @@ implications for their usage in PyNN:
   However, they will only deviate from the default when changed manually.
 
 
+.. _`NEST random number generator`: https://nest-simulator.readthedocs.io/en/stable/guides/random_numbers.html#select-the-type-of-random-number-generator
