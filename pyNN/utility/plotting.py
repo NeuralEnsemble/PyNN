@@ -105,7 +105,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(spiketrains[0].t_start, spiketrains[0].t_stop / ms)
+    ax.set_xlim(spiketrains[0].t_start, spiketrains[0].t_stop)
     handle_options(ax, options)
     max_index = 0
     min_index = sys.maxsize
