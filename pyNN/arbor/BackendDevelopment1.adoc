@@ -1,0 +1,363 @@
+= AsciiDoc Article Title
+Firstname Lastname <author@asciidoctor.org>
+3.0, July 29, 2022: AsciiDoc article template
+:toc:
+:icons: font
+:url-quickref: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+
+Content entered directly below the header but before the first section heading is called the preamble.
+
+== First level heading
+
+Simulator specific class `+ArborTemplate+` in `+~/pyNN/arbor/cells.py+`
+
+This class is called internally when invoking `+self.all_cells[i]._build_cell(self.celltype.model, params)+`
+
+....
+for indx, nml_seg in enumerate(morphology.segments):
+    if nml_seg.name is None:
+        for key, value in morphology.section_groups.items():
+            if nml_seg.id in value:
+                tag = key
+        if tag is None:
+            tag = 1
+....
+
+Consider the http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html?msclkid=a2d5d4a1c6d811ec8a9455893b74da63[swc] file
+
+....
+# id,  tag,      x,      y,      z,      r,    parent
+    1     1     0.0     0.0     0.0     2.0        -1  # seg0 prox / seg9 prox
+    2     1    40.0     0.0     0.0     2.0         1  # seg0 dist
+    3     3    40.0     0.0     0.0     0.8         2  # seg1 prox
+    4     3    80.0     0.0     0.0     0.8         3  # seg1 dist / seg2 prox
+    5     3   120.0    -5.0     0.0     0.8         4  # seg2 dist / seg3 prox
+    6     3   200.0    40.0     0.0     0.4         5  # seg3 dist / seg4 prox
+    7     3   260.0    60.0     0.0     0.2         6  # seg4 dist
+    8     3   120.0    -5.0     0.0     0.5         5  # seg5 prox
+    9     3   190.0   -30.0     0.0     0.5         8  # seg5 dist / seg6 prox / seg7 prox
+   10     4   240.0   -70.0     0.0     0.2         9  # seg6 dist
+   11     4   230.0   -10.0     0.0     0.2         9  # seg7 dist / seg8 prox
+   12     4   360.0   -20.0     0.0     0.2        11  # seg8 dist
+   13     2   -70.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
+   14     2  -100.0     0.0     0.0     0.4        13  # seg10 dist
+....
+
+and loading the file in PyNN as
+
+....
+from pyNN.morphology import load_morphology
+pyr_morph = load_morphology("single_cell_detailed.swc", replace_axon=None)
+....
+
+Looking at the segments object defined in NeuroML format using the `+load_morphology+`
+
+....
+for indx, nml_seg in enumerate(pyr_morph.segments):
+    print(indx, nml_seg.parent)
+
+0 None
+1 <None segment="1"/>
+2 <None segment="2"/>
+3 <None segment="3"/>
+4 <None segment="4"/>
+5 <None segment="5"/>
+6 <None segment="4"/>
+7 <None segment="7"/>
+8 <None segment="8"/>
+9 <None segment="8"/>
+10 <None segment="10"/>
+11 <None segment="0"/>
+12 <None segment="12"/>
+....
+
+These are obviously not the same as those commented in the swc file above.
+
+Because of this we want an alternative method to determine the correct segments. This may be done from probing the `+._morphology+` attribute.
+
+....
+M = pyr_morph._morphology
+
+print(len(M.vertices), len(M.connectivity), len(M.segments))
+
+14, 14, 13
+....
+
+Notice that the number of segments as per this method is the same as before. However, we have access to each 3D point (a vertex) and its connected parent.
+
+It should also be noted that we can access the proximal and distal points of an i^th segment with
+
+....
+for attr, value in pyr_morph.segments[1].__dict__.items():  # i = 1
+        print(attr, value)
+
+gds_collector_ None
+gds_elementtree_node_ None
+original_tagname_ None
+parent_object_ None
+ns_prefix_ None
+neuro_lex_id None
+neuro_lex_id_nsprefix_ None
+extensiontype_ None
+id 2
+id_nsprefix_ None
+name None
+name_nsprefix_ None
+parent <None segment="1"/>
+parent_nsprefix_ None
+proximal (40.0, 0.0, 0.0), diam 0.800000011920929um
+proximal_nsprefix_ None
+distal (40.0, 0.0, 0.0), diam 2.0um
+distal_nsprefix_ None
+....
+
+The `+pyr_morph.segments[1].parent.segments+` returns a confusing id (for this example it will return 1).
+
+Since I have addressed the problem of getting the correct segments (when morphology is loaded as a swc file), the question remains, how can one define the correct segment? Here, this is done using `+pyr_morph._morphology+`.
+
+....
+for i in range(len(M.vertices)):
+    print(i, M.vertices[i], M.connectivity[i])
+
+0 [0. 0. 0. 2.] -1
+1 [40.  0.  0.  2.] 0
+2 [40.   0.   0.   0.8] 1
+3 [80.   0.   0.   0.8] 2
+4 [120.   -5.    0.    0.8] 3
+5 [200.   40.    0.    0.4] 4
+6 [2.6e+02 6.0e+01 0.0e+00 2.0e-01] 5
+7 [120.   -5.    0.    0.5] 4
+8 [190.  -30.    0.    0.5] 7
+9 [ 2.4e+02 -7.0e+01  0.0e+00  2.0e-01] 8
+10 [ 2.3e+02 -1.0e+01  0.0e+00  2.0e-01] 8
+11 [ 3.6e+02 -2.0e+01  0.0e+00  2.0e-01] 10
+12 [-70.    0.    0.    0.4] 0
+13 [-100.     0.     0.     0.4] 12
+....
+
+Referring back to the swc file (see above) notice that the values for `+M.connectivity[i]+` do not directly correspond with the values under the `+#parent+` column in the swc file.
+
+Although, `+M.connectivity+` represent array whose elements correspond to parent for respective vertex
+
+....
+M.connectivity
+
+array([-1,  0,  1,  2,  3,  4,  5,  4,  7,  8,  8, 10,  0, 12], dtype=int32)
+....
+
+they often have duplicate entries. Removing the duplicates
+
+....
+numpy.unique(M.connectivity)
+
+array([-1,  0,  1,  2,  3,  4,  5,  7,  8, 10, 12], dtype=int32)
+....
+
+here we get 11 parents for 11 segments.
+
+Since the above swc is reflected in https://docs.arbor-sim.org/en/stable/tutorial/single_cell_detailed.html[arbor] as
+
+....
+# Start with segment 0: a cylindrical soma with tag 1
+tree.append(mnpos, mpoint(0.0, 0.0, 0.0, 2.0), mpoint( 40.0, 0.0, 0.0, 2.0), tag=1)
+# Construct the first section of the dendritic tree with tag 3,
+# comprised of segments 1 and 2, attached to soma segment 0.
+tree.append(0,     mpoint(40.0, 0.0, 0.0, 0.8), mpoint( 80.0,  0.0, 0.0, 0.8), tag=3)
+tree.append(1,     mpoint(80.0, 0.0, 0.0, 0.8), mpoint(120.0, -5.0, 0.0, 0.8), tag=3)
+# Construct the rest of the dendritic tree: segments 3, 4 and 5.
+tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.8), mpoint(200.0,  40.0, 0.0, 0.4), tag=3)
+tree.append(3,     mpoint(200.0, 40.0, 0.0, 0.4), mpoint(260.0,  60.0, 0.0, 0.2), tag=3)
+tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.5), mpoint(190.0, -30.0, 0.0, 0.5), tag=3)
+# Construct a special region of the tree made of segments 6, 7, and 8
+# differentiated from the rest of the tree using tag 4.
+tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(240.0, -70.0, 0.0, 0.2), tag=4)
+tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(230.0, -10.0, 0.0, 0.2), tag=4)
+tree.append(7,     mpoint(230.0, -10.0, 0.0, 0.2), mpoint(360.0, -20.0, 0.0, 0.2), tag=4)
+# Construct segments 9 and 10 that make up the axon with tag 2.
+# Segment 9 is at the root, where its proximal end will be connected to the
+# proximal end of the soma segment.
+tree.append(mnpos, mpoint( 0.0, 0.0, 0.0, 2.0), mpoint(  -70.0, 0.0, 0.0, 0.4), tag=2)
+tree.append(9,     mpoint(-70.0, 0.0, 0.0, 0.4), mpoint(-100.0, 0.0, 0.0, 0.4), tag=2)
+....
+
+and organizing by hand the above swc can be expressed as
+
+....
+segment_id            proximal                             distal                   parent
+0             0.0     0.0     0.0     2.0       40.0     0.0     0.0     2.0          -1
+1            40.0     0.0     0.0     0.8       80.0     0.0     0.0     0.8           2
+2            80.0     0.0     0.0     0.8      120.0    -5.0     0.0     0.8           3
+3           120.0    -5.0     0.0     0.8      200.0    40.0     0.0     0.4           4
+4           200.0    40.0     0.0     0.4      260.0    60.0     0.0     0.2           5
+5           120.0    -5.0     0.0     0.5      190.0   -30.0     0.0     0.5           5
+6           190.0   -30.0     0.0     0.5      240.0   -70.0     0.0     0.2           8
+7           190.0   -30.0     0.0     0.5      230.0   -10.0     0.0     0.2           8
+8           230.0   -10.0     0.0     0.2      360.0   -20.0     0.0     0.2           9
+9             0.0     0.0     0.0     2.0      -70.0     0.0     0.0     0.4          -1
+10          -70.0     0.0     0.0     0.4     -100.0     0.0     0.0     0.4           1
+....
+
+Using the above as reference we write an algorithm to extract the array of proximal points (of a segment), the array of distal points, and parent id. Note that parent id refers to respective segment id in `+pyr_morph.segments+` such that `+len(pyr_morph.segments)+` equals `+len(numpy.unique(M.connectivity))+`.
+
+....
+def bar(parn, parn_dist, points_3d, points_root):
+    #M.vertices[0][:3].shape[0] == M.vertices[0][:3].size
+    if parn_dist.shape[0] == parn_dist.size:
+        if np.count_nonzero(parn_dist == points_3d) == 3:
+            k = 0
+            parn.append(k)
+    else:
+        #chk = (parn_dist == M3.vertices[i+1][:3]).all(axis=1)
+        chk = (parn_dist == points_3d).all(axis=1)
+        if np.count_nonzero(chk) != 0:
+            k = np.where((parn_dist == points_3d).all(1))[0][0]
+            parn.append(k)
+        elif np.count_nonzero(chk) == 0:
+            if np.count_nonzero(points_3d==points_root) == 3:
+                parn.append(None)
+    return parn
+#
+prox = M.vertices[0]
+dist = M.vertices[1]
+parn_dist = M.vertices[1][:3]
+parn = [None] # root
+p = 0
+n = len(M.vertices)
+for i in range(2, n-1):
+    if M.connectivity[i] < M.connectivity[i+1]:
+        prox = numpy.vstack ((prox, M.vertices[i]))
+        dist = numpy.vstack ((dist, M.vertices[i+1]))
+        parn = bar(parn, parn_dist, M.vertices[i][:3], prox[0,:3])
+        parn_dist = numpy.vstack ((parn_dist, M.vertices[i+1][:3]))
+    elif M.connectivity[i] == M.connectivity[i+1]:
+        j = i - 1
+        while M.connectivity[j] == M.connectivity[i+1]:
+            j = j - 1
+        prox = np.vstack ((prox, M.vertices[j]))
+        dist = np.vstack ((dist, M.vertices[i+1]))
+        parn = bar(parn, parn_dist, M.vertices[j][:3], prox[0,:3])
+        parn_dist = np.vstack ((parn_dist, M.vertices[i+1][:3]))
+    elif M.connectivity[i+1] == 0:
+        j = M.connectivity[i+1]
+        prox = numpy.vstack ((prox, M.vertices[j]))
+        dist = numpy.vstack ((dist, M.vertices[i+1]))
+        parn = bar(parn, parn_dist, M.vertices[j][:3], prox[0,:3])
+        parn_dist = numpy.vstack ((parn_dist, M.vertices[i+1][:3]))
+....
+
+Checking its output
+
+....
+print(prox)
+print(dist)
+print(parn)
+print(len(parn))
+
+[[ 0.0e+00  0.0e+00  0.0e+00  2.0e+00]
+ [ 4.0e+01  0.0e+00  0.0e+00  8.0e-01]
+ [ 8.0e+01  0.0e+00  0.0e+00  8.0e-01]
+ [ 1.2e+02 -5.0e+00  0.0e+00  8.0e-01]
+ [ 2.0e+02  4.0e+01  0.0e+00  4.0e-01]
+ [ 1.2e+02 -5.0e+00  0.0e+00  5.0e-01]
+ [ 1.9e+02 -3.0e+01  0.0e+00  5.0e-01]
+ [ 1.9e+02 -3.0e+01  0.0e+00  5.0e-01]
+ [ 2.3e+02 -1.0e+01  0.0e+00  2.0e-01]
+ [ 0.0e+00  0.0e+00  0.0e+00  2.0e+00]
+ [-7.0e+01  0.0e+00  0.0e+00  4.0e-01]]
+[[ 4.0e+01  0.0e+00  0.0e+00  2.0e+00]
+ [ 8.0e+01  0.0e+00  0.0e+00  8.0e-01]
+ [ 1.2e+02 -5.0e+00  0.0e+00  8.0e-01]
+ [ 2.0e+02  4.0e+01  0.0e+00  4.0e-01]
+ [ 2.6e+02  6.0e+01  0.0e+00  2.0e-01]
+ [ 1.9e+02 -3.0e+01  0.0e+00  5.0e-01]
+ [ 2.4e+02 -7.0e+01  0.0e+00  2.0e-01]
+ [ 2.3e+02 -1.0e+01  0.0e+00  2.0e-01]
+ [ 3.6e+02 -2.0e+01  0.0e+00  2.0e-01]
+ [-7.0e+01  0.0e+00  0.0e+00  4.0e-01]
+ [-1.0e+02  0.0e+00  0.0e+00  4.0e-01]]
+[None, 0, 1, 2, 3, 2, 5, 5, 7, 9]
+10
+....
+
+*Note:* Because of the issue of deleting the `+segments+` attribute the modified list of segments are created in a new attribute of the morphology named `+backend_segments+`.
+
+This is a paragraph with a *bold* word and an _italicized_ word.
+
+.Image caption
+image::image-file-name.png[I am the image alt text.]
+
+This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
+
+=== Second level heading
+
+.Unordered list title
+* list item 1
+** nested list item
+*** nested nested list item 1
+*** nested nested list item 2
+* list item 2
+
+This is a paragraph.
+
+.Example block title
+====
+Content in an example block is subject to normal substitutions.
+====
+
+.Sidebar title
+****
+Sidebars contain aside text and are subject to normal substitutions.
+****
+
+==== Third level heading
+
+[#id-for-listing-block]
+.Listing block title
+----
+Content in a listing block is subject to verbatim substitutions.
+Listing block content is commonly used to preserve code input.
+----
+
+===== Fourth level heading
+
+.Table title
+|===
+|Column heading 1 |Column heading 2
+
+|Column 1, row 1
+|Column 2, row 1
+
+|Column 1, row 2
+|Column 2, row 2
+|===
+
+====== Fifth level heading
+
+[quote,firstname lastname,movie title]
+____
+I am a block quote or a prose excerpt.
+I am subject to normal substitutions.
+____
+
+[verse,firstname lastname,poem title and more]
+____
+I am a verse block.
+  Indents and endlines are preserved in verse blocks.
+____
+
+== First level heading
+
+TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
+
+// I am a comment and won't be rendered.
+
+. ordered list item
+.. nested ordered list item
+. ordered list item
+
+The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
+
+== First level heading
+
+This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
+This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].
