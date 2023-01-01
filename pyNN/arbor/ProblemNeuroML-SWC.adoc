@@ -1,0 +1,266 @@
+= The Problem with pyNeuroML transforming SWC file into NeuroML morphology
+Lungsi <author@asciidoctor.org>
+3.0, July 29, 2022: AsciiDoc article template
+:toc:
+:icons: font
+:url-quickref: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+
+Content entered directly below the header but before the first section heading is called the preamble.
+
+== PyNN's in-built `.swc` loader and conversion to NeuroML morphology
+
+[#load_morphology]
+.Load PyNN function to load `.swc` file and create a https://docs.neuroml.org/Userdocs/NeuroMLv2.html[NeuroML] based morphology
+----
+from pyNN.morphology import load_morphology
+----
+
+[#single-cell-swc-file]
+.Consider the `.swc` file for a https://docs.arbor-sim.org/en/latest/tutorial/single_cell_detailed.html[single cell]
+----
+# id,  tag,      x,      y,      z,      r,    parent
+    1     1     0.0     0.0     0.0     2.0        -1  # seg0 prox / seg9 prox
+    2     1    40.0     0.0     0.0     2.0         1  # seg0 dist
+    3     3    40.0     0.0     0.0     0.8         2  # seg1 prox
+    4     3    80.0     0.0     0.0     0.8         3  # seg1 dist / seg2 prox
+    5     3   120.0    -5.0     0.0     0.8         4  # seg2 dist / seg3 prox
+    6     3   200.0    40.0     0.0     0.4         5  # seg3 dist / seg4 prox
+    7     3   260.0    60.0     0.0     0.2         6  # seg4 dist
+    8     3   120.0    -5.0     0.0     0.5         5  # seg5 prox
+    9     3   190.0   -30.0     0.0     0.5         8  # seg5 dist / seg6 prox / seg7 prox
+   10     4   240.0   -70.0     0.0     0.2         9  # seg6 dist
+   11     4   230.0   -10.0     0.0     0.2         9  # seg7 dist / seg8 prox
+   12     4   360.0   -20.0     0.0     0.2        11  # seg8 dist
+   13     2   -70.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
+   14     2  -100.0     0.0     0.0     0.4        13  # seg10 dist
+----
+
+.The cartoon picture of the above `.swc` file
+image::https://docs.arbor-sim.org/en/latest/_images/tutorial_morph.svg[Cartoon picture of a detailed single cell.]
+
+This cell has 11 https://docs.arbor-sim.org/en/latest/concepts/morphology.html#term-segment[segments].
+Therefore, using the <<load_morphology,`load_morphology`>> to
+
+[#load-single_cell_detailed-swc]
+.load `single_cell_detailed.swc` and create a NeuroML morphology
+----
+neuroml_morph = load_morphology("single_cell_detailed.swc", replace_axon=None)
+----
+
+one expects this morphology to have 11 segments.
+
+[#segments-in-loaded-single_cell_detailed-swc]
+.segments in NeuroML generated `single_cell_detailed.swc`
+----
+for i in range(len(neuroml_morph.segments)):
+    print(neuroml_morph.segments[i].id, neuroml_morph.segments[i].proximal, [neuroml_morph.segments[i].distal])
+
+1 (0.0, 0.0, 0.0), diam 2.0um [(40.0, 0.0, 0.0), diam 2.0um]
+2 (40.0, 0.0, 0.0), diam 0.8um [(80.0, 0.0, 0.0), diam 0.8um]
+3 (80.0, 0.0, 0.0), diam 0.8um [(120.0, -5.0, 0.0), diam 0.8um]
+4 (120.0, -5.0, 0.0), diam 0.8um [(200.0, 40.0, 0.0), diam 0.4um]
+5 (200.0, 40.0, 0.0), diam 0.4um [(260.0, 60.0, 0.0), diam 0.2um]
+6 (120.0, -5.0, 0.0), diam 0.5um [(190.0, -30.0, 0.0), diam 0.5um]
+7 (190.0, -30.0, 0.0), diam 0.5um [(240.0, -70.0, 0.0), diam 0.2um]
+8 (190.0, -30.0, 0.0), diam 0.5um [(230.0, -10.0, 0.0), diam 0.2um]
+9 (230.0, -10.0, 0.0), diam 0.2um [(360.0, -20.0, 0.0), diam 0.2um]
+10 (0.0, 0.0, 0.0), diam 2.0um [(-70.0, 0.0, 0.0), diam 0.4um]
+11 (-70.0, 0.0, 0.0), diam 0.4um [(-100.0, 0.0, 0.0), diam 0.4um]
+12 (-70.0, 0.0, 0.0), diam 0.4000000059604645um [(0.0, 0.0, 0.0), diam 2.0um]
+13 (-100.0, 0.0, 0.0), diam 0.4000000059604645um [(-70.0, 0.0, 0.0), diam 0.4000000059604645um]
+----
+
+This has 13 segments.
+In this particular example the first 11 segments in the NeuroML morphology corresponds
+to the 11 segments defined in the `.swc` file.
+
+== SWC tags and Arbor
+
+Tagging is integral to Arbor https://docs.arbor-sim.org/en/latest/python/morphology.html[morphology];
+tags by default are based on http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html[SWC tags].
+
+[#manual-single_cell_detailed]
+.Manually creating the cell tree defined in `single_cell_detailed.swc` in Arbor
+----
+tree = arbor.segment_tree()
+
+# Start with segment 0: a cylindrical soma with tag 1
+tree.append(mnpos, mpoint(0.0, 0.0, 0.0, 2.0), mpoint( 40.0, 0.0, 0.0, 2.0), tag=1)
+# Construct the first section of the dendritic tree with tag 3,
+# comprised of segments 1 and 2, attached to soma segment 0.
+tree.append(0,     mpoint(40.0, 0.0, 0.0, 0.8), mpoint( 80.0,  0.0, 0.0, 0.8), tag=3)
+tree.append(1,     mpoint(80.0, 0.0, 0.0, 0.8), mpoint(120.0, -5.0, 0.0, 0.8), tag=3)
+# Construct the rest of the dendritic tree: segments 3, 4 and 5.
+tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.8), mpoint(200.0,  40.0, 0.0, 0.4), tag=3)
+tree.append(3,     mpoint(200.0, 40.0, 0.0, 0.4), mpoint(260.0,  60.0, 0.0, 0.2), tag=3)
+tree.append(2,     mpoint(120.0, -5.0, 0.0, 0.5), mpoint(190.0, -30.0, 0.0, 0.5), tag=3)
+# Construct a special region of the tree made of segments 6, 7, and 8
+# differentiated from the rest of the tree using tag 4.
+tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(240.0, -70.0, 0.0, 0.2), tag=4)
+tree.append(5,     mpoint(190.0, -30.0, 0.0, 0.5), mpoint(230.0, -10.0, 0.0, 0.2), tag=4)
+tree.append(7,     mpoint(230.0, -10.0, 0.0, 0.2), mpoint(360.0, -20.0, 0.0, 0.2), tag=4)
+# Construct segments 9 and 10 that make up the axon with tag 2.
+# Segment 9 is at the root, where its proximal end will be connected to the
+# proximal end of the soma segment.
+tree.append(mnpos, mpoint( 0.0, 0.0, 0.0, 2.0), mpoint(  -70.0, 0.0, 0.0, 0.4), tag=2)
+tree.append(9,     mpoint(-70.0, 0.0, 0.0, 0.4), mpoint(-100.0, 0.0, 0.0, 0.4), tag=2)
+
+morph = arbor.morphology(tree);
+----
+
+Notice that the tags above corresponds exactly to those in `single_cell_detailed.swc`.
+
+== Tags in NeuroML morphology &ne; Tags in the source `.swc` file
+
+[#tags-in-NeuroML-morphology]
+.Tags in the generated NeuroML morphology seemingly corresponds to those in `single_cell_detailed.swc`
+----
+neuroml_morph.section_groups
+
+{2: array([12, 13]), 3: array([2, 3, 4, 5, 6, 7, 8]), 4: array([ 9, 10, 11])}
+
+for swc_tag, sect_group in neuroml_morph.section_groups.items():
+    print(swc_tag, sect_group)
+
+2 [12 13]
+3 [2 3 4 5 6 7 8]
+4 [ 9 10 11]
+----
+
+Except tag 1 all the tags in `single_cell_detailed.swc` are present in the NeuroML
+morphology (2, 3 & 4) such that they appear to correspond to the id-column in the
+<<single-cell-swc-file,`single_cell_detailed.swc`>>  file.
+
+[#segments-in-NeuroML-morphology]
+.But elements of the array value of the tag key in the NeuroML morphology are indices of the NeuroML segments
+----
+for indx, nml_seg in enumerate(neuroml_morph.segments):
+    print(indx, nml_seg)
+
+0 <Segment|1|soma>
+1 <Segment|2|basal_dendrite>
+2 <Segment|3|basal_dendrite>
+3 <Segment|4|basal_dendrite>
+4 <Segment|5|basal_dendrite>
+5 <Segment|6|basal_dendrite>
+6 <Segment|7|basal_dendrite>
+7 <Segment|8|basal_dendrite>
+8 <Segment|9|apical_dendrite>
+9 <Segment|10|apical_dendrite>
+10 <Segment|11|apical_dendrite>
+11 <Segment|12>
+12 <Segment|13>
+----
+
+How do we get the 11 segments defined in the <<single-cell-swc-file,`single_cell_detailed.swc`>>  file
+and their corresponding tags?
+
+== NeuroML morphology is central to creating backend specific morphology in PyNN
+
+[#NeuroML-morphology-into-MultiCompartmentNeuron]
+.The NeuroML morphology is passed as the morphology argument
+----
+import pyNN.<backend-simulator> as sim
+
+cellclass = sim.MultiCompartmentNeuron.setup( <setup-parameters> )
+
+mycell = cellclass( morphology = neuroml_morph,
+                    <rest-of-the-parameters> )
+----
+
+Notice that `neuroml_morph` is the <<load-single_cell_detailed-swc, loaded morphology>>.
+
+So, for Arbor as PyNN backend it must create an <<manual-single_cell_detailed, Arbor tree>>
+from the details carried by the NeuroML morphology.
+
+== Creating Arbor segment tree from NeuroML morphology
+
+We saw that <<segments-in-loaded-single_cell_detailed-swc, segments in the NeuroML morphology>>
+may not correspond to <<single-cell-swc-file, segments defined in the `.swc` file>>.
+For our example, one could just leave out the <<segments-in-loaded-single_cell_detailed-swc, last two elements of the NeuroML SegmentList>>.
+But, this may not work for other `.swc` files. A more generalizable approach might be to
+create the segments as defined in the `.swc` file by extracting the required information;
+which are: proximal & distal points and the parent id. This can be done by getting into
+the raw data of the NeuroML morphology object which is stored in a https://numpy.org/doc/stable/reference/arrays.ndarray.html[ndarray].
+
+
+This is a paragraph with a *bold* word and an _italicized_ word.
+
+.Image caption
+image::image-file-name.png[I am the image alt text.]
+
+This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
+
+=== Second level heading
+
+.Unordered list title
+* list item 1
+** nested list item
+*** nested nested list item 1
+*** nested nested list item 2
+* list item 2
+
+This is a paragraph.
+
+.Example block title
+====
+Content in an example block is subject to normal substitutions.
+====
+
+.Sidebar title
+****
+Sidebars contain aside text and are subject to normal substitutions.
+****
+
+==== Third level heading
+
+[#id-for-listing-block]
+.Listing block title
+----
+Content in a listing block is subject to verbatim substitutions.
+Listing block content is commonly used to preserve code input.
+----
+
+===== Fourth level heading
+
+.Table title
+|===
+|Column heading 1 |Column heading 2
+
+|Column 1, row 1
+|Column 2, row 1
+
+|Column 1, row 2
+|Column 2, row 2
+|===
+
+====== Fifth level heading
+
+[quote,firstname lastname,movie title]
+____
+I am a block quote or a prose excerpt.
+I am subject to normal substitutions.
+____
+
+[verse,firstname lastname,poem title and more]
+____
+I am a verse block.
+  Indents and endlines are preserved in verse blocks.
+____
+
+== First level heading
+
+TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
+
+// I am a comment and won't be rendered.
+
+. ordered list item
+.. nested ordered list item
+. ordered list item
+
+The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
+
+== First level heading
+
+This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
+This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].

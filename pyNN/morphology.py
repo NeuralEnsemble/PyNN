@@ -43,7 +43,12 @@ def load_morphology(url, replace_axon=False):
     #       in http://neurom.readthedocs.io/en/latest/definitions.html#soma
     #       and http://www.neuromorpho.org/SomaFormat.html 
     array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
-    return NeuroMLMorphology(array_morph)
+    #return NeuroMLMorphology(array_morph) This is the Default
+    # Hack for Arbor
+    neuromlmorph = NeuroMLMorphology(array_morph)
+    neuromlmorph.file = local_morph_file
+    return neuromlmorph
+
 
 
 class Morphology(object):

@@ -1,0 +1,196 @@
+= Rationale for implementing arbor-as-backend of PyNN
+Lungsi Ngwua <author@asciidoctor.org>
+3.0, July 29, 2022: AsciiDoc article template
+:toc:
+:icons: font
+:url-quickref: https://docs.asciidoctor.org/asciidoc/latest/syntax-quick-reference/
+
+This document lays out the rationale for adopting the https://arbor-sim.org/[Arbor] simulator as a http://neuralensemble.org/PyNN/[PyNN] backend.
+
+== Configure the simulator
+
+Using the `+current_injection_mc.py+` example the implementation of arbor-as-backend is the same. Thus,
+
+....
+import pyNN.arbor as sim
+sim.setup(timestep=0.025)
+....
+
+== Create neuron model
+
+This is the neuron unit model of the http://neuralensemble.org/docs/PyNN/reference/populations.html[Population]. This is created using the `MultiCompartmentNeuron` class object; this is available under respective simulator-as-backend of PyNN. Since `MultiCompartmentNeuron` is a general object, it must be specified before it can be used as a neuron unit of the population. This requires morphology of the neuron and various cellular properties (ion types, ion channels, synaptic entities, etc.).
+
+=== The morphology
+
+In the `+current_injection_mc.py+` example the morphology is manually created as follows
+
+....
+from pyNN.morphology import NeuroMLMorphology
+from neuroml import Morphology, Segment, Point3DWithDiam as P
+soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
+               distal=P(x=18.8, y=0, z=0, diameter=18.8),
+               name="soma", id=0)
+dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
+               distal=P(x=-500, y=0, z=0, diameter=2),
+               name="dendrite",
+               parent=soma, id=1)
+nu_morph = NeuroMLMorphology(Morphology(segments=(soma, dend)))
+....
+
+=== Specifying neuronal biophysical properties
+
+In the `+current_injection_mc.py+` example this is done as
+
+....
+cell_class = sim.MultiCompartmentNeuron
+cell_class.label = "ExampleMultiCompartmentNeuron"
+cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
+....
+
+However, specifying the ion species is not done at this step but in the next step as parametric argument.
+
+The implementation in arbor-as-backend differs as illustrated below.
+
+==== Specifying biophysical properties in arbor-as-backend
+
+....
+nu = sim.MultiCompartmentNeuron.setup(
+				label="ExampleMultiCompartmentNeuron",
+				ion_channels={'pas': sim.PassiveLeak,
+							  'na': sim.NaChannel,
+							  'kdr': sim.KdrChannel},
+				ionic_species={'na_ion': sim.NaIon,
+							   'k_ion': sim.KIon})
+....
+
+I believe this makes the step clearer. Also, notice that the ion species in arbor-as-backend is represented as a `standardmodel` (like ion channels). One reason is that ion types requires parameters (concentration values and equilibrium potential) and programmatically (Python OOP) follows structure similar to those of standard ion channels. The other reason is that doing this makes the step for specifying the biophysical properties clearer (see above code).
+
+=== Instantiate the model (parameterization)
+
+In the `+current_injection_mc.py+` example this is done as
+
+....
+from pyNN.morphology import uniform
+cell_type = cell_class(morphology=nu_morph,
+                       cm=1.0,
+                       Ra=500.0,
+                       ionic_species={
+                              "na": IonicSpecies("na", reversal_potential=50.0),
+                              "k": IonicSpecies("k", reversal_potential=-77.0)
+                       },
+                       pas={"conductance_density": uniform('all', 0.0003),
+                            "e_rev":-54.3},
+                       na={"conductance_density": uniform('soma', 0.120),
+                           "e_rev": 50.0},
+                       kdr={"conductance_density": uniform('soma', 0.036),
+                            "e_rev": -77.0}
+                       )
+....
+
+However, in arbor-as-backend because of the changes mentioned above this is done as follows
+
+....
+from pyNN.morphology import uniform
+mycell = nu(
+			morphology=nu_morph,
+			cm=1.0,
+			Ra=500.0,
+			na_ion = {"reversal_potential": 50.0},
+			k_ion = {"reversal_potential": -77.0},
+			pas={"conductance_density": uniform('all', 0.0003),
+				"e_rev":-54.3},
+			na={"conductance_density": uniform('soma', 0.120),
+			   "e_rev": 50.0},
+			kdr={"conductance_density": uniform('soma', 0.036),
+				"e_rev": -77.0})
+....
+
+== Create population (of neurons)
+
+....
+cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
+cells = sim.Population(2, mycell, initial_values={'v': [-60.0, -70.0]})
+....
+
+The morphology of the neuron unit may be created or loaded as a http://www.neuronland.org/NLMorphologyConverter/MorphologyFormats/SWC/Spec.html[swc] file. In the
+
+This is a paragraph with a *bold* word and an _italicized_ word.
+
+.Image caption
+image::image-file-name.png[I am the image alt text.]
+
+This is another paragraph.footnote:[I am footnote text and will be displayed at the bottom of the article.]
+
+=== Second level heading
+
+.Unordered list title
+* list item 1
+** nested list item
+*** nested nested list item 1
+*** nested nested list item 2
+* list item 2
+
+This is a paragraph.
+
+.Example block title
+====
+Content in an example block is subject to normal substitutions.
+====
+
+.Sidebar title
+****
+Sidebars contain aside text and are subject to normal substitutions.
+****
+
+==== Third level heading
+
+[#id-for-listing-block]
+.Listing block title
+----
+Content in a listing block is subject to verbatim substitutions.
+Listing block content is commonly used to preserve code input.
+----
+
+===== Fourth level heading
+
+.Table title
+|===
+|Column heading 1 |Column heading 2
+
+|Column 1, row 1
+|Column 2, row 1
+
+|Column 1, row 2
+|Column 2, row 2
+|===
+
+====== Fifth level heading
+
+[quote,firstname lastname,movie title]
+____
+I am a block quote or a prose excerpt.
+I am subject to normal substitutions.
+____
+
+[verse,firstname lastname,poem title and more]
+____
+I am a verse block.
+  Indents and endlines are preserved in verse blocks.
+____
+
+== First level heading
+
+TIP: There are five admonition labels: Tip, Note, Important, Caution and Warning.
+
+// I am a comment and won't be rendered.
+
+. ordered list item
+.. nested ordered list item
+. ordered list item
+
+The text at the end of this sentence is cross referenced to <<_third_level_heading,the third level heading>>
+
+== First level heading
+
+This is a link to the https://docs.asciidoctor.org/home/[Asciidoctor documentation].
+This is an attribute reference {url-quickref}[that links this text to the AsciiDoc Syntax Quick Reference].

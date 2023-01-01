@@ -494,10 +494,10 @@ def simplify(value):
 class IonicSpecies(object):
     """Encapsulation of parameters for an ionic species"""
 
-    def __init__(self, 
-                 ion_name, 
-                 reversal_potential, 
-                 internal_concentration=None, 
+    def __init__(self,
+                 ion_name,
+                 reversal_potential,
+                 internal_concentration=None,
                  external_concentration=None):
         self.ion_name = ion_name
         self.reversal_potential = reversal_potential
