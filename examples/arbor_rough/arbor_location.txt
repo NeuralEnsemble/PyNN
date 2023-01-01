@@ -1,0 +1,5 @@
+https://docs.arbor-sim.org/en/latest/concepts/labels.html#locset-expressions
+
+(location branch:integer pos:real) s.t
+0 <= pos <= 1 or 0 (proximal) <= pos <= 1 (distal)
+

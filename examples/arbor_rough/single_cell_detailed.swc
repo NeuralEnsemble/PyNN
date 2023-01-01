@@ -1,0 +1,15 @@
+# id,  tag,      x,      y,      z,      r,    parent
+    1     1     0.0     0.0     0.0     2.0        -1  # seg0 prox / seg9 prox
+    2     1    40.0     0.0     0.0     2.0         1  # seg0 dist
+    3     3    40.0     0.0     0.0     0.8         2  # seg1 prox
+    4     3    80.0     0.0     0.0     0.8         3  # seg1 dist / seg2 prox
+    5     3   120.0    -5.0     0.0     0.8         4  # seg2 dist / seg3 prox
+    6     3   200.0    40.0     0.0     0.4         5  # seg3 dist / seg4 prox
+    7     3   260.0    60.0     0.0     0.2         6  # seg4 dist
+    8     3   120.0    -5.0     0.0     0.5         5  # seg5 prox
+    9     3   190.0   -30.0     0.0     0.5         8  # seg5 dist / seg6 prox / seg7 prox
+   10     4   240.0   -70.0     0.0     0.2         9  # seg6 dist
+   11     4   230.0   -10.0     0.0     0.2         9  # seg7 dist / seg8 prox
+   12     4   360.0   -20.0     0.0     0.2        11  # seg8 dist
+   13     2   -70.0     0.0     0.0     0.4         1  # seg9 dist / seg10 prox
+   14     2  -100.0     0.0     0.0     0.4        13  # seg10 dist
