@@ -1,56 +1,186 @@
 {
-    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
-    "@type": "SoftwareSourceCode",
-    "license": "https://spdx.org/licenses/CECILL-2.1",
-    "codeRepository": "https://github.com/NeuralEnsemble/PyNN",
-    "contIntegration": "https://github.com/NeuralEnsemble/PyNN/actions",
-    "dateModified": "2022-10-13",
-    "downloadUrl": "https://files.pythonhosted.org/packages/08/a5/f923f05ef1a12c64a0b674785c5c5abc376fe6386976fbfe376061837f5f/PyNN-0.10.1.tar.gz",
-    "issueTracker": "https://github.com/NeuralEnsemble/PyNN/issues",
-    "name": "PyNN",
-    "version": "0.10.1",
-    "identifier": "RRID:SCR_002715",
-    "description": "PyNN (pronounced 'pine') is a simulator-independent language for building neuronal network models.\n\nIn other words, you can write the code for a model once, using the PyNN API and the Python programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, and Brian), and on the SpiNNaker and BrainScaleS neuromorphic hardware systems.\n\nThe PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (Djurfeldt, 2010) or by writing your own Python code.\n\nThe low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping, allowing you to concentrate on the overall structure of your model.\n\nThe other thing that is required to write a model once and run it on multiple simulators is standard cell models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model IFcurralpha is iafneuron in NEST and StandardIF in NEURON, while SpikeSourcePoisson is a poissongenerator in NEST and a NetStim in NEURON.\n\nEven if you don't wish to run simulations on multiple simulators, you may benefit from writing your simulation code using PyNN's powerful, high-level interface. In this case, you can use any neuron or synapse model supported by your simulator, and are not restricted to the standard models.\n\nPyNN is a work in progress, but is already being used for several large-scale simulation projects.",
-    "applicationCategory": "neuroscience",
-    "releaseNotes": "http://neuralensemble.org/docs/PyNN/releases/0.10.1.html",
-    "funding": "https://cordis.europa.eu/project/id/945539",
-    "developmentStatus": "active",
-    "referencePublication": "https://doi.org/10.3389/neuro.11.011.2008",
-    "funder": {
-        "@type": "Organization",
-        "name": "European Commission"
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "license": "https://spdx.org/licenses/CECILL-2.1",
+  "codeRepository": "https://github.com/NeuralEnsemble/PyNN",
+  "contIntegration": "https://github.com/NeuralEnsemble/PyNN/actions",
+  "dateModified": "2022-10-13",
+  "downloadUrl": "https://files.pythonhosted.org/packages/08/a5/f923f05ef1a12c64a0b674785c5c5abc376fe6386976fbfe376061837f5f/PyNN-0.10.1.tar.gz",
+  "issueTracker": "https://github.com/NeuralEnsemble/PyNN/issues",
+  "name": "PyNN",
+  "version": "0.10.1",
+  "identifier": "RRID:SCR_002715",
+  "description": "PyNN (pronounced 'pine') is a simulator-independent language for building neuronal network models.\n\nIn other words, you can write the code for a model once, using the PyNN API and the Python programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, and Brian), and on the SpiNNaker and BrainScaleS neuromorphic hardware systems.\n\nThe PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (Djurfeldt, 2010) or by writing your own Python code.\n\nThe low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping, allowing you to concentrate on the overall structure of your model.\n\nThe other thing that is required to write a model once and run it on multiple simulators is standard cell models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model IFcurralpha is iafneuron in NEST and StandardIF in NEURON, while SpikeSourcePoisson is a poissongenerator in NEST and a NetStim in NEURON.\n\nEven if you don't wish to run simulations on multiple simulators, you may benefit from writing your simulation code using PyNN's powerful, high-level interface. In this case, you can use any neuron or synapse model supported by your simulator, and are not restricted to the standard models.\n\nPyNN is a work in progress, but is already being used for several large-scale simulation projects.",
+  "applicationCategory": "neuroscience",
+  "releaseNotes": "http://neuralensemble.org/docs/PyNN/releases/0.10.1.html",
+  "funding": "https://cordis.europa.eu/project/id/945539",
+  "developmentStatus": "active",
+  "referencePublication": "https://doi.org/10.3389/neuro.11.011.2008",
+  "funder": {
+    "@type": "Organization",
+    "name": "European Commission"
+  },
+  "programmingLanguage": ["Python"],
+  "operatingSystem": ["Linux", "Windows", "macOS"],
+  "softwareRequirements": [
+    "at least one of the supported simulators: e.g. NEURON, NEST, or Brian.",
+    "Python (version 3.7-3.9)"
+  ],
+  "relatedLink": [
+    "http://neuralensemble.org/docs/PyNN/",
+    "https://groups.google.com/g/neuralensemble"
+  ],
+  "author": [
+    {
+      "@type": "Person",
+      "@id": "http://orcid.org/0000-0002-4793-7541",
+      "givenName": "Andrew P.",
+      "familyName": "Davison"
     },
-    "programmingLanguage": [
-        "Python"
-    ],
-    "operatingSystem": [
-        "Linux",
-        "Windows",
-        "macOS"
-    ],
-    "softwareRequirements": [
-        "at least one of the supported simulators: e.g. NEURON, NEST, or Brian.",
-        "Python (version 3.7-3.9)"
-    ],
-    "relatedLink": [
-        "http://neuralensemble.org/docs/PyNN/",
-        "https://groups.google.com/g/neuralensemble"
-    ],
-    "author": [
-        {
-            "@type": "Person",
-            "@id": "http://orcid.org/0000-0002-4793-7541",
-            "givenName": "Andrew P.",
-            "familyName": "Davison",
-            "affiliation": {
-                "@type": "Organization",
-                "name": "Paris-Saclay Institute of Neuroscience, CNRS/Université Paris-Saclay, Saclay, France"
-            }
-        },
-        {
-            "@type": "Person",
-            "givenName": "Pierre",
-            "familyName": "Yger"
-        }
-    ]
+    {
+      "@type": "Person",
+      "givenName": "Pierre",
+      "familyName": "Yger"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Eilif",
+      "familyName": "Muller"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jens",
+      "familyName": "Kremkow"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Daniel",
+      "familyName": "Brüderle"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Laurent",
+      "familyName": "Perrinet"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jochen",
+      "familyName": "Eppler"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Dejan",
+      "familyName": "Pecevski"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Nicolas",
+      "familyName": "Debeissat"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Mikael",
+      "familyName": "Djurfeldt"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Michael",
+      "familyName": "Schmuker"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Bernhard",
+      "familyName": "Kaplan"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Thomas",
+      "familyName": "Natschlaeger"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Subhasis",
+      "familyName": "Ray"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Yury",
+      "familyName": "Zaytsev"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jan",
+      "familyName": "Antolik"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Alexandre",
+      "familyName": "Gravier"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Thomas",
+      "familyName": "Close"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Oliver",
+      "familyName": "Breitwieser"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Jannis",
+      "familyName": "Schücker"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Maximilian",
+      "familyName": "Schmidt"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Christian",
+      "familyName": "Roessert"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Shailesh",
+      "familyName": "Appukuttan"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Elodie",
+      "familyName": "Legouée"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Joffrey",
+      "familyName": "Gonin"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Ankur",
+      "familyName": "Sinha"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Håkon",
+      "familyName": "Mørk"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Andrei",
+      "familyName": "Moise"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Onur",
+      "familyName": "Ates"
+    },
+    {
+      "@type": "Person",
+      "givenName": "Rémy",
+      "familyName": "Cagnol"
+    }
+  ]
 }
