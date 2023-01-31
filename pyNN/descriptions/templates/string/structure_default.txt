@@ -1,0 +1,1 @@
+Structure '$name' with the following parameters: $parameters
