@@ -2,7 +2,7 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -99,12 +99,11 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         number of decimal places (OR SIGNIFICANT FIGURES?) in recorded data
     `threads`:
         number of threads to use
-    `grng_seed`:
-        one seed for the global random number generator of NEST
-    `rng_seeds`:
-        a list of seeds, one for each thread on each MPI process
-    `rng_seeds_seed`:
-        a single seed that will be used to generate random values for `rng_seeds`
+    `rng_seed`:
+        seed for the NEST random number generator
+    `rng_type`:
+        type of the NEST random number generator
+        (see https://nest-simulator.readthedocs.io/en/stable/guides/random_numbers.html#seed-the-random-number-generator)
     `t_flush`:
         extra time to run the simulation after using reset() to ensure
         the previous run does not influence the new one
@@ -128,6 +127,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         simulator.state.rng_seed = extra_params['rng_seeds_seed']
     else:
         simulator.state.rng_seed = extra_params.get('rng_seed', 42)
+    if "rng_type" in extra_params:
+        nest.rng_type = extra_params["rng_type"]
     if "t_flush" in extra_params:
         # see https://github.com/nest/nest-simulator/issues/1618
         simulator.state.t_flush = extra_params["t_flush"]

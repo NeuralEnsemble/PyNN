@@ -4,7 +4,7 @@ Mock implementation of the PyNN API, for testing and documentation purposes.
 This simulator implements the PyNN API, but generates random data rather than
 really running simulations.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -59,6 +59,29 @@ class IF_curr_exp(cells.IF_curr_exp):
     nest_name = {"on_grid": 'iaf_psc_exp',
                  "off_grid": 'iaf_psc_exp_ps'}
     standard_receptor_type = True
+
+
+class IF_curr_delta(cells.IF_curr_delta):
+
+    __doc__ = cells.IF_curr_delta.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',      1000.0),  # C_m is in pF, cm in nF
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_ref'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
+    )
+    # extra parameters in the NEST model
+    # V_min            mV      Absolute lower value for the membrane potenial
+    # refractory_input boolean If true, do not discard input during
+    #                      refractory period. Default: false
+    nest_name = {"on_grid": 'iaf_psc_delta',
+                 "off_grid": 'iaf_psc_delta_ps'}
+    standard_receptor_type = True
+    receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
 
 
 class IF_cond_alpha(cells.IF_cond_alpha):

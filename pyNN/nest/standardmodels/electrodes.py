@@ -8,7 +8,7 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -41,17 +41,6 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         else:
             self.cell_list = nest.NodeCollection(sorted(cells))
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
-
-    def _phase_correction(self, start, freq, phase):
-        """
-        Fixes #497 (PR #502)
-        Tweaks the value of phase supplied to NEST ACSource
-        so as to remain consistent with other simulators
-        """
-        phase_fix = ((phase*np.pi/180) - (2*np.pi*freq*start/1000)) * 180/np.pi
-        phase_fix.shape = (1)
-        phase_fix = phase_fix.evaluate()[0]
-        nest.SetStatus(self._device, {'phase': phase_fix})
 
     def _delay_correction(self, value):
         """

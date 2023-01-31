@@ -1,0 +1,49 @@
+=========================
+PyNN 0.10.1 release notes
+=========================
+
+October 13th 2022
+
+Welcome to PyNN 0.10.1!
+
+
+NEST 3.3, NEURON 8.1
+--------------------
+
+PyNN now supports the latest version of NEST_, and NEURON_ v8.1.
+
+New neuron model
+----------------
+
+We have added a new standard neuron model, :class:`IF_curr_delta`, for which the synaptic response is
+a step change in the membrane voltage.
+
+Recording with irregular sampling intervals
+-------------------------------------------
+
+Where a simulator supports recording with varying sampling intervals (e.g. BrainScaleS, NEURON with CVode),
+PyNN can now handle such data, using the :class:`IrregularlySampledSignal` class from Neo.
+
+More efficient handling of spike trains
+---------------------------------------
+
+Some simulators record spike trains as a pair of arrays, one containing neuron identifiers,
+the other spike times.
+PyNN can now retain this representation for internal data handling or for export,
+using the :class:`SpikeTrainList` class recently introduced in Neo,
+which avoids the overhead of always converting to a list of :class:`SpikeTrains`, one per neuron.
+
+Dependencies
+------------
+
+PyNN now requires NumPy > 1.18.5, Neo > 0.11.0 or later.
+
+Bug fixes
+---------
+
+A `small number of bugs`_ have been fixed.
+
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.10.1+is%3Aclosed
+.. _NEST: https://www.nest-simulator.org
+.. _NEURON: https://neuron.yale.edu/neuron/
+.. _`Brian 2`: https://brian2.readthedocs.io

@@ -7,7 +7,7 @@ Classes:
     NoisyCurrentSource -- a Gaussian whitish noise current.
     ACSource           -- a sine modulated current.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -142,8 +142,8 @@ class NeuronCurrentSource(StandardCurrentSource):
     def record(self):
         self.itrace = h.Vector()
         self.itrace.record(self._devices[0]._ref_i)
-        self.record_times = h.Vector()
-        self.record_times.record(h._ref_t)
+        self.recorded_times = h.Vector()
+        self.recorded_times.record(h._ref_t)
 
     def _get_data(self):
         # NEURON and pyNN have different concepts of current initiation times
@@ -152,7 +152,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         # This requires removing the first element from the current Vector
         # as NEURON computes the currents one time step later. The vector length
         # is compensated by repeating the last recorded value of current.
-        t_arr = np.array(self.record_times)
+        t_arr = np.array(self.recorded_times)
         i_arr = np.array(self.itrace)[1:]
         i_arr = np.append(i_arr, i_arr[-1])
         return (t_arr, i_arr)

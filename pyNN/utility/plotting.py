@@ -6,7 +6,7 @@ formatting. If you need to produce more complex and/or publication-quality
 figures, it will probably be easier to use matplotlib or another plotting
 package directly rather than trying to extend this module.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -20,7 +20,8 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import numpy as np
 from quantities import ms
-from neo import AnalogSignal, SpikeTrain
+from neo import AnalogSignal, IrregularlySampledSignal, SpikeTrain
+from neo.core.spiketrainlist import SpikeTrainList
 
 
 DEFAULT_FIG_SETTINGS = {
@@ -77,13 +78,22 @@ def plot_signals(ax, signal_array, label_prefix='', **options):
     handle_options(ax, options)
     offset = options.pop("y_offset", None)
     show_legend = options.pop("legend", True)
-    for i in signal_array.array_annotations["channel_index"].argsort():
-        channel = signal_array.array_annotations["channel_index"][i]
-        signal = signal_array[:, i]
-        if label_prefix:
-            label = "%s (Neuron %d)" % (label_prefix, channel)
+    if "channel_index" in signal_array.array_annotations:
+        channel_iterator = signal_array.array_annotations["channel_index"].argsort()
+    else:
+        channel_iterator = range(signal_array.shape[1])
+    for i in channel_iterator:
+        if "channel_index" in signal_array.array_annotations:
+            channel = signal_array.array_annotations["channel_index"][i]
+            if label_prefix:
+                label = "%s (Neuron %d)" % (label_prefix, channel)
+            else:
+                label = "Neuron %d" % channel
+        elif label_prefix:
+            label = "%s (%d)" % (label_prefix, i)
         else:
-            label = "Neuron %d" % channel
+            label = str(i)
+        signal = signal_array[:, i]
         if offset:
             signal += i * offset
         ax.plot(signal.times.rescale(ms), signal.magnitude, label=label, **options)
@@ -95,7 +105,7 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
     """
     Plot all spike trains in a Segment in a raster plot.
     """
-    ax.set_xlim(0, spiketrains[0].t_stop / ms)
+    ax.set_xlim(spiketrains[0].t_start, spiketrains[0].t_stop)
     handle_options(ax, options)
     max_index = 0
     min_index = sys.maxsize
@@ -107,6 +117,24 @@ def plot_spiketrains(ax, spiketrains, label='', **options):
         min_index = min(min_index, spiketrain.annotations['source_index'])
     ax.set_ylabel("Neuron index")
     ax.set_ylim(-0.5 + min_index, max_index + 0.5)
+    if label:
+        plt.text(0.95, 0.95, label,
+                 transform=ax.transAxes, ha='right', va='top',
+                 bbox=dict(facecolor='white', alpha=1.0))
+
+
+def plot_spiketrainlist(ax, spiketrains, label='', **options):
+    """
+    Plot all spike trains in a Segment in a raster plot.
+    """
+    ax.set_xlim(spiketrains.t_start, spiketrains.t_stop)
+    handle_options(ax, options)
+    channel_ids, spike_times = spiketrains.multiplexed
+    max_id = max(spiketrains.all_channel_ids)
+    min_id = min(spiketrains.all_channel_ids)
+    ax.plot(spike_times, channel_ids, 'k.', **options)
+    ax.set_ylabel("Neuron index")
+    ax.set_ylim(-0.5 + min_id, max_id + 0.5)
     if label:
         plt.text(0.95, 0.95, label,
                  transform=ax.transAxes, ha='right', va='top',
@@ -252,10 +280,12 @@ class Panel(object):
                 scatterplot(axes, datum, label=label, **properties)
             elif isinstance(datum, Histogram):
                 plot_hist(axes, datum, label=label, **properties)
-            elif isinstance(datum, AnalogSignal):
+            elif isinstance(datum, (AnalogSignal, IrregularlySampledSignal)):
                 plot_signals(axes, datum, label_prefix=label, **properties)
             elif isinstance(datum, list) and len(datum) > 0 and isinstance(datum[0], SpikeTrain):
                 plot_spiketrains(axes, datum, label=label, **properties)
+            elif isinstance(datum, SpikeTrainList):
+                plot_spiketrainlist(axes, datum, label=label, **properties)
             elif isinstance(datum, np.ndarray):
                 if datum.ndim == 2:
                     plot_array_as_image(axes, datum, label=label, **properties)

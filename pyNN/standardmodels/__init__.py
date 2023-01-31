@@ -13,7 +13,7 @@ Classes:
     STDPWeightDependence
     STDPTimingDependence
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -279,7 +279,6 @@ def check_weights(weights, projection):
         all_negative = weights <= 0
     else:
         raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    excitatory_receptor_types = ['excitatory', 'AMPA', 'NMDA']
     if projection.post.conductance_based or projection.receptor_type in excitatory_receptor_types:
         if not all_positive:
             raise errors.ConnectionError(

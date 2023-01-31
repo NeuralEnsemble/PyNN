@@ -2,12 +2,12 @@
 """
 Standard base_cells for the neuron module.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-from pyNN.standardmodels import cells as base_cells, build_translations
+from pyNN.standardmodels import ModelNotAvailable, cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
                                RandomGammaSpikeSource,
@@ -59,6 +59,10 @@ class IF_curr_exp(base_cells.IF_curr_exp):
     model = StandardIFStandardReceptors
     extra_parameters = {'syn_type': 'current',
                         'syn_shape': 'exp'}
+
+
+class IF_curr_delta(ModelNotAvailable):
+    pass
 
 
 class IF_cond_alpha(base_cells.IF_cond_alpha):

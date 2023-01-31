@@ -51,6 +51,10 @@ current_based_alpha_synapses = brian2.Equations('''
     tau_syn_i                                     : second
 ''')
 
+voltage_step_synapses = brian2.Equations('''
+    i_syn = 0 * amp  : amp
+''')
+
 conductance_based_synapse_translations = build_translations(
                 ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
                 ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),

@@ -3,7 +3,7 @@
 Common implementation of the Projection class, to be sub-classed by
 backend-specific Projection classes.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -168,7 +168,7 @@ class Projection(object):
         return 'Projection("%s")' % self.label
 
     def __getitem__(self, i):
-        """Return the *i*th connection within the Projection."""
+        """Return the /i/th connection within the Projection."""
         raise NotImplementedError
 
     def __iter__(self):

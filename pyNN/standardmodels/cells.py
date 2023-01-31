@@ -24,7 +24,7 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -111,6 +111,39 @@ class IF_curr_exp(StandardCellType):
         'tau_refrac': 'ms',
         'tau_syn_E': 'ms',
         'tau_syn_I': 'ms',
+        'i_offset': 'nA',
+        'v_reset': 'mV',
+        'v_thresh': 'mV',
+    }
+
+
+class IF_curr_delta(StandardCellType):
+    """
+    Leaky integrate and fire model with fixed threshold.
+    Synaptic inputs produce step changes in membrane potential.
+    """
+
+    default_parameters = {
+        'v_rest':   -65.0,  # Resting membrane potential in mV.
+        'cm':         1.0,  # Capacity of the membrane in nF
+        'tau_m':     20.0,  # Membrane time constant in ms.
+        'tau_refrac': 0.1,  # Duration of refractory period in ms.
+        'i_offset':   0.0,  # Offset current in nA
+        'v_reset':  -65.0,  # Reset potential after a spike in mV.
+        'v_thresh': -50.0,  # Spike threshold in mV.
+    }
+    recordable = ['spikes', 'v']
+    conductance_based = False
+    voltage_based_synapses = True
+    default_initial_values = {
+        'v': -65.0,
+    }
+    units = {
+        'v': 'mV',
+        'v_rest': 'mV',
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
         'i_offset': 'nA',
         'v_reset': 'mV',
         'v_thresh': 'mV',

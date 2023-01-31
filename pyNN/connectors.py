@@ -4,7 +4,7 @@ Defines a common implementation of the built-in PyNN Connector classes.
 Simulator modules may use these directly, or may implement their own versions
 for improved performance.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -14,7 +14,6 @@ from pyNN import errors, descriptions
 from pyNN.recording import files
 from pyNN.parameters import LazyArray
 from pyNN.standardmodels import StandardSynapseType
-from pyNN.common import Population
 import numpy as np
 from itertools import repeat
 import logging
@@ -252,6 +251,7 @@ class MapConnector(Connector):
         self._standard_connect(projection, connection_map.by_column, distance_map)
 
     def _get_connection_map_no_self_connections(self, projection):
+        from pyNN.common import Population
         if (isinstance(projection.pre, Population)
                 and isinstance(projection.post, Population)
                 and projection.pre == projection.post):
@@ -267,6 +267,7 @@ class MapConnector(Connector):
         return connection_map
 
     def _get_connection_map_no_mutual_connections(self, projection):
+        from pyNN.common import Population
         if (isinstance(projection.pre, Population)
             and isinstance(projection.post, Population)
                 and projection.pre == projection.post):
@@ -462,6 +463,25 @@ class IndexBasedProbabilityConnector(MapConnector):
 
 
 class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
+    """
+    For each pair of pre-post cells, the connection probability depends on the
+    displacement of the two neurons, i.e. on the triplet (dx, dy, dz) where
+    dx is the distance between the x-coordinates of the two neurons, and so on.
+
+    Takes any of the standard :class:`Connector` optional arguments and, in
+    addition:
+
+        `disp_function`:
+            the right-hand side of a valid Python expression for probability,
+            involving an array named 'd' whose first dimension has size 3.
+            e.g. "(d[0] < 3) * (d[1] < 2) * exp(-abs(d[2]))"
+        `allow_self_connections`:
+            if the connector is used to connect a Population to itself, this
+            flag determines whether a neuron is allowed to connect to itself,
+            or only to other neurons in the Population.
+        `rng`:
+            an :class:`RNG` instance used to evaluate whether connections exist
+    """
 
     class DisplacementExpression(IndexBasedExpression):
         """
@@ -471,7 +491,7 @@ class DisplacementDependentProbabilityConnector(IndexBasedProbabilityConnector):
 
         def __init__(self, disp_function):
             """
-            `disp_function`: a function that takes a 3xN numpy position matrix and maps each row
+            `disp_function`: a function that takes a 3xN numpy displacement matrix and maps each row
                              (displacement) to a probability between 0 and 1
             """
             self._disp_function = disp_function

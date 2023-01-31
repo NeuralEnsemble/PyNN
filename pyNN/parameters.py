@@ -1,15 +1,12 @@
 """
 Parameter set handling
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
-try:
-    from collections import Sized
-except ImportError:
-    from collections.abc import Sized
+from collections.abc import Sized
 from pyNN.core import is_listlike
 from pyNN import errors
 from pyNN.random import RandomDistribution, NativeRNG

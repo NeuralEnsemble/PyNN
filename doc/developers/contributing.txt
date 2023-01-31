@@ -19,7 +19,7 @@ Requirements
 In addition to the requirements listed in :doc:`../installation`, you will need to
 install:
 
-    * nose_
+    * pytest_
     * mock_
     * coverage_
 
@@ -86,15 +86,14 @@ We try to stay fairly close to PEP8_. Please note in particular:
 Testing
 =======
 
-Running the PyNN test suite requires the *nose_*, *mock_* and *nose-testconfig* packages,
-and optionally the *coverage_* package. To run the entire test suite, in the
-``test`` subdirectory of the source tree::
+Running the PyNN test suite requires the *pytest_* package,
+and optionally the *pytest-cov* package. To run the entire test suite::
 
-    $ nosetests
+    $ pytest
 
 To see how well the codebase is covered by the tests, run::
 
-    $ nosetests --with-coverage --cover-package=pyNN --cover-erase --cover-html
+    $ pytest --cov=pyNN --cov-report term --cov-report html
 
 There are currently two sorts of tests, unit tests, which aim to exercise
 small pieces of code such as individual functions and methods, and system tests,
@@ -110,31 +109,21 @@ Except when testing a specific simulator interface, unit tests should be able to
 run without a simulator installed.
 
 System tests should be written so that they can run with any of the simulators.
-The suggested way to do this is to write test functions, in a separate file,
-that take a simulator module as an argument, and then call these functions from
-``test_neuron.py``, ``test_nest.py``, etc.
+The suggested way to do this is to write test functions
+that take a simulator module as an argument, and then wrap these functions
+with the following decorator::
 
-System tests defined in the scenarios directory are treated as a single test
-(test_scenarios()) while running nosetests. To run only the tests within a file
+    @pytest.mark.parametrize("sim", (pyNN.nest, pyNN.neuron, pyNN.brian2))
+
+To run only the tests within a file
 named 'test_electrodes' located inside system/scenarios, use::
 
-    $ nosetests -s --tc=testFile:test_electrodes test_nest.py
+    $ pytest test/system/scenarios/test_electrodes.py
 
 To run a single specific test named 'test_changing_electrode' located within
 some file (and added to registry) inside system/scenarios, use::
 
-    $ nosetests -s --tc=testName:test_changing_electrode test_nest.py
-
-Note that this would also run the tests specified within the simulator specific
-files such as test_brian.py, test_nest.py and test_neuron.py. To avoid
-this, specify the 'test_scenarios function' on the command line::
-
-    $ nosetests -s --tc=testName:test_changing_electrode test_nest.py:test_scenarios
-
-The ``test/unsorted`` directory contains a number of old tests that are either
-no longer useful or have not yet been adapted to the nose framework. These are
-not part of the test suite, but we are gradually adapting those tests that are
-useful and deleting the others.
+    $ pytest test/system/scenarios/test_electrodes.py::test_changing_electrode
 
 
 Submitting code
@@ -190,11 +179,11 @@ in becoming release manager for PyNN, please contact us via the `mailing list`_.
 When you think a release is ready, run through the following checklist one
 last time:
 
-    * do all the tests pass? This means running :command:`nosetests` in
+    * do all the tests pass? This means running :command:`pytest` in
       :file:`test/unittests` and :file:`test/system` and running :command:`make doctest` in
       :file:`doc`. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
-      Mac OS X. You should also do this with Python 2.7 and 3.4, 3.5 or 3.6.
+      Mac OS X. You should also do this with multiple Python versions (3.7+).
     * do all the example scripts generate the correct output? Run the
       :file:`run_all_examples.py` script in :file:`examples/tools` and then visually
       check the :file:`.png` files generated in :file:`examples/tools/Results`. Again,
@@ -254,7 +243,7 @@ If this is a final release, there are a few more steps:
 
 .. _Sphinx: http://sphinx-doc.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/
-.. _nose: https://nose.readthedocs.org/
+.. _pytest: https://docs.pytest.org
 .. _mock: http://www.voidspace.org.uk/python/mock/
 .. _coverage: http://nedbatchelder.com/code/coverage/
 .. _`Python Package Index`: http://pypi.python.org/

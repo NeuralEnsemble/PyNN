@@ -25,6 +25,8 @@ class build(_build):
     """At the end of the build process, try to compile NEURON and NEST extensions."""
 
     def run(self):
+        self.distribution.convert_2to3_doctests = []  # workaround for bug
+        # see https://app.travis-ci.com/github/NeuralEnsemble/PyNN/jobs/582235672
         _build.run(self)
         # try to compile NEURON extensions
         nrnivmodl = self.find("nrnivmodl")
@@ -81,7 +83,7 @@ class build(_build):
 
 setup(
     name="PyNN",
-    version="0.10.1.dev",
+    version="0.10.2.dev",
     packages=['pyNN', 'pyNN.nest', 'pyNN.neuron',
               'pyNN.brian2', 'pyNN.common', 'pyNN.mock', 'pyNN.neuroml',
               'pyNN.recording', 'pyNN.standardmodels', 'pyNN.descriptions',
@@ -114,7 +116,7 @@ setup(
                  'Programming Language :: Python :: 3.9',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build_py': build},
-    install_requires=['numpy>=1.16.1', 'lazyarray>=0.5.0', 'neo>=0.10.0',
+    install_requires=['numpy>=1.18.5', 'lazyarray>=0.5.2', 'neo>=0.11.0',
                       'quantities>=0.12.1'],
     extras_require={
         'examples': ['matplotlib', 'scipy'],

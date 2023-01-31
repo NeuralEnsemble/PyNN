@@ -1,8 +1,6 @@
-from nose.plugins.skip import SkipTest
-from nose.tools import assert_equal
+
 import numpy as np
 from numpy.testing import assert_array_equal
-from .scenarios.registry import registry
 
 try:
     import pyNN.brian2
@@ -10,20 +8,12 @@ try:
 except ImportError:
     have_brian2 = False
 
-
-def test_scenarios():
-    for scenario in registry:
-        if "brian2" not in scenario.exclude:
-            scenario.description = "{}(brian2)".format(scenario.__name__)
-            if have_brian2:
-                yield scenario, pyNN.brian2
-            else:
-                raise SkipTest
+import pytest
 
 
 def test_ticket235():
     if not have_brian2:
-        raise SkipTest
+        pytest.skip("brian2 not available")
     pynnn = pyNN.brian2
     pynnn.setup()
     p1 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
@@ -41,9 +31,9 @@ def test_ticket235():
     # We see that both populations have fired uniformly as expected:
     n_spikes_p2 = p2.get_spike_counts()
     for n in n_spikes_p1.values():
-        assert_equal(n, n_spikes_p1[p1[1]])
+        assert n == n_spikes_p1[p1[1]]
     for n in n_spikes_p2.values():
-        assert_equal(n, n_spikes_p2[p2[1]])
+        assert n == n_spikes_p2[p2[1]]
     # With this new setup, only the second p2 unit should fire:
     # prj1_2.set(weight=[0, 20, 0, 0, 0, 0, 0, 0, 0])
     new_weights = np.where(np.eye(9), 0, np.nan)
@@ -54,7 +44,7 @@ def test_ticket235():
     pynnn.run(50)
     n_spikes_p1 = p1.get_spike_counts()
     for n in n_spikes_p1.values():
-        assert_equal(n, n_spikes_p1[p1[1]])
+        assert n == n_spikes_p1[p1[1]]
     # p2[1] should be ahead in spikes count, and others should not have
     # fired more. It is not what I observe:
     n_spikes_p2 = p2.get_spike_counts()
@@ -63,7 +53,7 @@ def test_ticket235():
 
 def test_tsodyks_markram_synapse():
     if not have_brian2:
-        raise SkipTest
+        pytest.skip("brian2 not available")
     sim = pyNN.brian2
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
@@ -96,7 +86,7 @@ def test_issue648():
       cells.inject(dc_source)
     """
     if not have_brian2:
-        raise SkipTest
+        pytest.skip("brian2 not available")
     sim = pyNN.brian2
     sim.setup()
     cells = sim.Population(2, sim.IF_curr_exp(v_rest = -65.0, v_thresh=-55.0,

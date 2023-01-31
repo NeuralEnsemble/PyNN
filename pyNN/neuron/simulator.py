@@ -15,7 +15,7 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -172,6 +172,7 @@ class _State(common.control.BaseState):
         self.clear()
         self.default_maxstep = 10.0
         self.native_rng_baseseed = 0
+        self.record_sample_times = False
 
     t = h_property('t')
 

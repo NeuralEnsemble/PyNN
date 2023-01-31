@@ -2,7 +2,7 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -79,6 +79,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY, **extra_params
     simulator.state.min_delay = min_delay
     simulator.state.max_delay = extra_params.get('max_delay', DEFAULT_MAX_DELAY)
     if 'use_cvode' in extra_params:
+        simulator.state.record_sample_times = extra_params['use_cvode']
         simulator.state.cvode.active(int(extra_params['use_cvode']))
         if 'rtol' in extra_params:
             simulator.state.cvode.rtol(float(extra_params['rtol']))

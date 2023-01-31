@@ -1,7 +1,7 @@
 """
 Tests of the parameters module.
 
-:copyright: Copyright 2006-2021 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -10,7 +10,7 @@ import operator
 import numpy as np
 from lazyarray import larray
 from numpy.testing import assert_array_equal
-from nose.tools import assert_raises, assert_equal
+import pytest
 from pyNN.parameters import LazyArray, ParameterSpace, Sequence
 from pyNN import random, errors
 from .mocks import MockRNG
@@ -42,7 +42,8 @@ def test_create_with_array():
 
 
 def test_create_inconsistent():
-    assert_raises(ValueError, LazyArray, [1, 2, 3], shape=4)
+    with pytest.raises(ValueError):
+        LazyArray([1, 2, 3], shape=4)
 
 
 def test_create_with_invalid_string():
@@ -50,7 +51,8 @@ def test_create_with_invalid_string():
 
 
 def test_create_with_invalid_string():
-    assert_raises(errors.InvalidParameterValueError, LazyArray, "x+y", shape=3)
+    with pytest.raises(errors.InvalidParameterValueError):
+        LazyArray("x+y", shape=3)
 
 
 def test_setitem_nonexpanded_same_value():
@@ -62,7 +64,8 @@ def test_setitem_nonexpanded_same_value():
 
 def test_setitem_invalid_value():
     A = LazyArray(3, shape=(5,))
-    assert_raises(TypeError, A.__setitem__, "abc")
+    with pytest.raises(TypeError):
+        A.__setitem__("abc")
 
 
 def test_setitem_nonexpanded_different_value():
@@ -76,7 +79,7 @@ def test_setitem_nonexpanded_different_value():
 def test_columnwise_iteration_with_flat_array():
     m = LazyArray(5, shape=(4, 3))  # 4 rows, 3 columns
     cols = [col for col in m.by_column()]
-    assert_equal(cols, [5, 5, 5])
+    assert cols == [5, 5, 5]
 
 
 def test_columnwise_iteration_with_structured_array():
@@ -121,7 +124,7 @@ def test_columnwise_iteration_with_flat_array_and_mask():
     m = LazyArray(5, shape=(4, 3))  # 4 rows, 3 columns
     mask = np.array([True, False, True])
     cols = [col for col in m.by_column(mask=mask)]
-    assert_equal(cols, [5, 5])
+    assert cols == [5, 5]
 
 
 def test_columnwise_iteration_with_structured_array_and_mask():
@@ -156,9 +159,9 @@ def test_columnwise_iteration_with_random_array_parallel_safe_with_mask():
     m = LazyArray(input, shape=(4, 3))
     cols_np2_1 = [col for col in m.by_column(mask=mask)]
 
-    assert_equal(len(cols_np1), 1)
-    assert_equal(len(cols_np2_0), 1)
-    assert_equal(len(cols_np2_1), 1)
+    assert len(cols_np1) == 1
+    assert len(cols_np2_0) == 1
+    assert len(cols_np2_1) == 1
     assert_array_equal(cols_np1[0], cols_np2_0[0])
 
     random.get_mpi_config = orig_get_mpi_config
@@ -189,22 +192,22 @@ def test_iadd_with_flat_array():
     m = LazyArray(5, shape=(4, 3))
     m += 2
     assert_array_equal(m.evaluate(), 7 * np.ones((4, 3)))
-    assert_equal(m.base_value, 5)
-    assert_equal(m.evaluate(simplify=True), 7)
+    assert m.base_value == 5
+    assert m.evaluate(simplify=True) == 7
 
 
 def test_add_with_flat_array():
     m0 = LazyArray(5, shape=(4, 3))
     m1 = m0 + 2
-    assert_equal(m1.evaluate(simplify=True), 7)
-    assert_equal(m0.evaluate(simplify=True), 5)
+    assert m1.evaluate(simplify=True) == 7
+    assert m0.evaluate(simplify=True) == 5
 
 
 def test_lt_with_flat_array():
     m0 = LazyArray(5, shape=(4, 3))
     m1 = m0 < 10
-    assert_equal(m1.evaluate(simplify=True), True)
-    assert_equal(m0.evaluate(simplify=True), 5)
+    assert m1.evaluate(simplify=True) == True
+    assert m0.evaluate(simplify=True) == 5
 
 
 def test_lt_with_structured_array():
@@ -237,10 +240,10 @@ def test_apply_function_to_constant_array():
     m0 = LazyArray(5, shape=(4, 3))
     m1 = f(m0)
     assert isinstance(m1, larray)
-    assert_equal(m1.evaluate(simplify=True), 13)
+    assert m1.evaluate(simplify=True) == 13
     # the following tests the internals, not the behaviour
     # it is just to check I understand what's going on
-    assert_equal(m1.operations, [(operator.mul, 2), (operator.add, 3)])
+    assert m1.operations == [(operator.mul, 2), (operator.add, 3)]
 
 
 def test_apply_function_to_structured_array():
@@ -268,31 +271,36 @@ def test_add_two_constant_arrays():
     m0 = LazyArray(5, shape=(4, 3))
     m1 = LazyArray(7, shape=(4, 3))
     m2 = m0 + m1
-    assert_equal(m2.evaluate(simplify=True), 12)
+    assert m2.evaluate(simplify=True) == 12
     # the following tests the internals, not the behaviour
     # it is just to check I understand what's going on
-    assert_equal(m2.base_value, m0.base_value)
-    assert_equal(m2.operations, [(operator.add, m1)])
+    assert m2.base_value == m0.base_value
+    assert m2.operations == [(operator.add, m1)]
 
 
 def test_add_incommensurate_arrays():
     m0 = LazyArray(5, shape=(4, 3))
     m1 = LazyArray(7, shape=(5, 3))
-    assert_raises(ValueError, m0.__add__, m1)
+    with pytest.raises(ValueError):
+        m0.__add__(m1)
 
 
 def test_getitem_from_constant_array():
     m = LazyArray(3, shape=(4, 3))
     assert m[0, 0] == m[3, 2] == m[-1, 2] == m[-4, 2] == m[2, -3] == 3
-    assert_raises(IndexError, m.__getitem__, (4, 0))
-    assert_raises(IndexError, m.__getitem__, (2, -4))
+    with pytest.raises(IndexError):
+        m.__getitem__((4, 0))
+    with pytest.raises(IndexError):
+        m.__getitem__((2, -4))
 
 
 def test_getitem_from_constant_array():
     m = LazyArray(3 * np.ones((4, 3)), shape=(4, 3))
     assert m[0, 0] == m[3, 2] == m[-1, 2] == m[-4, 2] == m[2, -3] == 3
-    assert_raises(IndexError, m.__getitem__, (4, 0))
-    assert_raises(IndexError, m.__getitem__, (2, -4))
+    with pytest.raises(IndexError):
+        m.__getitem__((4, 0))
+    with pytest.raises(IndexError):
+        m.__getitem__((2, -4))
 
 
 class ParameterSpaceTest(unittest.TestCase):

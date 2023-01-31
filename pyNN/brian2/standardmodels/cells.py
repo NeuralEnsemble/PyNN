@@ -18,6 +18,7 @@ from .receptors import (conductance_based_alpha_synapses,
                         conductance_based_exponential_synapses,
                         current_based_alpha_synapses,
                         current_based_exponential_synapses,
+                        voltage_step_synapses,
                         conductance_based_synapse_translations,
                         current_based_synapse_translations,
                         conductance_based_variable_translations,
@@ -109,6 +110,25 @@ adapt_iaf_translations = build_translations(
                 ('e_rev_rr',   'E_r',        lambda **p: p["e_rev_rr"] * mV, lambda **p: p["E_r"] / mV),
                 ('q_rr',       'q_r',        lambda **p: p["q_rr"] * nS, lambda **p: p["q_r"] / nS))
 
+conductance_based_synapse_translations = build_translations(
+                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
+                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
+                ('e_rev_E',    'e_rev_e',    lambda **p: p["e_rev_E"] * mV, lambda **p: p["e_rev_e"] / mV),
+                ('e_rev_I',    'e_rev_i',    lambda **p: p["e_rev_I"] * mV, lambda **p: p["e_rev_i"] / mV))
+
+current_based_synapse_translations = build_translations(
+                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
+                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
+
+conductance_based_variable_translations = build_translations(
+                ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
+                ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
+                ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
+current_based_variable_translations = build_translations(
+                ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
+                ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
+                ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
+
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     __doc__ = cells.IF_curr_alpha.__doc__
@@ -127,6 +147,17 @@ class IF_curr_exp(cells.IF_curr_exp):
     translations.update(current_based_synapse_translations)
     state_variable_translations = current_based_variable_translations
     post_synaptic_variables = {'excitatory': 'ie', 'inhibitory': 'ii'}
+    brian2_model = ThresholdNeuronGroup
+
+
+class IF_curr_delta(cells.IF_curr_delta):
+    __doc__ = cells.IF_curr_delta.__doc__
+    eqs = leaky_iaf + voltage_step_synapses
+    translations = deepcopy(leaky_iaf_translations)
+    state_variable_translations = build_translations(
+        ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
+    )
+    post_synaptic_variables = {'excitatory': 'v', 'inhibitory': 'v'}
     brian2_model = ThresholdNeuronGroup
 
 
