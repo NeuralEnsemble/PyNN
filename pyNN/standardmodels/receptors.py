@@ -8,7 +8,8 @@ from pyNN.standardmodels import StandardPostSynapticResponse
 
 class CurrExpPostSynapticResponse(StandardPostSynapticResponse):
     """
-
+    Post-synaptic response consisting of a step increase in synaptic current
+    followed by exponential decay.
     """
 
     default_parameters = {
@@ -25,7 +26,8 @@ class CurrExpPostSynapticResponse(StandardPostSynapticResponse):
 
 class CondExpPostSynapticResponse(StandardPostSynapticResponse):
     """
-
+    Post-synaptic response consisting of a step increase in synaptic conductance
+    followed by exponential decay.
     """
 
     default_parameters = {
@@ -43,7 +45,12 @@ class CondExpPostSynapticResponse(StandardPostSynapticResponse):
 
 class CondAlphaPostSynapticResponse(StandardPostSynapticResponse):
     """
+    Post-synaptic response consisting of an "alpha-function"-shaped synaptic conductance:
 
+        g(t) = t * exp(1 - t/tau_syn)
+
+    (see A. Roth and M. C. W. van Rossum (2013) Modeling Synapses.
+     In: Computational Modeling Methods for Neuroscientists, MIT Press 2013, pp 139-160)
     """
 
     default_parameters = {
@@ -61,7 +68,7 @@ class CondAlphaPostSynapticResponse(StandardPostSynapticResponse):
 
 class CondBetaPostSynapticResponse(StandardPostSynapticResponse):
     """
-
+    Post-synaptic response consisting of an beta-function-shaped synaptic conductance.
     """
 
     default_parameters = {
