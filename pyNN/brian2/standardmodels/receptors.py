@@ -4,6 +4,7 @@
 
 
 from copy import deepcopy
+from math import exp
 import brian2
 from brian2 import mV, ms, nF, nA, uS, Hz, nS
 from pyNN.standardmodels import receptors, build_translations
@@ -134,6 +135,33 @@ class PSRMixin:
                         raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
                                         % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
         return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
+
+
+class CurrExpPostSynapticResponse(PSRMixin, receptors.CurrExpPostSynapticResponse):
+
+    recordable = ["isyn"]
+
+    def eqs(self, suffix):
+        return  brian2.Equations(f'''
+            di{suffix}/dt = -i{suffix}/tau_syn_{suffix}  : ampere
+            tau_syn_{suffix}  : second
+        ''')
+
+    def translations(self, suffix):
+        return build_translations(
+            (f'tau_syn',  f'tau_syn_{suffix}', lambda **p: p[f"tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),
+        )
+
+    def state_variable_translations(self, suffix):
+        return build_translations(
+            (f'{suffix}.isyn', f'i{suffix}', lambda p: p * nA, lambda p: p/ nA),
+        )
+
+    def post_synaptic_variable(self, suffix):
+        return f"i{suffix}"
+
+    def synaptic_current(self, suffix):
+        return f"i{suffix}"
 
 
 class CondExpPostSynapticResponse(PSRMixin, receptors.CondExpPostSynapticResponse):

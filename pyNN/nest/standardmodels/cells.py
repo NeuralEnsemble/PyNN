@@ -134,7 +134,7 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
     )
     variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
                     'g_rr': 'g_rr', 'g_sfa': 'g_sfa'}
-    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001,
                      'g_rr': 0.001, 'g_sfa': 0.001}
     nest_name = {"on_grid": "iaf_cond_exp_sfa_rr",
                  "off_grid": "iaf_cond_exp_sfa_rr"}
@@ -189,7 +189,7 @@ class HH_cond_exp(cells.HH_cond_exp):
     )
     variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
                     'm': 'Act_m', 'n': 'Act_n', 'h': 'Inact_h'}
-    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001, 
+    scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001,
                      'm': 1, 'n': 1, 'h': 1}
     nest_name = {"on_grid": "hh_cond_exp_traub",
                  "off_grid": "hh_cond_exp_traub"}
@@ -420,6 +420,23 @@ class GIF_cond_exp(cells.GIF_cond_exp):
                      'gsyn_inh': 0.001, 'i_eta': 0.001, 'v_t': 1}
     nest_name = {"on_grid": "gif_cond_exp",
                  "off_grid": "gif_cond_exp"}
+    standard_receptor_type = True
+
+
+class LIF(cells.LIF):
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'V_reset'),
+        ('cm',         'C_m',      1000.0),  # C_m is in pF, cm in nF
+        ('tau_m',      'tau_m'),
+        ('tau_refrac', 't_ref'),
+        ('v_thresh',   'V_th'),
+        ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
+    )
+    variable_map = {'v': 'V_m'}
+    scale_factors = {'v': 1}
+    possible_models = set(["iaf_psc_alpha_multisynapse", "iaf_psc_exp_multisynapse"])
     standard_receptor_type = True
 
 

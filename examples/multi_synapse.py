@@ -94,7 +94,7 @@ if options.plot_figure:
               xticks=False, yticks=True,
               ylabel="GABAA Conductance (uS)"),
         Panel(data.filter(name='GABAB.gsyn')[0],
-              xticks=True, yticks=True, 
+              xticks=True, yticks=True,
               xlabel="Time (ms)",
               ylabel="GABAB Conductance (uS)"),
         title="Neuron with multiple synapse time constants",

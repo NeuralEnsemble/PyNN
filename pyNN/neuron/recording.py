@@ -119,6 +119,11 @@ class Recorder(recording.Recorder):
             expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
             if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
                 signals = np.vstack((signals, signals[-1, :]))
+            if ".isyn" in variable:
+                # this is a hack, since negative currents in NMODL files
+                # correspond to positive currents in PyNN
+                # todo: reimplement this in a more robust way
+                signals *= -1
         else:
             signals = np.array([])
         return signals

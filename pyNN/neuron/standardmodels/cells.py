@@ -12,6 +12,7 @@ from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTra
                                RandomSpikeSource, VectorSpikeSource,
                                RandomGammaSpikeSource,
                                RandomPoissonRefractorySpikeSource,
+                               StandardIF,
                                BretteGerstnerIF,
                                BretteGerstnerIFStandardReceptors, GsfaGrrIF, Izhikevich_,
                                GIFNeuron)
@@ -261,6 +262,21 @@ class EIF_cond_exp_isfa_ista(base_cells.EIF_cond_exp_isfa_ista):
                         'syn_shape': 'exp'}
 
 
+class LIF(base_cells.LIF):
+
+    translations = build_translations(
+        ('cm',         'c_m'),
+        ('tau_refrac', 't_refrac'),
+        ('v_reset',    'v_reset'),
+        ('v_rest',     'v_rest'),
+        ('tau_m',      'tau_m'),
+        ('i_offset',   'i_offset'),
+        ('v_thresh',   'v_thresh'),
+    )
+    model = StandardIF
+    variable_map = {"v": "v"}
+
+
 class AdExp(base_cells.AdExp):
 
     translations = build_translations(
@@ -320,11 +336,11 @@ class GIF_cond_exp(base_cells.GIF_cond_exp):
 
 
 class PointNeuron(base_cells.PointNeuron):
-    
+
     def __init__(self, neuron, **post_synaptic_receptors):
         super(PointNeuron, self).__init__(neuron, **post_synaptic_receptors)
         self.model = neuron.model
-    
+
     @property
     def native_parameters(self):
         translated_parameters = self.neuron.native_parameters

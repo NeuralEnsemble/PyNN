@@ -179,6 +179,15 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
     brian2_model = AdaptiveNeuronGroup
 
 
+class LIF(cells.LIF):
+    eqs = leaky_iaf
+    translations = deepcopy(leaky_iaf_translations)
+    state_variable_translations = build_translations(
+                ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
+    )
+    brian2_model = ThresholdNeuronGroup
+
+
 class AdExp(cells.AdExp):
     eqs = adexp_iaf
     translations = deepcopy(adexp_iaf_translations)

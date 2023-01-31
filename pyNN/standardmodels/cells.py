@@ -484,6 +484,38 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     }
 
 
+class LIF(StandardCellTypeComponent):
+    """
+    Leaky integrate and fire neuron
+    """
+
+    default_parameters = {
+        'cm':         1.0,     # Capacitance of the membrane in nF
+        'tau_refrac': 0.1,     # Duration of refractory period in ms.
+        'v_reset':  -65.0,     # Reset value for V_m after a spike. In mV.
+        'v_rest':   -65.0,     # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m':     20.0,     # Membrane time constant in ms
+        'i_offset':   0.0,     # Offset current in nA
+        'v_thresh': -50.0,     # Spike initiation threshold in mV
+    }
+    recordable = ['spikes', 'v']
+    injectable = True
+    default_initial_values = {
+        'v': -70.6,  # 'v_rest'
+    }
+    units = {
+        'v': 'mV',
+        'w': 'nA',
+        'cm': 'nF',
+        'tau_refrac': 'ms',
+        'v_reset': 'mV',
+        'v_rest': 'mV',
+        'tau_m': 'ms',
+        'i_offset': 'nA',
+        'v_thresh': 'mV',
+    }
+
+
 class AdExp(StandardCellTypeComponent):
     """
     Exponential integrate and fire neuron with spike triggered and
@@ -516,8 +548,6 @@ class AdExp(StandardCellTypeComponent):
     units = {
         'v': 'mV',
         'w': 'nA',
-        'gsyn_exc': 'uS',
-        'gsyn_inh': 'uS',
         'cm': 'nF',
         'tau_refrac': 'ms',
         'v_spike': 'mV',
@@ -547,6 +577,15 @@ class PointNeuron(StandardCellType):
     @property
     def receptor_types(self):
         return list(sorted(self.post_synaptic_receptors.keys()))
+
+    @property
+    def conductance_based(self):
+        psr_conductance_based = set(psr.conductance_based
+                                    for psr in self.post_synaptic_receptors.values())
+        if len(psr_conductance_based) > 1:
+            raise Exception("Cannot mix conductance-based and current-based synaptic receptors")
+        psr_conductance_based, = psr_conductance_based
+        return psr_conductance_based
 
     @property
     def recordable(self):
@@ -596,7 +635,7 @@ class PointNeuron(StandardCellType):
         return self.neuron.computed_parameters() + list(set.union(*[set(psr.computed_parameters()) for psr in self.post_synaptic_receptors.values()]))
 
     def computed_parameters_include(self, parameter_names):
-        return (self.neuron.computed_parameters_include(parameter_names) 
+        return (self.neuron.computed_parameters_include(parameter_names)
                 or reduce(operator.or_,
                           [psr.computed_parameters_include(parameter_names)
                            for psr in self.post_synaptic_receptors.values()]))

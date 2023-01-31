@@ -18,14 +18,19 @@ Classes:
 
 """
 
-from pyNN import errors, models
-from pyNN.parameters import ParameterSpace
-import numpy as np
-from pyNN.core import is_listlike
+import warnings
 from copy import deepcopy
+import numpy as np
 import neo
 import quantities as pq
 
+from pyNN import errors, models
+from pyNN.parameters import ParameterSpace
+from pyNN.core import is_listlike
+
+
+excitatory_receptor_types = ["excitatory", "AMPA", "NMDA"]
+inhibitory_receptor_types = ["inhibitory", "GABA", "GABAA", "GABAB"]
 
 # ==============================================================================
 #   Standard cells
@@ -164,7 +169,7 @@ class StandardPostSynapticResponse(StandardModelType, models.BasePostSynapticRes
 
     def set_parent(self, parent):
         """
-         
+
         """
         self.parent = parent
 
@@ -274,18 +279,19 @@ def check_weights(weights, projection):
         all_negative = weights <= 0
     else:
         raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    if projection.post.conductance_based or projection.receptor_type == 'excitatory':
+    excitatory_receptor_types = ['excitatory', 'AMPA', 'NMDA']
+    if projection.post.conductance_based or projection.receptor_type in excitatory_receptor_types:
         if not all_positive:
             raise errors.ConnectionError(
                 "Weights must be positive for conductance-based and/or excitatory synapses"
             )
-    elif projection.post.conductance_based is False and projection.receptor_type == 'inhibitory':
+    elif projection.post.conductance_based is False and projection.receptor_type in inhibitory_receptor_types:
         if not all_negative:
             raise errors.ConnectionError(
                 "Weights must be negative for current-based, inhibitory synapses"
             )
-    else:  # This should never happen.
-        raise Exception("Can't check weight, conductance status unknown.")
+    else:  # This can happen for multi-synapse models if the receptor_type is not one of the commonly used ones
+        warnings.warn("Can't check weight, conductance status unknown.")
 
 
 def check_delays(delays, projection):
