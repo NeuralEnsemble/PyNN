@@ -293,6 +293,61 @@ def test_update_SpikeSourceArray(sim, plot_figure=False):
     assert_array_equal(data[0].magnitude, np.array([12, 15, 18, 22, 25]))
 
 
+@run_with_simulators("nest", "neuron", "brian2")
+def test_composed_neuron_model_homogeneous_receptors(sim, plot_figure=False):
+    sim.setup()
+    celltype1 = sim.PointNeuron(
+        sim.AdExp(tau_m=10.0, v_rest=-60.0),
+        AMPA=sim.AlphaPSR(tau_syn=1.0, e_syn=0.0),
+        NMDA=sim.AlphaPSR(tau_syn=20.0, e_syn=0.0),
+        GABAA=sim.AlphaPSR(tau_syn=1.5, e_syn=-70.0))
+    celltype2 = sim.PointNeuron(
+        sim.LIF(tau_m=10.0, v_rest=-60.0),
+        AMPA=sim.CurrExpPostSynapticResponse(tau_syn=1.0),
+        NMDA=sim.CurrExpPostSynapticResponse(tau_syn=20.0),
+        GABAA=sim.CurrExpPostSynapticResponse(tau_syn=1.5))
+    neurons1 = sim.Population(1, celltype1, initial_values={'v': -60.0})
+    neurons2 = sim.Population(1, celltype2, initial_values={'v': -60.0})
+
+    neurons = neurons1 + neurons2
+    neurons1.record(['v', 'AMPA.gsyn', 'NMDA.gsyn', 'GABAA.gsyn'])
+    neurons2.record(['v', 'AMPA.isyn', 'NMDA.isyn', 'GABAA.isyn'])
+
+    assert neurons.get("tau_m") == pytest.approx(10.0)
+    assert neurons1.get("GABAA.e_syn") == -70.0
+    assert neurons2.get("GABAA.tau_syn") == 1.5
+
+    inputs = sim.Population(
+        3,
+        sim.SpikeSourceArray(
+            spike_times=[Sequence([30.0]), Sequence([60.0]), Sequence([90.0])]
+        )
+    )
+    connections = {
+        "AMPA1": sim.Projection(inputs[0:1], neurons1, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.01, delay=1.5),
+                            receptor_type="AMPA", label="AMPA"),
+        "GABAA1": sim.Projection(inputs[1:2], neurons1, sim.AllToAllConnector(),
+                                synapse_type=sim.StaticSynapse(weight=0.1, delay=1.5),
+                                receptor_type="GABAA", label="GABAA"),
+        "NMDA1": sim.Projection(inputs[2:3], neurons1, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.005, delay=1.5),
+                            receptor_type="NMDA", label="NMDA"),
+        "AMPA2": sim.Projection(inputs[0:1], neurons2, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.01, delay=1.5),
+                            receptor_type="AMPA", label="AMPA"),
+        "GABAA2": sim.Projection(inputs[1:2], neurons2, sim.AllToAllConnector(),
+                                synapse_type=sim.StaticSynapse(weight=-0.1, delay=1.5),
+                                receptor_type="GABAA", label="GABAA"),
+        "NMDA2": sim.Projection(inputs[2:3], neurons2, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.005, delay=1.5),
+                            receptor_type="NMDA", label="NMDA")
+    }
+    sim.run(200.0)
+    data = neurons.get_data().segments[0]
+    data.filter(name='AMPA.gsyn')
+    # for now, just check this runs without errors, todo: add some asserts about the data
+
 
 # todo: add test of Izhikevich model
 
