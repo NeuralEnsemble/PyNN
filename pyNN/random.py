@@ -136,11 +136,11 @@ class WrappedRNG(AbstractRNG):
         elif n > 0:
             if mask is not None:
                 assert isinstance(mask, np.ndarray)
-                if mask.dtype == np.bool:
+                if mask.dtype == bool:
                     if mask.size != n:
                         raise ValueError("boolean mask size must equal n")
                 if not self.parallel_safe:
-                    if mask.dtype == np.bool:
+                    if mask.dtype == bool:
                         n = mask.sum()
                     elif mask.dtype == np.integer:
                         n = mask.size
