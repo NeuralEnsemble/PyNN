@@ -51,8 +51,8 @@ class TestPopulation(unittest.TestCase):
         cell_type = sim.native_cell_type('iaf_psc_alpha')
         p = sim.Population(3, cell_type())
 
-    def test__get_parameters(self):
-        ps = self.p._get_parameters('C_m', 'g_L', 'E_ex', 'I_e')
+    def test__get_native_parameters(self):
+        ps = self.p._get_native_parameters('C_m', 'g_L', 'E_ex', 'I_e')
         ps.evaluate(simplify=True)
         assert_array_almost_equal(ps['C_m'], np.array([987, 997, 1007, 1017], float),
                                   decimal=12)

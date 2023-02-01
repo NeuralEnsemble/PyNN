@@ -19,14 +19,18 @@ Classes:
 """
 
 import warnings
-from pyNN import errors, models
-from pyNN.parameters import ParameterSpace
-import numpy as np
-from pyNN.core import is_listlike
 from copy import deepcopy
+import numpy as np
 import neo
 import quantities as pq
 
+from pyNN import errors, models
+from pyNN.parameters import ParameterSpace
+from pyNN.core import is_listlike
+
+
+excitatory_receptor_types = ["excitatory", "AMPA", "NMDA"]
+inhibitory_receptor_types = ["inhibitory", "GABA", "GABAA", "GABAB"]
 
 # ==============================================================================
 #   Standard cells
@@ -134,6 +138,9 @@ class StandardModelType(models.BaseModelType):
         more than one other parameter."""
         return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
 
+    def computed_parameters_include(self, parameter_names):
+        return any(name in self.computed_parameters() for name in parameter_names)
+
     def get_native_names(self, *names):
         """
         Return a list of native parameter names for a given model.
@@ -150,6 +157,21 @@ class StandardCellType(StandardModelType, models.BaseCellType):
     recordable = ['spikes', 'v', 'gsyn']
     receptor_types = ('excitatory', 'inhibitory')
     always_local = False  # override for NEST spike sources
+
+
+class StandardCellTypeComponent(StandardModelType, models.BaseCellTypeComponent):
+    """docstring needed"""
+    pass
+
+
+class StandardPostSynapticResponse(StandardModelType, models.BasePostSynapticResponse):
+    """docstring needed"""
+
+    def set_parent(self, parent):
+        """
+
+        """
+        self.parent = parent
 
 
 class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
@@ -193,10 +215,7 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         """
         # if some of the parameters are computed from the values of other
         # parameters, need to get and translate all parameters
-        computed_parameters = self.computed_parameters()
-        have_computed_parameters = np.any([p_name in computed_parameters
-                                              for p_name in parameters])
-        if have_computed_parameters:
+        if self.computed_parameters_include(parameters):
             all_parameters = self.get_parameters()
             all_parameters.update(parameters)
             parameters = all_parameters
@@ -260,18 +279,18 @@ def check_weights(weights, projection):
         all_negative = weights <= 0
     else:
         raise errors.ConnectionError("Weights must be a number or an array of numbers.")
-    if projection.post.conductance_based or projection.receptor_type == 'excitatory':
+    if projection.post.conductance_based or projection.receptor_type in excitatory_receptor_types:
         if not all_positive:
             raise errors.ConnectionError(
                 "Weights must be positive for conductance-based and/or excitatory synapses"
             )
-    elif projection.post.conductance_based is False and projection.receptor_type == 'inhibitory':
+    elif projection.post.conductance_based is False and projection.receptor_type in inhibitory_receptor_types:
         if not all_negative:
             raise errors.ConnectionError(
                 "Weights must be negative for current-based, inhibitory synapses"
             )
-    else:  # This should never happen.
-        raise Exception("Can't check weight, conductance status unknown.")
+    else:  # This can happen for multi-synapse models if the receptor_type is not one of the commonly used ones
+        warnings.warn("Can't check weight, conductance status unknown.")
 
 
 def check_delays(delays, projection):

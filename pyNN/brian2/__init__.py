@@ -14,6 +14,10 @@ from pyNN.brian2 import simulator
 from pyNN.brian2.standardmodels.cells import *
 from pyNN.brian2.standardmodels.synapses import *
 from pyNN.brian2.standardmodels.electrodes import *
+from pyNN.brian2.standardmodels.receptors import (
+    CondAlphaPostSynapticResponse, AlphaPSR,
+    CondExpPostSynapticResponse, ExpPSR,
+    CurrExpPostSynapticResponse)
 from pyNN.brian2.populations import Population, PopulationView, Assembly
 from pyNN.brian2.projections import Projection
 from pyNN.recording import get_io

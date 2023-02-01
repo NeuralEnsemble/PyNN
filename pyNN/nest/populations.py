@@ -7,6 +7,7 @@ NEST v2 implementation of the PyNN API.
 
 """
 
+from collections import defaultdict
 import numpy as np
 import nest
 import logging
@@ -15,7 +16,7 @@ from pyNN.parameters import ArrayParameter, Sequence, ParameterSpace, simplify, 
 from pyNN.random import RandomDistribution
 from pyNN.standardmodels import StandardCellType
 from . import simulator
-from .recording import Recorder, VARIABLE_MAP
+from .recording import Recorder
 
 logger = logging.getLogger("PyNN")
 
@@ -38,7 +39,58 @@ class PopulationMixin(object):
 
     def _get_parameters(self, *names):
         """
+        Return a ParameterSpace containing PyNN parameters
+        
+        `names` should be PyNN names
+        """
+        def _get_component_parameters(component, names, component_label=None):
+            if component.computed_parameters_include(names):
+                native_names = component.get_native_names()  # need all parameters in order to calculate values
+            else:
+                native_names = component.get_native_names(*names)
+            native_parameter_space = self._get_native_parameters(*native_names)
+            ps = component.reverse_translate(native_parameter_space)
+            # extract values for this component from any ArrayParameters
+            for name, value in ps.items():
+                if isinstance(value.base_value, ArrayParameter):
+                    index = self.celltype.receptor_types.index(component_label)
+                    ps[name] = LazyArray(value.base_value[index])
+                    ps[name].operations = value.operations
+            return ps
+
+        if isinstance(self.celltype, StandardCellType):
+            if any("." in name for name in names):
+                names_by_component = defaultdict(list)
+                for name in names:
+                    parts = name.split(".")
+                    if len(parts) == 1:
+                        names_by_component["neuron"].append(parts[0])
+                    elif len(parts) == 2:
+                        names_by_component[parts[0]].append(parts[1])
+                    else:
+                        raise ValueError("Invalid name: {}".format(name))
+                if "neuron" in names_by_component:
+                    parameter_space = _get_component_parameters(self.celltype.neuron,
+                                                                names_by_component.pop("neuron"))
+                else:
+                    parameter_space = ParameterSpace({})
+                for component_label, names in names_by_component.items():
+                    parameter_space.add_child(component_label,
+                                              _get_component_parameters(self.celltype.post_synaptic_receptors[component_label],
+                                                                        names_by_component[component_label],
+                                                                        component_label))
+            else:
+                parameter_space = _get_component_parameters(self.celltype, names)
+        else:
+            parameter_space = self._get_native_parameters(*names)
+        return parameter_space
+
+
+    def _get_native_parameters(self, *names):
+        """
         return a ParameterSpace containing native parameters
+
+        `names` should be native NEST names
         """
         if hasattr(self.celltype, "uses_parrot") and self.celltype.uses_parrot:
             ids = self.node_collection_source[self._mask_local]
@@ -202,7 +254,8 @@ class Population(common.Population, PopulationMixin):
                     self._simulator.set_status(self.node_collection, name, value)
 
     def _set_initial_value_array(self, variable, value):
-        variable = VARIABLE_MAP.get(variable, variable)
+        if hasattr(self.celltype, "variable_map"):
+            variable = self.celltype.variable_map[variable]
         if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
             local_values = value.evaluate()[self._mask_local]
         else:
