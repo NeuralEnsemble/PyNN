@@ -14,8 +14,7 @@ Classes:
 
 import logging
 import numpy as np
-import brian2
-from brian2 import ms, second, nA, amp, Hz, NetworkOperation, amp as ampere
+from brian2 import ms, second, nA, amp, Hz, amp as ampere
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
 from pyNN.brian2 import simulator
@@ -85,14 +84,13 @@ class Brian2CurrentSource(StandardCurrentSource):
 
     def _reset(self):
         # self.i reset to 0 only at the start of a new run; not for continuation of existing runs
-        if not hasattr(self, 'running') or self.running == False:
+        if not hasattr(self, 'running') or not self.running:
             self.i = 0
             self.running = True
         if self._is_computed:
             self._generate()
 
     def inject_into(self, cell_list):
-        __doc__ = StandardCurrentSource.inject_into.__doc__
         for cell in cell_list:
             if not cell.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
@@ -103,8 +101,12 @@ class Brian2CurrentSource(StandardCurrentSource):
             self.prev_amp_dict[cell_idx] = 0.0
 
     def _update_current(self):
-        # check if current timestamp is within dt/2 of target time; Brian2 uses seconds as unit of time
-        if self.running and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0):
+        # check if current timestamp is within dt/2 of target time;
+        # Brian2 uses seconds as unit of time
+        if (
+            self.running
+            and abs(simulator.state.t - self.times[self.i] * 1e3) < (simulator.state.dt/2.0)
+        ):
             for cell, idx in zip(self.cell_list, self.indices):
                 if not self._is_playable:
                     cell.parent.brian2_group.i_inj[idx] += (
@@ -183,15 +185,18 @@ class ACSource(Brian2CurrentSource, electrodes.ACSource):
 
     def _generate(self):
         # Note: Brian2 uses seconds as unit of time
-        temp_num_t = int(round(((self.stop + simulator.state.dt * 1e-3) -
-                                self.start) / (simulator.state.dt * 1e-3)))
+        temp_num_t = int(round(
+            ((self.stop + simulator.state.dt * 1e-3) - self.start) / (simulator.state.dt * 1e-3)
+        ))
         self.times = np.array([self.start + (i * simulator.state.dt * 1e-3)
-                                  for i in range(temp_num_t)])
+                               for i in range(temp_num_t)])
         self.amplitudes = np.zeros(0)
 
     def _compute(self, time):
-        # Note: Brian2 uses seconds as unit of time; frequency is specified in Hz; thus no conversion required
-        return self.offset + self.amplitude * np.sin((time-self.start) * 2 * np.pi * self.frequency + 2 * np.pi * self.phase / 360)
+        # Note: Brian2 uses seconds as unit of time;
+        #       frequency is specified in Hz; thus no conversion required
+        return self.offset + self.amplitude * np.sin(
+            (time-self.start) * 2 * np.pi * self.frequency + 2 * np.pi * self.phase / 360)
 
 
 class DCSource(Brian2CurrentSource, electrodes.DCSource):
@@ -244,7 +249,8 @@ class NoisyCurrentSource(Brian2CurrentSource, electrodes.NoisyCurrentSource):
     def _generate(self):
         temp_num_t = int(round((self.stop - self.start) / max(self.dt, simulator.state.dt * 1e-3)))
         self.times = np.array(
-            [self.start + (i * max(self.dt, simulator.state.dt * 1e-3)) for i in range(temp_num_t)])
+            [self.start + (i * max(self.dt, simulator.state.dt * 1e-3))
+             for i in range(temp_num_t)])
         self.times = np.append(self.times, self.stop)
         self.amplitudes = np.zeros(0)
 

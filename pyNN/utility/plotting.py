@@ -13,7 +13,6 @@ package directly rather than trying to extend this module.
 
 import sys
 from collections import defaultdict
-from numbers import Number
 from itertools import repeat
 from os import path, makedirs
 import matplotlib.pyplot as plt

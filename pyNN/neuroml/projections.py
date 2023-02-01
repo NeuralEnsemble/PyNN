@@ -8,6 +8,8 @@ Contact Padraig Gleeson for more details
 :license: CeCILL, see LICENSE for details.
 """
 
+# flake8: noqa
+
 from itertools import repeat
 
 from pyNN import common

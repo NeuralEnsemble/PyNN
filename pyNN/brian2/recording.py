@@ -5,11 +5,9 @@
 """
 
 import logging
-from collections import defaultdict
 import numpy as np
 import quantities as pq
 import brian2
-from pyNN.core import is_listlike
 from pyNN import recording
 from . import simulator
 
@@ -27,7 +25,6 @@ class Recorder(recording.Recorder):
     _simulator = simulator
 
     def __init__(self, population=None, file=None):
-        __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, population, file)
         self._devices = {}  # defer creation until first call of run()
 
@@ -37,7 +34,8 @@ class Recorder(recording.Recorder):
         if variable == 'spikes':
             self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded)
         else:
-            varname = self.population.celltype.state_variable_translations[variable]['translated_name']
+            translations = self.population.celltype.state_variable_translations
+            varname = translations[variable]['translated_name']
             neurons_to_record = np.sort(np.fromiter(
                 self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
@@ -89,8 +87,8 @@ class Recorder(recording.Recorder):
             values = getattr(device, varname).T
         else:
             raise NotImplementedError  # todo - construct a mask to get only the desired signals
-        values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](
-            values)
+        translations = self.population.celltype.state_variable_translations
+        values = translations[variable]['reverse_transform'](values)
         # because we use `when='end'`, need to add the value at the beginning of the run
         tmp = np.empty((values.shape[0] + 1, values.shape[1]))
         tmp[1:, :] = values
@@ -109,6 +107,5 @@ class Recorder(recording.Recorder):
         indices = np.fromiter(filtered_ids, dtype=int) - padding
         spiky = self._devices['spikes'].spike_trains()
         for i, id in zip(indices, filtered_ids):
-            #N[id] = len(self._devices['spikes'].spiketimes[i])
             N[id] = len(spiky[i])
         return N

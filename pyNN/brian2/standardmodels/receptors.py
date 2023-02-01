@@ -2,11 +2,11 @@
 
 """
 
+# flake8: noqa
 
 from copy import deepcopy
-from math import exp
 import brian2
-from brian2 import mV, ms, nF, nA, uS, Hz, nS
+from brian2 import mV, ms, nA, uS
 from pyNN.standardmodels import receptors, build_translations
 from pyNN.parameters import ParameterSpace
 
@@ -56,24 +56,24 @@ voltage_step_synapses = brian2.Equations('''
 ''')
 
 conductance_based_synapse_translations = build_translations(
-                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
-                ('e_rev_E',    'e_rev_e',    lambda **p: p["e_rev_E"] * mV, lambda **p: p["e_rev_e"] / mV),
-                ('e_rev_I',    'e_rev_i',    lambda **p: p["e_rev_I"] * mV, lambda **p: p["e_rev_i"] / mV))
+    ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
+    ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
+    ('e_rev_E',    'e_rev_e',    lambda **p: p["e_rev_E"] * mV, lambda **p: p["e_rev_e"] / mV),
+    ('e_rev_I',    'e_rev_i',    lambda **p: p["e_rev_I"] * mV, lambda **p: p["e_rev_i"] / mV))
 
 current_based_synapse_translations = build_translations(
-                ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-                ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
+    ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
+    ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
 
 conductance_based_variable_translations = build_translations(
-                ('v', 'v', lambda p: p * mV, lambda p: p/ mV),
-                ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p/ uS),
-                ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p/ uS))
+    ('v', 'v', lambda p: p * mV, lambda p: p / mV),
+    ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p / uS),
+    ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p / uS))
 
 current_based_variable_translations = build_translations(
-                ('v',         'v',         lambda p: p * mV, lambda p: p/ mV), #### change p by p["v"]
-                ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p/ nA),
-                ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p/ nA))
+    ('v',         'v',         lambda p: p * mV, lambda p: p / mV),
+    ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p / nA),
+    ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p / nA))
 
 
 class PSRMixin:
@@ -104,7 +104,8 @@ class PSRMixin:
             _parameters = parameters
         cls = self.__class__
         if parameters.schema != self.get_schema():
-            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
+            # should replace this with a PyNN-specific exception type
+            raise Exception(f"Schemas do not match: ({parameters.schema} != {self.get_schema()}")
         native_parameters = {}
         for name in parameters.keys():
             D = self.translations(suffix)[name]
@@ -114,12 +115,12 @@ class PSRMixin:
             else:
                 try:
                     pval = eval(D['forward_transform'], globals(), _parameters)
-                except NameError as errmsg:
-                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
-                                    % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
+                except NameError as err:
+                    raise NameError(
+                        f"Problem translating {pname} in {cls.__name__}. "
+                        f"Transform: '{D['forward_transform']}'. Parameters: {parameters} {err}")
                 except ZeroDivisionError:
                     raise
-                    #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
@@ -134,31 +135,39 @@ class PSRMixin:
                     standard_parameters[name] = D['reverse_transform'](**native_parameters)
                 else:
                     try:
-                        standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-                    except NameError as errmsg:
-                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
-                                        % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
+                        standard_parameters[name] = eval(
+                            D['reverse_transform'], {}, native_parameters)
+                    except NameError as err:
+                        raise NameError(
+                            f"Problem translating {name} in {cls.__name__}. "
+                            f"Transform: '{D['reverse_transform']}'. "
+                            f"Parameters: {native_parameters} {err}")
+        return ParameterSpace(standard_parameters,
+                              schema=self.get_schema(),
+                              shape=native_parameters.shape)
 
 
-class CurrExpPostSynapticResponse(PSRMixin, receptors.CurrExpPostSynapticResponse):
+class CurrExpPostSynapticResponse(
+    PSRMixin,
+    receptors.CurrExpPostSynapticResponse
+):
 
     recordable = ["isyn"]
 
     def eqs(self, suffix):
-        return  brian2.Equations(f'''
+        return brian2.Equations(f'''
             di{suffix}/dt = -i{suffix}/tau_syn_{suffix}  : ampere
             tau_syn_{suffix}  : second
         ''')
 
     def translations(self, suffix):
         return build_translations(
-            (f'tau_syn',  f'tau_syn_{suffix}', lambda **p: p[f"tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),
+            ('tau_syn',  f'tau_syn_{suffix}', lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.isyn', f'i{suffix}', lambda p: p * nA, lambda p: p/ nA),
+            (f'{suffix}.isyn', f'i{suffix}', lambda p: p * nA, lambda p: p / nA),
         )
 
     def post_synaptic_variable(self, suffix):
@@ -173,7 +182,7 @@ class CondExpPostSynapticResponse(PSRMixin, receptors.CondExpPostSynapticRespons
     recordable = ["gsyn"]
 
     def eqs(self, suffix):
-        return  brian2.Equations(f'''
+        return brian2.Equations(f'''
             dg{suffix}/dt = -g{suffix}/tau_syn_{suffix}  : siemens
             tau_syn_{suffix}  : second
             e_rev_{suffix}  : volt
@@ -181,13 +190,13 @@ class CondExpPostSynapticResponse(PSRMixin, receptors.CondExpPostSynapticRespons
 
     def translations(self, suffix):
         return build_translations(
-            (f'tau_syn',  f'tau_syn_{suffix}',  lambda **p: p[f"tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),
-            (f'e_syn',    f'e_rev_{suffix}',    lambda **p: p[f"e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),
+            ('tau_syn',  f'tau_syn_{suffix}',  lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
+            ('e_syn',    f'e_rev_{suffix}',    lambda **p: p["e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),      # noqa: E501
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p/ uS),
+            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p / uS),
         )
 
     def post_synaptic_variable(self, suffix):
@@ -202,8 +211,8 @@ class CondAlphaPostSynapticResponse(PSRMixin, receptors.CondAlphaPostSynapticRes
     recordable = ["gsyn", "ysyn"]
 
     def eqs(self, suffix):
-        return  brian2.Equations(f'''
-            dg{suffix}/dt = (2.7182818284590451 * y{suffix} - g{suffix}) / tau_syn_{suffix}  : siemens
+        return brian2.Equations(f'''
+            dg{suffix}/dt = (2.7182818284590451 * y{suffix} - g{suffix}) / tau_syn_{suffix}  : siemens  # noqa: E501
             dy{suffix}/dt = -y{suffix}/tau_syn_{suffix}  : siemens
             tau_syn_{suffix}  : second
             e_rev_{suffix}  : volt
@@ -211,14 +220,14 @@ class CondAlphaPostSynapticResponse(PSRMixin, receptors.CondAlphaPostSynapticRes
 
     def translations(self, suffix):
         return build_translations(
-            (f'tau_syn',  f'tau_syn_{suffix}',  lambda **p: p[f"tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),
-            (f'e_syn',    f'e_rev_{suffix}',    lambda **p: p[f"e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),
+            ('tau_syn',  f'tau_syn_{suffix}',  lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
+            ('e_syn',    f'e_rev_{suffix}',    lambda **p: p["e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),      # noqa: E501
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p/ uS),
-            (f'{suffix}.ysyn', f'y{suffix}', lambda p: p * uS, lambda p: p/ uS),
+            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p / uS),
+            (f'{suffix}.ysyn', f'y{suffix}', lambda p: p * uS, lambda p: p / uS),
         )
 
     def post_synaptic_variable(self, suffix):

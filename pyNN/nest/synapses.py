@@ -44,7 +44,7 @@ class NESTSynapseMixin(object):
         synapse_defaults.pop("tau_minus", None)
         try:
             nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        except nest.NESTError as err:
+        except nest.NESTError:
             if not state.extensions_loaded:
                 raise NoModelAvailableError(
                     "{self.__class__.__name__} is not available."

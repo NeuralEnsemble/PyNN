@@ -24,7 +24,6 @@ import logging
 import brian2
 import numpy as np
 from pyNN import common
-from pyNN.parameters import simplify
 
 
 name = "Brian2"
@@ -113,7 +112,8 @@ class State(common.control.BaseState):
             if np.isinf(min_delay):
                 self._min_delay = self.dt
             else:
-                self._min_delay = min_delay * self.dt  # Synapses.delay is an integer, the number of time steps
+                # Synapses.delay is an integer, the number of time steps
+                self._min_delay = min_delay * self.dt
         return self._min_delay
 
     def _set_min_delay(self, delay):

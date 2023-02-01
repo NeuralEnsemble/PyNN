@@ -8,6 +8,8 @@ Contact Padraig Gleeson for more details
 :license: CeCILL, see LICENSE for details.
 """
 
+# flake8: noqa
+
 import numpy as np
 from pyNN import recording
 from . import simulator

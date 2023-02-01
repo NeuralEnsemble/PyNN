@@ -122,14 +122,15 @@ class Projection(common.Projection):
         with the parameters provided by params.
         """
         if 'tsodyks' in self.nest_synapse_model:
+            translations = self.post.local_cells[0].celltype.translations
             if self.receptor_type == 'inhibitory':
-                param_name = self.post.local_cells[0].celltype.translations['tau_syn_I']['translated_name']
+                param_name = translations['tau_syn_I']['translated_name']
             elif self.receptor_type == 'excitatory':
-                param_name = self.post.local_cells[0].celltype.translations['tau_syn_E']['translated_name']
+                param_name = translations['tau_syn_E']['translated_name']
             else:
                 raise NotImplementedError()
-            syn_params.update({'tau_psc': nest.GetStatus([self.nest_connections[0,1]], param_name)})
-
+            syn_params.update(
+                {'tau_psc': nest.GetStatus([self.nest_connections[0, 1]], param_name)})
 
         syn_params.update({'synapse_label': self.nest_synapse_label})
         nest.Connect(self.pre.node_collection,
@@ -147,7 +148,8 @@ class Projection(common.Projection):
         between local and common synapse properties.
         """
         sample_connection = nest.GetConnections(
-            source=nest.NodeCollection([next(iter(self._sources))]),  # take any source from the set
+            # take any source from the set
+            source=nest.NodeCollection([next(iter(self._sources))]),
             synapse_model=self.nest_synapse_model,
             synapse_label=self.nest_synapse_label)[:1]
 
@@ -182,11 +184,13 @@ class Projection(common.Projection):
 
         `presynaptic_indices` - 1D array of presynaptic indices
         `postsynaptic_index` - integer - the index of the postsynaptic neuron
-        `connection_parameters` - dict whose keys are native NEST parameter names. Values may be scalars or arrays.
+        `connection_parameters` - dict whose keys are native NEST parameter names.
+                                  Values may be scalars or arrays.
         """
         # Clean the connection parameters by removing parameters that are
         # used by PyNN but should not be passed to NEST
-        connection_parameters.pop('tau_minus', None)  # TODO: set tau_minus on the post-synaptic cells
+        # TODO: set tau_minus on the post-synaptic cells
+        connection_parameters.pop('tau_minus', None)
         connection_parameters.pop('dendritic_delay_fraction', None)
         connection_parameters.pop('w_min_always_zero_in_NEST', None)
 
@@ -197,15 +201,18 @@ class Projection(common.Projection):
 
         # Weights require some special handling
         if self.receptor_type == 'inhibitory' and self.post.conductance_based:
-            connection_parameters['weight'] *= -1  # NEST wants negative values for inhibitory weights, even if these are conductances
+            # NEST wants negative values for inhibitory weights, even if these are conductances
+            connection_parameters['weight'] *= -1
             if "stdp" in self.nest_synapse_model:
-                syn_dict["Wmax"] = -1.2345e6  # just some very large negative value to avoid
-                                              # NEST complaining about weight and Wmax having different signs
-                                              # (see https://github.com/NeuralEnsemble/PyNN/issues/636)
-                                              # Will be overwritten below.
+                # just some very large negative value to avoid
+                # NEST complaining about weight and Wmax having different signs
+                # (see https://github.com/NeuralEnsemble/PyNN/issues/636)
+                # Will be overwritten below.
+                syn_dict["Wmax"] = -1.2345e6
                 connection_parameters["Wmax"] *= -1
-        if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):  # this is a bit of a hack
-            connection_parameters['weight'] *= self.post.celltype.receptor_scale                                      # needed for the Izhikevich model
+        # the following two lines are a bit of a hack, needed for the Izhikevich model
+        if hasattr(self.post, "celltype") and hasattr(self.post.celltype, "receptor_scale"):
+            connection_parameters['weight'] *= self.post.celltype.receptor_scale
 
         # Prepare connections. NodeCollections can't have repeated values, so for some
         # connector types we need to split the presynaptic cells into groups that
@@ -225,7 +232,8 @@ class Projection(common.Projection):
             if "All node IDs in a NodeCollection have to be unique" in str(err):
                 presynaptic_index_groups, connection_parameter_groups = \
                     split_array_to_avoid_repeats(presynaptic_indices, **connection_parameters)
-                presynaptic_cell_groups = [self.pre.node_collection[i] for i in presynaptic_index_groups]
+                presynaptic_cell_groups = [self.pre.node_collection[i]
+                                           for i in presynaptic_index_groups]
             else:
                 raise
         postsynaptic_cell = self.post[postsynaptic_index]
@@ -248,10 +256,11 @@ class Projection(common.Projection):
                     # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
                     # the relevant "tau_syn" parameter from the post-synaptic neuron.
                     if 'tsodyks' in self.nest_synapse_model:
+                        translations = postsynaptic_cell.celltype.translations
                         if self.receptor_type == 'inhibitory':
-                            param_name = postsynaptic_cell.celltype.translations['tau_syn_I']['translated_name']
+                            param_name = translations['tau_syn_I']['translated_name']
                         elif self.receptor_type == 'excitatory':
-                            param_name = postsynaptic_cell.celltype.translations['tau_syn_E']['translated_name']
+                            param_name = translations['tau_syn_E']['translated_name']
                         else:
                             raise NotImplementedError()
                         syn_dict["tau_psc"] = nest.GetStatus(postsynaptic_cell.node_collection,
@@ -281,9 +290,9 @@ class Projection(common.Projection):
                     # Retrieve connections so that we can set additional
                     # parameters using nest.SetStatus
                     connections = nest.GetConnections(source=presynaptic_cells,
-                                                        target=postsynaptic_cell.node_collection,
-                                                        synapse_model=self.nest_synapse_model,
-                                                        synapse_label=self.nest_synapse_label)
+                                                      target=postsynaptic_cell.node_collection,
+                                                      synapse_model=self.nest_synapse_model,
+                                                      synapse_label=self.nest_synapse_label)
                     for name, value in connection_parameter_group.items():
                         if name not in self._common_synapse_property_names:
                             value = make_sli_compatible(value)
@@ -306,18 +315,24 @@ class Projection(common.Projection):
                         if name in self._common_synapse_property_names:
                             self._set_common_synapse_property(name, value)
 
-            except nest.NESTError as e:
-                errmsg = "%s. presynaptic_cells=%s, postsynaptic_cell=%s, weights=%s, delays=%s, synapse model='%s'" % (
-                    e, presynaptic_cells, postsynaptic_cell,
-                    weights, delays, self.nest_synapse_model)
-                raise errors.ConnectionError(errmsg)
+            except nest.NESTError as err:
+                err_msg = (
+                    f"{err}. presynaptic_cells={presynaptic_cells}, "
+                    f"postsynaptic_cell={postsynaptic_cell}, "
+                    f"weights={weights}, delays={delays}, "
+                    f"synapse model='{self.nest_synapse_model}'"
+                )
+                raise errors.ConnectionError(err_msg)
 
         # Reset the caching of the connection list, since this will have to be recalculated
         self._connections = None
         self._simulator.state.stale_connection_cache = True
 
     def _set_attributes(self, parameter_space):
-        if "tau_minus" in parameter_space.keys() and not parameter_space["tau_minus"].is_homogeneous:
+        if (
+            "tau_minus" in parameter_space.keys()
+            and not parameter_space["tau_minus"].is_homogeneous
+        ):
             raise ValueError("tau_minus cannot be heterogeneous "
                              "within a single Projection with NEST.")
         # only columns for connections that exist on this machine
@@ -334,8 +349,14 @@ class Projection(common.Projection):
             if connections:
                 source_mask = self.pre.id_to_index(list(connections.sources()))
                 for name, value in connection_parameters.items():
-                    if name == "weight" and self.receptor_type == 'inhibitory' and self.post.conductance_based:
-                        value *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
+                    if (
+                        name == "weight"
+                        and self.receptor_type == 'inhibitory'
+                        and self.post.conductance_based
+                    ):
+                        # NEST uses negative values for inhibitory weights,
+                        # even if these are conductances
+                        value *= -1
                     if name == "tau_minus":  # set on the post-synaptic cell
                         nest.SetStatus(self.post.node_collection[self.post.node_collection.local],
                                        {"tau_minus": simplify(value)})
@@ -423,7 +444,8 @@ class Projection(common.Projection):
                 nest_names.append(name)
         values = nest.GetStatus(self.nest_connections, nest_names)
         values = np.array(values)  # ought to preserve int type for source, target
-        if 'weight' in names:  # other attributes could also have scale factors - need to use translation mechanisms
+        if 'weight' in names:
+            # other attributes could also have scale factors - need to use translation mechanisms
             scale_factors = np.ones(len(names))
             scale_factors[names.index('weight')] = 0.001
             if self.receptor_type == 'inhibitory' and self.post.conductance_based:
@@ -461,7 +483,9 @@ class Projection(common.Projection):
             if attribute_name == 'weight':
                 value_arr *= 0.001
                 if self.receptor_type == 'inhibitory' and self.post.conductance_based:
-                    value_arr *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
+                    # NEST uses negative values for inhibitory weights,
+                    # even if these are conductances
+                    value_arr *= -1
             all_values.append(value_arr)
         return all_values
 

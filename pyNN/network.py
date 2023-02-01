@@ -81,7 +81,7 @@ class Network(object):
         else:
             if cell_types == "all":
                 return self.sim.Assembly(*(pop for pop in self.populations
-                                           if pop.celltype.injectable))  # or could use len(receptor_types) > 0
+                                           if pop.celltype.injectable))
             else:
                 return self.sim.Assembly(*(pop for pop in self.populations
                                            if pop.celltype.__class__ in cell_types))

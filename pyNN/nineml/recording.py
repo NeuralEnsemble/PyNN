@@ -5,7 +5,6 @@ Export of PyNN scripts as NineML.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy as np
 from pyNN import recording
 from . import simulator
 

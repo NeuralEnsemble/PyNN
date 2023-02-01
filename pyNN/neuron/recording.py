@@ -123,7 +123,8 @@ class Recorder(recording.Recorder):
                 times = np.array(ids[0]._cell.recorded_times)
             else:
                 expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
-                if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
+                if signals.shape[0] != expected_length:
+                    # generally due to floating point/rounding issues
                     signals = np.vstack((signals, signals[-1, :]))
                 if ".isyn" in variable:
                     # this is a hack, since negative currents in NMODL files

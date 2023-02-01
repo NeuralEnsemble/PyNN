@@ -9,27 +9,29 @@ nrnpython implementation of the PyNN API.
 
 import warnings
 try:
-    from mpi4py import MPI
+    from mpi4py import MPI  # noqa: F401
 except ImportError:
     warnings.warn("mpi4py not available")
-from pyNN.random import NumpyRNG, GSLRNG
-from pyNN import common, core, space, __doc__
+from pyNN.random import NumpyRNG, GSLRNG  # noqa: F401
+from pyNN import common, core, space, __doc__  # noqa: F401
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
 from pyNN.standardmodels import StandardCellType
 from pyNN.recording import get_io
-from pyNN.space import Space
+from pyNN.space import Space  # noqa: F401
 from pyNN.neuron import simulator
-from pyNN.neuron.random import NativeRNG
-from pyNN.neuron.standardmodels.cells import *
-from pyNN.neuron.connectors import *
-from pyNN.neuron.standardmodels.synapses import *
-from pyNN.neuron.standardmodels.electrodes import *
-from pyNN.neuron.standardmodels.receptors import *
-from pyNN.neuron.populations import Population, PopulationView, Assembly
+from pyNN.neuron.random import NativeRNG  # noqa: F401
+from pyNN.neuron.standardmodels.cells import *  # noqa: F403, F401
+from pyNN.neuron.connectors import *  # noqa: F403, F401
+from pyNN.neuron.connectors import FixedProbabilityConnector
+from pyNN.neuron.standardmodels.synapses import *  # noqa: F403, F401
+from pyNN.neuron.standardmodels.synapses import StaticSynapse
+from pyNN.neuron.standardmodels.electrodes import *  # noqa: F403, F401
+from pyNN.neuron.standardmodels.receptors import *  # noqa: F403, F401
+from pyNN.neuron.populations import Population, PopulationView, Assembly  # noqa: F401
 from pyNN.neuron.projections import Projection
-from pyNN.neuron.cells import NativeCellType, IntFire1, IntFire2, IntFire4
+from pyNN.neuron.cells import NativeCellType, IntFire1, IntFire2, IntFire4  # noqa: F401
 try:
-    from . import nineml
+    from . import nineml    # noqa: F401
 except ImportError:
     pass  # nineml is an optional dependency
 

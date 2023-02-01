@@ -40,8 +40,6 @@ def _savetxt(filename, data, format, delimiter):
 
 
 def savez(file, *args, **kwds):
-
-    __doc__ = np.savez.__doc__
     import zipfile
     from numpy.lib import format
 
@@ -144,7 +142,6 @@ class StandardTextFile(BaseFile):
     """
 
     def write(self, data, metadata):
-        __doc__ = BaseFile.write.__doc__
         self._check_open()
         # can we write to the file more than once? In this case, should use seek,tell
         # to always put the header information at the top?
@@ -187,19 +184,16 @@ class PickleFile(BaseFile):
     """
 
     def write(self, data, metadata):
-        __doc__ = BaseFile.write.__doc__
         self._check_open()
         pickle.dump((data, metadata), self.fileobj)
 
     def read(self):
-        __doc__ = BaseFile.read.__doc__
         self._check_open()
         data = pickle.load(self.fileobj)[0]
         self.fileobj.seek(0)
         return data
 
     def get_metadata(self):
-        __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         metadata = pickle.load(self.fileobj)[1]
         self.fileobj.seek(0)
@@ -213,20 +207,17 @@ class NumpyBinaryFile(BaseFile):
     """
 
     def write(self, data, metadata):
-        __doc__ = BaseFile.write.__doc__
         self._check_open()
         metadata_array = np.array(list(metadata.items()), dtype=object)
         savez(self.fileobj, data=data, metadata=metadata_array)
 
     def read(self):
-        __doc__ = BaseFile.read.__doc__
         self._check_open()
         data = np.load(self.fileobj)['data']
         self.fileobj.seek(0)
         return data
 
     def get_metadata(self):
-        __doc__ = BaseFile.get_metadata.__doc__
         self._check_open()
         D = {}
         for name, value in np.load(self.fileobj, allow_pickle=True)['metadata']:
@@ -258,9 +249,7 @@ if have_hdf5:
                 self.fileobj = tables.openFile(filename, mode=mode, title=title)
                 self._new_pytables = False
 
-        # may not work with old versions of PyTables < 1.3, since they only support numarray, not numpy
         def write(self, data, metadata):
-            __doc__ = BaseFile.write.__doc__
             if len(data) > 0:
                 try:
                     if self._new_pytables:
@@ -275,11 +264,9 @@ if have_hdf5:
                 self.fileobj.close()
 
         def read(self):
-            __doc__ = BaseFile.read.__doc__
             return self.fileobj.root.data.read()
 
         def get_metadata(self):
-            __doc__ = BaseFile.get_metadata.__doc__
             D = {}
             node = self.fileobj.root.data
             for name in node._v_attrs._f_list():

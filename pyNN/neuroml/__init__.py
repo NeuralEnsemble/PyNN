@@ -9,6 +9,8 @@ Contact Padraig Gleeson for more details
 :license: CeCILL, see LICENSE for details.
 """
 
+# flake8: noqa
+
 import logging
 from pyNN import common
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
@@ -51,11 +53,11 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     nml_doc = simulator._get_nml_doc(extra_params.get('reference', "PyNN_NeuroML2_Export"),reset=True)
     global save_format
     save_format = extra_params.get('save_format', "xml")
-    
+
     # Create network
     net = neuroml.Network(id=nml_doc.id)
     nml_doc.networks.append(net)
-    
+
     lems_sim = simulator._get_lems_sim(reset=True)
     lems_sim.dt = '%s'%timestep
 
@@ -68,7 +70,7 @@ def end(compatible_output=True):
         io = get_io(filename)
         population.write_data(io, variables)
     simulator.state.write_on_end = []
-    
+
     nml_doc = simulator._get_nml_doc()
 
     import neuroml.writers as writers
@@ -78,15 +80,15 @@ def end(compatible_output=True):
     elif save_format == 'hdf5':
         nml_file = '%s.net.nml.h5'%nml_doc.id
         writers.NeuroMLHdf5Writer.write(nml_doc, nml_file)
-        
+
     logger.info("Written NeuroML 2 file out to: "+nml_file)
-    
+
     lems_sim = simulator._get_lems_sim()
     lems_sim.include_neuroml2_file("PyNN.xml", include_included=False)
     lems_sim.include_neuroml2_file(nml_file)
     lems_file = lems_sim.save_to_file()
     logger.info("Written LEMS file (to simulate NeuroML file) to: "+lems_file)
-    
+
     # should have common implementation of end()
 
 

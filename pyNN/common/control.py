@@ -26,7 +26,8 @@ class BaseState(object):
         """Initialize the simulator."""
         self.running = False
         self.t_start = 0
-        # a list of (population, variable, filename) combinations that should be written to file on end()
+        # a list of (population, variable, filename) combinations
+        # that should be written to file on end()
         self.write_on_end = []
         self.recorders = set([])
 
