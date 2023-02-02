@@ -10,7 +10,6 @@ import nineml.user as nineml
 
 from pyNN import common
 from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
 from .utility import build_parameter_set, catalog_url
@@ -19,7 +18,8 @@ from .utility import build_parameter_set, catalog_url
 class BasePopulation(object):
 
     def get_synaptic_response_components(self, synaptic_mechanism_name):
-        return [self.celltype.synaptic_receptor_component_to_nineml(synaptic_mechanism_name, self.label, (self.size,))]
+        return [self.celltype.synaptic_receptor_component_to_nineml(
+            synaptic_mechanism_name, self.label, (self.size,))]
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
@@ -82,9 +82,9 @@ class Population(BasePopulation, common.Population):
 
     def _create_cells(self):
         id_range = np.arange(simulator.state.id_counter,
-                                simulator.state.id_counter + self.size)
+                             simulator.state.id_counter + self.size)
         self.all_cells = np.array([simulator.ID(id) for id in id_range],
-                                     dtype=simulator.ID)
+                                  dtype=simulator.ID)
 
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
@@ -112,8 +112,9 @@ class Population(BasePopulation, common.Population):
         if self.structure:
             structure = nineml.Structure(
                 name="structure for %s" % self.label,
-                definition=nineml.Definition("%s/networkstructures/%s.xml" % (catalog_url, self.structure.__class__.__name__),
-                                             "structure"),
+                definition=nineml.Definition(
+                    f"{catalog_url}/networkstructures/{self.structure.__class__.__name__}.xml",
+                    "structure"),
                 parameters=build_parameter_set(self.structure.get_parameters())
             )
         else:

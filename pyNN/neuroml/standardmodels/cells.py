@@ -5,6 +5,8 @@ Standard cells for the NeuroML module.
 :license: CeCILL, see LICENSE for details.
 """
 
+# flake8: noqa
+
 from pyNN.standardmodels import cells, build_translations
 import logging
 from pyNN.random import RandomDistribution
@@ -31,7 +33,7 @@ def add_params(pynn_cell, nml_cell, set_v_init=True):
     if set_v_init:
         nml_cell.__setattr__('v_init', pynn_cell.default_initial_values['v'])
         logger.debug("Adding param: %s = %s as %s for cell %s"%('v_init', pynn_cell.default_initial_values['v'], 'v_init', nml_cell.id))
-    
+
 
 class IF_curr_alpha(cells.IF_curr_alpha):
     __doc__ = cells.IF_curr_alpha.__doc__
@@ -47,13 +49,13 @@ class IF_curr_alpha(cells.IF_curr_alpha):
         ('tau_syn_E',  'TAU_SYN_E'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.IF_curr_alpha(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.IF_curr_alpha.append(cell)
         add_params(self, cell)
         return cell.id
-        
+
 
 class IF_curr_exp(cells.IF_curr_exp):
     __doc__ = cells.IF_curr_exp.__doc__
@@ -98,8 +100,8 @@ class IF_cond_alpha(cells.IF_cond_alpha):
         nml_doc.IF_cond_alpha.append(cell)
         add_params(self, cell)
         return cell.id
-    
-    
+
+
 class IF_cond_exp(cells.IF_cond_exp):
     __doc__ = cells.IF_cond_exp.__doc__
 
@@ -145,7 +147,7 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('tau_syn_I',  'TAU_SYN_I'),
         ('i_offset',   'I_OFFSET'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.HH_cond_exp(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.HH_cond_exp.append(cell)
@@ -164,7 +166,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('rate',     'INTERVAL',  "1000.0/rate",  "1000.0/INTERVAL"),
         ('duration', 'DURATION'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.SpikeSourcePoisson(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.SpikeSourcePoisson.append(cell)
@@ -179,12 +181,12 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     translations = build_translations(
         ('spike_times', 'SPIKE_TIMES'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.SpikeArray(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         index=0
         spikes = self.parameter_space['spike_times']
-     
+
         for spike_time in spikes.base_value.value:
             cell.spikes.append(neuroml.Spike(id=index, time='%sms'%spike_time))
             index+=1
@@ -212,7 +214,7 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
         ('e_rev_I',    'E_REV_I'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.EIF_cond_alpha_isfa_ista(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.EIF_cond_alpha_isfa_ista.append(cell)
@@ -240,7 +242,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
         ('e_rev_I',    'E_REV_I'),
         ('tau_syn_I',  'TAU_SYN_I'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.EIF_cond_exp_isfa_ista(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.EIF_cond_exp_isfa_ista.append(cell)
@@ -249,7 +251,7 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
 
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
-    
+
     translations = build_translations(
         ('a',        'a'),
         ('b',        'b'),
@@ -259,10 +261,9 @@ class Izhikevich(cells.Izhikevich):
     )
     standard_receptor_type = True
     receptor_scale = 1e-3  # synaptic weight is in mV, so need to undo usual weight scaling
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         cell = neuroml.Izhikevich(id="%s_%s"%(self.__class__.__name__, population.label if population else '0'))
         nml_doc.Izhikevich.append(cell)
         add_params(self, cell)
         return cell.id
-        

@@ -15,21 +15,21 @@ try:
 except ImportError:
     haveCSA = False
 from pyNN import random
-from pyNN.connectors import (Connector,
+from pyNN.connectors import (Connector,                                   # noqa: F401
                              AllToAllConnector,
                              FixedProbabilityConnector,
-                             OneToOneConnector,
-                             FixedNumberPreConnector,
-                             FixedNumberPostConnector,
-                             DistanceDependentProbabilityConnector,
-                             DisplacementDependentProbabilityConnector,
-                             IndexBasedProbabilityConnector,
-                             SmallWorldConnector,
-                             FromListConnector,
-                             FromFileConnector,
-                             CloneConnector,
-                             ArrayConnector,
-                             FixedTotalNumberConnector,
+                             OneToOneConnector,                           # noqa: F401
+                             FixedNumberPreConnector,                     # noqa: F401
+                             FixedNumberPostConnector,                    # noqa: F401
+                             DistanceDependentProbabilityConnector,       # noqa: F401
+                             DisplacementDependentProbabilityConnector,   # noqa: F401
+                             IndexBasedProbabilityConnector,              # noqa: F401
+                             SmallWorldConnector,                         # noqa: F401
+                             FromListConnector,                           # noqa: F401
+                             FromFileConnector,                           # noqa: F401
+                             CloneConnector,                              # noqa: F401
+                             ArrayConnector,                              # noqa: F401
+                             FixedTotalNumberConnector,                   # noqa: F401
                              CSAConnector as DefaultCSAConnector)
 
 from .random import NativeRNG
@@ -90,7 +90,8 @@ class NESTConnectorMixin(object):
         for name, value in parameter_space.items():
             if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):
                 continue
-            if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
+            if isinstance(value.base_value, random.RandomDistribution):
+                # Random Distribution specified
                 if isinstance(value.base_value.rng, NativeRNG):
                     logger.warning(
                         "Random values will be created inside NEST with NEST's own RNGs")
@@ -99,7 +100,8 @@ class NESTConnectorMixin(object):
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
-            else:                                             # explicit values given
+            else:
+                # explicit values given
                 if value.is_homogeneous:
                     params[name] = value.evaluate(simplify=True)
                 elif value.shape:
@@ -107,10 +109,16 @@ class NESTConnectorMixin(object):
                     params[name] = value.evaluate().flatten()
                 else:
                     value.shape = (1, 1)
-                    # If parameter is given as a single number. Checking of the dimensions should be done in NEST
+                    # If parameter is given as a single number.
+                    # Checking of the dimensions should be done in NEST
                     params[name] = float(value.evaluate())
-                if name == "weight" and projection.receptor_type == 'inhibitory' and self.post.conductance_based:
-                    # NEST wants negative values for inhibitory weights, even if these are conductances
+                if (
+                    name == "weight"
+                    and projection.receptor_type == 'inhibitory'
+                    and self.post.conductance_based
+                ):
+                    # NEST wants negative values for inhibitory weights,
+                    # even if these are conductances
                     params[name] *= -1
         return params
 
@@ -118,7 +126,10 @@ class NESTConnectorMixin(object):
 class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs or isinstance(self.rng, NativeRNG):
+        if (
+            projection.synapse_type.native_parameters.has_native_rngs
+            or isinstance(self.rng, NativeRNG)
+        ):
             return self.native_connect(projection)
         else:
             return super(FixedProbabilityConnector, self).connect(projection)

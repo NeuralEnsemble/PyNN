@@ -9,7 +9,6 @@ Export of PyNN scripts as NineML.
 import nineml.user as nineml
 
 from pyNN import common
-from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
 from .utility import catalog_url, build_parameter_set

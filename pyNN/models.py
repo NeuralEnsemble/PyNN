@@ -62,7 +62,8 @@ class BaseModelType(object):
             "name": self.__class__.__name__,
             "default_parameters": self.default_parameters,
             "default_initial_values": self.default_initial_values,
-            "parameters": self.parameter_space._parameters,  # should add a describe() method to ParameterSpace
+            "parameters": self.parameter_space._parameters,
+            # should add a describe() method to ParameterSpace
         }
         return descriptions.render(engine, template, context)
 
@@ -98,7 +99,8 @@ class BaseSynapseType(BaseModelType):
 
     # override to specify a non-standard connection type (i.e. GapJunctions)
     connection_type = None
-    has_presynaptic_components = False  # override for synapses that include an active presynaptic components
+    # override for synapses that include an active presynaptic components
+    has_presynaptic_components = False
 
     def __init__(self, **parameters):
         """

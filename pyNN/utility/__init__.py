@@ -41,7 +41,8 @@ def notify(msg="Simulation finished.", subject="Simulation finished.",
            smtphost=SMTPHOST, address=EMAIL):
     """Send an e-mail stating that the simulation has finished."""
     if not (smtphost and address):
-        print("SMTP host and/or e-mail address not specified.\nUnable to send notification message.")
+        print("SMTP host and/or e-mail address not specified.\n"
+              "Unable to send notification message.")
     else:
         import smtplib
         import datetime
@@ -133,10 +134,11 @@ def init_logging(logfile, debug=False, num_processes=1, rank=0, level=None):
     if level:
         log_level = level
 
-    logging.basicConfig(level=log_level,
-                        format=mpi_prefix + '%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',
-                        filename=logfile,
-                        filemode='w')
+    logging.basicConfig(
+        level=log_level,
+        format=mpi_prefix + '%(asctime)s %(levelname)-8s [%(name)s] %(message)s (%(pathname)s[%(lineno)d]:%(funcName)s)',  # noqa: E501
+        filename=logfile,
+        filemode='w')
     return logging.getLogger("PyNN")
 
 
@@ -185,7 +187,8 @@ def load_population(filename, sim):
     return population
 
 
-def normalized_filename(root, basename, extension, simulator, num_processes=None, use_iso8601=False):
+def normalized_filename(root, basename, extension, simulator,
+                        num_processes=None, use_iso8601=False):
     """
     Generate a file path containing a timestamp and information about the
     simulator used and the number of MPI processes.
@@ -219,7 +222,8 @@ def connection_plot(projection, positive='O', zero='.', empty=' ', spacer=''):
     """ """
     connection_array = projection.get('weight', format='array')
     image = np.zeros_like(connection_array, dtype=str)
-    old_settings = np.seterr(invalid='ignore')  # ignore the complaint that x > 0 is invalid for NaN
+    # ignore the complaint that x > 0 is invalid for NaN
+    old_settings = np.seterr(invalid='ignore')
     image[connection_array > 0] = positive
     image[connection_array == 0] = zero
     np.seterr(**old_settings)  # restore original floating point error settings
@@ -365,7 +369,7 @@ class ProgressBar(object):
 class SimulationProgressBar(ProgressBar):
 
     def __init__(self, interval, t_stop, char="#", mode="fixed"):
-        super(SimulationProgressBar, self).__init__(width=int(t_stop / interval), char=char, mode=mode)
+        super().__init__(width=int(t_stop / interval), char=char, mode=mode)
         self.interval = interval
         self.t_stop = t_stop
 
@@ -401,7 +405,6 @@ class forgetful_memoize(object):
             print("using cached value")
             return self.cached_value
         else:
-            #print("calculating value")
             value = self.func(*args)
             self.cached_args = args
             self.cached_value = value

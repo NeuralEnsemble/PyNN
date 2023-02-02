@@ -94,9 +94,9 @@ def issue367(sim, plot_figure=False):
         plt.plot(vm.times, vm)
         plt.savefig("issue367_%s.png" % sim.__name__)
     print(sim.__name__, vm_before_spike)
-    errmsg = "v_thresh = {0}, vm_before_spike.mean() = {1}".format(v_thresh,
+    err_msg = "v_thresh = {0}, vm_before_spike.mean() = {1}".format(v_thresh,
                                                                    vm_before_spike.mean())
-    assert abs((vm_before_spike.mean() - v_thresh) / v_thresh) < 0.01, errmsg
+    assert abs((vm_before_spike.mean() - v_thresh) / v_thresh) < 0.01, err_msg
     sim.end()
     return data
 

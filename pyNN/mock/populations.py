@@ -17,7 +17,8 @@ class PopulationView(common.PopulationView):
     def _get_parameters(self, *names):
         if isinstance(self.celltype, StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in names):
-                native_names = self.celltype.get_native_names()  # need all parameters in order to calculate values
+                # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names()
             else:
                 native_names = self.celltype.get_native_names(*names)
             native_parameter_space = self._get_native_parameters(*native_names)
@@ -43,8 +44,9 @@ class PopulationView(common.PopulationView):
         for name, value in parameter_space.items():
             try:
                 self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
-            except ValueError as err:
-                raise errors.InvalidParameterValueError(f"{name} should not be of type {type(value)}")
+            except ValueError:
+                raise errors.InvalidParameterValueError(
+                    f"{name} should not be of type {type(value)}")
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -61,9 +63,9 @@ class Population(common.Population):
 
     def _create_cells(self):
         id_range = np.arange(simulator.state.id_counter,
-                                simulator.state.id_counter + self.size)
+                             simulator.state.id_counter + self.size)
         self.all_cells = np.array([simulator.ID(id) for id in id_range],
-                                     dtype=simulator.ID)
+                                  dtype=simulator.ID)
 
         def is_local(id):
             return (id % simulator.state.num_processes) == simulator.state.mpi_rank
@@ -90,7 +92,8 @@ class Population(common.Population):
     def _get_parameters(self, *names):
         if isinstance(self.celltype, StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in names):
-                native_names = self.celltype.get_native_names()  # need all parameters in order to calculate values
+                # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names()
             else:
                 native_names = self.celltype.get_native_names(*names)
             native_parameter_space = self._get_native_parameters(*native_names)

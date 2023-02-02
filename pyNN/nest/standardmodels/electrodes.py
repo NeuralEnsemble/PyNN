@@ -32,7 +32,6 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         self.set_native_parameters(native_parameters)
 
     def inject_into(self, cells):
-        __doc__ = StandardCurrentSource.inject_into.__doc__
         for id in cells:
             if id.local and not id.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")

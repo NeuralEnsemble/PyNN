@@ -9,13 +9,7 @@ from pyNN.standardmodels import StandardCellType
 from pyNN.parameters import ArrayParameter, ParameterSpace, simplify, LazyArray
 from . import simulator
 from .recording import Recorder
-import numpy as np
-from brian2.units.fundamentalunits import Quantity
-#from brian2.units import *
-#from quantities import *
-from brian2.core.variables import VariableView
 import brian2
-#from brian2.groups.neurongroup import *
 ms = brian2.ms
 mV = brian2.mV
 
@@ -34,7 +28,8 @@ class PopulationMixin(object):
         """
         def _get_component_parameters(component, names, component_label=None):
             if component.computed_parameters_include(names):
-                native_names = component.get_native_names()  # need all parameters in order to calculate values
+                # need all parameters in order to calculate values
+                native_names = component.get_native_names()
             else:
                 native_names = component.get_native_names(*names, suffix=component_label)
             native_parameter_space = self._get_native_parameters(*native_names)
@@ -67,10 +62,12 @@ class PopulationMixin(object):
                 else:
                     parameter_space = ParameterSpace({})
                 for component_label, names in names_by_component.items():
-                    parameter_space.add_child(component_label,
-                                              _get_component_parameters(self.celltype.post_synaptic_receptors[component_label],
-                                                                        names_by_component[component_label],
-                                                                        component_label))
+                    parameter_space.add_child(
+                        component_label,
+                        _get_component_parameters(
+                            self.celltype.post_synaptic_receptors[component_label],
+                            names_by_component[component_label],
+                            component_label))
             else:
                 parameter_space = _get_component_parameters(self.celltype, names)
         else:
@@ -85,7 +82,8 @@ class PopulationView(common.PopulationView, PopulationMixin):
     def _get_parameters(self, *names):
         if isinstance(self.celltype, StandardCellType):
             if any(name in self.celltype.computed_parameters() for name in names):
-                native_names = self.celltype.get_native_names()  # need all parameters in order to calculate values
+                # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names()
             else:
                 native_names = self.celltype.get_native_names(*names)
             native_parameter_space = self._get_native_parameters(*native_names)
@@ -136,9 +134,9 @@ class Population(common.Population, PopulationMixin):
 
     def _create_cells(self):
         id_range = np.arange(simulator.state.id_counter,
-                                simulator.state.id_counter + self.size)
+                             simulator.state.id_counter + self.size)
         self.all_cells = np.array([simulator.ID(id) for id in id_range],
-                                     dtype=simulator.ID)
+                                  dtype=simulator.ID)
         # all cells are local. This doesn't seem very efficient.
         self._mask_local = np.ones((self.size,), bool)
 

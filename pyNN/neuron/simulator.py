@@ -52,7 +52,6 @@ def load_mechanisms(path):
     """
     import platform
 
-    global nrn_dll_loaded
     if path in nrn_dll_loaded:
         logger.warning("Mechanisms already loaded from path: %s" % path)
         return
@@ -72,7 +71,9 @@ def load_mechanisms(path):
                 h.nrn_load_dll(lib_path)
                 nrn_dll_loaded.append(path)
                 return
-    raise IOError("NEURON mechanisms not found in %s. You may need to run 'nrnivmodl' in this directory." % path)
+    raise IOError(
+        f"NEURON mechanisms not found in {path}. "
+        "You may need to run 'nrnivmodl' in this directory.")
 
 
 def is_point_process(obj):
@@ -159,7 +160,7 @@ class _State(common.control.BaseState):
 
     def __init__(self):
         """Initialize the simulator."""
-        super(_State, self).__init__()
+        super().__init__()
         h('min_delay = -1')
         h('tstop = 0')
         h('steps_per_ms = 1/dt')
@@ -198,20 +199,21 @@ class _State(common.control.BaseState):
 
     def register_gid(self, gid, source, section=None):
         """Register a global ID with the global `ParallelContext` instance."""
-        ###print("registering gid %s to %s (section=%s)" % (gid, source, section))
-        self.parallel_context.set_gid2node(gid, self.mpi_rank)  # assign the gid to this node
+        # assign the gid to this node
+        self.parallel_context.set_gid2node(gid, self.mpi_rank)
+
+        # associate the cell spike source with the gid (using a temporary NetCon)
         if is_point_process(source):
-            nc = h.NetCon(source, None)                          # } associate the cell spike source
+            nc = h.NetCon(source, None)
         else:
             nc = h.NetCon(source, None, sec=section)
-        self.parallel_context.cell(gid, nc)                     # } with the gid (using a temporary NetCon)
-        self.gid_sources.append(source)  # gid_clear (in _State.reset()) will cause a
-                                        # segmentation fault if any of the sources
-                                        # registered using pc.cell() no longer exist, so
-                                        # we keep a reference to all sources in the
-                                        # global gid_sources list. It would be nicer to
-                                        # be able to unregister a gid and have a __del__
-                                        # method in ID, but this will do for now.
+        self.parallel_context.cell(gid, nc)
+
+        # gid_clear (in _State.reset()) will cause a segmentation fault if any of the sources
+        # registered using pc.cell() no longer exist, so we keep a reference to all sources in
+        # the global gid_sources list. It would be nicer to be able to unregister a gid and have
+        # a __del__ # method in ID, but this will do for now.
+        self.gid_sources.append(source)
 
     def clear(self):
         self.parallel_context.gid_clear()
@@ -219,7 +221,9 @@ class _State(common.control.BaseState):
         self.recorders = set([])
         self.current_sources = []
         self.gid_counter = 0
-        self.vargid_offsets = dict()  # Contains the start of the available "variable"-GID range for each projection (as opposed to "cell"-GIDs)
+        # `vargid_offsets` contains the start of the available "variable"-GID range
+        # for each projection (as opposed to "cell"-GIDs)
+        self.vargid_offsets = dict()
         h.plastic_connections = []
         self.segment_counter = -1
         self.reset()
@@ -242,14 +246,16 @@ class _State(common.control.BaseState):
                 state.parallel_context.setup_transfer()
             h.finitialize()
             self.tstop = 0
-            logger.debug("default_maxstep on host #%d = %g" % (self.mpi_rank, self.default_maxstep))
-            logger.debug("local_minimum_delay on host #%d = %g" % (self.mpi_rank, local_minimum_delay))
+            logger.debug("default_maxstep on host #{self.mpi_rank} = {self.default_maxstep}")
+            logger.debug("local_minimum_delay on host #{self.mpi_rank} = {local_minimum_delay}")
             if self.min_delay == 'auto':
                 self.min_delay = local_minimum_delay
             else:
                 if self.num_processes > 1:
-                    assert local_minimum_delay >= self.min_delay, \
-                       "There are connections with delays (%g) shorter than the minimum delay (%g)" % (local_minimum_delay, self.min_delay)
+                    if local_minimum_delay < self.min_delay:
+                        raise ValueError(
+                            f"There are connections with delays ({local_minimum_delay}) "
+                            f"shorter than the minimum delay ({self.min_delay})")
 
     def _update_current_sources(self, tstop):
         for source in self.current_sources:
@@ -264,7 +270,6 @@ class _State(common.control.BaseState):
         self._update_current_sources(tstop)
         self._pre_run()
         self.tstop = tstop
-        #logger.info("Running the simulation until %g ms" % tstop)
         if self.tstop > self.t:
             self.parallel_context.psolve(self.tstop)
 
@@ -291,9 +296,9 @@ class _State(common.control.BaseState):
             # Get the projection with the current maximum vargid offset
             if len(self.vargid_offsets):
                 newest_proj, offset = max(self.vargid_offsets.items(), key=itemgetter(1))
-                # Allocate it a large enough range for a mutual all-to-all connection (assumes that
-                # there are no duplicate pre_idx->post_idx connections for the same projection. If
-                # that is really desirable a new projection will need to be used)
+                # Allocate it a large enough range for a mutual all-to-all connection (assumes
+                # that there are no duplicate pre_idx->post_idx connections for the same
+                # projection. If that is really desirable a new projection will need to be used)
                 offset += 2 * len(newest_proj.pre) * len(newest_proj.post)
             else:
                 offset = _MIN_PROJECTION_VARGID
@@ -324,18 +329,20 @@ class ID(int, common.IDMixin):
         `cell_parameters` -- a ParameterSpace containing the parameters used to
                              initialise the cell model.
 
-        todo: update for post_synaptic_receptor_models                     
+        todo: update for post_synaptic_receptor_models
         """
         gid = int(self)
 
-        if post_synaptic_receptor_models:                   # extract post-synaptic receptor parameters
+        if post_synaptic_receptor_models:
+            # extract post-synaptic receptor parameters
             psr_parameters = {}
             for receptor_name in post_synaptic_receptor_models:
                 psr_parameters[receptor_name] = cell_parameters.pop(receptor_name)
 
-        self._cell = cell_model(**cell_parameters)          # create the cell object
+        self._cell = cell_model(**cell_parameters)  # create the cell object
 
-        if post_synaptic_receptor_models:                   # create and parameterize post-synaptic receptor objects
+        if post_synaptic_receptor_models:
+            # create and parameterize post-synaptic receptor objects
             self._cell.set_parameters()
             for receptor_name, psr_model in post_synaptic_receptor_models.items():
                 psr_obj = psr_model(0.5, sec=self._cell)
@@ -344,8 +351,10 @@ class ID(int, common.IDMixin):
                     setattr(psr_obj, pname, value)
 
         state.register_gid(gid, self._cell.source, section=self._cell.source_section)
-        if hasattr(self._cell, "get_threshold"):            # this is not adequate, since the threshold may be changed after cell creation
-            state.parallel_context.threshold(int(self), self._cell.get_threshold())  # the problem is that self._cell does not know its own gid
+        if hasattr(self._cell, "get_threshold"):
+            # this is not adequate, since the threshold may be changed after cell creation
+            state.parallel_context.threshold(int(self), self._cell.get_threshold())
+            # the problem is that self._cell does not know its own gid
 
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""
@@ -369,7 +378,6 @@ class Connection(common.Connection):
         """
         Create a new connection.
         """
-        #logger.debug("Creating connection from %d to %d, weight %g" % (pre, post, parameters['weight']))
         self.presynaptic_index = pre
         self.postsynaptic_index = post
         self.presynaptic_cell = projection.pre[pre]
@@ -384,11 +392,13 @@ class Connection(common.Connection):
         # if we have a mechanism (e.g. from 9ML) that includes multiple
         # synaptic channels, need to set nc.weight[1] here
         if self.nc.wcnt() > 1 and hasattr(self.postsynaptic_cell._cell, "type"):
-            self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(projection.receptor_type)
+            self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(
+                projection.receptor_type)
         self.nc.delay = parameters.pop('delay')
         if projection.synapse_type.model is not None:
             self._setup_plasticity(projection.synapse_type, parameters)
-        # nc.threshold is supposed to be set by ParallelContext.threshold, called in _build_cell(), above, but this hasn't been tested
+        # nc.threshold is supposed to be set by ParallelContext.threshold,
+        # called in _build_cell(), above, but this hasn't been tested
 
     def _setup_plasticity(self, synapse_type, parameters):
         """
@@ -414,12 +424,15 @@ class Connection(common.Connection):
         elif synapse_type.postsynaptic_variable is None:
             self.ddf = 0
         else:
-            raise NotImplementedError("Only post-synaptic-spike-dependent mechanisms available for now.")
-        self.pre2wa = state.parallel_context.gid_connect(int(self.presynaptic_cell), self.weight_adjuster)
+            raise NotImplementedError(
+                "Only post-synaptic-spike-dependent mechanisms available for now.")
+        self.pre2wa = state.parallel_context.gid_connect(int(self.presynaptic_cell),
+                                                         self.weight_adjuster)
         self.pre2wa.threshold = self.nc.threshold
         self.pre2wa.delay = self.nc.delay * (1 - self.ddf)
         if self.pre2wa.delay > 1e-9:
-            self.pre2wa.delay -= 1e-9   # we subtract a small value so that the synaptic weight gets updated before it is used.
+            # we subtract a small value so that the synaptic weight gets updated before it is used
+            self.pre2wa.delay -= 1e-9
         if synapse_type.postsynaptic_variable == 'spikes':
             # directly create NetCon as wa is on the same machine as the post-synaptic cell
             self.post2wa = h.NetCon(self.postsynaptic_cell._cell.source, self.weight_adjuster,
@@ -434,18 +447,20 @@ class Connection(common.Connection):
         parameters.pop('y', None)   # would be better to actually use these initial values
         for name, value in parameters.items():
             setattr(self.weight_adjuster, name, value)
-        if mechanism == 'TsodyksMarkramWA':  # or could assume that any weight_adjuster parameter called "tau_syn" should be set like this
+        if mechanism == 'TsodyksMarkramWA':
+            # or could assume that any weight_adjuster parameter called "tau_syn"
+            # should be set like this
             self.weight_adjuster.tau_syn = self.nc.syn().tau
         elif 'Stochastic' in mechanism:
             pass
             # todo: (optionally?) set per-stream RNG, i.e.
-            #self.rng = h.Random(seed)
-            #self.rng.uniform()
-            #self.weight_adjuster.setRNG(self.rng)
+            #       self.rng = h.Random(seed)
+            #       self.rng.uniform()
+            #       self.weight_adjuster.setRNG(self.rng)
         # setpointer
         i = len(h.plastic_connections)
         h.plastic_connections.append(self)
-        h('setpointer plastic_connections._[%d].weight_adjuster.wsyn, plastic_connections._[%d].nc.weight' % (i, i))
+        h(f"setpointer plastic_connections._[{i}].weight_adjuster.wsyn, plastic_connections._[{i}].nc.weight")  # noqa: E501
 
     def _set_weight(self, w):
         self.nc.weight[0] = w
@@ -497,8 +512,8 @@ class GapJunction(object):
                          local_gid, remote_gid):
         logger.debug("Setting source_var on local cell {} to connect to target_var on remote "
                      "cell {} with vargid {} on process {}"
-                    .format(local_gid, remote_gid, local_to_remote_vargid,
-                            state.mpi_rank))
+                     .format(local_gid, remote_gid, local_to_remote_vargid,
+                             state.mpi_rank))
         # Set up the source reference for the local->remote connection
         state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)
         # Create the gap_junction and set its weight
@@ -507,8 +522,8 @@ class GapJunction(object):
         # Connect the gap junction with the source_var
         logger.debug("Setting target_var on local cell {} to connect to source_var on remote "
                      "cell {} with vargid {} on process {}"
-                    .format(local_gid, remote_gid, remote_to_local_vargid,
-                            state.mpi_rank))
+                     .format(local_gid, remote_gid, remote_to_local_vargid,
+                             state.mpi_rank))
         # set up the target reference for the remote->local connection
         state.parallel_context.target_var(self.gap._ref_vgap, remote_to_local_vargid)
 
@@ -552,6 +567,8 @@ def generate_synapse_property(name):
     def _set(self, val):
         setattr(self.weight_adjuster, name, val)
     return property(_get, _set)
+
+
 setattr(Connection, 'wmax', generate_synapse_property('wmax'))
 setattr(Connection, 'wmin', generate_synapse_property('wmin'))
 setattr(Connection, 'aLTP', generate_synapse_property('aLTP'))

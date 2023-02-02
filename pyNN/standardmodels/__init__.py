@@ -26,7 +26,6 @@ import quantities as pq
 
 from pyNN import errors, models
 from pyNN.parameters import ParameterSpace
-from pyNN.core import is_listlike
 
 
 excitatory_receptor_types = ["excitatory", "AMPA", "NMDA"]
@@ -43,7 +42,8 @@ def build_translations(*translation_list):
     """
     translations = {}
     for item in translation_list:
-        assert 2 <= len(item) <= 4, "Translation tuples must have between 2 and 4 items. Actual content: %s" % str(item)
+        err_msg = f"Translation tuples must have between 2 and 4 items. Actual content: {item}"
+        assert 2 <= len(item) <= 4, err_msg
         pynn_name = item[0]
         sim_name = item[1]
         if len(item) == 2:  # no transformation
@@ -85,7 +85,8 @@ class StandardModelType(models.BaseModelType):
             _parameters = parameters
         cls = self.__class__
         if parameters.schema != self.get_schema():
-            raise Exception("Schemas do not match: %s != %s" % (parameters.schema, self.get_schema()))  # should replace this with a PyNN-specific exception type
+            # should replace this with a PyNN-specific exception type
+            raise Exception(f"Schemas do not match: {parameters.schema} != {self.get_schema()}")
         native_parameters = {}
         for name in parameters.keys():
             D = self.translations[name]
@@ -95,12 +96,13 @@ class StandardModelType(models.BaseModelType):
             else:
                 try:
                     pval = eval(D['forward_transform'], globals(), _parameters)
-                except NameError as errmsg:
-                    raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
-                                    % (pname, cls.__name__, D['forward_transform'], parameters, errmsg))
+                except NameError as err:
+                    raise NameError(
+                        f"Problem translating '{pname}' in {cls.__name__}. "
+                        f"Transform: '{D['forward_transform']}'. Parameters: {parameters}. {err}"
+                    )
                 except ZeroDivisionError:
                     raise
-                    #pval = 1e30 # this is about the highest value hoc can deal with
             native_parameters[pname] = pval
         return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
 
@@ -115,28 +117,37 @@ class StandardModelType(models.BaseModelType):
                     standard_parameters[name] = D['reverse_transform'](**native_parameters)
                 else:
                     try:
-                        standard_parameters[name] = eval(D['reverse_transform'], {}, native_parameters)
-                    except NameError as errmsg:
-                        raise NameError("Problem translating '%s' in %s. Transform: '%s'. Parameters: %s. %s"
-                                        % (name, cls.__name__, D['reverse_transform'], native_parameters, errmsg))
-        return ParameterSpace(standard_parameters, schema=self.get_schema(), shape=native_parameters.shape)
+                        standard_parameters[name] = eval(
+                            D['reverse_transform'], {}, native_parameters)
+                    except NameError as err:
+                        raise NameError(
+                            f"Problem translating '{name}' in {cls.__name__}. "
+                            f"Transform: '{D['reverse_transform']}'. "
+                            f"Parameters: {native_parameters}. {err}"
+                        )
+        return ParameterSpace(standard_parameters,
+                              schema=self.get_schema(),
+                              shape=native_parameters.shape)
 
     def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
         correspondance between standard and native parameter values."""
-        return [name for name in self.translations if self.translations[name]['forward_transform'] == name]
+        return [name for name in self.translations
+                if self.translations[name]['forward_transform'] == name]
 
     def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
         def scaling(trans):
             return (not callable(trans)) and ("float" in trans)
-        return [name for name in self.translations if scaling(self.translations[name]['forward_transform'])]
+        return [name for name in self.translations
+                if scaling(self.translations[name]['forward_transform'])]
 
     def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
-        return [name for name in self.translations if name not in self.simple_parameters() + self.scaled_parameters()]
+        return [name for name in self.translations
+                if name not in self.simple_parameters() + self.scaled_parameters()]
 
     def computed_parameters_include(self, parameter_names):
         return any(name in self.computed_parameters() for name in parameter_names)
@@ -188,10 +199,10 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
 
     def __getattr__(self, name):
         if name == "set":
-            errmsg = "For current sources, set values using the parameter name directly, " \
-                     "e.g. source.amplitude = 0.5, or use 'set_parameters()' " \
-                     "e.g. source.set_parameters(amplitude=0.5)"
-            raise AttributeError(errmsg)
+            err_msg = "For current sources, set values using the parameter name directly, " \
+                      "e.g. source.amplitude = 0.5, or use 'set_parameters()' " \
+                      "e.g. source.set_parameters(amplitude=0.5)"
+            raise AttributeError(err_msg)
         try:
             val = self.__getattribute__(name)
         except AttributeError:
@@ -237,8 +248,9 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
         raise NotImplementedError
 
     def _round_timestamp(self, value, resolution):
-        # todo: consider using decimals module, since rounding of floating point numbers is so horrible
-        return np.rint(value/resolution) * resolution
+        # todo: consider using decimals module,
+        # since rounding of floating point numbers is so horrible
+        return np.rint(value / resolution) * resolution
 
     def get_data(self):
         """Return the recorded current as a Neo signal object"""
@@ -256,7 +268,8 @@ class ModelNotAvailable(object):
     """Not available for this simulator."""
 
     def __init__(self, *args, **kwargs):
-        raise NotImplementedError("The %s model is not available for this simulator." % self.__class__.__name__)
+        raise NotImplementedError(
+            f"The {self.__class__.__name__} model is not available for this simulator.")
 
 
 # ==============================================================================
@@ -267,7 +280,10 @@ class ModelNotAvailable(object):
 def check_weights(weights, projection):
     # if projection.post is an Assembly, some components might have cond-synapses, others curr,
     # so need a more sophisticated check here. For now, skipping check and emitting a warning
-    if hasattr(projection.post, "_homogeneous_synapses") and not projection.post._homogeneous_synapses:
+    if (
+        hasattr(projection.post, "_homogeneous_synapses")
+        and not projection.post._homogeneous_synapses     # noqa: W503
+    ):
         warnings.warn("Not checking weights due to due mixture of synapse types")
     if isinstance(weights, np.ndarray):
         all_negative = (weights <= 0).all()
@@ -284,12 +300,17 @@ def check_weights(weights, projection):
             raise errors.ConnectionError(
                 "Weights must be positive for conductance-based and/or excitatory synapses"
             )
-    elif projection.post.conductance_based is False and projection.receptor_type in inhibitory_receptor_types:
+    elif (
+        projection.post.conductance_based is False
+        and projection.receptor_type in inhibitory_receptor_types  # noqa: W503
+    ):
         if not all_negative:
             raise errors.ConnectionError(
                 "Weights must be negative for current-based, inhibitory synapses"
             )
-    else:  # This can happen for multi-synapse models if the receptor_type is not one of the commonly used ones
+    else:
+        # This can happen for multi-synapse models
+        # if the receptor_type is not one of the commonly used ones
         warnings.warn("Can't check weight, conductance status unknown.")
 
 
@@ -305,13 +326,14 @@ def check_delays(delays, projection):
     else:
         raise errors.ConnectionError("Delays must be a number or an array of numbers.")
     if not in_range:
-        raise errors.ConnectionError("Delay (%s) is out of range [%s, %s]" % (delays, min_delay, max_delay))
+        raise errors.ConnectionError(
+            f"Delay ({delays}) is out of range [{min_delay}, {max_delay}]")
 
 
 class StandardSynapseType(StandardModelType, models.BaseSynapseType):
     parameter_checks = {
         'weight': check_weights,
-        #'delay': check_delays   # this needs to be revisited in the context of min_delay = "auto"
+        # 'delay': check_delays  # this needs to be revisited in the context of min_delay = "auto"
     }
 
     def get_schema(self):
@@ -321,7 +343,9 @@ class StandardSynapseType(StandardModelType, models.BaseSynapseType):
         """
         base_schema = dict((name, type(value))
                            for name, value in self.default_parameters.items())
-        base_schema['delay'] = float  # delay has default value None, meaning "use the minimum delay", so we have to correct the auto-generated schema
+        base_schema['delay'] = float
+        # delay has default value None, meaning "use the minimum delay",
+        # so we have to correct the auto-generated schema
         return base_schema
 
 

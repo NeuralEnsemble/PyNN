@@ -162,19 +162,21 @@ class WrappedRNG(AbstractRNG):
         """ """
         res = gen(size)
         iterations = 0
-        errmsg = "Maximum number of redraws exceeded. Check the parameterization of your distribution."
+        err_msg = ("Maximum number of redraws exceeded. "
+                   "Check the parameterization of your distribution.")
         if size is None:
             while res < low or res > high:
-                # limit the number of iterations. Possibility of infinite loop, depending on parameters
+                # limit the number of iterations.
+                # Possibility of infinite loop, depending on parameters
                 if iterations > MAX_REDRAWS:
-                    raise Exception(errmsg)
+                    raise Exception(err_msg)
                 res = gen(size)
                 iterations += 1
         else:
             idx = np.where((res > high) | (res < low))[0]
             while idx.size > 0:
                 if iterations > MAX_REDRAWS:
-                    raise Exception(errmsg)
+                    raise Exception(err_msg)
                 redrawn = gen(idx.size)
                 res[idx] = redrawn
                 idx = idx[np.where((redrawn > high) | (redrawn < low))[0]]
@@ -183,7 +185,8 @@ class WrappedRNG(AbstractRNG):
 
     def describe(self):
         return "%s() with seed %s for MPI rank %d (MPI processes %d). %s parallel safe." % (
-            self.__class__.__name__, self.seed, self.mpi_rank, self.num_processes, self.parallel_safe and "Is" or "Not")
+            self.__class__.__name__, self.seed, self.mpi_rank, self.num_processes,
+            self.parallel_safe and "Is" or "Not")
 
 
 class NumpyRNG(WrappedRNG):
@@ -194,9 +197,9 @@ class NumpyRNG(WrappedRNG):
         'exponential':    ('exponential',  {'beta': 'scale'}),
         'lognormal':      ('lognormal',    {'mu': 'mean', 'sigma': 'sigma'}),
         'normal':         ('normal',       {'mu': 'loc', 'sigma': 'scale'}),
-        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),  # noqa:E501
         'normal_clipped_to_boundary':
-                          ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+                          ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),   # noqa:E501
         'poisson':        ('poisson',      {'lambda_': 'lam'}),
         'uniform':        ('uniform',      {'low': 'low', 'high': 'high'}),
         'uniform_int':    ('randint',      {'low': 'low', 'high': 'high'}),
@@ -222,9 +225,10 @@ class NumpyRNG(WrappedRNG):
         # TODO: allow non-standardized distributions to pass through without translation
         distribution_np, parameter_map = self.translations[distribution]
         if set(parameters.keys()) != set(parameter_map.keys()):
-            # all parameters must be provided. We do not provide default values (this can be discussed).
-            errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
-            raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
+            # all parameters must be provided.
+            # We do not provide default values (this can be discussed).
+            err_msg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+            raise KeyError(err_msg % (parameter_map.keys(), parameters.keys()))
         parameters_np = dict((parameter_map[k], v) for k, v in parameters.items())
         if hasattr(self, distribution_np):
             f_distr = getattr(self, distribution_np)
@@ -242,7 +246,8 @@ class NumpyRNG(WrappedRNG):
     def normal_clipped(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
         """ """
         # not sure how well this works with parallel_safe, mask_local
-        gen = lambda n: self.rng.normal(loc=mu, scale=sigma, size=n)
+        def gen(n):
+            return self.rng.normal(loc=mu, scale=sigma, size=n)
         return self._clipped(gen, low=low, high=high, size=size)
 
     def normal_clipped_to_boundary(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
@@ -260,7 +265,7 @@ class GSLRNG(WrappedRNG):
         'exponential':    ('exponential',    {'beta': 'mu'}),
         'lognormal':      ('lognormal',      {'mu': 'zeta', 'sigma': 'sigma'}),
         'normal':         ('normal',         {'mu': 'mu', 'sigma': 'sigma'}),
-        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        'normal_clipped': ('normal_clipped', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),  # noqa: E501
         'poisson':        ('poisson',        {'lambda_': 'mu'}),
         'uniform':        ('flat',           {'low': 'a', 'high': 'b'}),
         'uniform_int':    ('uniform_int',    {'low': 'low', 'high': 'high'}),
@@ -284,15 +289,17 @@ class GSLRNG(WrappedRNG):
     def _next(self, distribution, n, parameters):
         distribution_gsl, parameter_map = self.translations[distribution]
         if set(parameters.keys()) != set(parameter_map.keys()):
-            # all parameters must be provided. We do not provide default values (this can be discussed).
-            errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
-            raise KeyError(errmsg % (parameter_map.keys(), parameters.keys()))
+            # all parameters must be provided.
+            # We do not provide default values (this can be discussed).
+            err_msg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+            raise KeyError(err_msg % (parameter_map.keys(), parameters.keys()))
         parameters_gsl = dict((parameter_map[k], v) for k, v in parameters.items())
         if hasattr(self, distribution_gsl):
             f_distr = getattr(self, distribution_gsl)
         else:
             f_distr = getattr(self.rng, distribution_gsl)
-        # Has this been tested? If so, move most of _next to Wrapped RNG since there is almost complete overlap with NumpyRNG._next
+        # Has this been tested? If so, move most of _next to Wrapped RNG since there is almost
+        # complete overlap with NumpyRNG._next
         values = f_distr(size=n, **parameters_gsl)
         if n == 1:
             values = [values]  # to be consistent with NumpyRNG
@@ -311,7 +318,8 @@ class GSLRNG(WrappedRNG):
 
     def normal_clipped(self, mu=0.0, sigma=1.0, low=-np.inf, high=np.inf, size=None):
         """ """
-        gen = lambda n: self.normal(mu, sigma, n)
+        def gen(n):
+            return self.normal(mu, sigma, n)
         return self._clipped(gen, low=low, high=high, size=size)
 
 # should add a wrapper for the built-in Python random module.
@@ -358,21 +366,21 @@ class RandomDistribution(object):
 
     Available distributions:
 
-    ==========================  ====================  ====================================================
+    ==========================  ====================  ===========================================
     Name                        Parameters            Comments
-    --------------------------  --------------------  ----------------------------------------------------
+    --------------------------  --------------------  -------------------------------------------
     binomial                    n, p
     gamma                       k, theta
     exponential                 beta
     lognormal                   mu, sigma
     normal                      mu, sigma
     normal_clipped              mu, sigma, low, high  Values outside (low, high) are redrawn
-    normal_clipped_to_boundary  mu, sigma, low, high  Values below/above low/high are set to low/high
-    poisson                     lambda_               Trailing underscore since lambda is a Python keyword
+    normal_clipped_to_boundary  mu, sigma, low, high  Values outside low/high are set to low/high
+    poisson                     lambda_               Underscore since lambda is a Python keyword
     uniform                     low, high
     uniform_int                 low, high
     vonmises                    mu, kappa
-    ==========================  ====================  ====================================================
+    ==========================  ====================  ===========================================
     """
 
     def __init__(self, distribution, parameters_pos=None, rng=None, **parameters_named):
@@ -401,18 +409,20 @@ class RandomDistribution(object):
     def _resolve_parameters(self, positional, named):
         if positional is None:
             if set(named.keys()) != set(available_distributions[self.name]):
-                errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
-                raise KeyError(errmsg % (available_distributions[self.name], tuple(named.keys())))
+                err_msg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+                raise KeyError(err_msg % (available_distributions[self.name], tuple(named.keys())))
             return named
         elif len(named) == 0:
             if isinstance(positional, dict):
                 raise TypeError("Positional parameters should be a tuple, not a dict")
             expected_parameter_names = available_distributions[self.name]
             if len(positional) != len(expected_parameter_names):
-                errmsg = "Incorrect number of parameters for random distribution. For %s received %s"
-                raise ValueError(errmsg % (expected_parameter_names, positional))
+                err_msg = ("Incorrect number of parameters for random distribution. "
+                           f"For {expected_parameter_names} received {positional}")
+                raise ValueError(err_msg)
             else:
-                return dict((name, value) for name, value in zip(expected_parameter_names, positional))
+                return dict((name, value)
+                            for name, value in zip(expected_parameter_names, positional))
         else:
             raise ValueError("Mixed positional and named parameters")
 

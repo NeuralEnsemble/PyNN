@@ -76,7 +76,8 @@ class InvalidWeightError(ValueError):
 
 
 class NotLocalError(Exception):
-    """Attempt to access a cell or connection that does not exist on this node (but exists elsewhere)."""
+    """Attempt to access a cell or connection that does not exist on this node
+    (but exists elsewhere)."""
     pass
 
 

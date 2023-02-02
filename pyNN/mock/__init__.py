@@ -11,11 +11,14 @@ really running simulations.
 import logging
 from pyNN import common
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
-from pyNN.connectors import *
-from pyNN.recording import *
+from pyNN.connectors import FixedProbabilityConnector
+from pyNN.connectors import *  # noqa: F403, F401
+from pyNN.recording import *   # noqa: F403, F401
 from . import simulator
-from .standardmodels import *
-from .populations import Population, PopulationView, Assembly
+from ..standardmodels import StandardCellType
+from .standardmodels import StaticSynapse
+from .standardmodels import *  # noqa: F403, F401
+from .populations import Population, PopulationView, Assembly  # noqa: F401
 from .projections import Projection
 from neo.io import get_io
 
@@ -25,7 +28,8 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+    return [obj.__name__ for obj in globals().values()
+            if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,

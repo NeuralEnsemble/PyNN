@@ -83,8 +83,8 @@ def test_scenario3(sim):
 
     actual_rate = pre.mean_spike_count() / duration
     expected_rate = (r1 + r2) / 2
-    errmsg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
-    assert abs(actual_rate - expected_rate) < 1, errmsg
+    err_msg = "actual rate: %g  expected rate: %g" % (actual_rate, expected_rate)
+    assert abs(actual_rate - expected_rate) < 1, err_msg
     final_weights = connections.get('weight', format='array', gather=False)
     assert initial_weights[0, 0] != final_weights[0, 0]
 

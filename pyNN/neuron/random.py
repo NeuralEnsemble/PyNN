@@ -21,7 +21,8 @@ class NativeRNG(NativeRNG, WrappedRNG):
         'normal':         ('normal',       ('mu', 'sigma')),
         'normal_clipped': ('normal_clipped', ('mu', 'sigma', 'low', 'high')),
         # 'normal_clipped_to_boundary':
-        #                  ('normal_clipped_to_boundary', {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
+        #                  ('normal_clipped_to_boundary',
+        #                   {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'}),
         'poisson':        ('poisson',      ('lambda_',)),
         'uniform':        ('uniform',      ('low', 'high')),
         'uniform_int':    ('discunif',     ('low', 'high')),
@@ -39,9 +40,10 @@ class NativeRNG(NativeRNG, WrappedRNG):
     def _next(self, distribution, n, parameters):
         distribution_nrn, parameter_ordering = self.translations[distribution]
         if set(parameters.keys()) != set(parameter_ordering):
-            # all parameters must be provided. We do not provide default values (this can be discussed).
-            errmsg = "Incorrect parameterization of random distribution. Expected %s, got %s."
-            raise KeyError(errmsg % (parameter_ordering, parameters.keys()))
+            # all parameters must be provided.
+            # We do not provide default values (this can be discussed).
+            err_msg = "Incorrect parameterization of random distribution. Expected %s, got %s."
+            raise KeyError(err_msg % (parameter_ordering, parameters.keys()))
         parameters_nrn = [parameters[k] for k in parameter_ordering]
         if hasattr(self, distribution_nrn):
             return getattr(self, distribution_nrn)(n, *parameters_nrn)
@@ -77,6 +79,6 @@ class NativeRNG(NativeRNG, WrappedRNG):
 
     def normal_clipped(self, n, mu, sigma, low, high):
         """ """
-        gen = lambda n: self.normal(n, mu, sigma)
+        def gen(n):
+            return self.normal(n, mu, sigma)
         return self._clipped(gen, low=low, high=high, size=n)
-

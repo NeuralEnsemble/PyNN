@@ -83,7 +83,6 @@ class SingleCompartmentNeuron(nrn.Section):
         self.v_init = None
         self.parameters = {'c_m': c_m, 'i_offset': i_offset}
 
-
     def area(self):
         """Membrane area in µm²"""
         return pi * self.L * self.seg.diam
@@ -95,7 +94,6 @@ class SingleCompartmentNeuron(nrn.Section):
         assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
         for seg in self:
             seg.v = self.v_init
-        #self.seg.v = self.v_init
 
     def set_parameters(self):
         for name, value in self.parameters.items():
@@ -119,9 +117,12 @@ class StandardReceptorTypesMixin(object):
         self.syn_shape = syn_shape
 
         # insert synapses
-        assert syn_type in (
-            'current', 'conductance'), "syn_type must be either 'current' or 'conductance'. Actual value is %s" % syn_type
-        assert syn_shape in ('alpha', 'exp'), "syn_type must be either 'alpha' or 'exp'"
+        if syn_type not in ('current', 'conductance'):
+            raise ValueError(
+                "syn_type must be either 'current' or 'conductance'."
+                f"Actual value is {syn_type}")
+        if syn_shape not in ('alpha', 'exp'):
+            raise ValueError("syn_type must be either 'alpha' or 'exp'")
         synapse_model = self.synapse_models[syn_type][syn_shape]
         self.esyn = synapse_model(0.5, sec=self)
         self.isyn = synapse_model(0.5, sec=self)
@@ -175,30 +176,25 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
         self.parameters.update(tau_m=tau_m, v_rest=v_rest)
 
     def __set_tau_m(self, value):
-        # print("setting tau_m to", value, "cm =", self.seg.cm))
-        # cm(nF)/tau_m(ms) = G(uS) = 1e-6G(S). Divide by area (1e-3) to get factor of 1e-3
         self.seg.pas.g = 1e-3 * self.seg.cm / value
 
     def __get_tau_m(self):
-        #print("tau_m = ", 1e-3*self.seg.cm/self.seg.pas.g, "cm = ", self.seg.cm)
         return 1e-3 * self.seg.cm / self.seg.pas.g
 
     def __get_cm(self):
-        #print("cm = ", self.seg.cm)
         return self.seg.cm
 
-    def __set_cm(self, value):  # when we set cm, need to change g to maintain the same value of tau_m
-        #print("setting cm to", value)
+    def __set_cm(self, value):
+        # when we set cm, need to change g to maintain the same value of tau_m
         tau_m = self.tau_m
         self.seg.cm = value
         self.tau_m = tau_m
 
     v_rest = _new_property('seg.pas', 'e')
     tau_m = property(fget=__get_tau_m, fset=__set_tau_m)
-    c_m = property(fget=__get_cm, fset=__set_cm)  # if the property were called 'cm'
-    # it would never get accessed as the
-    # built-in Section.cm would always
-    # be used first
+    c_m = property(fget=__get_cm, fset=__set_cm)
+    # if the property were called 'cm' it would never get accessed as the
+    # built-in Section.cm would always be used first
 
 
 class StandardIF(LeakySingleCompartmentNeuron):
@@ -259,7 +255,8 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
     t_refrac = _new_property('adexp', 'trefrac')
     B = _new_property('adexp', 'b')
     A = _new_property('adexp', 'a')
-    # using 'A' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
+    # using 'A' because for some reason, cell.a gives the error "NameError: a,
+    # the mechanism does not exist at PySec_170bb70(0.5)"
     tau_w = _new_property('adexp', 'tauw')
     delta = _new_property('adexp', 'delta')
 
@@ -312,7 +309,7 @@ class BretteGerstnerIFStandardReceptors(BretteGerstnerIF, StandardReceptorTypesM
                  delta=2.0):
         BretteGerstnerIF.__init__(self, tau_m, c_m, v_rest, v_thresh, t_refrac,
                                   i_offset, v_spike, v_reset, A, B, tau_w, delta)
-        StandardReceptorTypesMixin.__init__(self, syn_type, syn_shape, tau_e, tau_i, e_e, e_i) 
+        StandardReceptorTypesMixin.__init__(self, syn_type, syn_shape, tau_e, tau_i, e_e, e_i)
         self.set_parameters()
 
 
@@ -343,7 +340,8 @@ class Izhikevich_(SingleCompartmentNeuron):
     b = _new_property('izh', 'b')
     c = _new_property('izh', 'c')
     d = _new_property('izh', 'd')
-    # using 'a_' because for some reason, cell.a gives the error "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
+    # using 'a_' because for some reason, cell.a gives the error
+    # "NameError: a, the mechanism does not exist at PySec_170bb70(0.5)"
 
     def get_threshold(self):
         return self.izh.vthresh
@@ -389,7 +387,8 @@ class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
     def __set_v_thresh(self, value):
         self.spike_reset.vthresh = value
         # this can fail on constructor
-        # todo: figure out why it is failing and fix in a way that does not require ignoring an Exception
+        # todo: figure out why it is failing and fix in a way
+        #       that does not require ignoring an Exception
         try:
             self.gsfa_grr.vthresh = value
         except AttributeError:
@@ -468,7 +467,7 @@ class GIFNeuron(LeakySingleCompartmentNeuron, StandardReceptorTypesMixin):
                  a_gamma=(15.0, 3.0, 1.0)):
 
         LeakySingleCompartmentNeuron.__init__(self, tau_m, c_m, v_rest, i_offset)
-        StandardReceptorTypesMixin.__init__(self, syn_type, syn_shape, tau_e, tau_i, e_e, e_i) 
+        StandardReceptorTypesMixin.__init__(self, syn_type, syn_shape, tau_e, tau_i, e_e, e_i)
 
         self.gif_fun = h.GifCurrent(0.5, sec=self)
         self.source = self.gif_fun
@@ -652,7 +651,8 @@ class VectorSpikeSource(hclass(h.VecStim)):
         return self._recorded_spikes
 
     def clear_past_spikes(self):
-        """If previous recordings are cleared, need to remove spikes from before the current time."""
+        """If previous recordings are cleared, need to remove spikes
+        from before the current time."""
         self._recorded_spikes = self._recorded_spikes[self._recorded_spikes > h.t]
 
 
@@ -666,7 +666,8 @@ class ArtificialCell(object):
         dummy = nrn.Section()
 
         # needed for PyNN
-        self.source_section = dummy  # todo: only need a single dummy for entire network, not one per cell
+        self.source_section = dummy
+        # todo: only need a single dummy for entire network, not one per cell
         self.parameter_names = ('tau', 'refrac')
         self.traces = {}
         self.spike_times = h.Vector(0)

@@ -481,7 +481,7 @@ class AdExp(cells.AdExp):
     )
     variable_map = {'v': 'V_m', 'w': 'w'}
     scale_factors = {'v': 1, 'w': 0.001}
-    possible_models = set(["aeif_cond_alpha_multisynapse","aeif_cond_beta_multisynapse"])
+    possible_models = set(["aeif_cond_alpha_multisynapse", "aeif_cond_beta_multisynapse"])
     standard_receptor_type = False
 
 
@@ -511,10 +511,12 @@ class PointNeuron(cells.PointNeuron):
         available_models = nest.node_models
         suitable_models = self.possible_models.intersection(available_models)
         if len(suitable_models) == 0:
-            errmsg = "Model not available in this build of NEST. " \
-                     "You requested one of: {}" \
-                     "Available models are: {}"
-            raise errors.NoModelAvailableError(errmsg.format(self.possible_models, available_models))
+            err_msg = (
+                "Model not available in this build of NEST. "
+                f"You requested one of: {self.possible_models}"
+                f"Available models are: {available_models}"
+            )
+            raise errors.NoModelAvailableError(err_msg)
         elif len(suitable_models) > 1:
             logger.warning("Several models are available for this set of components")
             logger.warning(", ".join(model for model in suitable_models))
@@ -530,7 +532,8 @@ class PointNeuron(cells.PointNeuron):
         var_map = self.neuron.variable_map.copy()
         for name, psr in self.post_synaptic_receptors.items():
             for variable, translated_variable in psr.variable_map.items():
-                var_map[f"{name}.{variable}"] = f"{translated_variable}_{self.get_receptor_type(name)}"
+                value = f"{translated_variable}_{self.get_receptor_type(name)}"
+                var_map[f"{name}.{variable}"] = value
         return var_map
 
     @property
@@ -543,7 +546,8 @@ class PointNeuron(cells.PointNeuron):
         translated_parameters = self.neuron.native_parameters
         # work-in-progress: this assumes all receptors have the same model
         #                   this will not be true in the general case
-        # also, not all models with multiple receptor types are "multisynapse" models, e.g. ht_neuron
+        # also, not all models with multiple receptor types are "multisynapse" models,
+        # e.g. ht_neuron
 
         # transform list of dicts into dict of lists
         receptor_params = defaultdict(list)

@@ -6,6 +6,8 @@ Connection method classes for the neuron module
 
 """
 
+# flake8: noqa
+
 from pyNN.neuron import simulator
 from pyNN.connectors import AllToAllConnector, \
                             OneToOneConnector, \

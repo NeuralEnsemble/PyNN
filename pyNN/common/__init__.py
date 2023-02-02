@@ -44,6 +44,8 @@ Global constants:
 
 """
 
+# flake8: noqa
+
 from .populations import IDMixin, BasePopulation, Population, PopulationView, Assembly, is_conductance
 from .projections import Projection, Connection
 from .procedural_api import build_create, build_connect, set, build_record, initialize

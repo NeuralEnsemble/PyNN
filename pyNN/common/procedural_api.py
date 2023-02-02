@@ -58,10 +58,10 @@ def set(cells, **parameters):
     nanofarads, event per second).
     """
     if not isinstance(cells, (BasePopulation, Assembly)):
-        errmsg = "For individual cells, set values using the parameter name directly, " \
+        err_msg = "For individual cells, set values using the parameter name directly, " \
                  "e.g. population[0].tau_m = 20.0, or use 'set' on a population view, " \
                  "e.g. set(population[0:1], tau_m=20.0)"
-        raise AttributeError(errmsg)
+        raise AttributeError(err_msg)
     cells.set(**parameters)
 
 

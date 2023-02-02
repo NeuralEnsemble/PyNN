@@ -28,6 +28,8 @@ Spike sources (input neurons)
 :license: CeCILL, see LICENSE for details.
 """
 
+# flake8: noqa (ignore E221)
+
 from copy import deepcopy
 import operator
 from functools import reduce
@@ -422,9 +424,9 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'tau_w':    144.0,     # Adaptation time constant in ms
         'v_thresh': -50.4,     # Spike initiation threshold in mV
         'e_rev_E':    0.0,     # Excitatory reversal potential in mV.
-        'tau_syn_E':  5.0,     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'tau_syn_E':  5.0,     # Rise time of excitatory synaptic conductance in ms (alpha function). # noqa: E501
         'e_rev_I':  -80.0,     # Inhibitory reversal potential in mV.
-        'tau_syn_I':  5.0,     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+        'tau_syn_I':  5.0,     # Rise time of the inhibitory synaptic conductance in ms (alpha function). # noqa: E501
     }
     recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
@@ -655,23 +657,31 @@ class PointNeuron(StandardCellType):
     def simple_parameters(self):
         """Return a list of parameters for which there is a one-to-one
         correspondance between standard and native parameter values."""
-        return self.neuron.simple_parameters() + list(set.union(*[set(psr.simple_parameters()) for psr in self.post_synaptic_receptors.values()]))
+        return self.neuron.simple_parameters() + list(
+            set.union(*[set(psr.simple_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
 
     def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
-        return self.neuron.scaled_parameters() + list(set.union(*[set(psr.scaled_parameters()) for psr in self.post_synaptic_receptors.values()]))
+        return self.neuron.scaled_parameters() + list(
+            set.union(*[set(psr.scaled_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
 
     def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
-        return self.neuron.computed_parameters() + list(set.union(*[set(psr.computed_parameters()) for psr in self.post_synaptic_receptors.values()]))
+        return self.neuron.computed_parameters() + list(
+            set.union(*[set(psr.computed_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
 
     def computed_parameters_include(self, parameter_names):
-        return (self.neuron.computed_parameters_include(parameter_names)
-                or reduce(operator.or_,
-                          [psr.computed_parameters_include(parameter_names)
-                           for psr in self.post_synaptic_receptors.values()]))
+        return (
+            self.neuron.computed_parameters_include(parameter_names)
+            or reduce(operator.or_,                                         # noqa: W503
+                      [psr.computed_parameters_include(parameter_names)
+                       for psr in self.post_synaptic_receptors.values()])
+        )
 
 
 class Izhikevich(StandardCellType):
@@ -744,10 +754,10 @@ class GIF_cond_exp(StandardCellType):
         'delta_v':      0.5,  # Threshold sharpness in mV.
         'v_t_star':   -48.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
-        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.
-        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.
-        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms.
-        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV
+        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.        # noqa: E501
+        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.     # noqa: E501
+        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms. # noqa: E501
+        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV         # noqa: E501
     }
 
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
@@ -855,8 +865,8 @@ class SpikeSourceInhGamma(StandardCellType):
     """
 
     default_parameters = {
-        'a':        Sequence([1.0]),  # time histogram of parameter a of a gamma distribution (dimensionless)
-        'b':        Sequence([1.0]),  # time histogram of parameter b of a gamma distribution (seconds)
+        'a':        Sequence([1.0]),  # time histogram of parameter a of a gamma distribution (dimensionless)  # noqa: E501
+        'b':        Sequence([1.0]),  # time histogram of parameter b of a gamma distribution (seconds)        # noqa: E501
         'tbins':    Sequence([0.0]),  # time bins of the time histogram of a,b in units of ms
         'start':    0.0,              # Start time (ms)
         'duration': 1e10              # Duration of spike sequence (ms)
@@ -876,7 +886,7 @@ class SpikeSourceInhGamma(StandardCellType):
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    default_parameters = {'spike_times': Sequence([])} # list or numpy array containing spike times in milliseconds.
+    default_parameters = {'spike_times': Sequence([])}  # list or numpy array containing spike times in milliseconds.  # noqa: E501
     recordable = ['spikes']
     injectable = False
     receptor_types = ()

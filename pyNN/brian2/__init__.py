@@ -6,19 +6,23 @@ Brian2 implementation of the PyNN API.
 """
 
 import logging
-import brian2
-from pyNN import common, space
+import brian2                                                             # noqa: F401
+from pyNN import common, space                                            # noqa: F401
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
-from pyNN.connectors import *
+from pyNN.standardmodels import StandardCellType
+from pyNN.connectors import *                                             # noqa: F401, F403
+from pyNN.connectors import FixedProbabilityConnector
 from pyNN.brian2 import simulator
-from pyNN.brian2.standardmodels.cells import *
-from pyNN.brian2.standardmodels.synapses import *
-from pyNN.brian2.standardmodels.electrodes import *
-from pyNN.brian2.standardmodels.receptors import (
+from pyNN.brian2.standardmodels.cells import *                            # noqa: F401, F403
+from pyNN.brian2.standardmodels.synapses import *                         # noqa: F401, F403
+from pyNN.brian2.standardmodels.synapses import StaticSynapse
+from pyNN.brian2.standardmodels.electrodes import *                       # noqa: F401, F403
+from pyNN.brian2.standardmodels.electrodes import update_currents
+from pyNN.brian2.standardmodels.receptors import (                        # noqa: F401
     CondAlphaPostSynapticResponse, AlphaPSR,
     CondExpPostSynapticResponse, ExpPSR,
     CurrExpPostSynapticResponse)
-from pyNN.brian2.populations import Population, PopulationView, Assembly
+from pyNN.brian2.populations import Population, PopulationView, Assembly  # noqa: F401
 from pyNN.brian2.projections import Projection
 from pyNN.recording import get_io
 
@@ -27,7 +31,8 @@ logger = logging.getLogger("PyNN")
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, StandardCellType)]
+    return [obj.__name__ for obj in globals().values()
+            if isinstance(obj, type) and issubclass(obj, StandardCellType)]
 
 
 def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
@@ -48,7 +53,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     simulator.state.num_processes = 1
 
     simulator.state.network.add(
-        NetworkOperation(update_currents, when="start", clock=simulator.state.network.clock)
+        brian2.NetworkOperation(update_currents, when="start", clock=simulator.state.network.clock)
     )
     return rank()
 

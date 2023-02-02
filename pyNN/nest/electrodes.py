@@ -29,7 +29,8 @@ class NestCurrentSource(BaseCurrentSource):
             self.parameter_space.update(**parameters)
 
         self.min_delay = state.min_delay
-        self.timestep = state.dt  # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+        # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+        self.timestep = state.dt
         state.current_sources.append(self)
 
     def inject_into(self, cells):
@@ -107,4 +108,4 @@ class NativeElectrodeType(NestCurrentSource):
         NestCurrentSource.__init__(self, **parameters)
         self.parameter_space.evaluate(simplify=True)
         state.set_status(self._device,
-                       make_sli_compatible(self.parameter_space.as_dict()))
+                         make_sli_compatible(self.parameter_space.as_dict()))

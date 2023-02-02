@@ -72,18 +72,19 @@ class _State(common.control.BaseState):
     """Represent the simulator state."""
 
     def __init__(self):
-        super(_State, self).__init__()
+        super().__init__()
         try:
             nest.Install('pynn_extensions')
             self.extensions_loaded = True
-        except nest.NESTError as err:
+        except nest.NESTError:
             self.extensions_loaded = False
         self.initialized = False
         self.optimize = False
         self.spike_precision = "off_grid"
         self.verbosity = "error"
-        self._cache_num_processes = nest.GetKernelStatus()['num_processes']  # avoids blocking if only some nodes call num_processes
-                                                                             # do the same for rank?
+        # the following line avoids blocking if only some nodes call num_processes
+        # do the same for rank?
+        self._cache_num_processes = nest.GetKernelStatus()['num_processes']
         # allow NEST to erase previously written files (defaut with all the other simulators)
         nest.SetKernelStatus({'overwrite_files': True})
         self.tempdirs = []
@@ -142,7 +143,8 @@ class _State(common.control.BaseState):
 
     def _set_spike_precision(self, precision):
         if nest.off_grid_spiking and precision == "on_grid":
-            raise ValueError("The option to use off-grid spiking cannot be turned off once enabled")
+            raise ValueError(
+                "The option to use off-grid spiking cannot be turned off once enabled")
         if precision == 'off_grid':
             self.default_recording_precision = 15
         elif precision == 'on_grid':
@@ -186,7 +188,8 @@ class _State(common.control.BaseState):
                 device.connect_to_cells()
                 device._local_files_merged = False
         if not self.running and simtime > 0:
-            # we simulate past the real time by one min_delay, otherwise NEST doesn't give us all the recorded data
+            # we simulate past the real time by one min_delay,
+            # otherwise NEST doesn't give us all the recorded data
             simtime += self.min_delay
             self.running = True
         if simtime > 0:
@@ -313,7 +316,9 @@ class Connection(common.Connection):
         """Synaptic weight in nA or µS."""
         w_nA = nest.GetStatus(self.id(), 'weight')[0]
         if self.parent.synapse_type == 'inhibitory' and common.is_conductance(self.target):
-            w_nA *= -1  # NEST uses negative values for inhibitory weights, even if these are conductances
+            # NEST uses negative values for inhibitory weights,
+            # even if these are conductances
+            w_nA *= -1
         return 0.001 * w_nA
 
     def _set_delay(self, d):

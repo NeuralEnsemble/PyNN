@@ -8,36 +8,35 @@ NEST v3 implementation of the PyNN API.
 
 import warnings
 try:
-    import tables  # due to freeze when importing nest before tables
+    import tables  # noqa: F401 - due to freeze when importing nest before tables
 except ImportError:
     pass
 import nest
 
 from . import simulator
-from pyNN import common, recording, errors, space, __doc__
+from pyNN import common, recording, errors, space  # noqa: F401
 from pyNN.common.control import DEFAULT_MAX_DELAY, DEFAULT_TIMESTEP, DEFAULT_MIN_DELAY
-
-# if recording.MPI and (nest.Rank() != recording.mpi_comm.rank):
-#    raise Exception("MPI not working properly. Please make sure you import pyNN.nest before pyNN.random.")
 
 import shutil
 import logging
 
-from pyNN.nest.cells import NativeCellType, native_cell_type
-from pyNN.nest.electrodes import NativeElectrodeType, native_electrode_type
-from pyNN.nest.synapses import NativeSynapseType, native_synapse_type
-from pyNN.nest.standardmodels.cells import *
-from pyNN.nest.connectors import *
-from pyNN.nest.standardmodels.synapses import *
-from pyNN.nest.standardmodels.electrodes import *
-from pyNN.nest.standardmodels.receptors import *
-from pyNN.nest.recording import *
-from pyNN.random import NumpyRNG, GSLRNG
-from pyNN.nest.random import NativeRNG
-from pyNN.space import Space
+from pyNN.nest.cells import NativeCellType, native_cell_type                 # noqa: F401
+from pyNN.nest.electrodes import NativeElectrodeType, native_electrode_type  # noqa: F401
+from pyNN.nest.synapses import NativeSynapseType, native_synapse_type        # noqa: F401
+from pyNN.nest.standardmodels.cells import *                                 # noqa: F403, F401
+from pyNN.nest.connectors import *                                           # noqa: F403, F401
+from pyNN.nest.connectors import FixedProbabilityConnector
+from pyNN.nest.standardmodels.synapses import *                              # noqa: F403, F401
+from pyNN.nest.standardmodels.synapses import StaticSynapse
+from pyNN.nest.standardmodels.electrodes import *                            # noqa: F403, F401
+from pyNN.nest.standardmodels.receptors import *                             # noqa: F403, F401
+from pyNN.nest.recording import *                                            # noqa: F403, F401
+from pyNN.random import NumpyRNG, GSLRNG                                     # noqa: F401
+from pyNN.nest.random import NativeRNG                                       # noqa: F401
+from pyNN.space import Space                                                 # noqa: F401
 from pyNN.standardmodels import StandardCellType
-from pyNN.nest.populations import Population, PopulationView, Assembly
-from pyNN.nest.projections import Projection
+from pyNN.nest.populations import Population, PopulationView, Assembly       # noqa: F401
+from pyNN.nest.projections import Projection                                 # noqa: F401
 
 logger = logging.getLogger("PyNN")
 
@@ -103,7 +102,7 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         seed for the NEST random number generator
     `rng_type`:
         type of the NEST random number generator
-        (see https://nest-simulator.readthedocs.io/en/stable/guides/random_numbers.html#seed-the-random-number-generator)
+        (see https://nest-simulator.rtfd.io/en/stable/guides/random_numbers.html#seed-the-random-number-generator)  # noqa:E501
     `t_flush`:
         extra time to run the simulation after using reset() to ensure
         the previous run does not influence the new one
@@ -120,7 +119,8 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
         warnings.warn("The setup argument 'grng_seed' is now 'rng_seed'")
         simulator.state.rng_seed = extra_params['grng_seed']
     if 'rng_seeds' in extra_params:
-        warnings.warn("The setup argument 'rng_seeds' is no longer available. Taking the first value for the global seed.")
+        warnings.warn("The setup argument 'rng_seeds' is no longer available. "
+                      "Taking the first value for the global seed.")
         simulator.state.rng_seed = extra_params['rng_seeds'][0]
     if 'rng_seeds_seed' in extra_params:
         warnings.warn("The setup argument 'rng_seeds_seed' is now 'rng_seed'")

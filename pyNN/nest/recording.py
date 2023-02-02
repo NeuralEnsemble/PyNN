@@ -203,7 +203,6 @@ class Recorder(recording.Recorder):
                      'gsyn': 0.001}  # units conversion
 
     def __init__(self, population, file=None):
-        __doc__ = recording.Recorder.__doc__
         self._multimeter = Multimeter()
         self._spike_detector = SpikeDetector()
         recording.Recorder.__init__(self, population, file)

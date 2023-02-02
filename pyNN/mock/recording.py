@@ -19,7 +19,8 @@ class Recorder(recording.Recorder):
             return np.array([id, id + 5], dtype=float) % self._simulator.state.t
 
     def _get_all_signals(self, variable, ids, clear=False):
-        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        # assuming not using cvode, otherwise need to get times as well
+        # and use IrregularlySampledAnalogSignal
         n_samples = int(round(self._simulator.state.t / self._simulator.state.dt)) + 1
         return np.vstack([np.random.uniform(size=n_samples) for id in ids]).T, None
 
