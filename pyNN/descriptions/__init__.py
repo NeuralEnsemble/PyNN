@@ -22,6 +22,7 @@ descriptions.DEFAULT_TEMPLATE_ENGINE = 'jinja2'
 :license: CeCILL, see LICENSE for details.
 """
 
+from collections.abc import Mapping
 import string
 import os.path
 
@@ -108,6 +109,11 @@ class StringTemplateEngine(TemplateEngine):
         context should be a dict.
         """
         template = cls.get_template(template)
+        for key, value in context.copy().items():
+            # expand one level of any dicts contained in the context
+            if isinstance(value, Mapping):
+                for subkey, subvalue in value.items():
+                    context[f"{key}_{subkey}"] = subvalue
         return template.safe_substitute(context)
 
 

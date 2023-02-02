@@ -1,0 +1,3 @@
+Structure '{{name}}' with the following parameters:
+{%- for key,value in parameters.items() %}
+    {{key}} : {{value}}{% endfor %}
