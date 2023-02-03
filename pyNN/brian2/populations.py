@@ -159,10 +159,7 @@ class Population(common.Population, PopulationMixin):
     def _set_initial_value_array(self, variable, value):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
-        if callable(D['forward_transform']):
-            pval = D['forward_transform'](value)  # (value)
-        else:
-            pval = eval(D['forward_transform'], globals(), {variable: value})
+        pval = D['forward_transform'](**{variable: value})
         pval = pval.evaluate(simplify=False)
         self.brian2_group.initial_values[pname] = pval
         self.brian2_group.initialize()

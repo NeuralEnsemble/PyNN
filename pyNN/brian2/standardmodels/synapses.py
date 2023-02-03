@@ -28,7 +28,7 @@ class StaticSynapse(synapses.StaticSynapse):
         # they depend on whether the synapses are current-, conductance- or voltage-based.
         self.translations = build_translations(
             ('weight', 'weight'),
-            ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms))
+            ('delay', 'delay', ms))
 
     def _get_minimum_delay(self):
         d = state.min_delay
@@ -46,11 +46,11 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
 
     translations = build_translations(
         ('weight', 'weight'),
-        ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
+        ('delay', 'delay', ms),
         ('U', 'U'),
-        ('tau_rec', 'tau_rec', lambda **P: P["tau_rec"] * ms, lambda **P: P["tau_rec"] / ms),
-        ('tau_facil', 'tau_facil', lambda **P: P["tau_facil"] * ms, lambda **P: P["tau_facil"] / ms),  # noqa: E501
-        ('tau_syn', 'tau_syn', lambda **P: P["tau_syn"] * ms, lambda **P: P["tau_syn"] / ms)
+        ('tau_rec', 'tau_rec', ms),
+        ('tau_facil', 'tau_facil', ms),
+        ('tau_syn', 'tau_syn', ms)
     )
     eqs = '''weight : %(weight_units)s
             U : 1
@@ -92,8 +92,8 @@ class STDPMechanism(synapses.STDPMechanism):
 
     base_translations = build_translations(
         ('weight', 'weight'),
-        ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
-        ('dendritic_delay_fraction', 'dendritic_delay_fraction', 1)
+        ('delay', 'delay', ms),
+        ('dendritic_delay_fraction', 'dendritic_delay_fraction')
     )
     eqs = """weight : %(weight_units)s
              tau_plus : second
@@ -212,6 +212,6 @@ class SpikePairRule(synapses.SpikePairRule):
     translations = build_translations(
         ('A_plus',    'A_plus'),
         ('A_minus',   'A_minus'),
-        ('tau_plus', 'tau_plus', lambda **P: P["tau_plus"] * ms, lambda **P: P["tau_plus"] / ms),
-        ('tau_minus', 'tau_minus', lambda **P: P["tau_minus"] * ms, lambda **P: P["tau_minus"] / ms),  # noqa: E501
+        ('tau_plus', 'tau_plus', ms),
+        ('tau_minus', 'tau_minus', ms),
     )
