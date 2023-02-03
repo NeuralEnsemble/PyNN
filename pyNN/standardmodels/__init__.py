@@ -205,12 +205,13 @@ class StandardCurrentSource(StandardModelType, models.BaseCurrentSource):
                       "e.g. source.amplitude = 0.5, or use 'set_parameters()' " \
                       "e.g. source.set_parameters(amplitude=0.5)"
             raise AttributeError(err_msg)
+
         try:
-            val = self.__getattribute__(name)
-        except AttributeError:
+            val = self.get_parameters()[name]
+        except KeyError:
             try:
-                val = self.get_parameters()[name]
-            except KeyError:
+                val = self.__getattribute__(name)
+            except AttributeError:
                 raise errors.NonExistentParameterError(name,
                                                        self.__class__.__name__,
                                                        self.get_parameter_names())
