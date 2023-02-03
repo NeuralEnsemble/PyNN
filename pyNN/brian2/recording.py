@@ -87,8 +87,8 @@ class Recorder(recording.Recorder):
             values = getattr(device, varname).T
         else:
             raise NotImplementedError  # todo - construct a mask to get only the desired signals
-        translations = self.population.celltype.state_variable_translations
-        values = translations[variable]['reverse_transform'](values)
+        translations = self.population.celltype.state_variable_translations[variable]
+        values = translations['reverse_transform'](**{translations['translated_name']: values})
         # because we use `when='end'`, need to add the value at the beginning of the run
         tmp = np.empty((values.shape[0] + 1, values.shape[1]))
         tmp[1:, :] = values
