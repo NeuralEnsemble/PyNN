@@ -49,16 +49,20 @@ def build_translations(*translation_list):
         if len(item) == 2:  # no transformation
             f = pynn_name
             g = sim_name
+            type_ = "simple"
         elif len(item) == 3:  # simple multiplicative factor
             scale_factor = item[2]
             f = "float(%g)*%s" % (scale_factor, pynn_name)
             g = "%s/float(%g)" % (sim_name, scale_factor)
+            type_ = "scaled"
         elif len(item) == 4:  # more complex transformation
             f = item[2]
             g = item[3]
+            type_ = "computed"
         translations[pynn_name] = {'translated_name': sim_name,
                                    'forward_transform': f,
-                                   'reverse_transform': g}
+                                   'reverse_transform': g,
+                                   'type': type_}
     return translations
 
 
@@ -133,21 +137,19 @@ class StandardModelType(models.BaseModelType):
         """Return a list of parameters for which there is a one-to-one
         correspondance between standard and native parameter values."""
         return [name for name in self.translations
-                if self.translations[name]['forward_transform'] == name]
+                if self.translations[name]['type'] == "simple"]
 
     def scaled_parameters(self):
         """Return a list of parameters for which there is a unit change between
         standard and native parameter values."""
-        def scaling(trans):
-            return (not callable(trans)) and ("float" in trans)
         return [name for name in self.translations
-                if scaling(self.translations[name]['forward_transform'])]
+                if self.translations[name]['type'] == "scaled"]
 
     def computed_parameters(self):
         """Return a list of parameters whose values must be computed from
         more than one other parameter."""
         return [name for name in self.translations
-                if name not in self.simple_parameters() + self.scaled_parameters()]
+                if self.translations[name]['type'] == "computed"]
 
     def computed_parameters_include(self, parameter_names):
         return any(name in self.computed_parameters() for name in parameter_names)
