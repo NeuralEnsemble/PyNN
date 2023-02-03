@@ -18,13 +18,15 @@ def test_build_translations():
         ('c', 'C', 'c + a', 'C - A')
     )
     assert set(t.keys()) == set(['a', 'b', 'c'])
-    assert set(t['a'].keys()) == set(['translated_name', 'forward_transform', 'reverse_transform'])
+    assert set(t['a'].keys()) == set(['translated_name', 'forward_transform', 'reverse_transform', 'type'])
     assert t['a']['translated_name'] == 'A'
     assert t['a']['forward_transform'] == 'a'
     assert t['a']['reverse_transform'] == 'A'
     assert t['b']['translated_name'] == 'B'
-    assert t['b']['forward_transform'] == 'float(1000)*b'
-    assert t['b']['reverse_transform'] == 'B/float(1000)'
+    assert callable(t['b']['forward_transform'])
+    assert t['b']['forward_transform'](b=7) == 7000
+    assert callable(t['b']['reverse_transform'])
+    assert t['b']['reverse_transform'](B=7000) == 7
     assert t['c']['translated_name'] == 'C'
     assert t['c']['forward_transform'] == 'c + a'
     assert t['c']['reverse_transform'] == 'C - A'
