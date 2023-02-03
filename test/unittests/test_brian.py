@@ -221,7 +221,8 @@ class TestCurrentSources(unittest.TestCase):
             simulator_state.run_until(1.5)
             assert mock_cell.parent.brian2_group.i_inj[33].current_value != 0.0
             simulator_state.run_until(3.0)
-            assert mock_cell.parent.brian2_group.i_inj[33].current_value == 0.0
+            # without the following "approx", sometimes fails with current values in units of yoctoamps!
+            assert mock_cell.parent.brian2_group.i_inj[33].current_value == pytest.approx(0.0)
 
             injected_deltas = np.array([x / brian2.nA for x in mock_cell.parent.brian2_group.i_inj[33].values])
             recorded_times, recorded_amplitudes = current_source._get_data()
