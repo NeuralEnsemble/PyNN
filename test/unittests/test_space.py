@@ -52,7 +52,7 @@ class SpaceTest(unittest.TestCase):
                        [2.0, 3.0, 4.0]])
 
     def assertArraysEqual(self, A, B):
-        self.assert_((A == B).all(), "%s != %s" % (A, B))
+        self.assertTrue((A == B).all(), "%s != %s" % (A, B))
 
     def test_infinite_space_with_3D_distances(self):
         s = space.Space()

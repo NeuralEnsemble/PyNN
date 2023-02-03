@@ -73,7 +73,7 @@ adapt_iaf = brian2.Equations('''
 
 
 leaky_iaf_translations = build_translations(
-    ('v_rest',     'v_rest',     lambda **p: p["v_rest"] * mV, lambda **p: p["v_rest"] / mV),
+    ('v_rest',     'v_rest',     mV),
     ('v_reset',    'v_reset',    lambda **p: p["v_reset"] * mV, lambda **p: p["v_reset"] / mV),
     ('cm',         'c_m',        lambda **p: p["cm"] * nF, lambda **p: p["c_m"] / nF),
     ('tau_m',      'tau_m',      lambda **p: p["tau_m"] * ms, lambda **p: p["tau_m"] / ms),
