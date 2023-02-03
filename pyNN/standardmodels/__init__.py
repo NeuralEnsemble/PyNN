@@ -36,6 +36,14 @@ inhibitory_receptor_types = ["inhibitory", "GABA", "GABAA", "GABAB"]
 # ==============================================================================
 
 
+def build_scaling_functions(pynn_name, sim_name, scale_factor):
+    def f(**p):
+        return p[pynn_name] * scale_factor
+    def g(**p):
+        return p[sim_name] / scale_factor
+    return f, g
+
+
 def build_translations(*translation_list):
     """
     Build a translation dictionary from a list of translations/transformations.
@@ -52,8 +60,7 @@ def build_translations(*translation_list):
             type_ = "simple"
         elif len(item) == 3:  # simple multiplicative factor
             scale_factor = item[2]
-            f = "float(%g)*%s" % (scale_factor, pynn_name)
-            g = "%s/float(%g)" % (sim_name, scale_factor)
+            f, g = build_scaling_functions(pynn_name, sim_name, scale_factor)
             type_ = "scaled"
         elif len(item) == 4:  # more complex transformation
             f = item[2]
