@@ -1,7 +1,7 @@
 import numpy as np
-from pyNN import common, errors
-from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ParameterSpace, simplify
+from .. import common, errors
+from ..standardmodels import StandardCellType
+from ..parameters import ParameterSpace, simplify
 from . import simulator
 from .recording import Recorder
 

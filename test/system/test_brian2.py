@@ -8,6 +8,7 @@ try:
 except ImportError:
     have_brian2 = False
 
+from pyNN import space
 import pytest
 
 
@@ -16,8 +17,8 @@ def test_ticket235():
         pytest.skip("brian2 not available")
     pynnn = pyNN.brian2
     pynnn.setup()
-    p1 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
-    p2 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
+    p1 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=space.Grid2D())
+    p2 = pynnn.Population(9, pynnn.IF_curr_alpha(), structure=space.Grid2D())
     p1.record('spikes', to_file=False)
     p2.record('spikes', to_file=False)
     prj1_2 = pynnn.Projection(p1, p2, pynnn.OneToOneConnector(

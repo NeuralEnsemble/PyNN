@@ -1,7 +1,7 @@
 """
 Standard cells for the NeuroML module.
 
-:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

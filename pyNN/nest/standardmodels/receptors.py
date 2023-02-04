@@ -1,4 +1,4 @@
-from pyNN.standardmodels import receptors, build_translations
+from ...standardmodels import receptors, build_translations
 
 
 class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):

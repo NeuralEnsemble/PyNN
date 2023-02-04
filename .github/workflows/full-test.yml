@@ -32,8 +32,8 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-cov coveralls flake8
-        python -m pip install mpi4py
         python -m pip install -r requirements.txt
+        python -m pip install mpi4py matplotlib
     - name: Install Brian 2
       run: |
         python -m pip install brian2

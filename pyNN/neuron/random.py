@@ -4,7 +4,7 @@ docstring missing
 
 import numpy as np
 from neuron import h
-from pyNN.random import NativeRNG, WrappedRNG
+from ..random import NativeRNG, WrappedRNG
 
 
 class NativeRNG(NativeRNG, WrappedRNG):

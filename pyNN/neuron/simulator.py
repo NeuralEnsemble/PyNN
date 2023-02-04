@@ -15,18 +15,21 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-from pyNN import __path__ as pyNN_path
-from pyNN import common
 import logging
-import numpy as np
 import os.path
-from neuron import h, nrn_dll_loaded
 from operator import itemgetter
+
+import numpy as np
+from neuron import h, nrn_dll_loaded
+
+from .. import __path__ as pyNN_path
+from .. import common
+
 
 logger = logging.getLogger("PyNN")
 name = "NEURON"  # for use in annotating output data

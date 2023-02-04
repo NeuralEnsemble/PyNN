@@ -5,21 +5,24 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import logging
-import numpy as np
+from datetime import datetime
 import os
 from copy import copy
 from collections import defaultdict
 from warnings import warn
-from pyNN import errors
+
+import numpy as np
 import neo
-from datetime import datetime
 import quantities as pq
+
+from .. import errors
+
 
 logger = logging.getLogger("PyNN")
 

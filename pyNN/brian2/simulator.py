@@ -7,7 +7,6 @@ Classes and attributes usable by the common implementation:
 
 Classes:
     ID
-    Connection
 
 Attributes:
     state -- an instance of the _State class.
@@ -15,7 +14,7 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -23,7 +22,7 @@ modules.
 import logging
 import brian2
 import numpy as np
-from pyNN import common
+from .. import common
 
 
 name = "Brian2"

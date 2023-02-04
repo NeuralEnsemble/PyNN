@@ -1,12 +1,11 @@
-# encoding: utf-8
 """
 Standard cells for the mock module.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import cells, synapses, electrodes, build_translations
+from ..standardmodels import cells, synapses, electrodes, build_translations
 from .simulator import state
 import logging
 

@@ -7,8 +7,8 @@
 from copy import deepcopy
 import brian2
 from brian2 import mV, ms, nA, uS
-from pyNN.standardmodels import receptors, build_translations
-from pyNN.parameters import ParameterSpace
+from ...standardmodels import receptors, build_translations
+from ...parameters import ParameterSpace
 
 
 conductance_based_exponential_synapses = brian2.Equations('''

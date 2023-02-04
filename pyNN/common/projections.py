@@ -3,22 +3,22 @@
 Common implementation of the Projection class, to be sub-classed by
 backend-specific Projection classes.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 
 from functools import reduce
-import numpy as np
 import logging
 import operator
 from copy import deepcopy
 from warnings import warn
-from pyNN import recording, errors, models, core, descriptions
-from pyNN.parameters import ParameterSpace, LazyArray
-from pyNN.space import Space
-from pyNN.standardmodels import StandardSynapseType
-from pyNN.connectors import Connector
+import numpy as np
+from .. import recording, errors, models, core, descriptions
+from ..parameters import ParameterSpace, LazyArray
+from ..space import Space
+from ..standardmodels import StandardSynapseType
+from ..connectors import Connector
 from .populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")

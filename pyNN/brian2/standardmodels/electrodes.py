@@ -7,17 +7,17 @@ Classes:
     ACSource           -- a sine modulated current.
     NoisyCurrentSource -- a Gaussian whitish noise current.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import logging
 import numpy as np
-from brian2 import ms, second, nA, amp, Hz, amp as ampere
-from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.brian2 import simulator
+from brian2 import ms, nA, Hz
+from ...standardmodels import electrodes, build_translations, StandardCurrentSource
+from ...parameters import ParameterSpace, Sequence
+from .. import simulator
 
 logger = logging.getLogger("PyNN")
 
@@ -88,12 +88,13 @@ class Brian2CurrentSource(StandardCurrentSource):
         if self.running:
             current_time = simulator.state.t * ms
             amplitude = None
-            # check if the current time corresponds to a change in the injected current or streaming status
+            # check if the current time corresponds to a change in
+            # the injected current or streaming status
             if abs(current_time - self._times[self.i]) < (simulator.state.dt * ms / 2.0):
                 if self.streamable:
                     # for streamable sources, the update times correspond to switching
                     # streaming on and off
-                    self.streaming = not(self.streaming)
+                    self.streaming = not self.streaming
                     amplitude = 0.0 * nA
                 elif not self.streaming:
                     # we have a pre-computed current waveform
@@ -126,7 +127,6 @@ class Brian2CurrentSource(StandardCurrentSource):
 class NonStreamableCurrentSource(Brian2CurrentSource):
     streamable = False
 
-
     def _get_data(self):
         dt = simulator.state.dt * ms
         n = int(round(self._times[0] / dt))
@@ -153,8 +153,10 @@ class StreamableCurrentSource(Brian2CurrentSource):
         self._current_amplitude = 0.0 * nA
 
     def _update_state(self):
-        self._times = [self._brian_parameters["start"], self._brian_parameters["stop"]]
-        if self._brian_parameters["start"] <= simulator.state.t * ms < self._brian_parameters["stop"]:
+        start = self._brian_parameters["start"]
+        stop = self._brian_parameters["stop"]
+        self._times = [start, stop]
+        if start <= simulator.state.t * ms < stop:
             self.streaming = True
         else:
             self.streaming = False
@@ -219,17 +221,21 @@ class DCSource(NonStreamableCurrentSource, electrodes.DCSource):
     )
 
     def _update_state(self):
-        if self._brian_parameters["start"] == 0 * ms:
-            self._times = [self._brian_parameters["start"], self._brian_parameters["stop"]]
-            self._amplitudes = [self._brian_parameters["amplitude"], 0.0]
+        start = self._brian_parameters["start"]
+        stop = self._brian_parameters["stop"]
+        amplitude = self._brian_parameters["amplitude"]
+
+        if start == 0 * ms:
+            self._times = [start, stop]
+            self._amplitudes = [amplitude, 0.0]
         else:
-            self._times = [0.0 * ms, self._brian_parameters["start"], self._brian_parameters["stop"]]
-            self._amplitudes = [0.0 * nA, self._brian_parameters["amplitude"], 0.0 * nA]
+            self._times = [0.0 * ms, start, stop]
+            self._amplitudes = [0.0 * nA, amplitude, 0.0 * nA]
         # ensures proper handling of changes in parameters on the fly
-        if self._brian_parameters["start"] < simulator.state.t * ms < self._brian_parameters["stop"]:
+        if start < simulator.state.t * ms < stop:
             self._times.insert(-1, simulator.state.t * ms)
-            self._amplitudes.insert(-1, self._brian_parameters["amplitude"])
-            if (self._brian_parameters["start"] == 0 and self.i == 2) or (self._brian_parameters["start"] != 0 and self.i == 3):
+            self._amplitudes.insert(-1, amplitude)
+            if (start == 0 and self.i == 2) or (start != 0 and self.i == 3):
                 self.i -= 1
 
 
@@ -283,7 +289,10 @@ class NoisyCurrentSource(StreamableCurrentSource, electrodes.NoisyCurrentSource)
 
     def _compute_amplitude(self, time):
         if self.j == 0:
-            self._current_amplitude = self._brian_parameters["mean"] + self._brian_parameters["stdev"] * np.random.randn()
+            self._current_amplitude = (
+                self._brian_parameters["mean"]
+                + self._brian_parameters["stdev"] * np.random.randn()
+            )
         self.j += 1
         if self.j == self.change_at:
             self.j = 0

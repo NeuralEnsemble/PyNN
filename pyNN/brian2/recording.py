@@ -1,6 +1,7 @@
 """
+Brian 2 implementation of recording machinery.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -8,7 +9,7 @@ import logging
 import numpy as np
 import quantities as pq
 import brian2
-from pyNN import recording
+from .. import recording
 from . import simulator
 
 mV = brian2.mV

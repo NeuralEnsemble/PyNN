@@ -2,7 +2,7 @@
 """
 Connection method classes for NEST.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -14,24 +14,25 @@ try:
     haveCSA = True
 except ImportError:
     haveCSA = False
-from pyNN import random
-from pyNN.connectors import (Connector,                                   # noqa: F401
-                             AllToAllConnector,
-                             FixedProbabilityConnector,
-                             OneToOneConnector,                           # noqa: F401
-                             FixedNumberPreConnector,                     # noqa: F401
-                             FixedNumberPostConnector,                    # noqa: F401
-                             DistanceDependentProbabilityConnector,       # noqa: F401
-                             DisplacementDependentProbabilityConnector,   # noqa: F401
-                             IndexBasedProbabilityConnector,              # noqa: F401
-                             SmallWorldConnector,                         # noqa: F401
-                             FromListConnector,                           # noqa: F401
-                             FromFileConnector,                           # noqa: F401
-                             CloneConnector,                              # noqa: F401
-                             ArrayConnector,                              # noqa: F401
-                             FixedTotalNumberConnector,                   # noqa: F401
-                             CSAConnector as DefaultCSAConnector)
 
+from .. import random
+from ..connectors import (                      # noqa: F401
+    Connector,
+    AllToAllConnector,
+    FixedProbabilityConnector,
+    OneToOneConnector,
+    FixedNumberPreConnector,
+    FixedNumberPostConnector,
+    DistanceDependentProbabilityConnector,
+    DisplacementDependentProbabilityConnector,
+    IndexBasedProbabilityConnector,
+    SmallWorldConnector,
+    FromListConnector,
+    FromFileConnector,
+    CloneConnector,
+    ArrayConnector,
+    FixedTotalNumberConnector,
+    CSAConnector as DefaultCSAConnector)
 from .random import NativeRNG
 
 

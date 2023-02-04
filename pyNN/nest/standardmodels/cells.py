@@ -1,7 +1,7 @@
 """
 Standard cells for nest
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -9,9 +9,9 @@ Standard cells for nest
 import logging
 from collections import defaultdict
 import nest
-from pyNN import errors
-from pyNN.parameters import ArrayParameter, LazyArray
-from pyNN.standardmodels import cells, build_translations
+from ... import errors
+from ...parameters import ArrayParameter, LazyArray
+from ...standardmodels import cells, build_translations
 from .. import simulator
 
 logger = logging.getLogger("PyNN")

@@ -1,12 +1,15 @@
 """
+Brian 2 implementation of Population, PopulationView and Assembly.
 
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 from collections import defaultdict
 import numpy as np
-from pyNN import common
-from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ArrayParameter, ParameterSpace, simplify, LazyArray
+from .. import common
+from ..standardmodels import StandardCellType
+from ..parameters import ArrayParameter, ParameterSpace, simplify, LazyArray
 from . import simulator
 from .recording import Recorder
 import brian2

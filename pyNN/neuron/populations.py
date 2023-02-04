@@ -2,18 +2,20 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 from collections import defaultdict
 import logging
+
 import numpy as np
-from pyNN import common
-from pyNN.parameters import ArrayParameter, Sequence, ParameterSpace, simplify, LazyArray
-from pyNN.standardmodels import StandardCellType
-from pyNN.random import RandomDistribution
+
+from .. import common
+from ..parameters import ArrayParameter, Sequence, ParameterSpace, simplify, LazyArray
+from ..standardmodels import StandardCellType
+from ..random import RandomDistribution
 from . import simulator
 from .recording import Recorder
 from .random import NativeRNG

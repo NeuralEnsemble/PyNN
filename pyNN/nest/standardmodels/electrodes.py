@@ -8,18 +8,18 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import numpy as np
 import nest
-from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from pyNN.common import Population, PopulationView, Assembly
-from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.nest.simulator import state
-from pyNN.nest.electrodes import NestCurrentSource
+from ...standardmodels import electrodes, build_translations, StandardCurrentSource
+from ...common import Population, PopulationView, Assembly
+from ...parameters import ParameterSpace, Sequence
+from ..simulator import state
+from ..electrodes import NestCurrentSource
 
 
 class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):

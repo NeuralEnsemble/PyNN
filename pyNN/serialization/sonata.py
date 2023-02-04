@@ -43,8 +43,9 @@ try:
 except ImportError:
     HAVE_H5PY = False
 import numpy as np
-from pyNN.network import Network
-from pyNN.parameters import Sequence
+
+from ..network import Network
+from ..parameters import Sequence
 
 
 # Note: The SonataIO class will be moved to Neo once fully implemented

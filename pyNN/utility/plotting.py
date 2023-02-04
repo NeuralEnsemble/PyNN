@@ -6,7 +6,7 @@ formatting. If you need to produce more complex and/or publication-quality
 figures, it will probably be easier to use matplotlib or another plotting
 package directly rather than trying to extend this module.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -392,3 +392,16 @@ class Histogram(object):
 def isi_histogram(segment):
     all_isis = np.concatenate([np.diff(np.array(st)) for st in segment.spiketrains])
     return Histogram(all_isis)
+
+
+def connection_plot(projection, positive="O", zero=".", empty=" ", spacer=""):
+    """Produce a simple text-based representation of a connectivity matrix"""
+    connection_array = projection.get("weight", format="array")
+    image = np.zeros_like(connection_array, dtype=str)
+    # ignore the complaint that x > 0 is invalid for NaN
+    old_settings = np.seterr(invalid="ignore")
+    image[connection_array > 0] = positive
+    image[connection_array == 0] = zero
+    np.seterr(**old_settings)  # restore original floating point error settings
+    image[np.isnan(connection_array)] = empty
+    return "\n".join([spacer.join(row) for row in image])

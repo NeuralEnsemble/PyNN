@@ -2,19 +2,21 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
+import logging
 from collections import defaultdict
+
 import numpy as np
 import nest
-import logging
-from pyNN import common, errors
-from pyNN.parameters import ArrayParameter, Sequence, ParameterSpace, simplify, LazyArray
-from pyNN.random import RandomDistribution
-from pyNN.standardmodels import StandardCellType
+
+from .. import common, errors
+from ..parameters import ArrayParameter, Sequence, ParameterSpace, simplify, LazyArray
+from ..random import RandomDistribution
+from ..standardmodels import StandardCellType
 from . import simulator
 from .recording import Recorder
 

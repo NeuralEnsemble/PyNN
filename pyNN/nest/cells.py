@@ -2,15 +2,15 @@
 """
 Definition of NativeCellType class for NEST.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import warnings
 import numpy as np
 import nest
-from pyNN.models import BaseCellType
-from pyNN.parameters import Sequence
+from ..models import BaseCellType
+from ..parameters import Sequence
 from . import conversion
 
 UNITS_MAP = {

@@ -7,7 +7,7 @@ import sys
 import inspect
 from itertools import chain
 from neo.io import get_io
-from pyNN.common import Population, PopulationView, Projection, Assembly
+from .common import Population, PopulationView, Projection, Assembly
 
 
 class Network(object):
