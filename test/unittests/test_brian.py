@@ -95,6 +95,7 @@ class MockCell:
         self.parent.brian2_group = MockBrianGroup()
 
 
+@unittest.skipUnless(brian2, "Requires Brian")
 class TestCurrentSources(unittest.TestCase):
 
     def test_step_current_source(self):
