@@ -6,6 +6,7 @@ Alternative, procedural API for creating, connecting and recording from individu
 :license: CeCILL, see LICENSE for details.
 """
 
+from ..core import deprecated
 from .populations import IDMixin, BasePopulation, Assembly
 
 
@@ -17,7 +18,7 @@ def build_create(population_class):
         Returns a Population object.
         """
         return population_class(n, cellclass, cellparams=cellparams)
-    return create
+    return deprecated("Population()")(create)
 
 
 def build_connect(projection_class, connector_class, static_synapse_class):
@@ -39,9 +40,10 @@ def build_connect(projection_class, connector_class, static_synapse_class):
         synapse = static_synapse_class(weight=weight, delay=delay)
         return projection_class(pre, post, connector, receptor_type=receptor_type,
                                 synapse_type=synapse)
-    return connect
+    return deprecated("Projection()")(connect)
 
 
+@deprecated("Population.set()")
 def set(cells, **parameters):
     """
     Set one or more parameters for every cell in a population, view or assembly.
@@ -79,9 +81,10 @@ def build_record(simulator):
         source.record(variables, to_file=filename, sampling_interval=sampling_interval)
         if annotations:
             source.annotate(**annotations)
-    return record
+    return deprecated("Population.record()")(record)
 
 
+@deprecated("Population.initialize()")
 def initialize(cells, **initial_values):
     """
     Set initial values of state variables, e.g. the membrane potential.
