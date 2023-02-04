@@ -2,16 +2,16 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from collections import defaultdict
-import numpy as np
 import logging
+import numpy as np
 import nest
-from pyNN import recording, errors
-from pyNN.nest import simulator
+from .. import recording, errors
+from . import simulator
 
 logger = logging.getLogger("PyNN")
 

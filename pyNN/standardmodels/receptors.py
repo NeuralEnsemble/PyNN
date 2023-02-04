@@ -1,9 +1,13 @@
 """
+Definition of default parameters (and hence, standard parameter names) for
+standard post-synaptic response models.
 
-
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import StandardPostSynapticResponse
+
+from .base import StandardPostSynapticResponse
 
 
 class CurrExpPostSynapticResponse(StandardPostSynapticResponse):

@@ -1,16 +1,16 @@
 """
 Parameter set handling
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from collections.abc import Sized
 import numpy as np
 from lazyarray import larray, partial_shape
-from pyNN.core import is_listlike
-from pyNN import errors
-from pyNN.random import RandomDistribution, NativeRNG
+from .core import is_listlike
+from . import errors
+from .random import RandomDistribution, NativeRNG
 
 
 class LazyArray(larray):

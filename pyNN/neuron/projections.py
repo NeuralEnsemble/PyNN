@@ -2,17 +2,19 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 from copy import deepcopy
-import numpy as np
 import logging
 from itertools import repeat
 from collections import defaultdict
-from pyNN import common, errors, core
-from pyNN.space import Space
+
+import numpy as np
+
+from .. import common, errors, core
+from ..space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
 

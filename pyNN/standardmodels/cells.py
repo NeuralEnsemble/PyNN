@@ -24,7 +24,7 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -34,8 +34,8 @@ from copy import deepcopy
 import operator
 from functools import reduce
 
-from pyNN.standardmodels import StandardCellType, StandardCellTypeComponent
-from pyNN.parameters import ArrayParameter, Sequence
+from ..parameters import ArrayParameter, Sequence
+from .base import StandardCellType, StandardCellTypeComponent
 
 
 class IF_curr_alpha(StandardCellType):

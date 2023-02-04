@@ -1,16 +1,17 @@
 """
 Synapse Dynamics classes for nest
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-import nest
-from pyNN.standardmodels import synapses, build_translations
-from pyNN.nest.synapses import NESTSynapseMixin
 import logging
 
+import nest
+
+from ...standardmodels import synapses, build_translations
+from ..synapses import NESTSynapseMixin
 from ..conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")

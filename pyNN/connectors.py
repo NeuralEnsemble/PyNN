@@ -4,16 +4,16 @@ Defines a common implementation of the built-in PyNN Connector classes.
 Simulator modules may use these directly, or may implement their own versions
 for improved performance.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.random import RandomDistribution, AbstractRNG, NumpyRNG
-from pyNN.core import IndexBasedExpression
-from pyNN import errors, descriptions
-from pyNN.recording import files
-from pyNN.parameters import LazyArray
-from pyNN.standardmodels import StandardSynapseType
+from .random import RandomDistribution, AbstractRNG, NumpyRNG
+from .core import IndexBasedExpression
+from . import errors, descriptions
+from .recording import files
+from .parameters import LazyArray
+from .standardmodels import StandardSynapseType
 import numpy as np
 from itertools import repeat
 import logging

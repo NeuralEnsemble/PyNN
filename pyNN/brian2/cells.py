@@ -1,19 +1,19 @@
 """
 Definition of cell classes for the brian2 module.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-
+from functools import reduce
 import numpy as np
 import brian2
-from functools import reduce
-from pyNN.parameters import Sequence, simplify
-from pyNN.core import is_listlike
-from pyNN import errors
-from pyNN.brian2 import simulator
+
+from ..parameters import Sequence, simplify
+from ..core import is_listlike
+from .. import errors
+from . import simulator
 
 mV = brian2.mV
 ms = brian2.ms

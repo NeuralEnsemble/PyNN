@@ -15,7 +15,7 @@ Attributes:
 All other functions and classes are private, and should not be used by other
 modules.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -24,8 +24,8 @@ import logging
 import tempfile
 import warnings
 import numpy as np
-from pyNN import common
-from pyNN.core import reraise
+from .. import common
+from ..core import reraise
 
 logger = logging.getLogger("PyNN")
 name = "NEST"  # for use in annotating output data

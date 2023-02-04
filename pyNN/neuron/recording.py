@@ -1,12 +1,12 @@
 """
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
-from pyNN import recording
-from pyNN.neuron import simulator
+from .. import recording
+from . import simulator
 import re
 from neuron import h
 

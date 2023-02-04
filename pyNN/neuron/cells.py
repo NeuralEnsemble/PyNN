@@ -2,7 +2,7 @@
 """
 Definition of cell classes for the neuron module.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -13,8 +13,8 @@ from functools import reduce
 import numpy as np
 from neuron import h, nrn, hclass
 
-from pyNN import errors
-from pyNN.models import BaseCellType
+from .. import errors
+from ..models import BaseCellType
 from .recording import recordable_pattern
 from .simulator import state
 

@@ -13,13 +13,13 @@ Classes for defining STDP rules:
     GutigWeightDependence
     SpikePairRule
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN import descriptions, errors
-from pyNN.standardmodels import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
-from pyNN.parameters import ParameterSpace
+from .. import descriptions, errors
+from ..parameters import ParameterSpace
+from .base import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
 
 
 class StaticSynapse(StandardSynapseType):

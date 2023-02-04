@@ -4,7 +4,7 @@ Common implementation of ID, Population, PopulationView and Assembly classes.
 
 These base classes should be sub-classed by the backend-specific classes.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -15,10 +15,10 @@ from itertools import chain
 from functools import reduce
 from collections import defaultdict
 import numpy as np
-from pyNN import random, recording, errors, standardmodels, core, space, descriptions
-from pyNN.models import BaseCellType
-from pyNN.parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
-from pyNN.recording import files
+from .. import random, recording, errors, standardmodels, core, space, descriptions
+from ..models import BaseCellType
+from ..parameters import ParameterSpace, LazyArray, simplify as simplify_parameter_array
+from ..recording import files
 
 
 deprecated = core.deprecated

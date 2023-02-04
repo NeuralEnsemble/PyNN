@@ -1,4 +1,4 @@
-from pyNN import common
+from .. import common
 
 name = "MockSimulator"
 

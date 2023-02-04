@@ -1,6 +1,8 @@
-# encoding: utf-8
 """
+Brian 2 implementation of Projection
 
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
 import logging
@@ -9,11 +11,11 @@ from collections import defaultdict
 import numpy as np
 import brian2
 from brian2 import uS, nA, mV, ms
-from pyNN import common
-from pyNN.standardmodels.synapses import TsodyksMarkramSynapse
-from pyNN.core import is_listlike
-from pyNN.parameters import ParameterSpace
-from pyNN.space import Space
+from .. import common
+from ..standardmodels.synapses import TsodyksMarkramSynapse
+from ..core import is_listlike
+from ..parameters import ParameterSpace
+from ..space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
 

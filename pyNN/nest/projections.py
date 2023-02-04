@@ -2,17 +2,19 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from collections import defaultdict
+import logging
+
 import numpy as np
 import nest
-import logging
-from pyNN import common, errors
-from pyNN.space import Space
-from pyNN.parameters import simplify
+
+from .. import common, errors
+from ..space import Space
+from ..parameters import simplify
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
 from .conversion import make_sli_compatible

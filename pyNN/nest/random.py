@@ -2,14 +2,14 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from numbers import Real
 from copy import copy
 import nest.random
-from pyNN.random import NativeRNG
+from ..random import NativeRNG
 
 NEST_RDEV_TYPES = ['binomial', 'binomial_clipped', 'binomial_clipped_to_boundary',
                    'exponential', 'exponential_clipped', 'exponential_clipped_to_boundary',
