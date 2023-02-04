@@ -94,6 +94,28 @@ class LazyArray(larray):
             for j in column_indices:
                 yield self._partially_evaluate((slice(None), j), simplify=True)
 
+    def _apply_operations(self, x, addr=None, simplify=False):
+        # todo: move this modified version back into lazyarray
+        for f, arg in self.operations:
+            if arg is None:
+                x = f(x)
+            elif isinstance(arg, larray):
+                if addr is None:
+                    x = f(x, arg.evaluate(simplify=simplify))
+                else:
+                    x = f(x, arg._partially_evaluate(addr, simplify=simplify))
+
+            else:
+                try:
+                    x = f(x, arg)
+                except TypeError:
+                    assert isinstance(x, np.ndarray)
+                    if x.dtype == np.dtype('O'):
+                        x = np.array([f(xi, arg) for xi in x])
+                    else:
+                        raise
+        return x
+
 
 class ArrayParameter(object):
     """
@@ -169,7 +191,8 @@ class ArrayParameter(object):
         objects, where ArrayParameter `i` is the original ArrayParameter multiplied by
         element `i` of `val`.
         """
-        if hasattr(val, '__len__'):
+        if hasattr(val, '__len__') and not (hasattr(val, "shape") and len(val.shape) == 0):
+            # the second condition weeds out 0-dimensional arrays, like Brian units.
             # reshape if necessary?
             return np.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
         else:

@@ -27,11 +27,14 @@ class PopulationMixin(object):
         `names` should be PyNN names
         """
         def _get_component_parameters(component, names, component_label=None):
+            kwargs = {}
+            if component_label:
+                kwargs["suffix"] = component_label
             if component.computed_parameters_include(names):
                 # need all parameters in order to calculate values
-                native_names = component.get_native_names()
+                native_names = component.get_native_names(**kwargs)
             else:
-                native_names = component.get_native_names(*names, suffix=component_label)
+                native_names = component.get_native_names(*names, **kwargs)
             native_parameter_space = self._get_native_parameters(*native_names)
             if component_label:
                 ps = component.reverse_translate(native_parameter_space, suffix=component_label)
@@ -160,7 +163,7 @@ class Population(common.Population, PopulationMixin):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
         if callable(D['forward_transform']):
-            pval = D['forward_transform'](value)  # (value)
+            pval = D['forward_transform'](**{variable: value})
         else:
             pval = eval(D['forward_transform'], globals(), {variable: value})
         pval = pval.evaluate(simplify=False)

@@ -56,24 +56,24 @@ voltage_step_synapses = brian2.Equations('''
 ''')
 
 conductance_based_synapse_translations = build_translations(
-    ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-    ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms),
-    ('e_rev_E',    'e_rev_e',    lambda **p: p["e_rev_E"] * mV, lambda **p: p["e_rev_e"] / mV),
-    ('e_rev_I',    'e_rev_i',    lambda **p: p["e_rev_I"] * mV, lambda **p: p["e_rev_i"] / mV))
+    ('tau_syn_E',  'tau_syn_e',  ms),
+    ('tau_syn_I',  'tau_syn_i',  ms),
+    ('e_rev_E',    'e_rev_e',    mV),
+    ('e_rev_I',    'e_rev_i',    mV))
 
 current_based_synapse_translations = build_translations(
-    ('tau_syn_E',  'tau_syn_e',  lambda **p: p["tau_syn_E"] * ms, lambda **p: p["tau_syn_e"] / ms),
-    ('tau_syn_I',  'tau_syn_i',  lambda **p: p["tau_syn_I"] * ms, lambda **p: p["tau_syn_i"] / ms))
+    ('tau_syn_E',  'tau_syn_e', ms),
+    ('tau_syn_I',  'tau_syn_i', ms))
 
 conductance_based_variable_translations = build_translations(
-    ('v', 'v', lambda p: p * mV, lambda p: p / mV),
-    ('gsyn_exc', 'ge', lambda p: p * uS, lambda p: p / uS),
-    ('gsyn_inh', 'gi', lambda p: p * uS, lambda p: p / uS))
+    ('v',        'v',  mV),
+    ('gsyn_exc', 'ge', uS),
+    ('gsyn_inh', 'gi', uS))
 
 current_based_variable_translations = build_translations(
-    ('v',         'v',         lambda p: p * mV, lambda p: p / mV),
-    ('isyn_exc', 'ie',         lambda p: p * nA, lambda p: p / nA),
-    ('isyn_inh', 'ii',         lambda p: p * nA, lambda p: p / nA))
+    ('v',         'v',  mV),
+    ('isyn_exc', 'ie',  nA),
+    ('isyn_inh', 'ii',  nA))
 
 
 class PSRMixin:
@@ -162,12 +162,12 @@ class CurrExpPostSynapticResponse(
 
     def translations(self, suffix):
         return build_translations(
-            ('tau_syn',  f'tau_syn_{suffix}', lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
+            ('tau_syn',  f'tau_syn_{suffix}', ms),
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.isyn', f'i{suffix}', lambda p: p * nA, lambda p: p / nA),
+            (f'{suffix}.isyn', f'i{suffix}', nA),
         )
 
     def post_synaptic_variable(self, suffix):
@@ -190,13 +190,13 @@ class CondExpPostSynapticResponse(PSRMixin, receptors.CondExpPostSynapticRespons
 
     def translations(self, suffix):
         return build_translations(
-            ('tau_syn',  f'tau_syn_{suffix}',  lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
-            ('e_syn',    f'e_rev_{suffix}',    lambda **p: p["e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),      # noqa: E501
+            ('tau_syn',  f'tau_syn_{suffix}', ms),
+            ('e_syn',    f'e_rev_{suffix}',   mV),
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p / uS),
+            (f'{suffix}.gsyn', f'g{suffix}', uS),
         )
 
     def post_synaptic_variable(self, suffix):
@@ -220,14 +220,14 @@ class CondAlphaPostSynapticResponse(PSRMixin, receptors.CondAlphaPostSynapticRes
 
     def translations(self, suffix):
         return build_translations(
-            ('tau_syn',  f'tau_syn_{suffix}',  lambda **p: p["tau_syn"] * ms, lambda **p: p[f"tau_syn_{suffix}"] / ms),  # noqa: E501
-            ('e_syn',    f'e_rev_{suffix}',    lambda **p: p["e_syn"] * mV, lambda **p: p[f"e_rev_{suffix}"] / mV),      # noqa: E501
+            ('tau_syn',  f'tau_syn_{suffix}',  ms),
+            ('e_syn',    f'e_rev_{suffix}',    mV),
         )
 
     def state_variable_translations(self, suffix):
         return build_translations(
-            (f'{suffix}.gsyn', f'g{suffix}', lambda p: p * uS, lambda p: p / uS),
-            (f'{suffix}.ysyn', f'y{suffix}', lambda p: p * uS, lambda p: p / uS),
+            (f'{suffix}.gsyn', f'g{suffix}', uS),
+            (f'{suffix}.ysyn', f'y{suffix}', uS),
         )
 
     def post_synaptic_variable(self, suffix):
