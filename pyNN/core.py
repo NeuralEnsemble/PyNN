@@ -5,6 +5,8 @@ Assorted utility classes and functions.
 :license: CeCILL, see LICENSE for details.
 """
 
+import os
+import subprocess
 import warnings
 import numpy as np
 
@@ -54,6 +56,27 @@ def reraise(exception, message):
 def ezip(*args):
     for items in zip(*args):
         yield items[0], items[1:]
+
+
+def find(command):
+    """Try to find an executable file."""
+    path = os.environ.get("PATH", "").split(os.pathsep)
+    cmd = ''
+    for dir_name in path:
+        abs_name = os.path.abspath(os.path.normpath(os.path.join(dir_name, command)))
+        if os.path.isfile(abs_name):
+            cmd = abs_name
+            break
+    return cmd
+
+
+def run_command(path, working_directory):
+    p = subprocess.Popen(path, shell=True, stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         universal_newlines=True,
+                         cwd=working_directory)
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout.split("\n")
 
 
 class IndexBasedExpression(object):
