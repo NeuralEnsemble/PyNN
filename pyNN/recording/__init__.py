@@ -148,9 +148,11 @@ def get_io(filename):
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
         raise IOError(
             "ASCII-based formats are not currently supported for output data. "
-            "Try using the file extension '.pkl' or '.h5'")
-    elif extension in ('.h5',):
-        return neo.io.NeoHdf5IO(filename=filename)
+            "Try using the file extension '.nwb', '.nix', '.pkl' or '.h5'")
+    elif extension in ('.nix', '.h5'):
+        return neo.io.NixIO(filename=filename)
+    elif extension in ('.nwb',):
+        return neo.io.NWBIO(filename=filename, mode="w")
     elif extension in ('.pkl', '.pickle'):
         return neo.io.PickleIO(filename=filename)
     elif extension == '.mat':
@@ -303,6 +305,8 @@ class Recorder(object):
                                 source_id=int(id),
                                 source_index=self.population.id_to_index(int(id)))
                         )
+                        for train in segment.spiketrains:
+                            train.segment = segment
                 else:
                     assert isinstance(data, tuple)
                     id_array, times = data
@@ -320,6 +324,7 @@ class Recorder(object):
                         t_start=self._recording_start_time,
                         source_population=self.population.label
                     )
+                    segment.spiketrains.segment = segment
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
                 signal_array, times_array = self._get_all_signals(variable, ids, clear=clear)
@@ -359,6 +364,8 @@ class Recorder(object):
                                 )
                             ]
                         segment.irregularlysampledsignals.extend(signals)
+                        for signal in signals:
+                            signal.segment = segment
                     else:
                         t_start = self._recording_start_time
                         t_stop = self._simulator.state.t * pq.ms
@@ -377,6 +384,7 @@ class Recorder(object):
                         logger.debug("%d **** ids=%s, channels=%s", mpi_node,
                                      source_ids, signal.array_annotations["channel_index"])
                         segment.analogsignals.append(signal)
+                        signal.segment = segment
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
@@ -390,6 +398,8 @@ class Recorder(object):
             # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(
                 filter_ids=filter_ids, variables=variables, clear=clear))
+        for segment in data.segments:
+            segment.block = data
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime
