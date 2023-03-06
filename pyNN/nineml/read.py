@@ -4,7 +4,7 @@ Enables creating neuronal network models in PyNN from a 9ML description.
 Classes:
     Network -- container for a network model.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -36,7 +36,8 @@ def scale(quantity):
         return quantity.value
 
 
-def resolve_parameters(nineml_component, random_distributions, resolve="properties", qualified_names=True):
+def resolve_parameters(nineml_component, random_distributions, resolve="properties",
+                       qualified_names=True):
     """
     Turn a 9ML ParameterSet or InitialValueSet into a Python dict, including turning 9ML
     RandomDistribution objects into PyNN RandomDistribution objects.
@@ -157,19 +158,21 @@ class Network(object):
         for projection in self.nineml_model.projections.values():
             if isinstance(projection.destination, nineml.Selection):
                 target_populations = projection.destination.evaluate()
-                # target_populations = [x[0] for x in projection.destination.evaluate()]  # just take the population, not the slice
+                # target_populations = [x[0] for x in projection.destination.evaluate()]
+                # just take the population, not the slice
             else:
                 assert isinstance(projection.destination, nineml.Population)
                 target_populations = [projection.destination]
             for target_population in target_populations:
                 if target_population.name in self.psr_map:
-                    self.psr_map[target_population.name]['port_connections'].update(
+                    target_psr = self.psr_map[target_population.name]
+                    target_psr['port_connections'].update(
                         projection.port_connections)
                     # hack? what about clashes?
-                    self.psr_map[target_population.name]['response_component'] = projection.response
+                    target_psr['response_component'] = projection.response
                 else:
-                    self.psr_map[target_population.name] = {'port_connections': set(projection.port_connections),
-                                                            'response_component': projection.response}
+                    target_psr = {'port_connections': set(projection.port_connections),
+                                  'response_component': projection.response}
 
         # create populations
         for population in self.nineml_model.populations.values():
@@ -203,7 +206,10 @@ class Network(object):
                                         "%s.%s" % (neuron_namespace, pc.receive_port)))
                     #    else:
                     #        assert neuron_model.query.analog_ports_map[nrn_port].mode == 'send'
-                    #        connections.append(("%s.%s" % (neuron_namespace, nrn_port), "%s.%s" % (synapse_name, psr_port)))
+                    #        connections.append((
+                    #            "%s.%s" % (neuron_namespace, nrn_port),
+                    #            "%s.%s" % (synapse_name, psr_port)
+                    #        ))
                 elif pc._receive_role == 'response' and pc._send_role == 'destination':
                     raise NotImplementedError
                 elif pc._receive_role == 'response' and pc._send_role == 'plasticity':
@@ -211,7 +217,8 @@ class Network(object):
                     weight_vars[synapse_name] = "%s_%s" % (synapse_name, pc.receive_port)
                 else:
                     raise Exception("Unexpected")
-            response_components[synapse_name] = self.psr_map[nineml_population.name]['response_component']
+            response_components[synapse_name] = \
+                self.psr_map[nineml_population.name]['response_component']
         subnodes = {neuron_namespace: neuron_model}
         subnodes.update(synapse_models)
         combined_model = al.Dynamics(name=_generate_variable_name(nineml_population.name),
@@ -229,7 +236,8 @@ class Network(object):
         return celltype_cls, cell_params
 
     def _build_population(self, nineml_population):
-        # assert isinstance(nineml_population.cell, nineml.SpikingNodeType)  # to implement in NineML library
+        # assert isinstance(nineml_population.cell, nineml.SpikingNodeType)
+        # to implement in NineML library
         n = nineml_population.size
         if nineml_population.positions is not None:
             pyNN_structure = _build_structure(nineml_population.positions.structure)
@@ -278,18 +286,21 @@ class Network(object):
         connector_type = builtin_connectors[nineml_projection.connectivity.component_class.name]
         connector = connector_type(**translated_params)
         return connector
-        #inline_csa = nineml_projection.rule.definition.component._connection_rule[0]
-        # cset = inline_csa(*connector_params.values()).cset  # TODO: csa should handle named parameters; handle random params
+        # inline_csa = nineml_projection.rule.definition.component._connection_rule[0]
+        # cset = inline_csa(*connector_params.values()).cset
+        # TODO: csa should handle named parameters; handle random params
         # return self.sim.CSAConnector(cset)
 
     def _build_synapse_dynamics(self, nineml_projection):
         # for now, just use static synapse
         # HACK  - only works if there is a single parameter called "weight"
-        ### to be sorted out when we try some real plastic synapses ###
+        #         to be sorted out when we try some real plastic synapses
         parameters = resolve_parameters(
-            nineml_projection.plasticity, self.random_distributions, "properties", qualified_names=False)
-        parameters.update(resolve_parameters(nineml_projection.plasticity,
-                                             self.random_distributions, "initial_values", qualified_names=False))
+            nineml_projection.plasticity, self.random_distributions,
+            "properties", qualified_names=False)
+        parameters.update(resolve_parameters(
+            nineml_projection.plasticity, self.random_distributions,
+            "initial_values", qualified_names=False))
         parameters["delay"] = nineml_projection.delay.value
         return self.sim.StaticSynapse(**parameters)
 
@@ -304,7 +315,7 @@ class Network(object):
         receptor_type = nineml_projection.response.name
         try:
             assert receptor_type in populations[nineml_projection.destination.name].receptor_types
-        except:
+        except Exception:
             raise
         synapse_dynamics = self._build_synapse_dynamics(nineml_projection)
 
@@ -326,15 +337,15 @@ class Network(object):
 
 if __name__ == "__main__":
     # For testing purposes: read in the network and print its description
-    # if using the nineml or neuroml backend, re-export the network as XML (this doesn't work, but it should).
-    import sys
+    # if using the nineml or neuroml backend, re-export the network as XML
+    # (this doesn't work, but it should).
     import os
     from pyNN.utility import get_script_args
     nineml_file, simulator_name = get_script_args(
         2, "Please specify the 9ML file and the simulator backend.")
     exec("import pyNN.%s as sim" % simulator_name)
 
-    sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])
-    network = Network(sim, nineml_file)
+    sim.setup(filename="%s_export.xml" % os.path.splitext(nineml_file)[0])  # noqa: F821
+    network = Network(sim, nineml_file)                                     # noqa: F821
     print(network.describe())
-    sim.end()
+    sim.end()                                                               # noqa: F821

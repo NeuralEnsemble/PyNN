@@ -17,7 +17,7 @@ Classes:
   Cuboid          - representation of a cuboidal volume, for use with RandomStructure.
   Sphere          - representation of a spherical volume, for use with RandomStructure.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -30,8 +30,8 @@ from operator import and_
 import logging
 import numpy as np
 
-from pyNN.random import NumpyRNG
-from pyNN import descriptions
+from .random import NumpyRNG
+from . import descriptions
 
 
 logger = logging.getLogger("PyNN")
@@ -102,7 +102,6 @@ class Space(object):
         the topology of the current space.
         From http://projects.scipy.org/pipermail/numpy-discussion/2007-April/027203.html
         """
-        #logger.debug("Calculating distance between A (shape=%s) and B (shape=%s)" % (A.shape, B.shape))
         assert A.ndim <= 2
         assert B.ndim <= 2
         assert A.shape[-1] == 3

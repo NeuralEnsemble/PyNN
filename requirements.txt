@@ -1,7 +1,7 @@
 Jinja2>=2.6
 docutils>=0.10
 mock>1.0
-numpy>=1.18.5
+numpy>=1.18.5,<1.24
 quantities>=0.12.1
 lazyarray>=0.5.2
 neo>=0.11.0

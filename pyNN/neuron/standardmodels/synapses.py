@@ -1,7 +1,7 @@
 """
 Synapse Dynamics classes for the neuron module.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -71,7 +71,8 @@ class STDPMechanism(BaseSynapse, synapses.STDPMechanism):
             # node with the pre-synaptic neurons for ddf>0.5 and on the node
             # with the post-synaptic neuron (as is done now) for ddf<0.5
             raise NotImplementedError(
-                "STDP with dendritic_delay_fraction > 0.5 is not yet supported for parallel computation.")
+                "STDP with dendritic_delay_fraction > 0.5 "
+                "is not yet supported for parallel computation.")
 
 
 class TsodyksMarkramSynapse(BaseSynapse, synapses.TsodyksMarkramSynapse):
@@ -145,7 +146,9 @@ class MultiplicativeWeightDependence(BaseSynapse, synapses.MultiplicativeWeightD
     possible_models = set(['StdwaSoft'])
 
 
-class AdditivePotentiationMultiplicativeDepression(BaseSynapse, synapses.AdditivePotentiationMultiplicativeDepression):
+class AdditivePotentiationMultiplicativeDepression(
+    BaseSynapse, synapses.AdditivePotentiationMultiplicativeDepression
+):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(

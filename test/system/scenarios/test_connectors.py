@@ -2,7 +2,8 @@
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 from pyNN.random import NumpyRNG, RandomDistribution
-from pyNN.utility import connection_plot, init_logging
+from pyNN.utility.plotting import connection_plot
+from pyNN.utility.script_tools import init_logging
 from .fixtures import run_with_simulators
 import pytest
 

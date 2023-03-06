@@ -1,24 +1,28 @@
 """
 Connection method classes for the neuron module
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-from pyNN.neuron import simulator
-from pyNN.connectors import AllToAllConnector, \
-                            OneToOneConnector, \
-                            FixedProbabilityConnector, \
-                            DistanceDependentProbabilityConnector, \
-                            DisplacementDependentProbabilityConnector, \
-                            IndexBasedProbabilityConnector, \
-                            FromListConnector, \
-                            FromFileConnector, \
-                            FixedNumberPreConnector, \
-                            FixedNumberPostConnector, \
-                            SmallWorldConnector, \
-                            CSAConnector, \
-                            CloneConnector, \
-                            ArrayConnector, \
-                            FixedTotalNumberConnector
+# flake8: noqa
+
+from . import simulator
+from ..connectors import (
+    AllToAllConnector,
+    OneToOneConnector,
+    FixedProbabilityConnector,
+    DistanceDependentProbabilityConnector,
+    DisplacementDependentProbabilityConnector,
+    IndexBasedProbabilityConnector,
+    FromListConnector,
+    FromFileConnector,
+    FixedNumberPreConnector,
+    FixedNumberPostConnector,
+    SmallWorldConnector,
+    CSAConnector,
+    CloneConnector,
+    ArrayConnector,
+    FixedTotalNumberConnector,
+)

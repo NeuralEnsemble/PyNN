@@ -3,22 +3,22 @@
 Common implementation of the Projection class, to be sub-classed by
 backend-specific Projection classes.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 
 from functools import reduce
-import numpy as np
 import logging
 import operator
 from copy import deepcopy
 from warnings import warn
-from pyNN import recording, errors, models, core, descriptions
-from pyNN.parameters import ParameterSpace, LazyArray
-from pyNN.space import Space
-from pyNN.standardmodels import StandardSynapseType
-from pyNN.connectors import Connector
+import numpy as np
+from .. import recording, errors, models, core, descriptions
+from ..parameters import ParameterSpace, LazyArray
+from ..space import Space
+from ..standardmodels import StandardSynapseType
+from ..connectors import Connector
 from .populations import BasePopulation, Assembly
 
 logger = logging.getLogger("PyNN")
@@ -70,20 +70,22 @@ class Projection(object):
         Create a new projection, connecting the pre- and post-synaptic neurons.
         """
         if not hasattr(self, "_simulator"):
-            errmsg = "`common.Projection` should not be instantiated directly. " \
+            err_msg = "`common.Projection` should not be instantiated directly. " \
                      "You should import Projection from a PyNN backend module, " \
                      "e.g. pyNN.nest or pyNN.neuron"
-            raise Exception(errmsg)
+            raise Exception(err_msg)
         for prefix, pop in zip(("pre", "post"),
                                (presynaptic_neurons, postsynaptic_neurons)):
             if not isinstance(pop, (BasePopulation, Assembly)):
                 raise errors.ConnectionError(
-                    "%ssynaptic_neurons must be a Population, PopulationView or Assembly, not a %s" % (prefix, type(pop)))
+                    f"{prefix}synaptic_neurons must be a Population, PopulationView or Assembly, "
+                    f"not a {type(pop)}")
 
         if isinstance(postsynaptic_neurons, Assembly):
             if not postsynaptic_neurons._homogeneous_synapses:
                 raise errors.ConnectionError(
-                    'Projection to an Assembly object can be made only with homogeneous synapses types')
+                    "Projection to an Assembly object can be made only "
+                    "with homogeneous synapses types")
 
         self.pre = presynaptic_neurons    # } these really
         self.source = source              # } should be
@@ -92,7 +94,7 @@ class Projection(object):
         self.space = space
         if not isinstance(connector, Connector):
             raise TypeError(
-                "The connector argument should be an instance of a subclass of Connector. "
+                "`connector` should be an instance of a subclass of Connector. "
                 f"The argument provided was of type '{type(connector).__name__}'."
             )
         self._connector = connector
@@ -100,7 +102,7 @@ class Projection(object):
         self.synapse_type = synapse_type or self._static_synapse_class()
         if not isinstance(self.synapse_type, models.BaseSynapseType):
             raise TypeError(
-                "The synapse_type argument should be an instance of a subclass of BaseSynapseType. "
+                "`synapse_type` should be an instance of a subclass of BaseSynapseType. "
                 f"The argument provided was of type '{type(synapse_type).__name__}'"
             )
 
@@ -110,8 +112,8 @@ class Projection(object):
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
             assert len(valid_types) > 0
-            errmsg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
-            raise errors.ConnectionError(errmsg % (self.receptor_type, "', '".join(valid_types)))
+            err_msg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
+            raise errors.ConnectionError(err_msg % (self.receptor_type, "', '".join(valid_types)))
 
         if label is None:
             if self.pre.label and self.post.label:
@@ -370,7 +372,8 @@ class Projection(object):
                 raise ValueError("`multiple_synapses` argument must be one of {}".format(
                     list(Projection.MULTI_SYNAPSE_OPERATIONS)))
             if gather and self._simulator.state.num_processes > 1:
-                # Node 0 is the only one creating a full connection matrix, and returning it (saving memory)
+                # Node 0 is the only one creating a full connection matrix, and returning it
+                # (saving memory)
                 # Slaves nodes are returning list of connections, so this may be inconsistent...
                 names = list(attribute_names)
                 names = ["presynaptic_index", "postsynaptic_index"] + names

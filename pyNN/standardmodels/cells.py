@@ -24,12 +24,18 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ArrayParameter, Sequence
+# flake8: noqa (ignore E221)
+
+from copy import deepcopy
+import operator
+from functools import reduce
+
+from ..parameters import ArrayParameter, Sequence
+from .base import StandardCellType, StandardCellTypeComponent
 
 
 class IF_curr_alpha(StandardCellType):
@@ -418,9 +424,9 @@ class EIF_cond_alpha_isfa_ista(StandardCellType):
         'tau_w':    144.0,     # Adaptation time constant in ms
         'v_thresh': -50.4,     # Spike initiation threshold in mV
         'e_rev_E':    0.0,     # Excitatory reversal potential in mV.
-        'tau_syn_E':  5.0,     # Rise time of excitatory synaptic conductance in ms (alpha function).
+        'tau_syn_E':  5.0,     # Rise time of excitatory synaptic conductance in ms (alpha function). # noqa: E501
         'e_rev_I':  -80.0,     # Inhibitory reversal potential in mV.
-        'tau_syn_I':  5.0,     # Rise time of the inhibitory synaptic conductance in ms (alpha function).
+        'tau_syn_I':  5.0,     # Rise time of the inhibitory synaptic conductance in ms (alpha function). # noqa: E501
     }
     recordable = ['spikes', 'v', 'w', 'gsyn_exc', 'gsyn_inh']
     default_initial_values = {
@@ -513,6 +519,171 @@ class EIF_cond_exp_isfa_ista(StandardCellType):
     }
 
 
+class LIF(StandardCellTypeComponent):
+    """
+    Leaky integrate and fire neuron
+    """
+
+    default_parameters = {
+        'cm':         1.0,     # Capacitance of the membrane in nF
+        'tau_refrac': 0.1,     # Duration of refractory period in ms.
+        'v_reset':  -65.0,     # Reset value for V_m after a spike. In mV.
+        'v_rest':   -65.0,     # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m':     20.0,     # Membrane time constant in ms
+        'i_offset':   0.0,     # Offset current in nA
+        'v_thresh': -50.0,     # Spike initiation threshold in mV
+    }
+    recordable = ['spikes', 'v']
+    injectable = True
+    default_initial_values = {
+        'v': -70.6,  # 'v_rest'
+    }
+    units = {
+        'v': 'mV',
+        'w': 'nA',
+        'cm': 'nF',
+        'tau_refrac': 'ms',
+        'v_reset': 'mV',
+        'v_rest': 'mV',
+        'tau_m': 'ms',
+        'i_offset': 'nA',
+        'v_thresh': 'mV',
+    }
+
+
+class AdExp(StandardCellTypeComponent):
+    """
+    Exponential integrate and fire neuron with spike triggered and
+    sub-threshold adaptation currents according to:
+
+    Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model
+    as an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
+    """
+
+    default_parameters = {
+        'cm':         0.281,   # Capacitance of the membrane in nF
+        'tau_refrac': 0.1,     # Duration of refractory period in ms.
+        'v_spike':  -40.0,     # Spike detection threshold in mV.
+        'v_reset':  -70.6,     # Reset value for V_m after a spike. In mV.
+        'v_rest':   -70.6,     # Resting membrane potential (Leak reversal potential) in mV.
+        'tau_m':      9.3667,  # Membrane time constant in ms
+        'i_offset':   0.0,     # Offset current in nA
+        'a':          4.0,     # Subthreshold adaptation conductance in nS.
+        'b':          0.0805,  # Spike-triggered adaptation in nA
+        'delta_T':    2.0,     # Slope factor in mV
+        'tau_w':    144.0,     # Adaptation time constant in ms
+        'v_thresh': -50.4,     # Spike initiation threshold in mV
+    }
+    recordable = ['spikes', 'v', 'w']
+    injectable = True
+    default_initial_values = {
+        'v': -70.6,  # 'v_rest',
+        'w': 0.0
+    }
+    units = {
+        'v': 'mV',
+        'w': 'nA',
+        'cm': 'nF',
+        'tau_refrac': 'ms',
+        'v_spike': 'mV',
+        'v_reset': 'mV',
+        'v_rest': 'mV',
+        'tau_m': 'ms',
+        'i_offset': 'nA',
+        'a': 'nS',
+        'b': 'nA',
+        'delta_T': 'mV',
+        'tau_w': 'ms',
+        'v_thresh': 'mV',
+    }
+
+
+class PointNeuron(StandardCellType):
+
+    def __init__(self, neuron, **post_synaptic_receptors):
+        self.neuron = neuron
+        self.post_synaptic_receptors = post_synaptic_receptors
+        for psr in post_synaptic_receptors.values():
+            psr.set_parent(self)
+        self.parameter_space = deepcopy(self.neuron.parameter_space)
+        for name, psr in self.post_synaptic_receptors.items():
+            self.parameter_space.add_child(name, psr.parameter_space)
+
+    @property
+    def receptor_types(self):
+        return list(sorted(self.post_synaptic_receptors.keys()))
+
+    @property
+    def conductance_based(self):
+        psr_conductance_based = set(psr.conductance_based
+                                    for psr in self.post_synaptic_receptors.values())
+        if len(psr_conductance_based) > 1:
+            raise Exception("Cannot mix conductance-based and current-based synaptic receptors")
+        psr_conductance_based, = psr_conductance_based
+        return psr_conductance_based
+
+    @property
+    def recordable(self):
+        return self.neuron.recordable + [
+            f"{receptor_type_name}.{variable}"
+            for receptor_type_name in self.receptor_types
+            for variable in self.post_synaptic_receptors[receptor_type_name].recordable
+        ]
+
+    @property
+    def scale_factors(self):
+        scf = self.neuron.scale_factors.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, scale_factor in psr.scale_factors.items():
+                scf[f"{name}.{variable}"] = scale_factor
+        return scf
+
+    @property
+    def units(self):
+        _units = self.neuron.units.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, un in psr.units.items():
+                _units[f"{name}.{variable}"] = un
+        return _units
+
+    @property
+    def default_initial_values(self):
+        divs = self.neuron.default_initial_values.copy()
+        for name, psr in self.post_synaptic_receptors.items():
+            for variable, div in psr.default_initial_values.items():
+                divs[f"{name}.{variable}"] = div
+        return divs
+
+    def simple_parameters(self):
+        """Return a list of parameters for which there is a one-to-one
+        correspondance between standard and native parameter values."""
+        return self.neuron.simple_parameters() + list(
+            set.union(*[set(psr.simple_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
+
+    def scaled_parameters(self):
+        """Return a list of parameters for which there is a unit change between
+        standard and native parameter values."""
+        return self.neuron.scaled_parameters() + list(
+            set.union(*[set(psr.scaled_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
+
+    def computed_parameters(self):
+        """Return a list of parameters whose values must be computed from
+        more than one other parameter."""
+        return self.neuron.computed_parameters() + list(
+            set.union(*[set(psr.computed_parameters())
+                        for psr in self.post_synaptic_receptors.values()]))
+
+    def computed_parameters_include(self, parameter_names):
+        return (
+            self.neuron.computed_parameters_include(parameter_names)
+            or reduce(operator.or_,                                         # noqa: W503
+                      [psr.computed_parameters_include(parameter_names)
+                       for psr in self.post_synaptic_receptors.values()])
+        )
+
+
 class Izhikevich(StandardCellType):
     """
     Izhikevich spiking model with a quadratic non-linearity according to:
@@ -583,10 +754,10 @@ class GIF_cond_exp(StandardCellType):
         'delta_v':      0.5,  # Threshold sharpness in mV.
         'v_t_star':   -48.0,  # Threshold baseline in mV.
         'lambda0':      1.0,  # Firing intensity at threshold in Hz.
-        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.
-        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.
-        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms.
-        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV
+        'tau_eta':    ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-triggered current in ms.        # noqa: E501
+        'tau_gamma':  ArrayParameter([1.0, 10.0, 100.0]),  # Time constants for spike-frequency adaptation in ms.     # noqa: E501
+        'a_eta':      ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for spike-triggered current in ms. # noqa: E501
+        'a_gamma':    ArrayParameter([1.0, 1.0, 1.0]),     # Post-spike increments for moving threshold in mV         # noqa: E501
     }
 
     recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'i_eta', 'v_t']
@@ -694,8 +865,8 @@ class SpikeSourceInhGamma(StandardCellType):
     """
 
     default_parameters = {
-        'a':        Sequence([1.0]),  # time histogram of parameter a of a gamma distribution (dimensionless)
-        'b':        Sequence([1.0]),  # time histogram of parameter b of a gamma distribution (seconds)
+        'a':        Sequence([1.0]),  # time histogram of parameter a of a gamma distribution (dimensionless)  # noqa: E501
+        'b':        Sequence([1.0]),  # time histogram of parameter b of a gamma distribution (seconds)        # noqa: E501
         'tbins':    Sequence([0.0]),  # time bins of the time histogram of a,b in units of ms
         'start':    0.0,              # Start time (ms)
         'duration': 1e10              # Duration of spike sequence (ms)
@@ -715,7 +886,7 @@ class SpikeSourceInhGamma(StandardCellType):
 class SpikeSourceArray(StandardCellType):
     """Spike source generating spikes at the times given in the spike_times array."""
 
-    default_parameters = {'spike_times': Sequence([])} # list or numpy array containing spike times in milliseconds.
+    default_parameters = {'spike_times': Sequence([])}  # list or numpy array containing spike times in milliseconds.  # noqa: E501
     recordable = ['spikes']
     injectable = False
     receptor_types = ()

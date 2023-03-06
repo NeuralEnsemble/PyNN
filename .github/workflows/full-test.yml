@@ -31,9 +31,9 @@ jobs:
     - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov coveralls
-        python -m pip install mpi4py
+        python -m pip install pytest pytest-cov coveralls flake8
         python -m pip install -r requirements.txt
+        python -m pip install mpi4py matplotlib
     - name: Install Brian 2
       run: |
         python -m pip install brian2
@@ -60,6 +60,12 @@ jobs:
         pushd pyNN/neuron/nmodl
         nrnivmodl
         popd
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 pyNN --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 pyNN --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run unit and system tests
       run: |
         pytest -v --cov=pyNN --cov-report=term test

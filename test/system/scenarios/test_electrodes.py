@@ -171,8 +171,8 @@ def test_issue437(sim):
     dt_1_list = [j for (i, j) in zip(d2_v1_up, t_up) if abs(i) >= 0.00005]
     dt_0_list_diff = np.diff(dt_0_list, n=1)
     dt_1_list_diff = np.diff(dt_1_list, n=1)
-    dt_0_mode = scipy.stats.mode(dt_0_list_diff[0:10])[0][0]
-    dt_1_mode = scipy.stats.mode(dt_1_list_diff[0:10])[0][0]
+    dt_0_mode = scipy.stats.mode(dt_0_list_diff[0:10], keepdims=False)[0]
+    dt_1_mode = scipy.stats.mode(dt_1_list_diff[0:10], keepdims=False)[0]
     assert (abs(dt_0_mode - dt_0) < 1e-9 or abs(dt_1_mode - dt_1) < 1e-9)
 
 
@@ -546,8 +546,7 @@ def test_issue512(sim):
     """
 
     def get_len(data):
-        if "nest" in str(sim):
-            # as NEST uses LazyArray
+        if hasattr(data, "evaluate"):
             return len(data.evaluate())
         else:
             return len(data)
@@ -563,31 +562,30 @@ def test_issue512(sim):
     with pytest.raises(ValueError):
         sim.StepCurrentSource(times=[0.4, 0.2, 0.8], amplitudes=[0.5, -0.5, 0.5])
     # 1.3) Check mapping of time values and removal of duplicates
-    step = sim.StepCurrentSource(times=[0.41, 0.42, 0.86],
+    step = sim.StepCurrentSource(times=[0.41, 0.42, 0.86],  # should be mapped to [0.4, 0.9]
                                  amplitudes=[0.5, -0.5, 0.5])
     assert get_len(step.times) == 2
     assert get_len(step.amplitudes) == 2
-    if "brian" in str(sim):
-        # Brian requires time in seconds (s)
-        assert (abs(step.times[0]-0.4*1e-3) < 1e-9)
-        assert (abs(step.times[1]-0.9*1e-3) < 1e-9)
-        # Brain requires amplitudes in amperes (A)
-        assert (step.amplitudes[0] == -0.5*1e-9)
-        assert (step.amplitudes[1] == 0.5*1e-9)
-    else:
-        # NEST requires amplitudes in picoamperes (pA) but stored
-        # as LazyArray and so needn't manually adjust; use nA
-        # NEURON requires amplitudes in nanoamperes (nA)
-        assert (step.amplitudes[0] == -0.5)
-        assert (step.amplitudes[1] == 0.5)
-        # NEST and NEURON require time in ms
-        # But NEST has time stamps reduced by min_delay
-        if "nest" in str(sim):
-            assert (abs(step.times[0]-0.3) < 1e-9)
-            assert (abs(step.times[1]-0.8) < 1e-9)
-        else:  # neuron
-            assert (abs(step.times[0]-0.4) < 1e-9)
-            assert (abs(step.times[1]-0.9) < 1e-9)
+    # if "brian" in str(sim):
+    #     # Brian requires time in seconds (s)
+    #     assert (abs(step.times[0]-0.4*1e-3) < 1e-9)
+    #     assert (abs(step.times[1]-0.9*1e-3) < 1e-9)
+    #     # Brain requires amplitudes in amperes (A)
+    #     assert (step.amplitudes[0] == -0.5*1e-9)
+    #     assert (step.amplitudes[1] == 0.5*1e-9)
+    # else:
+    # NEST requires amplitudes in picoamperes (pA) but stored
+    # as LazyArray and so needn't manually adjust; use nA
+    # NEURON requires amplitudes in nanoamperes (nA)
+    assert (step.amplitudes[0] == -0.5)
+    assert (step.amplitudes[1] == 0.5)
+    # NEST has time stamps reduced by min_delay
+    if "nest" in str(sim):
+        assert (abs(step.times[0]-0.3) < 1e-9)
+        assert (abs(step.times[1]-0.8) < 1e-9)
+    else:  # neuron, brian
+        assert (abs(step.times[0]-0.4) < 1e-9)
+        assert (abs(step.times[1]-0.9) < 1e-9)
 
     # 2) dt = 0.01 ms, min_delay = 0.01 ms
     dt = 0.01
@@ -604,27 +602,18 @@ def test_issue512(sim):
                                  amplitudes=[0.5, -0.5, 0.5])
     assert get_len(step.times) == 2
     assert get_len(step.amplitudes) == 2
-    if "brian" in str(sim):
-        # Brian requires time in seconds (s)
-        assert (abs(step.times[0]-0.45*1e-3) < 1e-9)
-        assert (abs(step.times[1]-0.86*1e-3) < 1e-9)
-        # Brain requires amplitudes in amperes (A)
-        assert (step.amplitudes[0] == -0.5*1e-9)
-        assert (step.amplitudes[1] == 0.5*1e-9)
-    else:
-        # NEST requires amplitudes in picoamperes (pA) but stored
-        # as LazyArray and so needn't manually adjust; use nA
-        # NEURON requires amplitudes in nanoamperes (nA)
-        assert (step.amplitudes[0] == -0.5)
-        assert (step.amplitudes[1] == 0.5)
-        # NEST and NEURON require time in ms
-        # But NEST has time stamps reduced by min_delay
-        if "nest" in str(sim):
-            assert (abs(step.times[0]-0.44) < 1e-9)
-            assert (abs(step.times[1]-0.85) < 1e-9)
-        else:  # neuron
-            assert (abs(step.times[0]-0.45) < 1e-9)
-            assert (abs(step.times[1]-0.86) < 1e-9)
+    # NEST requires amplitudes in picoamperes (pA) but stored
+    # as LazyArray and so needn't manually adjust; use nA
+    # NEURON requires amplitudes in nanoamperes (nA)
+    assert (step.amplitudes[0] == -0.5)
+    assert (step.amplitudes[1] == 0.5)
+    # NEST has time stamps reduced by min_delay
+    if "nest" in str(sim):
+        assert (abs(step.times[0]-0.44) < 1e-9)
+        assert (abs(step.times[1]-0.85) < 1e-9)
+    else:  # neuron, brian
+        assert (abs(step.times[0]-0.45) < 1e-9)
+        assert (abs(step.times[1]-0.86) < 1e-9)
 
 
 @run_with_simulators("nest", "neuron", "brian2")

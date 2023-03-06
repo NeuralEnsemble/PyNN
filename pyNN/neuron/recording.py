@@ -1,12 +1,12 @@
 """
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
-from pyNN import recording
-from pyNN.neuron import simulator
+from .. import recording
+from . import simulator
 import re
 from neuron import h
 
@@ -43,6 +43,8 @@ class Recorder(recording.Recorder):
             hoc_var = cell.isyn._ref_g
         else:
             source, var_name = self._resolve_variable(cell, variable)
+            if hasattr(self.population.celltype, "variable_map"):
+                var_name = self.population.celltype.variable_map[variable]
             hoc_var = getattr(source, "_ref_%s" % var_name)
         cell.traces[variable] = vec = h.Vector()
         if self.sampling_interval == self._simulator.state.dt or self.record_times:
@@ -121,8 +123,14 @@ class Recorder(recording.Recorder):
                 times = np.array(ids[0]._cell.recorded_times)
             else:
                 expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
-                if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
+                if signals.shape[0] != expected_length:
+                    # generally due to floating point/rounding issues
                     signals = np.vstack((signals, signals[-1, :]))
+                if ".isyn" in variable:
+                    # this is a hack, since negative currents in NMODL files
+                    # correspond to positive currents in PyNN
+                    # todo: reimplement this in a more robust way
+                    signals *= -1
         else:
             signals = np.array([])
         return signals, times
