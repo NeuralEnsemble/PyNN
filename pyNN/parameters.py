@@ -1,17 +1,16 @@
 """
 Parameter set handling
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-import numpy as np
 from collections.abc import Sized
-from pyNN.core import is_listlike
-from pyNN import errors
-from pyNN.random import RandomDistribution, NativeRNG
-from lazyarray import larray, partial_shape
 import numpy as np
+from lazyarray import larray, partial_shape
+from .core import is_listlike
+from . import errors
+from .random import RandomDistribution, NativeRNG
 
 
 class LazyArray(larray):
@@ -45,22 +44,24 @@ class LazyArray(larray):
 
     def __init__(self, value, shape=None, dtype=None):
         if isinstance(value, str):
-            errmsg = "Value should be a string expressing a function of d. "
+            err_msg = "Value should be a string expressing a function of d. "
             try:
                 value = eval("lambda d: %s" % value)
             except SyntaxError:
-                raise errors.InvalidParameterValueError(errmsg + "Incorrect syntax.")
+                raise errors.InvalidParameterValueError(err_msg + "Incorrect syntax.")
             try:
                 value(0.0)
             except NameError as err:
-                raise errors.InvalidParameterValueError(errmsg + str(err))
+                raise errors.InvalidParameterValueError(err_msg + str(err))
         super(LazyArray, self).__init__(value, shape, dtype)
 
     def __setitem__(self, addr, new_value):
         self.check_bounds(addr)
-        if (self.is_homogeneous
+        if (
+            self.is_homogeneous
             and isinstance(new_value, (int, float, bool))
-            and self.evaluate(simplify=True) == new_value):
+            and self.evaluate(simplify=True) == new_value
+        ):
             pass
         else:
             self.base_value = self.evaluate()
@@ -93,6 +94,28 @@ class LazyArray(larray):
             for j in column_indices:
                 yield self._partially_evaluate((slice(None), j), simplify=True)
 
+    def _apply_operations(self, x, addr=None, simplify=False):
+        # todo: move this modified version back into lazyarray
+        for f, arg in self.operations:
+            if arg is None:
+                x = f(x)
+            elif isinstance(arg, larray):
+                if addr is None:
+                    x = f(x, arg.evaluate(simplify=simplify))
+                else:
+                    x = f(x, arg._partially_evaluate(addr, simplify=simplify))
+
+            else:
+                try:
+                    x = f(x, arg)
+                except TypeError:
+                    assert isinstance(x, np.ndarray)
+                    if x.dtype == np.dtype('O'):
+                        x = np.array([f(xi, arg) for xi in x])
+                    else:
+                        raise
+        return x
+
 
 class ArrayParameter(object):
     """
@@ -119,11 +142,15 @@ class ArrayParameter(object):
             self.value = np.array(value, float)
 
     # def __len__(self):
-    #     This must not be defined, otherwise ArrayParameter is insufficiently different from NumPy array
+    #     This must not be defined, otherwise ArrayParameter is insufficiently different
+    #     from NumPy array
 
     def max(self):
         """Return the maximum value."""
         return self.value.max()
+
+    def __getitem__(self, item):
+        return self.value[item]
 
     def __add__(self, val):
         """
@@ -164,7 +191,8 @@ class ArrayParameter(object):
         objects, where ArrayParameter `i` is the original ArrayParameter multiplied by
         element `i` of `val`.
         """
-        if hasattr(val, '__len__'):
+        if hasattr(val, '__len__') and not (hasattr(val, "shape") and len(val.shape) == 0):
+            # the second condition weeds out 0-dimensional arrays, like Brian units.
             # reshape if necessary?
             return np.array([self.__class__(self.value * x) for x in val], dtype=self.__class__)
         else:
@@ -192,7 +220,11 @@ class ArrayParameter(object):
     def __eq__(self, other):
         if isinstance(other, ArrayParameter):
             return self.value.size == other.value.size and (self.value == other.value).all()
-        elif isinstance(other, np.ndarray) and other.size > 0 and isinstance(other[0], ArrayParameter):
+        elif (
+            isinstance(other, np.ndarray)
+            and other.size > 0
+            and isinstance(other[0], ArrayParameter)
+        ):
             return np.array([(self == seq).all() for seq in other])
         else:
             return False
@@ -245,6 +277,7 @@ class ParameterSpace(object):
 
         """
         self._parameters = {}
+        self.children = {}
         self.schema = schema
         self._shape = shape
         self.component = component
@@ -254,6 +287,8 @@ class ParameterSpace(object):
     def _set_shape(self, shape):
         for value in self._parameters.values():
             value.shape = shape
+        for child in self.children.values():
+            child.shape = shape
         self._shape = shape
     shape = property(fget=lambda self: self._shape, fset=_set_shape,
                      doc="Size of the lazy arrays contained within the parameter space")
@@ -293,13 +328,16 @@ class ParameterSpace(object):
                         model_name = self.component.__name__
                     else:
                         model_name = 'unknown'
-                    raise errors.NonExistentParameterError(name,
-                                                           model_name,
-                                                           valid_parameter_names=self.schema.keys())
+                    raise errors.NonExistentParameterError(
+                            name,
+                            model_name,
+                            valid_parameter_names=self.schema.keys())
                 if issubclass(expected_dtype, ArrayParameter) and isinstance(value, Sized):
                     if len(value) == 0:
                         value = ArrayParameter([])
-                    elif not isinstance(value[0], ArrayParameter):  # may be a more generic way to do it, but for now this special-casing seems like the most robust approach
+                    elif not isinstance(value[0], ArrayParameter):
+                        # may be a more generic way to do it, but for now this special-casing
+                        # seems like the most robust approach
                         if isinstance(value[0], Sized):  # e.g. list of tuples
                             value = type(value)([ArrayParameter(x) for x in value])
                         else:
@@ -309,7 +347,7 @@ class ParameterSpace(object):
                                                        dtype=expected_dtype)
                 except (TypeError, errors.InvalidParameterValueError):
                     raise errors.InvalidParameterValueError(
-                        "For parameter %s expected %s, got %s" % (name, expected_dtype, type(value)))
+                        f"For parameter {name} expected {expected_dtype}, got {type(value)}")
                 except ValueError as err:
                     # maybe put the more specific error classes into lazyarray
                     raise errors.InvalidDimensionsError(err)
@@ -356,12 +394,18 @@ class ParameterSpace(object):
         else:
             for name, value in self._parameters.items():
                 try:
-                    if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
+                    if (
+                        isinstance(value.base_value, RandomDistribution)
+                        and value.base_value.rng.parallel_safe
+                    ):
                         value = value.evaluate()  # can't partially evaluate if using parallel safe
                     self._parameters[name] = value[mask]
                 except ValueError:
-                    raise errors.InvalidParameterValueError(f"{name} should not be of type {type(value)}")
+                    raise errors.InvalidParameterValueError(
+                        f"{name} should not be of type {type(value)}")
             self._evaluated_shape = partial_shape(mask, self._shape)
+        for child in self.children.values():
+            child.evaluate(mask, simplify)
         self._evaluated = True
         # should possibly update self.shape according to mask?
 
@@ -376,6 +420,8 @@ class ParameterSpace(object):
         for name, value in self._parameters.items():
             D[name] = value
             assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+        for name, child in self.children.items():
+            D[name] = child.as_dict()
         return D
 
     def __iter__(self):
@@ -409,6 +455,13 @@ class ParameterSpace(object):
                 else:
                     D[name] = value
                 assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
+            for name, child in self.children.items():
+                D[name] = {}
+                for cname, cvalue in child.items():
+                    if is_listlike(cvalue):
+                        D[name][cname] = cvalue[i]
+                    else:
+                        D[name][cname] = cvalue
             yield D
 
     def columns(self):
@@ -439,8 +492,10 @@ class ParameterSpace(object):
 
     @property
     def parallel_safe(self):
-        return any(isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe
-                   for value in self._parameters.values())
+        return any(
+            isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe
+            for value in self._parameters.values()
+        )
 
     @property
     def has_native_rngs(self):
@@ -455,7 +510,8 @@ class ParameterSpace(object):
         An iterator over those values contained in the PS that are
         derived from random distributions.
         """
-        return (value for value in self._parameters.values() if isinstance(value.base_value, RandomDistribution))
+        return (value for value in self._parameters.values()
+                if isinstance(value.base_value, RandomDistribution))
 
     def expand(self, new_shape, mask):
         """
@@ -471,13 +527,26 @@ class ParameterSpace(object):
                 self._parameters[name].base_value = new_base_value
         self.shape = new_shape
 
+    def add_child(self, name, child_space):
+        self.children[name] = child_space
+
+    def flatten(self, with_prefix=True):
+        for child_name, child in self.children.items():
+            for name, value in child.items():
+                if with_prefix:
+                    self._parameters["{}.{}".format(child_name, name)] = value
+                else:
+                    self._parameters[name] = value
+        self.children = {}
+
 
 def simplify(value):
     """
     If `value` is a homogeneous array, return the single value that all elements
     share. Otherwise, pass the value through.
     """
-    if isinstance(value, np.ndarray) and len(value.shape) > 0:  #  latter condition is for Brian scalar quantities
+    if isinstance(value, np.ndarray) and len(value.shape) > 0:
+        #  latter condition is for Brian scalar quantities
         if (value == value[0]).all():
             return value[0]
         else:

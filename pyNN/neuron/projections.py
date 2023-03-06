@@ -2,25 +2,27 @@
 """
 nrnpython implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 from copy import deepcopy
-import numpy as np
 import logging
-from itertools import repeat, chain
+from itertools import repeat
 from collections import defaultdict
-from pyNN import common, errors, core
-from pyNN.random import RandomDistribution, NativeRNG
-from pyNN.space import Space
+
+import numpy as np
+
+from .. import common, errors, core
+from ..space import Space
 from . import simulator
-from .standardmodels.synapses import StaticSynapse, TsodyksMarkramSynapse
+from .standardmodels.synapses import StaticSynapse
 
 logger = logging.getLogger("PyNN")
 
-_projections = []  # if a Projection is created but not assigned to a variable,
-                   # the connections will not exist, so we store a reference here
+# if a Projection is created but not assigned to a variable,
+# the connections will not exist, so we store a reference here
+_projections = []
 
 
 class Projection(common.Projection):
@@ -31,7 +33,6 @@ class Projection(common.Projection):
     def __init__(self, presynaptic_population, postsynaptic_population,
                  connector, synapse_type=None, source=None, receptor_type=None,
                  space=Space(), label=None):
-        __doc__ = common.Projection.__init__.__doc__
         common.Projection.__init__(self, presynaptic_population, postsynaptic_population,
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
@@ -53,7 +54,6 @@ class Projection(common.Projection):
                     yield z
 
     def __getitem__(self, i):
-        __doc__ = common.Projection.__getitem__.__doc__
         if isinstance(i, int):
             if i < len(self):
                 return self.connections[i]
@@ -80,19 +80,20 @@ class Projection(common.Projection):
                                    1D array of the same length as `sources`, or
                                    a single value.
         """
-        #logger.debug("Convergent connect. Weights=%s" % connection_parameters['weight'])
         postsynaptic_cell = self.post[postsynaptic_index]
-        if not isinstance(postsynaptic_cell, int) or not (0 <= postsynaptic_cell <= simulator.state.gid_counter):
-            errmsg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (
+        if (
+            not isinstance(postsynaptic_cell, int)
+            or not (0 <= postsynaptic_cell <= simulator.state.gid_counter)
+        ):
+            err_msg = "Invalid post-synaptic cell: %s (gid_counter=%d)" % (
                 postsynaptic_cell, simulator.state.gid_counter)
-            raise errors.ConnectionError(errmsg)
+            raise errors.ConnectionError(err_msg)
         for name, value in connection_parameters.items():
             if isinstance(value, (float, int)):
                 connection_parameters[name] = repeat(value)
         assert postsynaptic_cell.local
         for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
-            # logger.debug("Connecting neuron #%s to neuron #%s with synapse type %s, receptor type %s, parameters %s", pre_idx, postsynaptic_index, self.synapse_type, self.receptor_type, parameters)
             self._connections[postsynaptic_index][pre_idx].append(
                 self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters))
 
@@ -105,11 +106,11 @@ class Projection(common.Projection):
         """
         # Get the list of all connections on all nodes
         conn_list = np.array(self.get(self.synapse_type.get_parameter_names(), 'list',
-                                         gather='all', with_address=True))
+                                      gather='all', with_address=True))
         # Loop through each of the connections where the presynaptic index (first column) is on
         # the local node
         mask_local = np.array(np.in1d(np.squeeze(conn_list[:, 0]),
-                                            np.nonzero(self.pre._mask_local)[0]), dtype=bool)
+                                      np.nonzero(self.pre._mask_local)[0]), dtype=bool)
         for conn in conn_list[mask_local, :]:
             pre_idx = int(conn[0])
             post_idx = int(conn[1])
@@ -127,7 +128,8 @@ class Projection(common.Projection):
                 for name, value in connection_parameters.items():
                     for index in component:
                         setattr(component[index], name, value[index])
-        # Evaluate the parameters for the post-synaptic components (typically the "Connection" object)
+        # Evaluate the parameters for the post-synaptic components
+        # (typically the "Connection" object)
         # only columns for connections that exist on this machine
         parameter_space.evaluate(mask=(slice(None), self.post._mask_local))
         for connection_group, connection_parameters in zip(self._connections.values(),
@@ -138,4 +140,4 @@ class Projection(common.Projection):
                         setattr(connection, name, value[index])
 
     def _set_initial_value_array(self, variable, value):
-        raise NotImplemented
+        raise NotImplementedError

@@ -39,10 +39,12 @@ Global constants:
     DEFAULT_TIMESTEP
     DEFAULT_MIN_DELAY
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
+
+# flake8: noqa
 
 from .populations import IDMixin, BasePopulation, Population, PopulationView, Assembly, is_conductance
 from .projections import Projection, Connection

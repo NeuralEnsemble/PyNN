@@ -1,20 +1,18 @@
 """
+Brian 2 implementation of Population, PopulationView and Assembly.
 
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:license: CeCILL, see LICENSE for details.
 """
 
+from collections import defaultdict
 import numpy as np
-from pyNN import common
-from pyNN.standardmodels import StandardCellType
-from pyNN.parameters import ParameterSpace, simplify
+from .. import common
+from ..standardmodels import StandardCellType
+from ..parameters import ArrayParameter, ParameterSpace, simplify, LazyArray
 from . import simulator
 from .recording import Recorder
-import numpy as np
-from brian2.units.fundamentalunits import Quantity
-#from brian2.units import *
-#from quantities import *
-from brian2.core.variables import VariableView
 import brian2
-#from brian2.groups.neurongroup import *
 ms = brian2.ms
 mV = brian2.mV
 
@@ -23,11 +21,84 @@ class Assembly(common.Assembly):
     _simulator = simulator
 
 
-class PopulationView(common.PopulationView):
+class PopulationMixin(object):
+
+    def _get_parameters(self, *names):
+        """
+        Return a ParameterSpace containing PyNN parameters
+
+        `names` should be PyNN names
+        """
+        def _get_component_parameters(component, names, component_label=None):
+            kwargs = {}
+            if component_label:
+                kwargs["suffix"] = component_label
+            if component.computed_parameters_include(names):
+                # need all parameters in order to calculate values
+                native_names = component.get_native_names(**kwargs)
+            else:
+                native_names = component.get_native_names(*names, **kwargs)
+            native_parameter_space = self._get_native_parameters(*native_names)
+            if component_label:
+                ps = component.reverse_translate(native_parameter_space, suffix=component_label)
+            else:
+                ps = component.reverse_translate(native_parameter_space)
+            # extract values for this component from any ArrayParameters
+            for name, value in ps.items():
+                if isinstance(value.base_value, ArrayParameter):
+                    index = self.celltype.receptor_types.index(component_label)
+                    ps[name] = LazyArray(value.base_value[index])
+                    ps[name].operations = value.operations
+            return ps
+
+        if isinstance(self.celltype, StandardCellType):
+            if any("." in name for name in names):
+                names_by_component = defaultdict(list)
+                for name in names:
+                    parts = name.split(".")
+                    if len(parts) == 1:
+                        names_by_component["neuron"].append(parts[0])
+                    elif len(parts) == 2:
+                        names_by_component[parts[0]].append(parts[1])
+                    else:
+                        raise ValueError("Invalid name: {}".format(name))
+                if "neuron" in names_by_component:
+                    parameter_space = _get_component_parameters(self.celltype.neuron,
+                                                                names_by_component.pop("neuron"))
+                else:
+                    parameter_space = ParameterSpace({})
+                for component_label, names in names_by_component.items():
+                    parameter_space.add_child(
+                        component_label,
+                        _get_component_parameters(
+                            self.celltype.post_synaptic_receptors[component_label],
+                            names_by_component[component_label],
+                            component_label))
+            else:
+                parameter_space = _get_component_parameters(self.celltype, names)
+        else:
+            parameter_space = self._get_native_parameters(*names)
+        return parameter_space
+
+
+class PopulationView(common.PopulationView, PopulationMixin):
     _assembly_class = Assembly
     _simulator = simulator
 
     def _get_parameters(self, *names):
+        if isinstance(self.celltype, StandardCellType):
+            if any(name in self.celltype.computed_parameters() for name in names):
+                # need all parameters in order to calculate values
+                native_names = self.celltype.get_native_names()
+            else:
+                native_names = self.celltype.get_native_names(*names)
+            native_parameter_space = self._get_native_parameters(*native_names)
+            parameter_space = self.celltype.reverse_translate(native_parameter_space)
+        else:
+            parameter_space = self._get_native_parameters(*native_names)
+        return parameter_space
+
+    def _get_native_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
         """
@@ -61,7 +132,7 @@ class PopulationView(common.PopulationView):
         return self.parent.brian2_group
 
 
-class Population(common.Population):
+class Population(common.Population, PopulationMixin):
     __doc__ = common.Population.__doc__
     _simulator = simulator
     _recorder_class = Recorder
@@ -69,9 +140,9 @@ class Population(common.Population):
 
     def _create_cells(self):
         id_range = np.arange(simulator.state.id_counter,
-                                simulator.state.id_counter + self.size)
+                             simulator.state.id_counter + self.size)
         self.all_cells = np.array([simulator.ID(id) for id in id_range],
-                                     dtype=simulator.ID)
+                                  dtype=simulator.ID)
         # all cells are local. This doesn't seem very efficient.
         self._mask_local = np.ones((self.size,), bool)
 
@@ -79,8 +150,10 @@ class Population(common.Population):
             parameter_space = self.celltype.native_parameters
         else:
             parameter_space = self.celltype.parameter_space
+
         parameter_space.shape = (self.size,)
         parameter_space.evaluate(simplify=False)
+        parameter_space.flatten(with_prefix=False)
         self.brian2_group = self.celltype.brian2_model(self.size,
                                                        self.celltype.eqs,
                                                        **parameter_space)
@@ -93,7 +166,7 @@ class Population(common.Population):
         D = self.celltype.state_variable_translations[variable]
         pname = D['translated_name']
         if callable(D['forward_transform']):
-            pval = D['forward_transform'](value)  # (value)
+            pval = D['forward_transform'](**{variable: value})
         else:
             pval = eval(D['forward_transform'], globals(), {variable: value})
         pval = pval.evaluate(simplify=False)
@@ -103,7 +176,7 @@ class Population(common.Population):
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)
 
-    def _get_parameters(self, *names):
+    def _get_native_parameters(self, *names):
         """
         return a ParameterSpace containing native parameters
         """

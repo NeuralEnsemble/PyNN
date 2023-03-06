@@ -2,17 +2,17 @@
 """
 Definition of NativeElectrodeType class for NEST.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import numpy as np
 import nest
-from pyNN.common import Population, PopulationView, Assembly
-from pyNN.parameters import ParameterSpace
-from pyNN.nest.simulator import state
-from pyNN.nest.cells import get_defaults
-from pyNN.models import BaseCurrentSource
+from ..common import Population, PopulationView, Assembly
+from ..parameters import ParameterSpace
+from .simulator import state
+from .cells import get_defaults
+from ..models import BaseCurrentSource
 from .conversion import make_sli_compatible
 
 
@@ -29,7 +29,8 @@ class NestCurrentSource(BaseCurrentSource):
             self.parameter_space.update(**parameters)
 
         self.min_delay = state.min_delay
-        self.timestep = state.dt  # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+        # NoisyCurrentSource has a parameter called "dt", so use "timestep" here
+        self.timestep = state.dt
         state.current_sources.append(self)
 
     def inject_into(self, cells):
@@ -107,4 +108,4 @@ class NativeElectrodeType(NestCurrentSource):
         NestCurrentSource.__init__(self, **parameters)
         self.parameter_space.evaluate(simplify=True)
         state.set_status(self._device,
-                       make_sli_compatible(self.parameter_space.as_dict()))
+                         make_sli_compatible(self.parameter_space.as_dict()))

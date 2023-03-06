@@ -18,4 +18,3 @@ Projection "{{label}}" from "{{pre.label}}" ({{pre.size}} cells) to "{{post.labe
             Dendritic delay fraction : {{plasticity.slow.dendritic_delay_fraction}}{% endif %}{% else %}None{% endif %}
     Total connections : {{size}}
     Local connections : {{size_local}}
-

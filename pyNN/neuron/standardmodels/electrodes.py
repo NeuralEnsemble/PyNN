@@ -7,7 +7,7 @@ Classes:
     NoisyCurrentSource -- a Gaussian whitish noise current.
     ACSource           -- a sine modulated current.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -120,7 +120,8 @@ class NeuronCurrentSource(StandardCurrentSource):
                     step_times, step_amplitudes, simulator.state.dt)
                 parameters["times"].value = step_times
                 parameters["amplitudes"].value = step_amplitudes
-            if isinstance(value, Sequence):  # this shouldn't be necessary, but seems to prevent a segfault
+            if isinstance(value, Sequence):
+                # this shouldn't be necessary, but seems to prevent a segfault
                 value = value.value
             object.__setattr__(self, name, value)
         self._reset()
@@ -129,7 +130,6 @@ class NeuronCurrentSource(StandardCurrentSource):
         return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_native_names()))
 
     def inject_into(self, cells):
-        __doc__ = StandardCurrentSource.inject_into.__doc__
         for id in cells:
             if id.local:
                 if not id.celltype.injectable:
@@ -211,10 +211,14 @@ class ACSource(NeuronCurrentSource, electrodes.ACSource):
     def _generate(self):
         # Not efficient at all... Is there a way to have those vectors computed on the fly ?
         # Otherwise should have a buffer mechanism
-        temp_num_t = int(round(((self.stop + simulator.state.dt) - self.start) / simulator.state.dt))
+        temp_num_t = int(round(
+            ((self.stop + simulator.state.dt) - self.start) / simulator.state.dt
+        ))
         tmp = simulator.state.dt * np.arange(temp_num_t)
         self.times = tmp + self.start
-        self.amplitudes = self.offset + self.amplitude * np.sin(tmp * 2 * np.pi * self.frequency / 1000. + 2 * np.pi * self.phase / 360)
+        self.amplitudes = self.offset + self.amplitude * np.sin(
+            tmp * 2 * np.pi * self.frequency / 1000. + 2 * np.pi * self.phase / 360
+        )
         self.amplitudes[-1] = 0.0
 
 

@@ -4,9 +4,11 @@ Export of PyNN models to NeuroML 2
 
 Contact Padraig Gleeson for more details
 
-:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
+
+# flake8: noqa
 
 import numpy as np
 from pyNN import common

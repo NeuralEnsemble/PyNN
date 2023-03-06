@@ -4,9 +4,11 @@ Export of PyNN models to NeuroML 2
 
 Contact Padraig Gleeson for more details
 
-:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
+
+# flake8: noqa
 
 from pyNN import common
 from pyNN import __version__
@@ -37,7 +39,7 @@ def _get_nml_doc(reference="PyNN_NeuroML2_Export",reset=False):
     if nml_doc == None or reset:
         nml_doc = neuroml.NeuroMLDocument(id=reference)
         nml_doc.notes = comment%'NeuroML 2'
-        
+
     return nml_doc
 
 
@@ -77,7 +79,7 @@ class State(common.control.BaseState):
         logger.debug("run_until() called with %s"%tstop)
         lems_sim = _get_lems_sim()
         lems_sim.duration = float(tstop)
-        
+
         self.t = tstop
         self.running = True
     def clear(self):

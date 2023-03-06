@@ -29,7 +29,7 @@ Availability: NEST, NEURON, Brian
 ==============  =============  =====  ========================================
 Name            Default value  Units  Description
 ==============  =============  =====  ========================================
-``v_rest``      -65.0          mV     Resting membrane potential 
+``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
 ``tau_refrac``    0.1          ms     Duration of refractory period
@@ -46,9 +46,9 @@ IF_curr_exp
 
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic current.
 (Separate synaptic currents for excitatory and inhibitory synapses.
-    
+
 Availability: NEST, NEURON, Brian
-    
+
 ==============  =============  =====  =========================================
 Name            Default value  Units  Description
 ==============  =============  =====  =========================================
@@ -74,7 +74,7 @@ Availability: NEST, NEURON, Brian
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
 ==============  =============  =====  ===================================================
-``v_rest``      -65.0          mV     Resting membrane potential 
+``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
 ``tau_refrac``    0.1          ms     Duration of refractory period
@@ -92,12 +92,12 @@ IF_cond_exp
 -----------
 
 Leaky integrate and fire model with fixed threshold and decaying-exponential post-synaptic conductance.
-    
+
 Availability: NEST, NEURON, Brian
-    
+
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
 ``v_rest``      -65.0          mV     Resting membrane potential
 ``cm``            1.0          nF     Capacity of the membrane
 ``tau_m``        20.0          ms     Membrane time constant
@@ -109,19 +109,19 @@ Name            Default value  Units  Description
 ``v_thresh``    -50.0          mV     Spike threshold
 ``v_reset``     -65.0          mV     Reset potential after a spike
 ``i_offset``      0.0          nA     Offset current
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
 
 
 HH_cond_exp
 -----------
 
 Single-compartment Hodgkin-Huxley-type neuron with transient sodium and delayed-rectifier potassium currents using the ion channel models from Traub.
-    
+
 Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
 ``gbar_Na``        20.0        uS
 ``gbar_K``          6.0        uS
 ``g_leak``         0.01        uS
@@ -135,13 +135,13 @@ Name            Default value  Units  Description
 ``tau_syn_E``       0.2        ms
 ``tau_syn_I``       2.0        ms
 ``i_offset``        0.0        nA
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
 
 
 EIF_cond_alpha_isfa_ista
 ------------------------
 
-Adaptive exponential integrate and fire neuron according to 
+Adaptive exponential integrate and fire neuron according to
   Brette R and Gerstner W (2005) Adaptive Exponential Integrate-and-Fire Model as
   an Effective Description of Neuronal Activity. J Neurophysiol 94:3637-3642
 
@@ -149,7 +149,7 @@ Availability: NEST, NEURON, Brian
 
 ==============  =============  =====  ===================================================
 Name            Default value  Units  Description
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
 ``cm``            0.281        nF     Capacity of the membrane
 ``tau_refrac``    0.1          ms     Duration of refractory period
 ``v_spike``     -40.0          mV     Spike detection threshold
@@ -161,12 +161,33 @@ Name            Default value  Units  Description
 ``b``             0.0805       nA     Spike-triggered adaptation
 ``delta_T``       2.0          mV     Slope factor
 ``tau_w``       144.0          ms     Adaptation time constant
-``v_thresh``    -50.4          mV     Spike initiation threshold 
+``v_thresh``    -50.4          mV     Spike initiation threshold
 ``e_rev_E``       0.0          mV     Excitatory reversal potential
 ``tau_syn_E``     5.0          ms     Rise time of excitatory synaptic conductance (alpha function)
 ``e_rev_I``     -80.0          mV     Inhibitory reversal potential
 ``tau_syn_I``     5.0          ms     Rise time of the inhibitory synaptic conductance (alpha function)
-==============  =============  =====  =================================================== 
+==============  =============  =====  ===================================================
+
+
+Composed models
+===============
+
+The models listed above all have two fixed post-synaptic mechanism types, "excitatory" and "inhibitory".
+If you need more than two mechanisms, e.g. AMPA, NMDA and GABA_A, you can build such models by
+combining a "neuron-only" component with one or more "post-synaptic mechanism" components, for example:
+
+::
+
+   celltype = sim.PointNeuron(
+                sim.AdExp(tau_m=10.0, v_rest=-60.0),
+                AMPA=sim.ExpPSR(tau_syn=1.0, e_syn=0.0),
+                NMDA=sim.AlphaPSR(tau_syn=20.0, e_syn=0.0),
+                GABAA=sim.ExpPSR(tau_syn=1.5, e_syn=-70.0),
+                GABAB=sim.AlphaPSR(tau_syn=15.0, e_syn=-90.0))
+
+Not all simulators can handle all combinations of components, and in general it is not possible to
+mix conductance-based and current-based synapses within a single cell type.
+PyNN will emit an error message if this is the case.
 
 
 Spike sources

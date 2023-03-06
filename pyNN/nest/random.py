@@ -2,14 +2,14 @@
 """
 NEST v3 implementation of the PyNN API.
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from numbers import Real
 from copy import copy
 import nest.random
-from pyNN.random import NativeRNG
+from ..random import NativeRNG
 
 NEST_RDEV_TYPES = ['binomial', 'binomial_clipped', 'binomial_clipped_to_boundary',
                    'exponential', 'exponential_clipped', 'exponential_clipped_to_boundary',
@@ -27,18 +27,18 @@ class NativeRNG(NativeRNG):
     to NEST parameters.
     """
     translations = {
-        #'binomial':       {'n': 'n', 'p': 'p'},
-        #'gamma':          {'theta': 'scale', 'k': 'order'},
+        # 'binomial':       {'n': 'n', 'p': 'p'},
+        # 'gamma':          {'theta': 'scale', 'k': 'order'},
         'exponential':    {'beta': 'lambda'},
         'lognormal':      {'mu': 'mean', 'sigma': 'std'},
         'normal':         {'mu': 'mean', 'sigma': 'std'},
-        #'normal_clipped': {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
-        #'normal_clipped_to_boundary':
+        # 'normal_clipped': {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
+        # 'normal_clipped_to_boundary':
         #                  {'mu': 'mu', 'sigma': 'sigma', 'low': 'low', 'high': 'high'},
-        #'poisson':        {'lambda_': 'lambda'},
+        # 'poisson':        {'lambda_': 'lambda'},
         'uniform':        {'low': 'min', 'high': 'max'},
-        #'uniform_int':    {'low': 'low', 'high': 'high'},
-        #'vonmises':       {'mu': 'mu', 'kappa': 'kappa'},
+        # 'uniform_int':    {'low': 'low', 'high': 'high'},
+        # 'vonmises':       {'mu': 'mu', 'kappa': 'kappa'},
     }
 
     def next(self, n=None, distribution=None, parameters=None, mask=None):
@@ -84,5 +84,6 @@ class NESTRandomDistribution(object):
                 print("Multiplying parameter %s by %s" % (parameter_name, value))
                 new_parameters[parameter_name] *= value
         else:
-            raise NotImplementedError("Scaling not supported or not yet implemented for the %s distribution" % self.name)
+            raise NotImplementedError(
+                f"Scaling not supported or not yet implemented for the {self.name} distribution")
         return NESTRandomDistribution(self.name, new_parameters)

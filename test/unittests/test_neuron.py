@@ -246,8 +246,8 @@ class TestPopulation(unittest.TestCase):
                                                       'cm': lambda i: 0.987 + 0.01 * i,
                                                       'i_offset': np.array([-0.21, -0.20, -0.19, -0.18])}))
 
-    def test__get_parameters(self):
-        ps = self.p._get_parameters('c_m', 'tau_m', 'e_e', 'i_offset')
+    def test__get_native_parameters(self):
+        ps = self.p._get_native_parameters('c_m', 'tau_m', 'e_e', 'i_offset')
         ps.evaluate(simplify=True)
         assert_array_almost_equal(ps['c_m'], np.array([0.987, 0.997, 1.007, 1.017], float),
                                   decimal=12)
@@ -426,13 +426,13 @@ class TestRecorder(unittest.TestCase):
 class TestStandardIF(unittest.TestCase):
 
     def test_create_cond_exp(self):
-        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        cell = cells.StandardIFStandardReceptors("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
         self.assertAlmostEqual(cell.area(), 1e5, places=10)  # µm²
         self.assertEqual(cell(0.5).cm, 0.246)
         self.assertEqual(cell(0.5).pas.g, 2e-5)
 
     def test_get_attributes(self):
-        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        cell = cells.StandardIFStandardReceptors("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
         self.assertAlmostEqual(cell.tau_m, 12.3, places=10)
         self.assertAlmostEqual(cell.c_m, 0.246, places=10)
 

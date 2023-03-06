@@ -2,7 +2,7 @@
 """
 Standard cells for the nineml module.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -10,10 +10,9 @@ import logging
 import nineml.user as nineml
 import nineml.abstraction as al
 
-from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
+from pyNN.standardmodels import cells, synapses, electrodes, build_translations
 from .simulator import state
-from .utility import (build_parameter_set, catalog_url,
-                      map_random_distribution_parameters)
+from .utility import build_parameter_set, catalog_url
 
 
 logger = logging.getLogger("PyNN")
@@ -59,7 +58,8 @@ class CellTypeMixin(object):
             definition=nineml.Definition(definition, "dynamics"),
             parameters=build_parameter_set(self.spiking_component_parameters, shape))
 
-    def synaptic_receptor_component_to_nineml(self, receptor_type, label, shape, inline_definition=False):
+    def synaptic_receptor_component_to_nineml(self, receptor_type, label, shape,
+                                              inline_definition=False):
         """
         Return a 9ML user layer Component describing the post-synaptic mechanism
         (mathematical model + parameterization).
@@ -74,7 +74,8 @@ class CellTypeMixin(object):
         return nineml.SynapseType(
             name="%s post-synaptic response for %s" % (receptor_type, label),
             definition=nineml.Definition(definition, "dynamics"),
-            parameters=build_parameter_set(self.synaptic_receptor_parameters[receptor_type], shape))
+            parameters=build_parameter_set(self.synaptic_receptor_parameters[receptor_type],
+                                           shape))
 
 
 # class IF_curr_exp(cells.IF_curr_exp, CellTypeMixin):
@@ -199,10 +200,10 @@ class IF_cond_exp(cells.IF_cond_exp, CellTypeMixin):
         # subnodes={"cell": iaf,
         #          "excitatory": coba,
         #          "inhibitory": coba})
-        #iaf_2coba_model.connect_ports("cell.v", "excitatory.v")
-        #iaf_2coba_model.connect_ports("cell.v", "inhibitory.v")
-        #iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
-        #iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
+        # iaf_2coba_model.connect_ports("cell.v", "excitatory.v")
+        # iaf_2coba_model.connect_ports("cell.v", "inhibitory.v")
+        # iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
+        # iaf_2coba_model.connect_ports("excitatory.i_syn", "cell.i_syn")
         #
         # return iaf_2coba_model
 
@@ -321,8 +322,9 @@ class SynapseTypeMixin(object):
     def to_nineml(self):
         return nineml.ConnectionType(
             name="synapse type %d" % self.__class__.counter,
-            definition=nineml.Definition("%s/connectiontypes/%s" % (catalog_url, self.definition_file),
-                                         "dynamics"),
+            definition=nineml.Definition(
+                "%s/connectiontypes/%s" % (catalog_url, self.definition_file),
+                "dynamics"),
             parameters=build_parameter_set(self.parameters))
 
 
@@ -355,8 +357,9 @@ class CurrentSourceMixin(object):
     def to_nineml(self):
         return nineml.CurrentSourceType(
             name="current source %d" % self.__class__.counter,
-            definition=nineml.Definition("%s/currentsources/%s" % (catalog_url, self.definition_file),
-                                         "dynamics"),
+            definition=nineml.Definition(
+                "%s/currentsources/%s" % (catalog_url, self.definition_file),
+                "dynamics"),
             parameters=build_parameter_set(self.parameters))
 
 

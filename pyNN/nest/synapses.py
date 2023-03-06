@@ -2,14 +2,14 @@
 """
 Definition of NativeSynapseType class for NEST
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import nest
 
-from pyNN.models import BaseSynapseType
-from pyNN.errors import NoModelAvailableError
+from ..models import BaseSynapseType
+from ..errors import NoModelAvailableError
 from .simulator import state
 from .conversion import make_pynn_compatible, make_sli_compatible
 
@@ -44,7 +44,7 @@ class NESTSynapseMixin(object):
         synapse_defaults.pop("tau_minus", None)
         try:
             nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        except nest.NESTError as err:
+        except nest.NESTError:
             if not state.extensions_loaded:
                 raise NoModelAvailableError(
                     "{self.__class__.__name__} is not available."

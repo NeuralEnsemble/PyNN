@@ -1,16 +1,17 @@
 """
 Synapse Dynamics classes for nest
 
-:copyright: Copyright 2006-2022 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-import nest
-from pyNN.standardmodels import synapses, build_translations
-from pyNN.nest.synapses import NESTSynapseMixin
 import logging
 
+import nest
+
+from ...standardmodels import synapses, build_translations
+from ..synapses import NESTSynapseMixin
 from ..conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
@@ -42,9 +43,9 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
                              "for the purpose of STDP calculations all delays "
                              "are assumed to be dendritic.")
         # could perhaps support axonal delays using parrot neurons?
-        super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
-                                            voltage_dependence, dendritic_delay_fraction,
-                                            weight, delay)
+        super().__init__(timing_dependence, weight_dependence,
+                         voltage_dependence, dendritic_delay_fraction,
+                         weight, delay)
 
     def _get_nest_synapse_model(self):
         base_model = self.possible_models
@@ -55,8 +56,9 @@ class STDPMechanism(synapses.STDPMechanism, NESTSynapseMixin):
             logger.warning("By default, %s is used" % base_model)
         available_models = nest.synapse_models
         if base_model not in available_models:
-            raise ValueError("Synapse dynamics model '%s' not a valid NEST synapse model. "
-                             "Possible models in your NEST build are: %s" % (base_model, available_models))
+            raise ValueError(f"Synapse dynamics model '{base_model}' "
+                             "not a valid NEST synapse model."
+                             f"Possible models in your NEST build are: {available_models}")
 
         # Defaults must be simple floats, so we use the NEST defaults
         # for any inhomogeneous parameters, and set the inhomogeneous values
@@ -162,7 +164,9 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         synapses.MultiplicativeWeightDependence.__init__(self, w_min, w_max)
 
 
-class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+class AdditivePotentiationMultiplicativeDepression(
+    synapses.AdditivePotentiationMultiplicativeDepression
+):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(

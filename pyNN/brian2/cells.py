@@ -1,18 +1,19 @@
 """
 Definition of cell classes for the brian2 module.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
-
+from functools import reduce
 import numpy as np
 import brian2
-from pyNN.parameters import Sequence, simplify
-from pyNN.core import is_listlike
-from pyNN import errors
-from pyNN.brian2 import simulator
+
+from ..parameters import Sequence, simplify
+from ..core import is_listlike
+from .. import errors
+from . import simulator
 
 mV = brian2.mV
 ms = brian2.ms
@@ -156,13 +157,10 @@ class AdaptiveNeuronGroup(BaseNeuronGroup):
 
     @tau_refrac.setter
     def tau_refrac(self, tau_refrac_value):
-        #self._refracvalue = tau_refrac_value * ms
-        #brian2.NeuronGroup.__setattr__(self, 'tau_refrac', tau_refrac_value)
         self._refractory = tau_refrac_value
 
     @v_reset.setter
     def v_reset(self, resetvalue):
-        #self._resetvalue = resetvalue * mV
         self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue / mV)
 
 
@@ -189,17 +187,6 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
         reset = 'v = {}*mV; g_r+= {}*nS; g_s+={}*nS'.format(
             self._resetvalue / mV, self._q_rvalue / nS, self._q_svalue / nS)
         refractory = self._refracvalue
-        '''
-        threshold = brian2.SimpleFunThreshold(self.check_threshold)
-        period = simplify(parameters['tau_refrac'])
-        assert not hasattr(period, "__len__"), "Brian2 does not support heterogenerous refractory periods with CustomRefractoriness"
-        reset = brian2.SimpleCustomRefractoriness(
-                    AdaptiveReset2(parameters.pop('v_reset'),
-                                   parameters.pop('q_r'),
-                                   parameters.pop('q_s')),
-                    period=period * second)
-        refractory = None
-        '''
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold, reset=reset, refractory=refractory,
                                  method="rk2", **parameters)
@@ -222,24 +209,12 @@ class AdaptiveNeuronGroup2(BaseNeuronGroup):
 
     @tau_refrac.setter
     def tau_refrac(self, tau_refrac_value):
-        #self._refracvalue = tau_refrac_value * ms
-        #brian2.NeuronGroup.__setattr__(self, 'tau_refrac', tau_refrac_value)
         self._refractory = tau_refrac_value
 
     @v_reset.setter
     def v_reset(self, resetvalue):
-        #self._resetvalue = resetvalue * mV
         self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue / mV)
 
-    '''
-    tau_refrac = _new_property('', '_refractory_array', ms)
-    v_reset = _new_property('_resetfun.resetfun', 'v_reset', mV)
-    q_r = _new_property('_resetfun.resetfun', 'q_r', nA)
-    q_s = _new_property('_resetfun.resetfun', 'q_s', nA)
-
-    def check_threshold(self, v):
-        return v >= self.v_thresh
-    '''
 
 # The below can be replaced by
 # reset = '''v = v_reset
@@ -260,28 +235,14 @@ class IzhikevichReset(object):
 class IzhikevichNeuronGroup(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        #threshold = brian2.SimpleFunThreshold(self.check_threshold)
-        #threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0]*1000)
         threshold = 'v >= 30*mV'
         self._resetvalue = parameters.pop('v_reset')[0]
         self._dvalue = parameters.pop('d')[0]
         reset = 'v = {}*mV; u+={}*mV/ms'.format(self._resetvalue / mV, self._dvalue / (mV/ms))
-        '''
-        reset = brian2.SimpleCustomRefractoriness(
-                    IzhikevichReset(parameters['v_reset'],
-                                    parameters['d']),
-                    period=0 * ms)
-        '''
         refractory = 0 * ms
         BaseNeuronGroup.__init__(self, n, equations,
                                  threshold=threshold, reset=reset, refractory=refractory,
                                  **parameters)
-        #self._variable_refractory_time = True
-        #self._refractory_variable = None
-        #self._S0 = self._S[:, 0]
-
-    #v_reset = _new_property('_resetfun.resetfun', 'Vr', mV)
-    #b = _new_property('_resetfun.resetfun', 'b', nA)
 
     @property
     def v_reset(self):
@@ -293,7 +254,6 @@ class IzhikevichNeuronGroup(BaseNeuronGroup):
 
     @v_reset.setter
     def v_reset(self, resetvalue):
-        #self._resetvalue = resetvalue * mV
         self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue / mV)
 
 
@@ -339,7 +299,7 @@ class SpikeGeneratorGroup(brian2.SpikeGeneratorGroup):
     def _convert_sequences_to_arrays(self, spike_time_sequences):
         times = np.concatenate([seq.value for seq in spike_time_sequences])
         indices = np.concatenate([i * np.ones(seq.value.size)
-                                     for i, seq in enumerate(spike_time_sequences)])
+                                  for i, seq in enumerate(spike_time_sequences)])
         return indices, times * second
         # todo: try to push the multiplication by seconds back into the translation step.
         #       note that the scaling from ms to seconds does take place during translation
