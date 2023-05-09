@@ -1,35 +1,51 @@
 /*
- *  :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
 
-#ifndef SIMPLE_STOCHASTIC_CONNECTION_H
-#define SIMPLE_STOCHASTIC_CONNECTION_H
+#ifndef SIMPLE_STOCHASTIC_SYNAPSE_H
+#define SIMPLE_STOCHASTIC_SYNAPSE_H
 
 // Includes from nestkernel:
 #include "connection.h"
 
 
-/* BeginDocumentation
-  Name: simple_stochastic_synapse - Synapse dropping spikes stochastically.
+/* BeginUserDocs: synapse, short-term plasticity
 
-  Description:
-  This synapse will deliver spikes with probability p.
+Short description
++++++++++++++++++
 
-  Parameters:
-     p          double - probability that a spike is transmitted, default = 1.0 (i.e. spike is always transmitted)
+Synapse dropping spikes stochastically.
 
-  Transmits: SpikeEvent
+Description
++++++++++++
 
-  SeeAlso: static_synapse, synapsedict
-*/
+This synapse will deliver spikes with probability p.
+
+Parameters
+++++++++++
+
+= ==== =========================================================================================
+p real probability that a spike is transmitted, default = 1.0 (i.e. spike is always transmitted)
+= ==== =========================================================================================
+
+Transmits
++++++++++
+
+SpikeEvent
+
+SeeAlso
++++++++
+
+static_synapse, synapsedict
+EndUserDocs */
 
 namespace pynn
 {
 
 template < typename targetidentifierT >
-class SimpleStochasticConnection : public nest::Connection< targetidentifierT >
+class simple_stochastic_synapse : public nest::Connection< targetidentifierT >
 {
 private:
   double weight_; //!< Synaptic weight
@@ -46,7 +62,7 @@ public:
    * Default Constructor.
    * Sets default values for all parameters. Needed by GenericConnectorModel.
    */
-  SimpleStochasticConnection()
+  simple_stochastic_synapse()
     : ConnectionBase()
     , weight_( 1.0 )
     , p_( 1.0 )
@@ -54,7 +70,7 @@ public:
   }
 
   //! Default Destructor.
-  ~SimpleStochasticConnection()
+  ~simple_stochastic_synapse()
   {
   }
 
@@ -151,11 +167,11 @@ public:
 
 template < typename targetidentifierT >
 inline void
-SimpleStochasticConnection< targetidentifierT >::send( nest::Event& e,
+simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
   nest::thread t,
   const CommonPropertiesType& props )
 {
-  if ( nest::kernel().rng_manager.get_rng( t )->drand() < (1 - p_) )  // drop spike
+  if ( nest::get_vp_specific_rng( t )->drand() < (1 - p_) )  // drop spike
     return;
 
   // Even time stamp, we send the spike using the normal sending mechanism
@@ -169,7 +185,7 @@ SimpleStochasticConnection< targetidentifierT >::send( nest::Event& e,
 
 template < typename targetidentifierT >
 void
-SimpleStochasticConnection< targetidentifierT >::get_status(
+simple_stochastic_synapse< targetidentifierT >::get_status(
   DictionaryDatum& d ) const
 {
   ConnectionBase::get_status( d );
@@ -180,7 +196,7 @@ SimpleStochasticConnection< targetidentifierT >::get_status(
 
 template < typename targetidentifierT >
 void
-SimpleStochasticConnection< targetidentifierT >::set_status(
+simple_stochastic_synapse< targetidentifierT >::set_status(
   const DictionaryDatum& d,
   nest::ConnectorModel& cm )
 {
@@ -191,4 +207,4 @@ SimpleStochasticConnection< targetidentifierT >::set_status(
 
 } // namespace
 
-#endif // simple_stochastic_connection.h
+#endif // simple_stochastic_synapse.h

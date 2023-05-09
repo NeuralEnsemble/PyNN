@@ -3,13 +3,7 @@
 try:
     from setuptools import setup
     from setuptools.command.build_py import build_py as _build
-    from setuptools import version
-    if version.__version__ > '20.5':
-        tests_req = ['mpi4py', 'scipy;python_version>="3.4"',
-                     'matplotlib;python_version>="3.4"', 'Cheetah3',
-                     'h5py']
-    else:
-        tests_req = ['mpi4py', 'Cheetah3']
+    tests_req = ["mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py"]
 except ImportError:
     from distutils.core import setup
     from distutils.command.build_py import build_py as _build
@@ -23,15 +17,16 @@ def run_command(path, working_directory):
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          universal_newlines=True,
                          cwd=working_directory)
-    result = p.wait()
-    stdout = p.stdout.readlines()
-    return result, stdout
+    stdout, stderr = p.communicate()
+    return p.returncode, stdout.split("\n")
 
 
 class build(_build):
     """At the end of the build process, try to compile NEURON and NEST extensions."""
 
     def run(self):
+        self.distribution.convert_2to3_doctests = []  # workaround for bug
+        # see https://app.travis-ci.com/github/NeuralEnsemble/PyNN/jobs/582235672
         _build.run(self)
         # try to compile NEURON extensions
         nrnivmodl = self.find("nrnivmodl")
@@ -107,7 +102,7 @@ setup(
     description="A Python package for simulator-independent specification of neuronal network models",
     long_description=open("README.rst").read(),
     license="CeCILL http://www.cecill.info",
-    keywords="computational neuroscience simulation neuron nest brian neuromorphic",
+    keywords="computational neuroscience simulation neuron nest brian2 neuromorphic",
     url="http://neuralensemble.org/PyNN/",
     classifiers=['Development Status :: 4 - Beta',
                  'Environment :: Console',
@@ -116,12 +111,12 @@ setup(
                  'Natural Language :: English',
                  'Operating System :: OS Independent',
                  'Programming Language :: Python :: 3',
-                 'Programming Language :: Python :: 3.6',
                  'Programming Language :: Python :: 3.7',
                  'Programming Language :: Python :: 3.8',
+                 'Programming Language :: Python :: 3.9',
                  'Topic :: Scientific/Engineering'],
     cmdclass={'build_py': build},
-    install_requires=['numpy>=1.13.0', 'lazyarray>=0.3.4', 'neo>=0.8.0',
+    install_requires=['numpy>=1.18.5', 'lazyarray>=0.5.2', 'neo>=0.11.0',
                       'quantities>=0.12.1'],
     extras_require={
         'examples': ['matplotlib', 'scipy'],

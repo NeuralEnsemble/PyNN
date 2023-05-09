@@ -13,7 +13,7 @@ Functions:
 Constants:
     NMODL_DIR        - subdirectory to which NMODL mechanisms will be written
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
@@ -23,7 +23,7 @@ import os
 import neuron
 from pyNN.models import BaseCellType
 from pyNN.nineml.cells import build_nineml_celltype
-from nineml2nmodl import write_nmodl, write_nmodldirect, call_nrnivmodl
+from nineml2nmodl import write_nmodldirect, call_nrnivmodl
 
 
 h = neuron.h

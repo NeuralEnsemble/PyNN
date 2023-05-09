@@ -1,6 +1,5 @@
 
 import numpy as np
-from nose.plugins.skip import SkipTest
 try:
     import scipy
     have_scipy = True
@@ -8,14 +7,13 @@ except ImportError:
     have_scipy = False
 from numpy.testing import assert_array_equal
 import quantities as pq
-from nose.tools import assert_greater, assert_less, assert_raises
 from pyNN.parameters import Sequence
 from pyNN.errors import InvalidParameterValueError
+from .fixtures import run_with_simulators
+import pytest
 
-from .registry import register
 
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
     ifcell = sim.create(sim.EIF_cond_alpha_isfa_ista(
@@ -39,10 +37,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
     return data
 
 
-test_EIF_cond_alpha_isfa_ista.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -74,10 +69,8 @@ def test_HH_cond_exp(sim, plot_figure=False):
     assert first_spike / pq.ms - 2.95 < 0.01
 
 
-test_HH_cond_exp.__test__ = False
-
-
-@register(exclude=['brian2'])  # see issue 370
+# exclude brian2 - see issue 370
+@run_with_simulators("nest", "neuron")
 def issue367(sim, plot_figure=False):
     # AdEx dynamics for delta_T=0
     sim.setup(timestep=0.001, min_delay=0.1, max_delay=4.0)
@@ -101,22 +94,19 @@ def issue367(sim, plot_figure=False):
         plt.plot(vm.times, vm)
         plt.savefig("issue367_%s.png" % sim.__name__)
     print(sim.__name__, vm_before_spike)
-    errmsg = "v_thresh = {0}, vm_before_spike.mean() = {1}".format(v_thresh,
+    err_msg = "v_thresh = {0}, vm_before_spike.mean() = {1}".format(v_thresh,
                                                                    vm_before_spike.mean())
-    assert abs((vm_before_spike.mean() - v_thresh) / v_thresh) < 0.01, errmsg
+    assert abs((vm_before_spike.mean() - v_thresh) / v_thresh) < 0.01, err_msg
     sim.end()
     return data
 
 
-issue367.__test__ = False
-
-
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_SpikeSourcePoisson(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "rate": [100, 200, 1000.0],
@@ -155,20 +145,17 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
                       args=(0, expected_mean_isi),  # args are (loc, scale)
                       alternative='two-sided')
         print(expected_rate, expected_mean_isi, isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourcePoisson.__test__ = False
-
-
-@register(exclude=['brian2'])
+@run_with_simulators("nest", "neuron")
 def test_SpikeSourceGamma(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "beta": [100.0, 200.0, 1000.0],
@@ -214,20 +201,17 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
                       args=(alpha, 0, 1000.0/beta),  # args are (a, loc, scale)
                       alternative='two-sided')
         print(alpha, beta, expected_mean_isi, isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourceGamma.__test__ = False
-
-
-@register(exclude=['brian2'])
+@run_with_simulators("nest", "neuron")
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
     except ImportError:
-        raise SkipTest("scipy not available")
+        pytest.skip("scipy not available")
     sim.setup()
     params = {
         "rate": [100, 100, 50.0],
@@ -275,23 +259,21 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
                       args=(0, poisson_mean_isi),  # args are (loc, scale)
                       alternative='two-sided')
         print(expected_rate, poisson_mean_isi, corrected_isi.mean(), p, D)
-        assert_less(D, 0.1)
+        assert D < 0.1
 
     return data
 
 
-test_SpikeSourcePoissonRefractory.__test__ = False
-
-
-@register()
-def issue511(sim):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_issue511(sim):
     """Giving SpikeSourceArray an array of non-ordered spike times should produce an InvalidParameterValueError error"""
     sim.setup()
     celltype = sim.SpikeSourceArray(spike_times=[[2.4, 4.8, 6.6, 9.4], [3.5, 6.8, 9.6, 8.3]])
-    assert_raises(InvalidParameterValueError, sim.Population, 2, celltype)
+    with pytest.raises(InvalidParameterValueError):
+        sim.Population(2, celltype)
 
 
-@register()
+@run_with_simulators("nest", "neuron", "brian2")
 def test_update_SpikeSourceArray(sim, plot_figure=False):
     sim.setup()
     sources = sim.Population(2, sim.SpikeSourceArray(spike_times=[]))
@@ -311,7 +293,61 @@ def test_update_SpikeSourceArray(sim, plot_figure=False):
     assert_array_equal(data[0].magnitude, np.array([12, 15, 18, 22, 25]))
 
 
-test_update_SpikeSourceArray.__test__ = False
+@run_with_simulators("nest", "neuron", "brian2")
+def test_composed_neuron_model_homogeneous_receptors(sim, plot_figure=False):
+    sim.setup()
+    celltype1 = sim.PointNeuron(
+        sim.AdExp(tau_m=10.0, v_rest=-60.0),
+        AMPA=sim.AlphaPSR(tau_syn=1.0, e_syn=0.0),
+        NMDA=sim.AlphaPSR(tau_syn=20.0, e_syn=0.0),
+        GABAA=sim.AlphaPSR(tau_syn=1.5, e_syn=-70.0))
+    celltype2 = sim.PointNeuron(
+        sim.LIF(tau_m=10.0, v_rest=-60.0),
+        AMPA=sim.CurrExpPostSynapticResponse(tau_syn=1.0),
+        NMDA=sim.CurrExpPostSynapticResponse(tau_syn=20.0),
+        GABAA=sim.CurrExpPostSynapticResponse(tau_syn=1.5))
+    neurons1 = sim.Population(1, celltype1, initial_values={'v': -60.0})
+    neurons2 = sim.Population(1, celltype2, initial_values={'v': -60.0})
+
+    neurons = neurons1 + neurons2
+    neurons1.record(['v', 'AMPA.gsyn', 'NMDA.gsyn', 'GABAA.gsyn'])
+    neurons2.record(['v', 'AMPA.isyn', 'NMDA.isyn', 'GABAA.isyn'])
+
+    assert neurons.get("tau_m") == pytest.approx(10.0)
+    assert neurons1.get("GABAA.e_syn") == -70.0
+    assert neurons2.get("GABAA.tau_syn") == 1.5
+
+    inputs = sim.Population(
+        3,
+        sim.SpikeSourceArray(
+            spike_times=[Sequence([30.0]), Sequence([60.0]), Sequence([90.0])]
+        )
+    )
+    connections = {
+        "AMPA1": sim.Projection(inputs[0:1], neurons1, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.01, delay=1.5),
+                            receptor_type="AMPA", label="AMPA"),
+        "GABAA1": sim.Projection(inputs[1:2], neurons1, sim.AllToAllConnector(),
+                                synapse_type=sim.StaticSynapse(weight=0.1, delay=1.5),
+                                receptor_type="GABAA", label="GABAA"),
+        "NMDA1": sim.Projection(inputs[2:3], neurons1, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.005, delay=1.5),
+                            receptor_type="NMDA", label="NMDA"),
+        "AMPA2": sim.Projection(inputs[0:1], neurons2, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.01, delay=1.5),
+                            receptor_type="AMPA", label="AMPA"),
+        "GABAA2": sim.Projection(inputs[1:2], neurons2, sim.AllToAllConnector(),
+                                synapse_type=sim.StaticSynapse(weight=-0.1, delay=1.5),
+                                receptor_type="GABAA", label="GABAA"),
+        "NMDA2": sim.Projection(inputs[2:3], neurons2, sim.AllToAllConnector(),
+                            synapse_type=sim.StaticSynapse(weight=0.005, delay=1.5),
+                            receptor_type="NMDA", label="NMDA")
+    }
+    sim.run(200.0)
+    data = neurons.get_data().segments[0]
+    data.filter(name='AMPA.gsyn')
+    # for now, just check this runs without errors, todo: add some asserts about the data
+
 
 # todo: add test of Izhikevich model
 
@@ -327,5 +363,5 @@ if __name__ == '__main__':
     test_SpikeSourcePoisson(sim, plot_figure=args.plot_figure)
     test_SpikeSourceGamma(sim, plot_figure=args.plot_figure)
     test_SpikeSourcePoissonRefractory(sim, plot_figure=args.plot_figure)
-    issue511(sim)
+    test_issue511(sim)
     test_update_SpikeSourceArray(sim, plot_figure=args.plot_figure)

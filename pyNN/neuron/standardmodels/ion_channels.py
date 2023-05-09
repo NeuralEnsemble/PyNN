@@ -38,12 +38,3 @@ class PassiveLeak(standard.PassiveLeak):
     )
     model = "pas"
     conductance_density_parameter = 'g'
-
-
-class CondExpPostSynapticResponse(standard.CondExpPostSynapticResponse):
-    translations = build_translations(
-        ('density', 'density'),
-        ('e_rev', 'e_pas'),
-        ('tau_syn', 'tau_syn')
-    )
-    model = "ExpSyn"

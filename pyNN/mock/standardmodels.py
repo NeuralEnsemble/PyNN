@@ -1,12 +1,11 @@
-# encoding: utf-8
 """
 Standard cells for the mock module.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import cells, synapses, electrodes, build_translations, StandardCurrentSource
+from ..standardmodels import cells, synapses, electrodes, build_translations
 from .simulator import state
 import logging
 
@@ -190,7 +189,6 @@ class Izhikevich(cells.Izhikevich):
 class MockCurrentSource(object):
 
     def inject_into(self, cells):
-        __doc__ = StandardCurrentSource.inject_into.__doc__
         pass
 
 
@@ -310,7 +308,9 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     )
 
 
-class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+class AdditivePotentiationMultiplicativeDepression(
+    synapses.AdditivePotentiationMultiplicativeDepression
+):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(

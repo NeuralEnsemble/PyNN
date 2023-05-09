@@ -8,7 +8,7 @@ This module contains:
     is intended to be reused)
   * function factories for generating backend-specific API functions.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -26,7 +26,8 @@ class BaseState(object):
         """Initialize the simulator."""
         self.running = False
         self.t_start = 0
-        # a list of (population, variable, filename) combinations that should be written to file on end()
+        # a list of (population, variable, filename) combinations
+        # that should be written to file on end()
         self.write_on_end = []
         self.recorders = set([])
 

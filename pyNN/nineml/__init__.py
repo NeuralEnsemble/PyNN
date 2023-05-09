@@ -1,7 +1,7 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 import logging
@@ -10,10 +10,12 @@ from neo.io import get_io
 
 from .. import common, random, standardmodels as std
 from . import simulator
-from .standardmodels import *
-from .populations import Population, PopulationView, Assembly
+from .standardmodels import *                                   # noqa: F403, F401
+from .standardmodels import StaticSynapse
+from .populations import Population, PopulationView, Assembly   # noqa: F401
 from .projections import Projection
-from .connectors import *
+from .connectors import *                                       # noqa: F403, F401
+from .connectors import FixedProbabilityConnector
 
 logger = logging.getLogger("PyNN")
 random.get_mpi_config = lambda: (0, 1)
@@ -21,7 +23,8 @@ random.get_mpi_config = lambda: (0, 1)
 
 def list_standard_models():
     """Return a list of all the StandardCellType classes available for this simulator."""
-    return [obj.__name__ for obj in globals().values() if isinstance(obj, type) and issubclass(obj, std.StandardCellType)]
+    return [obj.__name__ for obj in globals().values()
+            if isinstance(obj, type) and issubclass(obj, std.StandardCellType)]
 
 
 def setup(timestep=0.1, min_delay=0.1, **extra_params):

@@ -5,21 +5,24 @@ potential etc).
 These classes and functions are not part of the PyNN API, and are only for
 internal use.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import logging
-import numpy as np
+from datetime import datetime
 import os
 from copy import copy
 from collections import defaultdict, namedtuple
 from warnings import warn
-from datetime import datetime
-from pyNN import errors
+
+import numpy as np
 import neo
 import quantities as pq
+
+from .. import errors
+
 
 logger = logging.getLogger("PyNN")
 
@@ -34,15 +37,16 @@ def get_mpi_comm():
         from mpi4py import MPI
     except ImportError:
         raise Exception(
-            "Trying to gather data without MPI installed. If you are not running a distributed simulation, this is a bug in PyNN.")
+            "Trying to gather data without MPI installed. "
+            "If you are not running a distributed simulation, this is a bug in PyNN.")
     return MPI.COMM_WORLD, {'DOUBLE': MPI.DOUBLE, 'SUM': MPI.SUM}
 
 
 def rename_existing(filename):
     if os.path.exists(filename):
         os.system('mv %s %s_old' % (filename, filename))
-        logger.warning("File %s already exists. Renaming the original file to %s_old" %
-                       (filename, filename))
+        logger.warning(f"File {filename} already exists. "
+                       "Renaming the original file to {filename}_old")
 
 
 def gather_array(data):
@@ -91,7 +95,14 @@ def gather_blocks(data, ordered=True):
     merged = data
     if mpi_comm.rank == MPI_ROOT:
         merged = blocks[0]
+        # the following business with setting sig.segment is a workaround for a bug in Neo
+        for seg in merged.segments:
+            for sig in seg.analogsignals:
+                sig.segment = seg
         for block in blocks[1:]:
+            for seg, mseg in zip(block.segments, merged.segments):
+                for sig in seg.analogsignals:
+                    sig.segment = mseg
             merged.merge(block)
     if ordered:
         for segment in merged.segments:
@@ -157,9 +168,12 @@ def get_io(filename):
     extension = os.path.splitext(filename)[1]
     if extension in ('.txt', '.ras', '.v', '.gsyn'):
         raise IOError(
-            "ASCII-based formats are not currently supported for output data. Try using the file extension '.pkl' or '.h5'")
-    elif extension in ('.h5',):
-        return neo.io.NeoHdf5IO(filename=filename)
+            "ASCII-based formats are not currently supported for output data. "
+            "Try using the file extension '.nwb', '.nix', '.pkl' or '.h5'")
+    elif extension in ('.nix', '.h5'):
+        return neo.io.NixIO(filename=filename)
+    elif extension in ('.nwb',):
+        return neo.io.NWBIO(filename=filename, mode="w")
     elif extension in ('.pkl', '.pickle'):
         return neo.io.PickleIO(filename=filename)
     elif extension == '.mat':
@@ -236,6 +250,10 @@ class Recorder(object):
         self.clear_flag = False
         self._recording_start_time = self._simulator.state.t * pq.ms
         self.sampling_interval = self._simulator.state.dt
+        if hasattr(self._simulator.state, "record_sample_times"):
+            self.record_times = self._simulator.state.record_sample_times
+        else:
+            self.record_times = False
 
     def record(self, variables, ids, sampling_interval=None, locations=None):
         """
@@ -264,7 +282,8 @@ class Recorder(object):
                 recorded_variables.remove("spikes")
             if len(recorded_variables) > 0:
                 raise ValueError(
-                    "All neurons in a population must be recorded with the same sampling interval.")
+                    "All neurons in a population must be recorded "
+                    "with the same sampling interval.")
 
     def reset(self):
         """Reset the list of things to be recorded."""
@@ -280,7 +299,9 @@ class Recorder(object):
     def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = neo.Segment(name="segment%03d" % self._simulator.state.segment_counter,
                               description=self.population.describe(),
-                              rec_datetime=datetime.now())  # would be nice to get the time at the start of the recording, not the end
+                              # would be nice to get the time at the start of the recording,
+                              # not the end
+                              rec_datetime=datetime.now())
         variables_to_include = set(self.recorded.keys())
         if variables != 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
@@ -290,55 +311,110 @@ class Recorder(object):
                 sids = sorted(self.filter_recorded(Variable(name='spikes',
                                                             location=None),
                                                    filter_ids))
-                data = self._get_spiketimes(sids)
+                data = self._get_spiketimes(sids, clear=clear)
 
-                segment.spiketrains = []
-                for id in sids:
-                    times = pq.Quantity(data.get(int(id), []), pq.ms)
+                if isinstance(data, dict):
+                    for id in sids:
+                        times = pq.Quantity(data.get(int(id), []), pq.ms)
+                        if times.size > 0 and times.max() > t_stop:
+                            warn("Recorded at least one spike after t_stop")
+                            times = times[times <= t_stop]
+                        segment.spiketrains.append(
+                            neo.SpikeTrain(
+                                times,
+                                t_start=self._recording_start_time,
+                                t_stop=t_stop,
+                                units='ms',
+                                source_population=self.population.label,
+                                source_id=int(id),
+                                source_index=self.population.id_to_index(int(id)))
+                        )
+                        for train in segment.spiketrains:
+                            train.segment = segment
+                else:
+                    assert isinstance(data, tuple)
+                    id_array, times = data
+                    times *= pq.ms
                     if times.size > 0 and times.max() > t_stop:
                         warn("Recorded at least one spike after t_stop")
-                        times = times[times <= t_stop]
-                    segment.spiketrains.append(
-                        neo.SpikeTrain(times,
-                                       t_start=self._recording_start_time,
-                                       t_stop=t_stop,
-                                       units='ms',
-                                       source_population=self.population.label,
-                                       source_id=int(id), source_index=self.population.id_to_index(int(id)))
+                        mask = times <= t_stop
+                        times = times[mask]
+                        id_array = id_array[mask]
+                    segment.spiketrains = neo.spiketrainlist.SpikeTrainList.from_spike_time_array(
+                        times, id_array,
+                        np.array(sids, dtype=int),
+                        t_stop=t_stop,
+                        units="ms",
+                        t_start=self._recording_start_time,
+                        source_population=self.population.label
                     )
+                    segment.spiketrains.segment = segment
             else:
                 ids = sorted(self.filter_recorded(variable, filter_ids))
-                signal_array = self._get_all_signals(variable, ids, clear=clear)
-                t_start = self._recording_start_time
-                sampling_period = self.sampling_interval * pq.ms
-                current_time = self._simulator.state.t * pq.ms
+                signal_array, times_array = self._get_all_signals(variable, ids, clear=clear)
                 mpi_node = self._simulator.state.mpi_rank  # for debugging
-                if signal_array.size > 0:  # may be empty if none of the recorded cells are on this MPI node
+                if signal_array.size > 0:
+                    # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = np.fromiter(ids, dtype=int)
+                    channel_index = np.array([self.population.id_to_index(id) for id in ids])
                     if variable.location_label:
                         signal_name = "{}.{}".format(variable.location_label, variable.name)
                     elif variable.location:
                         signal_name = "{}.{}".format(variable.location, variable.name)
                     else:
                         signal_name = variable.name
-                    signal = neo.AnalogSignal(
-                        signal_array,
-                        units=units,
-                        t_start=t_start,
-                        sampling_period=sampling_period,
+                    if self.record_times:
+                        if signal_array.shape == times_array.shape:
+                            # in the current version of Neo, all channels in
+                            # IrregularlySampledSignal must have the same sample times,
+                            # so we need to create here a list of signals
+                            signals = [
+                                neo.IrregularlySampledSignal(
+                                    times_array[:, i],
+                                    signal_array[:, i],
+                                    units=units,
+                                    time_units=pq.ms,
                                     name=signal_name,
-                        source_population=self.population.label,
-                        source_ids=source_ids)
-                    signal.channel_index = neo.ChannelIndex(
-                        index=np.arange(source_ids.size),
-                        channel_ids=np.array([self.population.id_to_index(id) for id in ids]))
-                    segment.analogsignals.append(signal)
-                    logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                 source_ids, signal.channel_index)
-                    assert segment.analogsignals[0].t_stop - \
-                        current_time - 2 * sampling_period < 1e-10
-                    # need to add `Unit` and `RecordingChannelGroup` objects
+                                    source_ids=[source_id],
+                                    source_population=self.population.label,
+                                    array_annotations={"channel_index": [i]}
+                                )
+                                for i, source_id in zip(channel_index, source_ids)
+                            ]
+                        else:
+                            # all channels have the same sample times
+                            assert signal_array.shape[0] == times_array.size
+                            signals = [
+                                neo.IrregularlySampledSignal(
+                                    times_array, signal_array, units=units, time_units=pq.ms,
+                                    name=signal_name, source_ids=source_ids,
+                                    source_population=self.population.label,
+                                    array_annotations={"channel_index": channel_index}
+                                )
+                            ]
+                        segment.irregularlysampledsignals.extend(signals)
+                        for signal in signals:
+                            signal.segment = segment
+                    else:
+                        t_start = self._recording_start_time
+                        t_stop = self._simulator.state.t * pq.ms
+                        sampling_period = self.sampling_interval * pq.ms
+                        current_time = self._simulator.state.t * pq.ms
+                        signal = neo.AnalogSignal(
+                            signal_array,
+                            units=units,
+                            t_start=t_start,
+                            sampling_period=sampling_period,
+                            name=signal_name, source_ids=source_ids,
+                            source_population=self.population.label,
+                            array_annotations={"channel_index": channel_index}
+                        )
+                        assert signal.t_stop - current_time - 2 * sampling_period < 1e-10
+                        logger.debug("%d **** ids=%s, channels=%s", mpi_node,
+                                     source_ids, signal.array_annotations["channel_index"])
+                        segment.analogsignals.append(signal)
+                        signal.segment = segment
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
@@ -351,12 +427,13 @@ class Recorder(object):
             localized_variables = localize_variables(variables, locations)
         data.segments = [filter_by_variables(segment, localized_variables)
                          for segment in self.cache]
-        if self._simulator.state.running:  # reset() has not been called, so current segment is not in cache
-            data.segments.append(self._get_current_segment(filter_ids=filter_ids, variables=localized_variables, clear=clear))
+        if self._simulator.state.running:
+            # reset() has not been called, so current segment is not in cache
+            data.segments.append(self._get_current_segment(
+                filter_ids=filter_ids, variables=localized_variables, clear=clear))
         # collect channel indexes
         for segment in data.segments:
-            for signal in segment.analogsignals:
-                data.channel_indexes.append(signal.channel_index)
+            segment.block = data
         data.name = self.population.label
         data.description = self.population.describe()
         data.rec_datetime = data.segments[0].rec_datetime
@@ -365,7 +442,10 @@ class Recorder(object):
             data.annotate(**annotations)
         if gather and self._simulator.state.num_processes > 1:
             data = gather_blocks(data)
-            if hasattr(self.population.celltype, "always_local") and self.population.celltype.always_local:
+            if (
+                hasattr(self.population.celltype, "always_local")
+                and self.population.celltype.always_local
+            ):
                 data = remove_duplicate_spiketrains(data)
         if clear:
             self.clear()

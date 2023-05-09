@@ -2,15 +2,13 @@
 """
 Export of PyNN scripts as NineML.
 
-:copyright: Copyright 2006-2013 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from itertools import repeat, izip
 import nineml.user as nineml
 
 from pyNN import common
-from pyNN.parameters import ParameterSpace
 from pyNN.space import Space
 from . import simulator
 from .utility import catalog_url, build_parameter_set

@@ -1,5 +1,5 @@
 from pyNN import common, errors, standardmodels
-from nose.tools import assert_equal, assert_raises
+import pytest
 
 
 class MockStandardCell(standardmodels.StandardCellType):
@@ -78,37 +78,42 @@ class Test_IDMixin():
         self.id_ns = MockID(standard_cell=False)
 
     # def test_getattr_with_parameter_attr(self):
-    #    assert_equal(self.id.a, 76.5)
-    #    assert_equal(self.id_ns.A, 76.5)
-    #    assert_raises(errors.NonExistentParameterError, self.id.__getattr__, "tau_m")
-    #    assert_raises(errors.NonExistentParameterError, self.id_ns.__getattr__, "tau_m")
+    #    assert self.id.a == 76.5
+    #    assert self.id_ns.A == 76.5
+    #    with pytest.raises(errors.NonExistentParameterError):
+    #       self.id.__getattr__("tau_m")
+    #    with pytest.raises(errors.NonExistentParameterError):
+    #        self.id_ns.__getattr__("tau_m")
 
     def test_getattr_with_nonparameter_attr(self):
-        assert_equal(self.id.foo, "bar")
-        assert_equal(self.id_ns.foo, "bar")
+        assert self.id.foo == "bar"
+        assert self.id_ns.foo == "bar"
 
     def test_getattr_with_parent_not_set(self):
         del(self.id.parent)
-        assert_raises(Exception, self.id.__getattr__, "parent")
+        with pytest.raises(Exception):
+            self.id.__getattr__("parent")
 
     # def test_setattr_with_parameter_attr(self):
     #    self.id.a = 87.6
     #    self.id_ns.A = 98.7
-    #    assert_equal(self.id.a, 87.6)
-    #    assert_equal(self.id_ns.A, 98.7)
+    #    assert self.id.a == 87.6
+    #    assert self.id_ns.A == 98.7
 
     # def test_set_parameters(self):
-    #    assert_raises(errors.NonExistentParameterError, self.id.set_parameters, hello='world')
-    #    ##assert_raises(errors.NonExistentParameterError, self.id_ns.set_parameters, hello='world')
+    #    with pytest.raises(errors.NonExistentParameterError):
+    #        self.id.set_parameters(hello='world')
+    #    ##with pytest.raises(errors.NonExistentParameterError):
+    #    ##    self.id_ns.set_parameters(hello='world')
     #    self.id.set_parameters(a=12.3, c=77.7)
-    #    assert_equal(self.id._parameters, {'A': 12.3, 'B': 23.4, 'C': 90.0})
+    #    assert self.id._parameters == {'A': 12.3, 'B': 23.4, 'C': 90.0}
 
     # def test_get_parameters(self):
-    #    assert_equal(self.id.get_parameters(), {'a': 76.5, 'b': 23.4, 'c': 23.5})
+    #    assert self.id.get_parameters() == {'a': 76.5, 'b': 23.4, 'c': 23.5}
 
     def test_celltype_property(self):
-        assert_equal(self.id.celltype.__class__, MockStandardCell)
-        assert_equal(self.id_ns.celltype.__class__, MockNativeCell)
+        assert self.id.celltype.__class__ == MockStandardCell
+        assert self.id_ns.celltype.__class__ == MockNativeCell
 
     def test_is_standard_cell(self):
         assert self.id.is_standard_cell
@@ -116,9 +121,9 @@ class Test_IDMixin():
 
     def test_position_property(self):
         for id in (self.id, self.id_ns):
-            assert_equal(id.position, (1.2, 3.4, 5.6))
+            assert id.position == (1.2, 3.4, 5.6)
             id.position = (9, 8, 7)
-            assert_equal(id.parent._positions[id], (9, 8, 7))
+            assert id.parent._positions[id] == (9, 8, 7)
 
     def test_local_property(self):
         for id in (self.id, self.id_ns):
@@ -130,11 +135,11 @@ class Test_IDMixin():
         for id in (self.id, self.id_ns):
             cs = MockCurrentSource()
             id.inject(cs)
-            assert_equal(cs._inject_into, [id])
+            assert cs._inject_into == [id]
 
     def test_get_initial_value(self):
         self.id.get_initial_value('v')
 
     def test_set_initial_value(self):
         self.id.set_initial_value('v', -77.7)
-        assert_equal(self.id.parent._initial_values[self.id], ('v', -77.7))
+        assert self.id.parent._initial_values[self.id] == ('v', -77.7)

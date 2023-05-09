@@ -1,7 +1,7 @@
 """
 Tests of the Connector classes, using the pyNN.mock backend.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -416,7 +416,10 @@ class TestFromFileConnector(unittest.TestCase):
     def tearDown(self, sim=sim):
         for path in ("test.connections", "test.connections.1", "test.connections.2"):
             if os.path.exists(path):
-                os.remove(path)
+                try:
+                    os.remove(path)
+                except PermissionError:
+                    pass
 
     def test_connect_with_standard_text_file_not_distributed(self, sim=sim):
         np.savetxt("test.connections", self.connection_list)

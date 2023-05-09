@@ -2,12 +2,12 @@
 Base classes for cell and synapse models, whether "standard" (cross-simulator)
 or "native" (restricted to an individual simulator).
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN import descriptions
-from pyNN.parameters import ParameterSpace
+from . import descriptions
+from .parameters import ParameterSpace
 
 
 class BaseModelType(object):
@@ -63,7 +63,8 @@ class BaseModelType(object):
             "name": self.__class__.__name__,
             "default_parameters": self.default_parameters,
             "default_initial_values": self.default_initial_values,
-            "parameters": self.parameter_space._parameters,  # should add a describe() method to ParameterSpace
+            "parameters": self.parameter_space._parameters,
+            # should add a describe() method to ParameterSpace
         }
         return descriptions.render(engine, template, context)
 
@@ -92,6 +93,16 @@ class BasePostSynapticResponseModel(BaseModelType):
     pass
 
 
+class BaseCellTypeComponent(BaseModelType):
+    """docstring needed"""
+    pass
+
+
+class BasePostSynapticResponse(BaseModelType):
+    """docstring needed"""
+    pass
+
+
 class BaseCurrentSource(BaseModelType):
     """Base class for current source model classes."""
     pass
@@ -102,7 +113,8 @@ class BaseSynapseType(BaseModelType):
 
     # override to specify a non-standard connection type (i.e. GapJunctions)
     connection_type = None
-    has_presynaptic_components = False  # override for synapses that include an active presynaptic components
+    # override for synapses that include an active presynaptic components
+    has_presynaptic_components = False
 
     def __init__(self, **parameters):
         """

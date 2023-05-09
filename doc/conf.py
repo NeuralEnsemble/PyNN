@@ -69,7 +69,7 @@ master_doc = 'index'
 # General information about the project.
 project = u'PyNN'
 authors = u'the PyNN community'
-copyright = u'2006-2020, ' + authors
+copyright = u'2006-2023, ' + authors
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -293,4 +293,4 @@ todo_include_todos = True
 
 # -- inter-Sphinx mapping options ----------------------------------------------
 
-intersphinx_mapping = {'python': ('http://docs.python.org/3.8', None)}
+intersphinx_mapping = {'python': ('http://docs.python.org/3.9', None)}

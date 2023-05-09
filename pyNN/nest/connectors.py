@@ -1,9 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-Connection method classes for nest
+Connection method classes for NEST.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging
@@ -14,25 +14,26 @@ try:
     haveCSA = True
 except ImportError:
     haveCSA = False
-from pyNN import random
-from pyNN.connectors import (Connector,
-                             AllToAllConnector,
-                             FixedProbabilityConnector,
-                             OneToOneConnector,
-                             FixedNumberPreConnector,
-                             FixedNumberPostConnector,
-                             DistanceDependentProbabilityConnector,
-                             DisplacementDependentProbabilityConnector,
-                             IndexBasedProbabilityConnector,
-                             SmallWorldConnector,
-                             FromListConnector,
-                             FromFileConnector,
-                             CloneConnector,
-                             ArrayConnector,
-                             FixedTotalNumberConnector,
-                             CSAConnector as DefaultCSAConnector)
 
-from .random import NativeRNG, NEST_RDEV_TYPES
+from .. import random
+from ..connectors import (                      # noqa: F401
+    Connector,
+    AllToAllConnector,
+    FixedProbabilityConnector,
+    OneToOneConnector,
+    FixedNumberPreConnector,
+    FixedNumberPostConnector,
+    DistanceDependentProbabilityConnector,
+    DisplacementDependentProbabilityConnector,
+    IndexBasedProbabilityConnector,
+    SmallWorldConnector,
+    FromListConnector,
+    FromFileConnector,
+    CloneConnector,
+    ArrayConnector,
+    FixedTotalNumberConnector,
+    CSAConnector as DefaultCSAConnector)
+from .random import NativeRNG
 
 
 logger = logging.getLogger("PyNN")
@@ -85,20 +86,23 @@ class CSAConnector(DefaultCSAConnector):
 class NESTConnectorMixin(object):
 
     def synapse_parameters(self, projection):
-        params = {'model': projection.nest_synapse_model}
+        params = {'synapse_model': projection.nest_synapse_model}
         parameter_space = self._parameters_from_synapse_type(projection, distance_map=None)
         for name, value in parameter_space.items():
             if name in ('tau_minus', 'dendritic_delay_fraction', 'w_min_always_zero_in_NEST'):
                 continue
-            if isinstance(value.base_value, random.RandomDistribution):     # Random Distribution specified
+            if isinstance(value.base_value, random.RandomDistribution):
+                # Random Distribution specified
                 if isinstance(value.base_value.rng, NativeRNG):
                     logger.warning(
                         "Random values will be created inside NEST with NEST's own RNGs")
-                    params[name] = value.evaluate().repr()
+                    # todo: re-enable support for clipped and clipped_to_boundary
+                    params[name] = value.evaluate().as_nest_object()
                 else:
                     value.shape = (projection.pre.size, projection.post.size)
                     params[name] = value.evaluate()
-            else:                                             # explicit values given
+            else:
+                # explicit values given
                 if value.is_homogeneous:
                     params[name] = value.evaluate(simplify=True)
                 elif value.shape:
@@ -106,10 +110,16 @@ class NESTConnectorMixin(object):
                     params[name] = value.evaluate().flatten()
                 else:
                     value.shape = (1, 1)
-                    # If parameter is given as a single number. Checking of the dimensions should be done in NEST
+                    # If parameter is given as a single number.
+                    # Checking of the dimensions should be done in NEST
                     params[name] = float(value.evaluate())
-                if name == "weight" and projection.receptor_type == 'inhibitory' and self.post.conductance_based:
-                    # NEST wants negative values for inhibitory weights, even if these are conductances
+                if (
+                    name == "weight"
+                    and projection.receptor_type == 'inhibitory'
+                    and self.post.conductance_based
+                ):
+                    # NEST wants negative values for inhibitory weights,
+                    # even if these are conductances
                     params[name] *= -1
         return params
 
@@ -117,15 +127,18 @@ class NESTConnectorMixin(object):
 class FixedProbabilityConnector(FixedProbabilityConnector, NESTConnectorMixin):
 
     def connect(self, projection):
-        if projection.synapse_type.native_parameters.has_native_rngs or isinstance(self.rng, NativeRNG):
+        if (
+            projection.synapse_type.native_parameters.has_native_rngs
+            or isinstance(self.rng, NativeRNG)
+        ):
             return self.native_connect(projection)
         else:
             return super(FixedProbabilityConnector, self).connect(projection)
 
     def native_connect(self, projection):
         syn_params = self.synapse_parameters(projection)
-        rule_params = {'autapses': self.allow_self_connections,
-                       'multapses': False,
+        rule_params = {'allow_autapses': self.allow_self_connections,
+                       'allow_multapses': False,
                        'rule': 'pairwise_bernoulli',
                        'p': self.p_connect}
         projection._connect(rule_params, syn_params)
@@ -142,8 +155,8 @@ class AllToAllConnector(AllToAllConnector, NESTConnectorMixin):
 
     def native_connect(self, projection):
         syn_params = self.synapse_parameters(projection)
-        rule_params = {'autapses': self.allow_self_connections,
-                       'multapses': False,
+        rule_params = {'allow_autapses': self.allow_self_connections,
+                       'allow_multapses': False,
                        'rule': 'all_to_all'}
         projection._connect(rule_params, syn_params)
 

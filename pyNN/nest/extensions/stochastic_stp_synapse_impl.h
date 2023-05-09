@@ -1,15 +1,15 @@
 /*
- *  stochastic_stp_connection_impl.h
+ *  stochastic_stp_synapse_impl.h
  *
- *  :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
 
-#ifndef STOCHASTIC_STP_CONNECTION_IMPL_H
-#define STOCHASTIC_STP_CONNECTION_IMPL_H
+#ifndef STOCHASTIC_STP_SYNAPSE_IMPL_H
+#define STOCHASTIC_STP_SYNAPSE_IMPL_H
 
-#include "stochastic_stp_connection.h"
+#include "stochastic_stp_synapse.h"
 
 // Includes from nestkernel:
 #include "connection.h"
@@ -23,7 +23,7 @@ namespace pynn
 {
 
 template < typename targetidentifierT >
-StochasticStpConnection< targetidentifierT >::StochasticStpConnection()
+stochastic_stp_synapse< targetidentifierT >::stochastic_stp_synapse()
   : ConnectionBase()
   , weight_( 1.0 )
   , U_( 0.5 )
@@ -37,8 +37,8 @@ StochasticStpConnection< targetidentifierT >::StochasticStpConnection()
 }
 
 template < typename targetidentifierT >
-StochasticStpConnection< targetidentifierT >::StochasticStpConnection(
-  const StochasticStpConnection& rhs )
+stochastic_stp_synapse< targetidentifierT >::stochastic_stp_synapse(
+  const stochastic_stp_synapse& rhs )
   : ConnectionBase( rhs )
   , weight_( rhs.weight_ )
   , U_( rhs.U_ )
@@ -54,7 +54,7 @@ StochasticStpConnection< targetidentifierT >::StochasticStpConnection(
 
 template < typename targetidentifierT >
 void
-StochasticStpConnection< targetidentifierT >::get_status(
+stochastic_stp_synapse< targetidentifierT >::get_status(
   DictionaryDatum& d ) const
 {
   ConnectionBase::get_status( d );
@@ -68,7 +68,7 @@ StochasticStpConnection< targetidentifierT >::get_status(
 
 template < typename targetidentifierT >
 void
-StochasticStpConnection< targetidentifierT >::set_status(
+stochastic_stp_synapse< targetidentifierT >::set_status(
   const DictionaryDatum& d,
   nest::ConnectorModel& cm )
 {
@@ -83,4 +83,4 @@ StochasticStpConnection< targetidentifierT >::set_status(
 
 } // of namespace pynn
 
-#endif // #ifndef STOCHASTIC_STP_CONNECTION_IMPL_H
+#endif // #ifndef STOCHASTIC_STP_SYNAPSE_IMPL_H

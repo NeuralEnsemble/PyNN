@@ -22,6 +22,7 @@
 x86_64
 i386
 i686
+arm64
 _build
 
 # Python files

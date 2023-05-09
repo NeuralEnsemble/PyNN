@@ -1,7 +1,7 @@
 from itertools import repeat
-from pyNN import common
-from pyNN.core import ezip
-from pyNN.space import Space
+from .. import common
+from ..core import ezip
+from ..space import Space
 from . import simulator
 
 

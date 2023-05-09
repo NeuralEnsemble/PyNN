@@ -1,14 +1,12 @@
 """
 Cell models generated from 9ML
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import logging
 from itertools import chain
-import nineml.abstraction as nineml
-from pyNN.models import BaseCellType
 
 logger = logging.getLogger("PyNN")
 
@@ -76,7 +74,7 @@ class build_nineml_celltype(type):
 
         import nineml.abstraction as al
         from nineml.abstraction.dynamics.utils import (
-            flattener, xml, modifiers)
+            flattener, modifiers)
 
         # Extract Parameters Back out from Dict:
         combined_model = dct['combined_model']
@@ -104,9 +102,12 @@ class build_nineml_celltype(type):
                                              for statevar in chain(flat_component.state_variables))
         dct["receptor_types"] = list(weight_vars.keys())
         dct["standard_receptor_type"] = (dct["receptor_types"] == ('excitatory', 'inhibitory'))
-        # how to determine this? neuron component has a receive analog port with dimension current, that is not connected to a synapse port?
+        # how to determine this?
+        # neuron component has a receive analog port with dimension current,
+        # that is not connected to a synapse port?
         dct["injectable"] = False
-        # how to determine this? synapse component has a receive analog port with dimension voltage?
+        # how to determine this?
+        # synapse component has a receive analog port with dimension voltage?
         dct["conductance_based"] = True
         dct["model_name"] = name
         dct["units"] = dict((statevar.name, _default_units[statevar.dimension.name])

@@ -1,16 +1,15 @@
 """
+Brian 2 implementation of recording machinery.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import logging
-from collections import defaultdict
 import numpy as np
 import quantities as pq
 import brian2
-from pyNN.core import is_listlike
-from pyNN import recording
+from .. import recording
 from . import simulator
 
 mV = brian2.mV
@@ -27,7 +26,6 @@ class Recorder(recording.Recorder):
     _simulator = simulator
 
     def __init__(self, population=None, file=None):
-        __doc__ = recording.Recorder.__doc__
         recording.Recorder.__init__(self, population, file)
         self._devices = {}  # defer creation until first call of run()
 
@@ -37,7 +35,8 @@ class Recorder(recording.Recorder):
         if variable == 'spikes':
             self._devices[variable] = brian2.SpikeMonitor(group, record=self.recorded)
         else:
-            varname = self.population.celltype.state_variable_translations[variable]['translated_name']
+            translations = self.population.celltype.state_variable_translations
+            varname = translations[variable]['translated_name']
             neurons_to_record = np.sort(np.fromiter(
                 self.recorded[variable], dtype=int)) - self.population.first_id
             self._devices[variable] = brian2.StateMonitor(group, varname,
@@ -71,18 +70,11 @@ class Recorder(recording.Recorder):
         for device in self._devices.values():
             device.resize(0)
 
-    def _get_spiketimes(self, id):
-        if is_listlike(id):
-            all_spiketimes = {}
-            for cell_id in id:
-                i = cell_id - self.population.first_id
-                spiky = self._devices['spikes'].spike_trains()
-                all_spiketimes[cell_id] = spiky[i] / ms
-            return all_spiketimes
-        else:
-            i = id - self.population.first_id
-            spiky = self._devices['spikes'].spike_trains()
-            return spiky[i] / ms
+    def _get_spiketimes(self, requested_ids, clear=False):
+        id_array = self._devices["spikes"].i + self.population.first_id
+        times_array = self._devices["spikes"].t / ms
+        mask = np.in1d(id_array, requested_ids)
+        return id_array[mask], times_array[mask]
 
     def _get_all_signals(self, variable, ids, clear=False):
         # need to filter according to ids
@@ -96,8 +88,8 @@ class Recorder(recording.Recorder):
             values = getattr(device, varname).T
         else:
             raise NotImplementedError  # todo - construct a mask to get only the desired signals
-        values = self.population.celltype.state_variable_translations[variable]['reverse_transform'](
-            values)
+        translations = self.population.celltype.state_variable_translations[variable]
+        values = translations['reverse_transform'](**{translations['translated_name']: values})
         # because we use `when='end'`, need to add the value at the beginning of the run
         tmp = np.empty((values.shape[0] + 1, values.shape[1]))
         tmp[1:, :] = values
@@ -106,7 +98,8 @@ class Recorder(recording.Recorder):
         values = tmp
         if clear:
             self._devices[variable].resize(0)
-        return values
+        times = None
+        return values, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}
@@ -115,6 +108,5 @@ class Recorder(recording.Recorder):
         indices = np.fromiter(filtered_ids, dtype=int) - padding
         spiky = self._devices['spikes'].spike_trains()
         for i, id in zip(indices, filtered_ids):
-            #N[id] = len(self._devices['spikes'].spiketimes[i])
             N[id] = len(spiky[i])
         return N

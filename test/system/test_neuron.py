@@ -1,8 +1,4 @@
 import os
-from collections import defaultdict
-from nose.plugins.skip import SkipTest
-from .scenarios.registry import registry
-from nose.tools import assert_equal, assert_almost_equal, assert_false
 from numpy.testing import assert_array_equal
 from pyNN.random import RandomDistribution
 from pyNN.parameters import IonicSpecies
@@ -18,6 +14,8 @@ try:
     have_neuron = True
 except ImportError:
     have_neuron = False
+import pytest
+
 
 try:
     from neuroml import Morphology, Segment, Point3DWithDiam as P
@@ -34,23 +32,13 @@ if "JENKINS_SKIP_TESTS" in os.environ:
     skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
 
 
-def test_scenarios():
-    for scenario in registry:
-        if "neuron" not in scenario.exclude:
-            scenario.description = "{}(neuron)".format(scenario.__name__)
-            if have_neuron:
-                yield scenario, pyNN.neuron
-            else:
-                raise SkipTest
-
-
 def test_ticket168():
     """
     Error setting firing rate of `SpikeSourcePoisson` after `reset()` in NEURON
     http://neuralensemble.org/trac/PyNN/ticket/168
     """
     if not have_neuron:
-        raise SkipTest
+        pytest.skip("neuron not available")
     pynn = pyNN.neuron
     pynn.setup()
     cell = pynn.Population(1, pynn.SpikeSourcePoisson(), label="cell")
@@ -59,8 +47,8 @@ def test_ticket168():
     pynn.reset()
     cell[0].rate = 12
     pynn.run(10.)
-    assert_almost_equal(pynn.get_current_time(), 10.0, places=11)
-    assert_equal(cell[0]._cell.interval, 1000.0 / 12.0)
+    assert pynn.get_current_time() == pytest.approx(10.0)  # places=11)
+    assert cell[0]._cell.interval == 1000.0 / 12.0
 
 
 class SimpleNeuron(object):
@@ -140,9 +128,9 @@ if have_neuron:
 
 
 def test_electrical_synapse():
-    raise SkipTest("Skipping test for now as it produces a segmentation fault")
+    pytest.skip("Skipping test for now as it produces a segmentation fault")
     if skip_ci:
-        raise SkipTest("Skipping test on CI server as it produces a segmentation fault")
+        pytest.skip("Skipping test on CI server as it produces a segmentation fault")
     p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
@@ -174,7 +162,7 @@ def test_electrical_synapse():
 def test_record_native_model():
     raise SkipTest  # to fix once mc branch is stable
     if not have_neuron:
-        raise SkipTest
+        pytest.skip("neuron not available")
     nrn = pyNN.neuron
 
     init_logging(logfile=None, debug=True)
@@ -203,21 +191,24 @@ def test_record_native_model():
     nrn.run(250.0)
 
     data = p1.get_data().segments[0].analogsignals
-    assert_equal(len(data), 2)  # one array per variable
-    assert_equal(data[0].name, 'apical.v')
-    assert_equal(data[1].name, 'soma.ina')
-    assert_equal(data[0].sampling_rate, 10.0 * pq.kHz)
-    assert_equal(data[0].units, pq.mV)
-    assert_equal(data[1].units, pq.mA / pq.cm**2)
-    assert_equal(data[0].t_start, 0.0 * pq.ms)
-    assert_equal(data[0].t_stop, 250.1 * pq.ms)  # would prefer if it were 250.0, but this is a fundamental Neo issue
-    assert_equal(data[0].shape, (2501, 10))
+    assert len(data) == 2  # one array per variable
+    names = set(sig.name for sig in data)
+    assert names == set(('apical.v', 'soma.ina'))
+    apical_v = [sig for sig in data if sig.name == 'apical.v'][0]
+    soma_i = [sig for sig in data if sig.name == 'soma.ina'][0]
+    assert apical_v.sampling_rate == 10.0 * pq.kHz
+    assert apical_v.units == pq.mV
+    assert soma_i.units == pq.mA / pq.cm**2
+    assert apical_v.t_start == 0.0 * pq.ms
+    # would prefer if it were 250.0, but this is a fundamental Neo issue
+    assert apical_v.t_stop == 250.1 * pq.ms
+    assert apical_v.shape == (2501, 10)
     return data
 
 
 def test_tsodyks_markram_synapse():
     if not have_neuron:
-        raise SkipTest
+        pytest.skip("neuron not available")
     sim = pyNN.neuron
     sim.setup()
     spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
@@ -238,7 +229,7 @@ def test_tsodyks_markram_synapse():
 
 def test_artificial_cells():
     if not have_neuron:
-        raise SkipTest
+        pytest.skip("neuron not available")
     sim = pyNN.neuron
     sim.setup()
     input = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))

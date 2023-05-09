@@ -1,55 +1,67 @@
 /*
- *  stochastic_stp_connection.h
+ *  stochastic_stp_synapse.h
  *
- *  :copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+ *  :copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
  *  :license: CeCILL, see LICENSE for details.
  *
  */
 
-#ifndef STOCHASTIC_STP_CONNECTION_H
-#define STOCHASTIC_STP_CONNECTION_H
-
-// Includes from librandom:
-#include "binomial_randomdev.h"
+#ifndef STOCHASTIC_STP_SYNAPSE_H
+#define STOCHASTIC_STP_SYNAPSE_H
 
 // Includes from nestkernel:
 #include "connection.h"
 
-/* BeginDocumentation
-  Name: stochastic_stp_synapse - Probabilistic synapse model with short term
-  plasticity.
+/* BeginUserDocs: synapse, short-term plasticity
 
-  Description:
+Short description
++++++++++++++++++
 
-   This synapse model implements synaptic short-term depression and
-   short-term facilitation according to an algorithm developed by
-   the Blue Brain Project.
+Probabilistic synapse model with short term plasticity.
 
-   Parameters:
-     The following parameters can be set in the status dictionary:
-     U          double - Maximal fraction of available resources [0,1],
-                         default=0.5
-     u          double - release probability, default=0.5
-     p          double - probability that a vesicle is available, default = 1.0
-     R          double - recovered state {0=unrecovered, 1=recovered}, default=1
-     tau_rec    double - time constant for depression in ms, default=800 ms
-     tau_fac    double - time constant for facilitation in ms, default=0 (off)
-     t_surv     double - time since last evaluation of survival in ms, default=0
+Description
++++++++++++
 
-  Transmits: SpikeEvent
+This synapse model implements synaptic short-term depression and
+short-term facilitation according to an algorithm developed by
+the Blue Brain Project.
 
-  FirstVersion: December 2016
-  Author: Andrew Davison, based on quantal_stp_synapse
-          and the NMODL file ProbGABAAB_EMS.mod
-          from the Blue Brain Project
-  SeeAlso: tsodyks2_synapse, synapsedict, quantal_stp_synapse, static_synapse
-*/
+The implementation is based on quantal_stp_synapse and the NMODL
+file ProbGABAAB_EMS.mod from the Blue Brain Project.
+
+Parameters
+++++++++++
+
+The following parameters can be set in the status dictionary:
+
+======= ==== =======================================================
+U       real Maximal fraction of available resources [0,1],
+                default=0.5
+u       real release probability, default=0.5
+p       real probability that a vesicle is available, default = 1.0
+R       real recovered state {0=unrecovered, 1=recovered}, default=1
+tau_rec real time constant for depression in ms, default=800 ms
+tau_fac real time constant for facilitation in ms, default=0 (off)
+t_surv  real time since last evaluation of survival in ms, default=0
+======= ==== =======================================================
+
+Transmits
++++++++++
+
+SpikeEvent
+
+SeeAlso
++++++++
+
+tsodyks2_synapse, synapsedict, quantal_stp_synapse, static_synapse
+
+EndUserDocs */
 
 namespace pynn
 {
 
 template < typename targetidentifierT >
-class StochasticStpConnection : public nest::Connection< targetidentifierT >
+class stochastic_stp_synapse : public nest::Connection< targetidentifierT >
 {
 public:
   typedef nest::CommonSynapseProperties CommonPropertiesType;
@@ -59,11 +71,11 @@ public:
    * Default Constructor.
    * Sets default values for all parameters. Needed by GenericConnectorModel.
    */
-  StochasticStpConnection();
+  stochastic_stp_synapse();
   /**
    * Copy constructor to propagate common properties.
    */
-  StochasticStpConnection( const StochasticStpConnection& );
+  stochastic_stp_synapse( const stochastic_stp_synapse& );
 
   // Explicitly declare all methods inherited from the dependent base
   // ConnectionBase. This avoids explicit name prefixes in all places these
@@ -142,7 +154,7 @@ private:
  */
 template < typename targetidentifierT >
 inline void
-StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
+stochastic_stp_synapse< targetidentifierT >::send( nest::Event& e,
   nest::thread thr,
   const CommonPropertiesType& )
 {
@@ -166,7 +178,7 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
     release = false;
     // probability of survival of unrecovered state based on Poisson recovery with rate 1/tau_rec
     p_surv = std::exp( -(t_spike - t_surv_) / tau_rec_ );
-    if ( nest::kernel().rng_manager.get_rng( thr )->drand() > p_surv ) {
+    if ( nest::get_vp_specific_rng( thr )->drand() > p_surv ) {
       R_ = 1;                           // recovered
     } else {
       t_surv_ = t_spike; // failed to recover
@@ -175,7 +187,7 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
 
   // check for release
   if ( R_ == 1 ) {
-    if ( nest::kernel().rng_manager.get_rng( thr )->drand() < u_ ) {    // release
+    if ( nest::get_vp_specific_rng( thr )->drand() < u_ ) {    // release
       release = true;
       R_ = 0;
       t_surv_ = t_spike;
@@ -198,4 +210,4 @@ StochasticStpConnection< targetidentifierT >::send( nest::Event& e,
 
 } // namespace
 
-#endif // STOCHASTIC_STP_CONNECTION_H
+#endif // STOCHASTIC_STP_SYNAPSE_H

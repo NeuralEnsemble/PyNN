@@ -1,6 +1,6 @@
 /*
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 */
@@ -11,9 +11,9 @@
 #include "config.h"
 
 // include headers with your own stuff
-#include "simple_stochastic_connection.h"
-#include "stochastic_stp_connection.h"
-#include "stochastic_stp_connection_impl.h"
+#include "simple_stochastic_synapse.h"
+#include "stochastic_stp_synapse.h"
+#include "stochastic_stp_synapse_impl.h"
 
 // Includes from nestkernel:
 #include "connection_manager_impl.h"
@@ -112,7 +112,7 @@ pynn::PyNNExtensions::init( SLIInterpreter* i )
      even further, but limits the number of available rports. Please see
      Kunkel et al, Front Neurofinfom 8:78 (2014), Sec 3.3.2, for details.
   */
-  nest::register_connection_model< SimpleStochasticConnection >( "simple_stochastic_synapse" );
-  nest::register_connection_model< StochasticStpConnection >( "stochastic_stp_synapse" );
+  nest::register_connection_model< simple_stochastic_synapse >( "simple_stochastic_synapse" );
+  nest::register_connection_model< stochastic_stp_synapse >( "stochastic_stp_synapse" );
 
 } // PyNNExtensions::init()

@@ -1,9 +1,5 @@
-from nose.plugins.skip import SkipTest
-from .scenarios.registry import registry
-from nose.tools import assert_equal, assert_not_equal, assert_raises
-from pyNN.utility import init_logging, assert_arrays_equal
-from pyNN.random import RandomDistribution
 import numpy as np
+from numpy.testing import assert_array_equal
 
 try:
     import pyNN.nest
@@ -11,23 +7,14 @@ try:
 except ImportError:
     have_nest = False
 
-import unittest
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-
-
-def test_scenarios():
-    for scenario in registry:
-        if "nest" not in scenario.exclude:
-            scenario.description = "{}(nest)".format(scenario.__name__)
-            if have_nest:
-                yield scenario, pyNN.nest
-            else:
-                raise SkipTest
+from pyNN.utility import init_logging
+from pyNN.random import RandomDistribution
+import pytest
 
 
 def test_record_native_model():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     nest = pyNN.nest
     from pyNN.random import RandomDistribution
 
@@ -40,8 +27,8 @@ def test_record_native_model():
     p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron")(**parameters))
     p1.initialize(V_m=-70.0, Theta=-50.0)
     p1.set(theta_eq=-51.5)
-    #assert_arrays_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
-    assert_equal(p1.get('theta_eq'), -51.5)
+    #assert_array_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
+    assert p1.get('theta_eq') == -51.5
     print(p1.get('tau_m'))
     p1.set(tau_m=RandomDistribution('uniform', low=15.0, high=20.0))
     print(p1.get('tau_m'))
@@ -66,13 +53,13 @@ def test_record_native_model():
 
     vm = p1.get_data().segments[0].analogsignals[0]
     n_points = int(tstop / nest.get_time_step()) + 1
-    assert_equal(vm.shape, (n_points, n_cells))
+    assert vm.shape == (n_points, n_cells)
     assert vm.max() > 0.0  # should have some spikes
 
 
 def test_native_stdp_model():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     nest = pyNN.nest
     from pyNN.utility import init_logging
 
@@ -94,7 +81,7 @@ def test_native_stdp_model():
 
 def test_ticket240():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     nest = pyNN.nest
     nest.setup(threads=4)
     parameters = {'tau_m': 17.0}
@@ -110,7 +97,7 @@ def test_ticket240():
 
 def test_ticket244():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     nest = pyNN.nest
     nest.setup(threads=4)
     p1 = nest.Population(4, nest.IF_curr_exp())
@@ -126,7 +113,7 @@ def test_ticket244():
 def test_ticket236():
     """Calling get_spike_counts() in the middle of a run should not stop spike recording"""
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     pynnn = pyNN.nest
     pynnn.setup()
     p1 = pynnn.Population(2, pynnn.IF_curr_alpha(), structure=pynnn.space.Grid2D())
@@ -142,7 +129,7 @@ def test_ticket236():
 
 def test_issue237():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     sim = pyNN.nest
     n_exc = 10
     sim.setup()
@@ -156,21 +143,21 @@ def test_issue237():
 
 def test_random_seeds():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     sim = pyNN.nest
     data = []
     for seed in (854947309, 470924491):
-        sim.setup(threads=1, rng_seeds=[seed])
+        sim.setup(threads=1, rng_seed=seed)
         p = sim.Population(3, sim.SpikeSourcePoisson(rate=100.0))
         p.record('spikes')
         sim.run(100)
         data.append(p.get_data().segments[0].spiketrains)
-    assert_not_equal(*data)
+    assert data[0] != data[1]
 
 
 def test_tsodyks_markram_synapse():
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
     sim.setup()
@@ -186,16 +173,16 @@ def test_tsodyks_markram_synapse():
                          synapse_type=synapse_type)
     neurons.record('gsyn_inh')
     sim.run(100.0)
-    connections = nest.GetConnections(np.unique(
-        prj._sources).tolist(), synapse_model=prj.nest_synapse_model)
+    connections = nest.GetConnections(nest.NodeCollection(list(prj._sources)),
+                                      synapse_model=prj.nest_synapse_model)
     tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
-    assert_arrays_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
+    assert_array_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
 
 
 def test_native_electrode_types():
     """ Test of NativeElectrodeType class. (See issue #506)"""
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     sim = pyNN.nest
     dt = 0.1
     sim.setup(timestep=0.1, min_delay=0.1)
@@ -235,7 +222,7 @@ def test_native_electrode_types():
 def test_issue529():
     # A combination of NEST Common synapse properties and FromListConnector doesn't work
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 
@@ -247,7 +234,7 @@ def test_issue529():
     p1 = sim.Population(10, iaf_neuron(tau_m=20.0, tau_syn_ex=3., tau_syn_in=3.))
     p2 = sim.Population(10, iaf_neuron(tau_m=20.0, tau_syn_ex=3., tau_syn_in=3.))
 
-    nest.SetStatus(list(p2), [{'tau_minus': 20.}])
+    nest.SetStatus(p2.node_collection, {'tau_minus': 20.})
 
     stdp = sim.native_synapse_type("stdp_synapse_hom")(**{
         'lambda': 0.005,
@@ -277,7 +264,7 @@ def test_issue529():
 def test_issue662a():
     """Setting tau_minus to a random distribution fails..."""
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 
@@ -295,14 +282,15 @@ def test_issue662a():
         weight_dependence=sim.AdditiveWeightDependence(w_min=0.0, w_max=0.01)
     )
 
-    assert_raises(ValueError, sim.Projection, p1, p2, sim.AllToAllConnector(),
-                  synapse_type=syn, receptor_type='excitatory')
+    with pytest.raises(ValueError):
+        sim.Projection(p1, p2, sim.AllToAllConnector(),
+                       synapse_type=syn, receptor_type='excitatory')
 
 
 def test_issue662b():
     """Setting tau_minus to a random distribution fails..."""
     if not have_nest:
-        raise SkipTest
+        pytest.skip("nest not available")
     import nest
     sim = pyNN.nest
 
@@ -327,7 +315,8 @@ def test_issue662b():
 
     connections.set(tau_minus=25)  # RandomDistribution('uniform', (20,40)))
     # todo: check this worked
-    assert_raises(ValueError, connections.set, tau_minus=RandomDistribution('uniform', (20, 40)))
+    with pytest.raises(ValueError):
+        connections.set(tau_minus=RandomDistribution('uniform', (20, 40)))
 
 
 if __name__ == '__main__':

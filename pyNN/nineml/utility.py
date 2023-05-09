@@ -1,7 +1,7 @@
 # encoding: utf-8
 """
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -10,12 +10,13 @@ from pyNN import random
 from pyNN.parameters import Sequence
 import nineml.user as nineml
 
-#catalog_url = "http://svn.incf.org/svn/nineml/catalog"
-#catalog_url = join(dirname(__file__), "catalog")
+# catalog_url = "http://svn.incf.org/svn/nineml/catalog"
+# catalog_url = join(dirname(__file__), "catalog")
 catalog_url = "catalog"
 
 
-units_map = {  # arguably we should do the units mapping with the PyNN names, i.e. before translation.
+units_map = {
+    # arguably we should do the units mapping with the PyNN names, i.e. before translation.
     "time": "ms",
     "potential": "mV",
     "threshold": "mV",
@@ -40,7 +41,9 @@ def reverse_map(D):
     for k, v in D.items():
         if v in E:
             raise KeyError(
-                "Cannot reverse this mapping, as it is not one-to-one ('%s' would map to both '%s' and '%s')" % (v, E[v], k))
+                "Cannot reverse this mapping, as it is not one-to-one "
+                f"('{v}' would map to both '{E[v]}' and '{k}')"
+            )
         E[v] = k
     return E
 
@@ -102,8 +105,9 @@ def build_parameter_set(parameters, shape=None, dimensionless=False):
                                                                for p in rand_distr.parameters)),
                     definition=nineml.Definition(random_distribution_url_map[rand_distr.name],
                                                  "random"),
-                    parameters=build_parameter_set(map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
-                                                   dimensionless=True))
+                    parameters=build_parameter_set(
+                        map_random_distribution_parameters(rand_distr.name, rand_distr.parameters),
+                        dimensionless=True))
             else:
                 raise Exception("not supported")
         else:

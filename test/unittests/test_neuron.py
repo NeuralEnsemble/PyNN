@@ -247,8 +247,8 @@ class TestPopulation(unittest.TestCase):
                                                       'cm': lambda i: 0.987 + 0.01 * i,
                                                       'i_offset': np.array([-0.21, -0.20, -0.19, -0.18])}))
 
-    def test__get_parameters(self):
-        ps = self.p._get_parameters('c_m', 'tau_m', 'e_e', 'i_offset')
+    def test__get_native_parameters(self):
+        ps = self.p._get_native_parameters('c_m', 'tau_m', 'e_e', 'i_offset')
         ps.evaluate(simplify=True)
         assert_array_almost_equal(ps['c_m'], np.array([0.987, 0.997, 1.007, 1.017], float),
                                   decimal=12)
@@ -381,7 +381,7 @@ class TestRecorder(unittest.TestCase):
     #    self.rv.recorded['v'] = self.cells
     #    self.cells[0]._cell.vtrace = np.arange(-65.0, -64.0, 0.1)
     #    self.cells[1]._cell.vtrace = np.arange(-64.0, -65.0, -0.1)
-    #    self.cells[0]._cell.record_times = self.cells[1]._cell.record_times = np.arange(0.0, 1.0, 0.1)
+    #    self.cells[0]._cell.recorded_times = self.cells[1]._cell.recorded_times = np.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(self.cells[0]._cell.vtrace)
     #    vdata = self.rv._get_current_segment(variables=['v'], filter_ids=None)
     #    self.assertEqual(len(vdata.analogsignals), 1)
@@ -390,12 +390,12 @@ class TestRecorder(unittest.TestCase):
 
     def test__get_spikes(self):
         self.rec.recorded[Variable('spikes', None)] = self.cells
-        self.cells[0]._cell.spike_times = np.arange(101.0, 111.0)
-        self.cells[1]._cell.spike_times = np.arange(13.0, 23.0)
+        self.cells[0]._cell.spike_times.from_python(np.arange(101.0, 111.0))
+        self.cells[1]._cell.spike_times.from_python(np.arange(13.0, 23.0))
         simulator.state.t = 111.0
         sdata = self.rec._get_current_segment(variables=[Variable(location=None, name='spikes')], filter_ids=None)
         self.assertEqual(len(sdata.spiketrains), 2)
-        assert_array_equal(np.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times)
+        assert_array_equal(np.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times.as_numpy())
 
     # def test__get_gsyn(self):
     #    self.rg.recorded['gsyn_exc'] = self.cells
@@ -406,7 +406,7 @@ class TestRecorder(unittest.TestCase):
     #        cell._cell.gsyn_trace['inhibitory'] = np.arange(1.01, 1.0199, 0.001)
     #        cell._cell.gsyn_trace['excitatory_TM'] = np.arange(2.01, 2.0199, 0.001)
     #        cell._cell.gsyn_trace['inhibitory_TM'] = np.arange(4.01, 4.0199, 0.001)
-    #        cell._cell.record_times = self.cells[1]._cell.record_times = np.arange(0.0, 1.0, 0.1)
+    #        cell._cell.recorded_times = self.cells[1]._cell.recorded_times = np.arange(0.0, 1.0, 0.1)
     #    simulator.state.t = simulator.state.dt * len(cell._cell.gsyn_trace['excitatory'])
     #    gdata = self.rg._get_current_segment(variables=['gsyn_exc', 'gsyn_inh'], filter_ids=None)
     #    self.assertEqual(len(gdata.analogsignals), 2)
@@ -427,13 +427,13 @@ class TestRecorder(unittest.TestCase):
 class TestStandardIF(unittest.TestCase):
 
     def test_create_cond_exp(self):
-        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        cell = cells.StandardIFStandardReceptors("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
         self.assertAlmostEqual(cell.area(), 1e5, places=10)  # µm²
         self.assertEqual(cell(0.5).cm, 0.246)
         self.assertEqual(cell(0.5).pas.g, 2e-5)
 
     def test_get_attributes(self):
-        cell = cells.StandardIF("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
+        cell = cells.StandardIFStandardReceptors("conductance", "exp", tau_m=12.3, c_m=0.246, v_rest=-67.8)
         self.assertAlmostEqual(cell.tau_m, 12.3, places=10)
         self.assertAlmostEqual(cell.c_m, 0.246, places=10)
 

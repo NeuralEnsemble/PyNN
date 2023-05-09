@@ -28,12 +28,12 @@ from neo.io import get_io
 
 def plot_signal(panel, signal, index, colour='b', linewidth='1', label='', fake_aps=False,
                 hide_axis_labels=False):
-    label = "%s (Neuron %d)" % (label, signal.channel_index.index[index])
+    label = "%s (Neuron %d)" % (label, signal.array_annotations["channel_index"][index])
     if fake_aps:  # add fake APs for plotting
         v_thresh = fake_aps
         spike_indices = signal >= v_thresh - 0.05 * mV
         signal[spike_indices] = 0.0 * mV
-    panel.plot(signal.times, signal[:, index], colour, linewidth=linewidth, label=label)
+    panel.plot(signal.times, signal.magnitude[:, index], colour, linewidth=linewidth, label=label)
     #plt.setp(plt.gca().get_xticklabels(), visible=False)
     if not hide_axis_labels:
         panel.set_xlabel("time (%s)" % signal.times.units._dimensionality.string)
@@ -47,7 +47,7 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
     if ylabel:
         panel.set_ylabel(ylabel)
     for t, n in zip(bins[:-1], hist):
-        panel.bar(t, n, width=width, color=None)
+        panel.bar(t, n, width=width, color='b')
     if xmin:
         panel.set_xlim(xmin=xmin)
     if ymax:
@@ -61,9 +61,9 @@ def plot_hist(panel, hist, bins, width, xlabel=None, ylabel=None,
 
 def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
     for array in segment.analogsignals:
-        sorted_channels = sorted(array.channel_index.index)
+        sorted_channels = sorted(array.array_annotations["channel_index"])
         for j in range(2):
-            i = array.channel_index.index.tolist().index(j)
+            i = array.array_annotations["channel_index"].tolist().index(j)
             print("plotting '%s' for %s" % (array.name, label))
             col = 'rbgmck'[j % 6]
             plot_signal(panel, array, i, colour=col, linewidth=1, label=label,
@@ -73,9 +73,8 @@ def plot_vm_traces(panel, segment, label, hide_axis_labels=False):
 
 def plot_spiketrains(panel, segment, label, hide_axis_labels=False):
     print("plotting spikes for %s" % label)
-    for spiketrain in segment.spiketrains:
-        y = np.ones_like(spiketrain) * spiketrain.annotations['source_id']
-        panel.plot(spiketrain, y, '.', markersize=0.2)
+    channel_ids, spike_times = segment.spiketrains.multiplexed
+    panel.plot(channel_ids, spike_times, '.', markersize=0.2)
     if not hide_axis_labels:
         panel.set_ylabel(segment.name)
     #plt.setp(plt.gca().get_xticklabels(), visible=False)

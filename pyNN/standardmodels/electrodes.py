@@ -2,12 +2,12 @@
 Definition of default parameters (and hence, standard parameter names) for
 standard current source models.
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN.standardmodels import StandardCurrentSource
-from pyNN.parameters import Sequence
+from ..parameters import Sequence
+from .base import StandardCurrentSource
 
 
 class DCSource(StandardCurrentSource):

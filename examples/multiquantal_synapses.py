@@ -53,8 +53,8 @@ for label in synapse_types:
 
 spike_source.record('spikes')
 
-if "nest" in sim.__name__:
-    print(sim.nest.GetStatus([projections['depressing, n=5'].nest_connections[0]]))
+#if "nest" in sim.__name__:
+#    print(sim.nest.GetStatus([projections['depressing, n=5'].nest_connections[0]]))
 
 # === Run the simulation =====================================================
 
@@ -81,7 +81,7 @@ if options.plot_figure:
         gsyn = data[label].filter(name='gsyn_inh')[0]
         gsyn_mean = neo.AnalogSignal(gsyn.mean(axis=1).reshape(-1, 1),
                                      sampling_rate=gsyn.sampling_rate,
-                                     channel_index=np.array([0]))
+                                     array_annotations={"channel_index": np.array([0])})
         gsyn_mean.name = 'gsyn_inh_mean'
         data[label].analogsignals.append(gsyn_mean)
 

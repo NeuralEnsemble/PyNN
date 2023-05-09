@@ -8,18 +8,18 @@ Classes:
     ACSource           -- a sine modulated current.
 
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
 """
 
 import numpy as np
 import nest
-from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
-from pyNN.common import Population, PopulationView, Assembly
-from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.nest.simulator import state
-from pyNN.nest.electrodes import NestCurrentSource
+from ...standardmodels import electrodes, build_translations, StandardCurrentSource
+from ...common import Population, PopulationView, Assembly
+from ...parameters import ParameterSpace, Sequence
+from ..simulator import state
+from ..electrodes import NestCurrentSource
 
 
 class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
@@ -32,26 +32,14 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
         self.set_native_parameters(native_parameters)
 
     def inject_into(self, cells):
-        __doc__ = StandardCurrentSource.inject_into.__doc__
         for id in cells:
             if id.local and not id.celltype.injectable:
                 raise TypeError("Can't inject current into a spike source.")
         if isinstance(cells, (Population, PopulationView, Assembly)):
-            self.cell_list = [cell for cell in cells]
+            self.cell_list = cells.node_collection
         else:
-            self.cell_list = cells
+            self.cell_list = nest.NodeCollection(sorted(cells))
         nest.Connect(self._device, self.cell_list, syn_spec={"delay": state.min_delay})
-
-    def _phase_correction(self, start, freq, phase):
-        """
-        Fixes #497 (PR #502)
-        Tweaks the value of phase supplied to NEST ACSource
-        so as to remain consistent with other simulators
-        """
-        phase_fix = ((phase*np.pi/180) - (2*np.pi*freq*start/1000)) * 180/np.pi
-        phase_fix.shape = (1)
-        phase_fix = phase_fix.evaluate()[0]
-        nest.SetStatus(self._device, {'phase': phase_fix})
 
     def _delay_correction(self, value):
         """

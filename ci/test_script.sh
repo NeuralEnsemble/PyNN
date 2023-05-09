@@ -2,8 +2,10 @@
 
 set -e  # stop execution in case of errors
 
-if [ "$TRAVIS_PYTHON_VERSION" == "3.7" ]; then
-    python setup.py nosetests --with-coverage --cover-package=pyNN -v --tests=test;
+if [ "$TRAVIS_PYTHON_VERSION" == "3.9" ]; then
+    pytest --verbose --cov=pyNN
 else
-    python setup.py nosetests -e backends -v --tests=test/unittests;
+    pytest --verbose test/unittests
 fi
+
+exit $?

@@ -2,7 +2,7 @@
 """
 Standard cells for the Brian2 module.
 
-:copyright: Copyright 2006-2016 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -27,8 +27,8 @@ class StaticSynapse(synapses.StaticSynapse):
         # we have to define the translations on a per-instance basis because
         # they depend on whether the synapses are current-, conductance- or voltage-based.
         self.translations = build_translations(
-                                ('weight', 'weight'),
-                                ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms))
+            ('weight', 'weight'),
+            ('delay', 'delay', ms))
 
     def _get_minimum_delay(self):
         d = state.min_delay
@@ -45,12 +45,12 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
     __doc__ = synapses.TsodyksMarkramSynapse.__doc__
 
     translations = build_translations(
-                        ('weight', 'weight'),
-                        ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
-                        ('U', 'U'),
-                        ('tau_rec', 'tau_rec', lambda **P: P["tau_rec"] * ms, lambda **P: P["tau_rec"] / ms),
-                        ('tau_facil', 'tau_facil', lambda **P: P["tau_facil"] * ms, lambda **P: P["tau_facil"] / ms),
-                        ('tau_syn' , 'tau_syn', lambda **P: P["tau_syn"] * ms, lambda **P: P["tau_syn"] / ms)
+        ('weight', 'weight'),
+        ('delay', 'delay', ms),
+        ('U', 'U'),
+        ('tau_rec', 'tau_rec', ms),
+        ('tau_facil', 'tau_facil', ms),
+        ('tau_syn', 'tau_syn', ms)
     )
     eqs = '''weight : %(weight_units)s
             U : 1
@@ -91,10 +91,10 @@ class STDPMechanism(synapses.STDPMechanism):
     __doc__ = synapses.STDPMechanism.__doc__
 
     base_translations = build_translations(
-                            ('weight', 'weight'),
-                            ('delay', 'delay', lambda **P: P["delay"] * ms, lambda **P: P["delay"] / ms),
-                            ('dendritic_delay_fraction', 'dendritic_delay_fraction', 1)
-                        )
+        ('weight', 'weight'),
+        ('delay', 'delay', ms),
+        ('dendritic_delay_fraction', 'dendritic_delay_fraction')
+    )
     eqs = """weight : %(weight_units)s
              tau_plus : second
              tau_minus : second
@@ -114,7 +114,8 @@ class STDPMechanism(synapses.STDPMechanism):
            M -= A_minus
            weight = weight + w_max * P
            weight = int(weight > w_max)*w_max + int(weight <= w_max)*weight
-           """  # for consistency with NEST, the synaptic variable is only updated on a pre-synaptic spike
+           """
+    # for consistency with NEST, the synaptic variable is only updated on a pre-synaptic spike
     initial_conditions = {"M": 0.0, "P": 0.0}
 
     def __init__(self, timing_dependence=None, weight_dependence=None,
@@ -138,44 +139,71 @@ class STDPMechanism(synapses.STDPMechanism):
     def _set_target_type(self, weight_units):
         self.translations["weight"]["forward_transform"] = lambda **P: P["weight"] * weight_units
         self.translations["weight"]["reverse_transform"] = lambda **P: P["weight"] / weight_units
+        self.weight_dependence._set_target_type(weight_units)
 
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
     __doc__ = synapses.MultiplicativeWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
 
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
-class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiationMultiplicativeDepression):
+
+class AdditivePotentiationMultiplicativeDepression(
+    synapses.AdditivePotentiationMultiplicativeDepression
+):
     __doc__ = synapses.AdditivePotentiationMultiplicativeDepression.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class GutigWeightDependence(synapses.GutigWeightDependence):
     __doc__ = synapses.GutigWeightDependence.__doc__
 
     translations = build_translations(
-        ('w_max',     'w_max', "w_max*weight_units", "w_max/weight_units"),
-        ('w_min',     'w_min', "w_min*weight_units", "w_min/weight_units"),
-        ('mu_plus',   'mu_plus'),
-        ('mu_minus',  'mu_minus'),
+        ('w_max', 'w_max'),
+        ('w_min', 'w_min'),
+        ('mu_plus', 'mu_plus'),
+        ('mu_minus', 'mu_minus'),
     )
+
+    def _set_target_type(self, weight_units):
+        self.translations["w_max"]["forward_transform"] = lambda **P: P["w_max"] * weight_units
+        self.translations["w_max"]["reverse_transform"] = lambda **P: P["w_max"] / weight_units
+        self.translations["w_min"]["forward_transform"] = lambda **P: P["w_min"] * weight_units
+        self.translations["w_min"]["reverse_transform"] = lambda **P: P["w_min"] / weight_units
 
 
 class SpikePairRule(synapses.SpikePairRule):
@@ -184,6 +212,6 @@ class SpikePairRule(synapses.SpikePairRule):
     translations = build_translations(
         ('A_plus',    'A_plus'),
         ('A_minus',   'A_minus'),
-        ('tau_plus',  'tau_plus', ms),
+        ('tau_plus', 'tau_plus', ms),
         ('tau_minus', 'tau_minus', ms),
     )

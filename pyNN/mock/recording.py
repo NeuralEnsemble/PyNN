@@ -1,5 +1,5 @@
 import numpy as np
-from pyNN import recording
+from .. import recording
 from . import simulator
 
 
@@ -9,7 +9,7 @@ class Recorder(recording.Recorder):
     def _record(self, variable, new_ids, sampling_interval=None):
         pass
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if hasattr(id, "__len__"):
             spks = {}
             for i in id:
@@ -19,9 +19,10 @@ class Recorder(recording.Recorder):
             return np.array([id, id + 5], dtype=float) % self._simulator.state.t
 
     def _get_all_signals(self, variable, ids, clear=False):
-        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        # assuming not using cvode, otherwise need to get times as well
+        # and use IrregularlySampledAnalogSignal
         n_samples = int(round(self._simulator.state.t / self._simulator.state.dt)) + 1
-        return np.vstack((np.random.uniform(size=n_samples) for id in ids)).T
+        return np.vstack([np.random.uniform(size=n_samples) for id in ids]).T, None
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

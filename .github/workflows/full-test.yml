@@ -1,0 +1,90 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Run all tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.8", "3.9"]
+        os: ["ubuntu-latest", "windows-latest"]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Linux system dependencies
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt-get install libltdl-dev libgsl0-dev python3-all-dev openmpi-bin libopenmpi-dev
+    - name: Install basic Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pytest pytest-cov coveralls flake8
+        python -m pip install -r requirements.txt
+        python -m pip install mpi4py matplotlib
+    - name: Install Brian 2
+      run: |
+        python -m pip install brian2
+    - name: Install NEURON
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        python -m pip install neuron==8.1.0
+        python -m pip install nrnutils
+    - name: Install NEST
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        python -m pip install cython
+        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.3.tar.gz -O nest-simulator-3.3.tar.gz
+        tar xzf nest-simulator-3.3.tar.gz
+        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.3
+        make
+        make install
+    - name: Install PyNN itself
+      run: |
+        pip install -e .
+    - name: Compile NEURON mechanisms (Linux)
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        pushd pyNN/neuron/nmodl
+        nrnivmodl
+        popd
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 pyNN --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 pyNN --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Run unit and system tests
+      run: |
+        pytest -v --cov=pyNN --cov-report=term test
+    - name: Upload coverage data
+      run: |
+        coveralls --service=github
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COVERALLS_FLAG_NAME: ${{ matrix.test-name }}
+        COVERALLS_PARALLEL: true
+  coveralls:
+    name: Indicate completion to coveralls.io
+    needs: test
+    runs-on: ubuntu-latest
+    container: python:3-slim
+    steps:
+    - name: Finished
+      run: |
+        pip3 install --upgrade coveralls
+        coveralls --service=github --finish
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

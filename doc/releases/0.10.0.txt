@@ -1,0 +1,25 @@
+=========================
+PyNN 0.10.0 release notes
+=========================
+
+December 6th 2021
+
+Welcome to PyNN 0.10.0!
+
+
+NEST 3.1
+--------
+
+PyNN now supports the latest version of NEST_.
+
+
+Requires Neo 0.10.0 or later
+
+Bug fixes
+---------
+
+A `small number of bugs`_ have been fixed.
+
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.10.0+is%3Aclosed
+.. _NEST: https://www.nest-simulator.org
+.. _`Brian 2`: https://brian2.readthedocs.io

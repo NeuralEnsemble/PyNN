@@ -1,9 +1,11 @@
 """
 Standard synapses for the NeuroML module.
 
-:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
+
+# flake8: noqa
 
 from pyNN.standardmodels import synapses, build_translations
 from pyNN.neuroml.simulator import state
@@ -13,7 +15,7 @@ import neuroml
 
 logger = logging.getLogger("PyNN_NeuroML")
 
-    
+
 
 class StaticSynapse(synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
@@ -27,7 +29,7 @@ class StaticSynapse(synapses.StaticSynapse):
         if d == 'auto':
             d = state.dt
         return d
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -45,13 +47,13 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('x0', 'X' ),
         ('y0', 'Y')
     )
-    
+
     def _get_minimum_delay(self):
         d = state.min_delay
         if d == 'auto':
             d = state.dt
         return d
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -69,10 +71,10 @@ class STDPMechanism(synapses.STDPMechanism):
         if d == 'auto':
             d = state.dt
         return d
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
-    
+
 
 class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
     __doc__ = synapses.AdditiveWeightDependence.__doc__
@@ -83,7 +85,7 @@ class AdditiveWeightDependence(synapses.AdditiveWeightDependence):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -97,7 +99,7 @@ class MultiplicativeWeightDependence(synapses.MultiplicativeWeightDependence):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -111,7 +113,7 @@ class AdditivePotentiationMultiplicativeDepression(synapses.AdditivePotentiation
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -127,7 +129,7 @@ class GutigWeightDependence(synapses.GutigWeightDependence):
         ('mu_plus',   'muLTP'),
         ('mu_minus',  'muLTD'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
 
@@ -141,7 +143,6 @@ class SpikePairRule(synapses.SpikePairRule):
         ('A_plus',    'aLTP'),
         ('A_minus',   'aLTD'),
     )
-    
+
     def add_to_nml_doc(self, nml_doc, population):
         raise NotImplementedError()
-        

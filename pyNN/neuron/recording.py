@@ -1,14 +1,14 @@
 """
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 from collections import defaultdict
 import numpy as np
-from pyNN import recording
-from pyNN.morphology import MorphologyFilter
-from pyNN.neuron import simulator
+from .. import recording
+from ..morphology import MorphologyFilter
+from . import simulator
 import re
 from neuron import h
 
@@ -76,17 +76,17 @@ class Recorder(recording.Recorder):
                     hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
         for hoc_var in hoc_vars:
             vec = h.Vector()
-            if self.sampling_interval == self._simulator.state.dt:
+            if self.sampling_interval == self._simulator.state.dt or self.record_times:
                 vec.record(hoc_var)
             else:
                 vec.record(hoc_var, self.sampling_interval)
             cell.traces[variable].append(vec)
         if not cell.recording_time:
-            cell.record_times = h.Vector()
-            if self.sampling_interval == self._simulator.state.dt:
-                cell.record_times.record(h._ref_t)
+            cell.recorded_times = h.Vector()
+            if self.sampling_interval == self._simulator.state.dt or self.record_times:
+                cell.recorded_times.record(h._ref_t)
             else:
-                cell.record_times.record(h._ref_t, self.sampling_interval)
+                cell.recorded_times.record(h._ref_t, self.sampling_interval)
             cell.recording_time += 1
 
     # could be staticmethod
@@ -112,7 +112,7 @@ class Recorder(recording.Recorder):
             id._cell.traces = defaultdict(list)
             id._cell.spike_times = h.Vector(0)
         id._cell.recording_time == 0
-        id._cell.record_times = None
+        id._cell.recorded_times = None
 
     def _clear_simulator(self):
         """
@@ -129,30 +129,42 @@ class Recorder(recording.Recorder):
             else:
                 id._cell.clear_past_spikes()
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
         if hasattr(id, "__len__"):
             all_spiketimes = {}
             for cell_id in id:
                 if cell_id._cell.rec is None:  # SpikeSourceArray
                     spikes = cell_id._cell.get_recorded_spike_times()
                 else:
-                    spikes = np.array(cell_id._cell.spike_times)
+                    spikes = cell_id._cell.spike_times.as_numpy()
                 all_spiketimes[cell_id] = spikes[spikes <= simulator.state.t + 1e-9]
             return all_spiketimes
         else:
-            spikes = np.array(id._cell.spike_times)
+            spikes = id._cell.spike_times.as_numpy()
             return spikes[spikes <= simulator.state.t + 1e-9]
 
     def _get_all_signals(self, variable, ids, clear=False):
-        # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
+        times = None
         if len(ids) > 0:
-            signals = np.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
-            expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
-            if signals.shape[0] != expected_length:  # generally due to floating point/rounding issues
-                signals = np.vstack((signals, signals[-1, :]))
+            signals = np.vstack([id._cell.traces[variable] for id in ids]).T
+            if self.record_times:
+                assert not simulator.state.cvode.use_local_dt()
+                # the following line assumes all cells are sampled at the same time
+                # which should be true if cvode.use_local_dt() returns False
+                times = np.array(ids[0]._cell.recorded_times)
+            else:
+                expected_length = np.rint(simulator.state.tstop / self.sampling_interval) + 1
+                if signals.shape[0] != expected_length:
+                    # generally due to floating point/rounding issues
+                    signals = np.vstack((signals, signals[-1, :]))
+                if ".isyn" in variable:
+                    # this is a hack, since negative currents in NMODL files
+                    # correspond to positive currents in PyNN
+                    # todo: reimplement this in a more robust way
+                    signals *= -1
         else:
             signals = np.array([])
-        return signals
+        return signals, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

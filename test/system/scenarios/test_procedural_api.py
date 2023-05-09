@@ -1,12 +1,12 @@
 
 import numpy as np
-import quantities as pq
-from pyNN.utility import init_logging, assert_arrays_almost_equal
-from .registry import register
+from numpy.testing import assert_allclose
+from pyNN.utility import init_logging
+from .fixtures import run_with_simulators
 
 
-@register()
-def ticket195(sim):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_ticket195(sim):
     """
     Check that the `connect()` function works correctly with single IDs (see
     http://neuralensemble.org/trac/PyNN/ticket/195)
@@ -20,10 +20,10 @@ def ticket195(sim):
     #prj = sim.Projection(pre, post, sim.FromListConnector([(0, 0, 0.01, 0.1)]))
     post.record(['spikes', 'v'])
     sim.run(100.0)
-    assert_arrays_almost_equal(post.get_data().segments[0].spiketrains[0], np.array([13.4]) * pq.ms, 0.5)
+    assert_allclose(post.get_data().segments[0].spiketrains[0].magnitude, np.array([13.4]), 0.5)
     sim.end()
 
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    ticket195(sim)
+    test_ticket195(sim)

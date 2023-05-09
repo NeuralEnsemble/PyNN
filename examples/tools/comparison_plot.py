@@ -23,7 +23,7 @@ def variable_names(segment):
 
 
 def plot_signal(panel, signal, index, colour='b', linewidth='1', label=''):
-    label = "%s (Neuron %d)" % (label, signal.channel_index[index])
+    label = "%s (Neuron %d)" % (label, signal.array_annotations["channel_index"][index])
     panel.plot(signal.times, signal[:, index], colour, linewidth=linewidth, label=label)
     panel.set_ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
     plt.setp(plt.gca().get_xticklabels(), visible=False)

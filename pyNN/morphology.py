@@ -41,14 +41,14 @@ def load_morphology(url, replace_axon=False):
     # todo: handle replace_axon argument
     # todo: fix load_swc to handle "standardized" somas as described
     #       in http://neurom.readthedocs.io/en/latest/definitions.html#soma
-    #       and http://www.neuromorpho.org/SomaFormat.html 
+    #       and http://www.neuromorpho.org/SomaFormat.html
     array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
     return NeuroMLMorphology(array_morph)
 
 
 class Morphology(object):
     """
-    
+
     """
 
     def __init__(self):
@@ -63,8 +63,9 @@ class Morphology(object):
 
 class NeuroMLMorphology(Morphology):
     """
-    
+
     """
+    is_lazyarray_scalar = True
 
     def __init__(self, morphology):
         super(NeuroMLMorphology, self).__init__()
@@ -142,7 +143,7 @@ class NeuroMLMorphology(Morphology):
 
 class BrianMorphology(Morphology):
     """
-    
+
     """
     pass
 
@@ -345,7 +346,7 @@ sample = random_section  # alias
 
 class with_label(MorphologyFilter):
     """
-    Select sections by label. 
+    Select sections by label.
 
     Values will be matched against section group names
     then against individual section names.
@@ -375,4 +376,3 @@ class with_label(MorphologyFilter):
         if labels:
             raise ValueError("No sections or groups match label '{}'".format("', '".join(labels)))
         return section_index
-                    

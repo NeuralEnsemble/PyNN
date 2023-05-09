@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Support cell types defined in 9ML with NEST.
 
@@ -12,9 +13,8 @@ Functions:
 Constants:
     NEST_DIR        - subdirectory to which NEST mechanisms will be written (TODO: not implemented)
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
-
 """
 
 import logging
@@ -53,7 +53,7 @@ class _nest_build_nineml_celltype(type):
     def __new__(cls, name, bases, dct):
 
         import nineml.abstraction as al
-        from nineml.abstraction import flattening, writers, component_modifiers
+        from nineml.abstraction import flattening, component_modifiers
         import nest
 
         # Extract Parameters Back out from Dict:
@@ -86,7 +86,6 @@ class _nest_build_nineml_celltype(type):
         for syn in synapse_components:
             # get recv event ports
             # TODO: model namespace look
-            #syn_component = nineml_model[syn.namespace]
             syn_component = nineml_model.subnodes[syn.namespace]
             recv_event_ports = list(syn_component.query.event_recv_ports)
             # check there's only one
@@ -98,7 +97,6 @@ class _nest_build_nineml_celltype(type):
         # New:
         dct["combined_model"] = flat_component
         # TODO: Override this with user layer
-        #default_values = ModelToSingleComponentReducer.flatten_namespace_dict( parameters )
         dct["default_parameters"] = dict((p.name, 1.0) for p in flat_component.parameters)
         dct["default_initial_values"] = dict((s.name, 0.0) for s in flat_component.state_variables)
         dct["synapse_types"] = [syn.namespace for syn in synapse_components]
@@ -109,9 +107,9 @@ class _nest_build_nineml_celltype(type):
         dct["nest_model"] = name
 
         # Recording from bindings:
-        dct["recordable"] = [port.name for port in flat_component.analog_ports] + ['spikes', 'regime']
+        dct["recordable"] = [port.name
+                             for port in flat_component.analog_ports] + ['spikes', 'regime']
         # TODO bindings -> alias and support recording of them in nest template
-        #+ [binding.name for binding in flat_component.bindings]
 
         dct["weight_variables"] = dict([(syn.namespace, syn.namespace + '_' + syn.weight_connector)
                                         for syn in synapse_components])

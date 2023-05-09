@@ -4,9 +4,11 @@ Export of PyNN models to NeuroML 2
 
 Contact Padraig Gleeson for more details
 
-:copyright: Copyright 2006-2017 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
+
+# flake8: noqa
 
 import numpy as np
 from pyNN import recording
@@ -66,7 +68,7 @@ class Recorder(recording.Recorder):
 
 
 
-    def _get_spiketimes(self, id):
+    def _get_spiketimes(self, id, clear=False):
 
         if hasattr(id, "__len__"):
             spks = {}
@@ -79,7 +81,8 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         # assuming not using cvode, otherwise need to get times as well and use IrregularlySampledAnalogSignal
         n_samples = int(round(self._simulator.state.t/self._simulator.state.dt)) + 1
-        return np.vstack((np.random.uniform(size=n_samples) for id in ids)).T
+        times = None
+        return np.vstack([np.random.uniform(size=n_samples) for id in ids]).T, times
 
     def _local_count(self, variable, filter_ids=None):
         N = {}

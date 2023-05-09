@@ -43,13 +43,14 @@ try:
 except ImportError:
     HAVE_H5PY = False
 import numpy as np
-from pyNN.network import Network
-from pyNN.parameters import Sequence
+
+from ..network import Network
+from ..parameters import Sequence
 
 
 # Note: The SonataIO class will be moved to Neo once fully implemented
 
-#from neo.io import SonataIO
+# from neo.io import SonataIO
 import neo
 from neo.io.baseio import BaseIO
 
@@ -116,7 +117,6 @@ class SonataIO(BaseIO):
         for block in blocks:
             for segment in block.segments:
                 spike_trains.extend(segment.spiketrains)
-        n_spikes = sum(st.size for st in spike_trains)
 
         spikes_group = spikes_file.create_group("spikes")
         all_spike_times = np.hstack(st.rescale('ms').magnitude
@@ -157,16 +157,18 @@ class SonataIO(BaseIO):
                         mapping_group.create_dataset("node_ids", data=node_ids)
                         # "gids" not in the spec, but expected by some bmtk utils
                         mapping_group.create_dataset("gids", data=node_ids)
-                        #mapping_group.create_dataset("index_pointers", data=np.zeros((n,)))
+                        # mapping_group.create_dataset("index_pointers", data=np.zeros((n,)))
                         mapping_group.create_dataset(
                             "index_pointer", data=np.arange(0, n+1))  # ??spec unclear
                         mapping_group.create_dataset("element_ids", data=np.zeros((n,)))
                         mapping_group.create_dataset("element_pos", data=np.zeros((n,)))
-                        time_ds = mapping_group.create_dataset("time",
-                                                               data=(float(signal[0].t_start.rescale('ms')),
-                                                                     float(
-                                                                         signal[0].t_stop.rescale('ms')),
-                                                                     float(signal[0].sampling_period.rescale('ms'))))
+                        time_ds = mapping_group.create_dataset(
+                            "time",
+                            data=(
+                                float(signal[0].t_start.rescale('ms')),
+                                float(signal[0].t_stop.rescale('ms')),
+                                float(signal[0].sampling_period.rescale('ms'))
+                            ))
                         time_ds.attrs["units"] = "ms"
                         logger.info("Wrote block {} to {}".format(block.name, file_path))
             signal_file.close()
@@ -409,8 +411,9 @@ def export_to_sonata(network, output_path, target="PyNN", overwrite=False):
                 node_type_info["model_type"] = "single_compartment"
             elif target.lower() in ("pynn", "nest"):
                 node_type_info["model_type"] = "point_neuron"
-                node_type_info["model_template"] = "{}:{}".format(target.lower(),
-                                                                  population.celltype.__class__.__name__)
+                node_type_info["model_template"] = (
+                    f"{target.lower()}:{population.celltype.__class__.__name__}"
+                )
             else:
                 raise NotImplementedError
         group_label = 0  # "default"
@@ -569,7 +572,8 @@ def import_from_sonata(config_file, sim):
     We map a SONATA population to a PyNN Assembly, since both allow heterogeneous cell types.
     We map a SONATA node group to a PyNN Population, since both have homogeneous parameter
     namespaces.
-    SONATA node types are used to give different parameters to different subsets of nodes in a group.
+    SONATA node types are used to give different parameters to different subsets of nodes
+    in a group.
     This can be handled in PyNN by indexing and, equivalently, by defining PopulationViews.
     We map a SONATA edge group to a PyNN Projection, i.e. a SONATA edge population may
     result in multiple PyNN Projections.
@@ -612,7 +616,7 @@ def import_from_sonata(config_file, sim):
 
             # Open edges file, check it is valid
             edges_file = h5py.File(edges_config["edges_file"], 'r')
-            version = edges_file.attrs.get("version", None)
+            version = edges_file.attrs.get("version", None)  # noqa: F841
             magic = edges_file.attrs.get("magic", None)
             if magic is not None and magic != MAGIC:
                 # for now we assume that not all SONATA files will have the magic attribute set
@@ -803,8 +807,10 @@ class NodeGroup(object):
         cell_type = cell_types.pop()
         prefix, cell_type_name = cell_type.split(":")
         if prefix.lower() not in ("pynn", "nrn", "nest"):
-            raise NotImplementedError("Only PyNN, NEST and NEURON-native networks currently supported, not: %s (from %s)." %
-                                      (prefix, self.parameters["model_template"][node_type_id]))
+            raise NotImplementedError(
+                f"Only PyNN, NEST and NEURON-native networks currently supported, not: {prefix}"
+                f" (from {self.parameters['model_template'][node_type_id]})"
+            )
         if prefix.lower() == "nest":
             cell_type_cls = sim.native_cell_type(cell_type_name)
             if cell_type_name == "spike_generator":
@@ -994,7 +1000,7 @@ class EdgeGroup(object):
             if len(synapse_types) != 1:
                 raise Exception("Heterogeneous group, not currently supported.")
 
-            synapse_type = synapse_types.pop()
+            # synapse_type = synapse_types.pop()
             prefix, synapse_type_name = model_template.split(":")
             if prefix.lower() not in ("pynn", "nrn", "nest"):
                 raise NotImplementedError(
@@ -1020,7 +1026,8 @@ class EdgeGroup(object):
 
             receptor_type = receptor_types.pop()
         else:
-            receptor_type = "default"  # temporary hack to make 300-cell example work, due to PyNN bug #597
+            # temporary hack to make 300-cell example work, due to PyNN bug #597
+            receptor_type = "default"
             # value should really be None.
 
         logger.info("  synapse_type: {}".format(synapse_type_cls))
@@ -1207,7 +1214,7 @@ class SimulationPlan(object):
                         else:
                             values = assembly.get_annotations(attr_name)[attr_name]
                             mask = np.logical_and(mask, values == attr_value)
-                    if isinstance(mask, (bool, np.bool_)) and mask == True:
+                    if isinstance(mask, (bool, np.bool_)) and mask is True:
                         mask = slice(None)
                     self.node_set_map[node_set_name].append((assembly, mask))
             elif isinstance(node_set_definition, list):  # compound node set

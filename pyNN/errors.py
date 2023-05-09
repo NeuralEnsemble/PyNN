@@ -13,7 +13,7 @@ Defines exceptions for the PyNN API
     NotLocalError
     RecordingError
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
@@ -76,7 +76,8 @@ class InvalidWeightError(ValueError):
 
 
 class NotLocalError(Exception):
-    """Attempt to access a cell or connection that does not exist on this node (but exists elsewhere)."""
+    """Attempt to access a cell or connection that does not exist on this node
+    (but exists elsewhere)."""
     pass
 
 

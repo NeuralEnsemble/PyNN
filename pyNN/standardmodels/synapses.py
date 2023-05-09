@@ -13,13 +13,13 @@ Classes for defining STDP rules:
     GutigWeightDependence
     SpikePairRule
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-from pyNN import descriptions
-from pyNN.standardmodels import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
-from pyNN.parameters import ParameterSpace
+from .. import descriptions, errors
+from ..parameters import ParameterSpace
+from .base import StandardSynapseType, STDPWeightDependence, STDPTimingDependence
 
 
 class StaticSynapse(StandardSynapseType):
@@ -200,10 +200,11 @@ class STDPMechanism(StandardSynapseType):
             return pm
 
     def get_parameter_names(self):
-        assert self.voltage_dependence is None  # once we have some models with v-dep, need to update the following
+        assert self.voltage_dependence is None
+        # once we have some models with v-dep, need to update the following
         return ['weight', 'delay', 'dendritic_delay_fraction'] + \
-                 self.timing_dependence.get_parameter_names() + \
-                   self.weight_dependence.get_parameter_names()
+            self.timing_dependence.get_parameter_names() + \
+            self.weight_dependence.get_parameter_names()
 
     def has_parameter(self, name):
         """Does this model have a parameter with the given name?"""
@@ -242,10 +243,10 @@ class STDPMechanism(StandardSynapseType):
         timing_parameters = self.timing_dependence.native_parameters
         weight_parameters = self.weight_dependence.native_parameters
         parameters = self.translate(
-                        ParameterSpace({'weight': self.weight,
-                                        'delay': self.delay,
-                                        'dendritic_delay_fraction': self.dendritic_delay_fraction},
-                                       self.get_schema()))
+            ParameterSpace({'weight': self.weight,
+                            'delay': self.delay,
+                            'dendritic_delay_fraction': self.dendritic_delay_fraction},
+                           self.get_schema()))
         parameters.update(**timing_parameters)
         parameters.update(**weight_parameters)
         parameters.update(**self.timing_dependence.extra_parameters)
@@ -262,10 +263,12 @@ class STDPMechanism(StandardSynapseType):
         If template is None, then a dictionary containing the template context
         will be returned.
         """
-        context = {'weight_dependence': self.weight_dependence.describe(template=None),
-                   'timing_dependence': self.timing_dependence.describe(template=None),
-                   'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,
-                   'dendritic_delay_fraction': self.dendritic_delay_fraction}
+        context = {
+            'weight_dependence': self.weight_dependence.describe(template=None),
+            'timing_dependence': self.timing_dependence.describe(template=None),
+            'voltage_dependence': self.voltage_dependence and self.voltage_dependence.describe(template=None) or None,  # noqa: E501
+            'dendritic_delay_fraction': self.dendritic_delay_fraction
+        }
         return descriptions.render(engine, template, context)
 
 
@@ -375,8 +378,8 @@ class GutigWeightDependence(STDPWeightDependence):
 
 
 # Not yet implemented for any module
-#class PfisterSpikeTripletRule(STDPTimingDependence):
-#    raise NotImplementedError
+# class PfisterSpikeTripletRule(STDPTimingDependence):
+#     raise NotImplementedError
 
 
 class SpikePairRule(STDPTimingDependence):

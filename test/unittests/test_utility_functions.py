@@ -45,10 +45,13 @@ class TimerTest(unittest.TestCase):
     def test_diff(self):
         timer = utility.Timer()
         time.sleep(0.1)
-        self.assertAlmostEqual(timer.diff(), 0.1, places=2)
+        self.assertAlmostEqual(timer.diff(), 0.1, places=1)
         time.sleep(0.2)
         self.assertAlmostEqual(timer.diff(), 0.2, places=1)
-        self.assertAlmostEqual(timer.elapsed_time(), 0.3, places=2)
+        self.assertAlmostEqual(timer.elapsed_time(), 0.3, places=1)
+        # we only check to 1 decimal place because with sleep():
+        # "the suspension time may be longer than requested by an arbitrary amount"
+        # "because of the scheduling of other activity in the system"
 
 
 class ProgressBarTest(unittest.TestCase):

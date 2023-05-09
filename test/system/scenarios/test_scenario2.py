@@ -1,11 +1,10 @@
 
 import numpy as np
-from nose.tools import assert_equal
-from .registry import register
+from .fixtures import run_with_simulators
 
 
-@register()
-def scenario2(sim):
+@run_with_simulators("nest", "neuron", "brian2")
+def test_scenario2(sim):
     """
     Array of neurons, each injected with a different current.
 
@@ -44,10 +43,10 @@ def scenario2(sim):
     sim.run(t_stop)
 
     spiketrains = neurons.get_data().segments[0].spiketrains
-    assert_equal(len(spiketrains), n)
-    assert_equal(len(spiketrains[0]), 0)  # first cell does not fire
-    assert_equal(len(spiketrains[1]), 1)  # other cells fire once
-    assert_equal(len(spiketrains[-1]), 1)  # other cells fire once
+    assert len(spiketrains) == n
+    assert len(spiketrains[0]) == 0  # first cell does not fire
+    assert len(spiketrains[1]) == 1  # other cells fire once
+    assert len(spiketrains[-1]) == 1  # other cells fire once
     expected_spike_times = t_start + tau_m * np.log(I * tau_m / (I * tau_m - v_thresh * cm))
     a = spike_times = [np.array(st)[0] for st in spiketrains[1:]]
     b = expected_spike_times[1:]
@@ -61,4 +60,4 @@ def scenario2(sim):
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()
-    scenario2(sim)
+    test_scenario2(sim)

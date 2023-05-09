@@ -1,14 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Definition of NativeSynapseType class for NEST
 
-:copyright: Copyright 2006-2020 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
 import nest
 
-from pyNN.models import BaseSynapseType
-from pyNN.errors import NoModelAvailableError
+from ..models import BaseSynapseType
+from ..errors import NoModelAvailableError
 from .simulator import state
 from .conversion import make_pynn_compatible, make_sli_compatible
 
@@ -22,7 +23,7 @@ def get_synapse_defaults(model_name):
               'property_object', 'element_type', 'type', 'sizeof',
               'has_delay', 'synapse_model', 'requires_symmetric',
               'weight_recorder', 'init_flag', 'next_readout_time',
-              'synapse_id']
+              'synapse_id', 'synapse_modelid']
     default_params = {}
     for name, value in defaults.items():
         if name not in ignore:
@@ -43,7 +44,7 @@ class NESTSynapseMixin(object):
         synapse_defaults.pop("tau_minus", None)
         try:
             nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        except nest.lib.hl_api_exceptions.NESTError as err:
+        except nest.NESTError:
             if not state.extensions_loaded:
                 raise NoModelAvailableError(
                     "{self.__class__.__name__} is not available."
@@ -64,7 +65,7 @@ class NESTSynapseMixin(object):
                     "pyNN.NEST does not support tau_minus being different for different synapses")
             native_parameters.shape = (1,)
             tau_minus = native_parameters["tau_minus"].evaluate(simplify=True)
-            nest.SetStatus(cells.tolist(), [{'tau_minus': tau_minus}])
+            nest.SetStatus(cells, {'tau_minus': tau_minus})
 
 
 class NativeSynapseType(BaseSynapseType, NESTSynapseMixin):

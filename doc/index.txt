@@ -53,23 +53,31 @@ Developers' Guide
    developers_guide
 
 
-.. API reference
-.. =============
+API reference
+=============
 
-.. .. toctree::
-..    :maxdepth: 2
+.. toctree::
+   :maxdepth: 2
 
-..    api_reference
+   api_reference
 
 
+Old documents
+=============
 
-.. Indices and tables
-.. ==================
+.. toctree::
+   :maxdepth: 1
 
-.. * :ref:`genindex`
-.. * :ref:`modindex`
-.. * :ref:`search`
+   standardmodels
 
-.. _`version 0.9`: http://neuralensemble.org/docs/PyNN/
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+.. _`version 0.9`: http://neuralensemble.org/docs/PyNN/0.9/
 .. _`version 0.8`: http://neuralensemble.org/docs/PyNN/0.8/
 .. _`version 0.7 and earlier`: http://neuralensemble.org/docs/PyNN/0.7/
