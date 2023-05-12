@@ -97,6 +97,10 @@ class NeuroMLMorphology(Morphology):
         return _labels
 
     @property
+    def soma_index(self):
+        return self.labels().get("soma", 0)  # todo: more robust way to handle morphologies without a declared soma, e.g. single dendrites
+
+    @property
     def path_lengths(self):
         if self._path_lengths is None:
             if isinstance(self._morphology, neuroml.arraymorph.ArrayMorphology):

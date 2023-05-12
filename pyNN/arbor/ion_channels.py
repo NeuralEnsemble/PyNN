@@ -9,7 +9,6 @@ from pyNN.standardmodels import ion_channels as standard, build_translations
 class NaChannel(standard.NaChannel):
     translations = build_translations(
         ('conductance_density', 'gnabar'),
-        ('e_rev', 'ena'),
     )
     variable_translations = {
         'm': ('hh', 'm'),
@@ -22,7 +21,6 @@ class NaChannel(standard.NaChannel):
 class KdrChannel(standard.KdrChannel):
     translations = build_translations(
         ('conductance_density', 'gkbar'),
-        ('e_rev', 'ek'),
     )
     variable_translations = {
         'n': ('hh', 'n')
@@ -36,6 +34,5 @@ class PassiveLeak(standard.PassiveLeak):
         ('conductance_density', 'g'),
         ('e_rev', 'e'),
     )
-    variable_translations = {}
     model = "pas"
     conductance_density_parameter = 'g'

@@ -134,7 +134,7 @@ def h_property(name):
 class _Initializer(object):
     """
     Manage initialization of NEURON cells. Rather than create an
-    `FInializeHandler` instance for each cell that needs to initialize itself,
+    `FInitializeHandler` instance for each cell that needs to initialize itself,
     we create a single instance, and use an instance of this class to maintain
     a list of cells that need to be initialized.
 
@@ -149,7 +149,7 @@ class _Initializer(object):
         """
         h('objref initializer')
         h.initializer = self
-        self.fih = h.FInitializeHandler(1, "initializer._initialize()")
+        self.fih = h.FInitializeHandler(0, "initializer._initialize()")
         self.clear()
 
     def register(self, *items):

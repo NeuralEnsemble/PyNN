@@ -41,26 +41,25 @@ cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': s
 # cell_class.soma.insert(na=sim.NaChannel)  # or cell_class.soma.na = sim.NaChannel
 # cell_class.soma.insert(kdr=sim.KdrChannel) # or cell_class.soma.kdr = sim.KdrChannel
 
-cell_type = cell_class(morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),  # yuck
-                       cm=1.0,
-                       Ra=500.0,
-                       ionic_species={
-                              "na": IonicSpecies("na", reversal_potential=50.0),
-                              "k": IonicSpecies("k", reversal_potential=-77.0)
-                       },
-                       pas={"conductance_density": uniform('all', 0.0003),
-                            "e_rev":-54.3},
-                       na={"conductance_density": uniform('soma', 0.120),
-                           "e_rev": 50.0},
-                       kdr={"conductance_density": uniform('soma', 0.036),
-                            "e_rev": -77.0}
-                       )
+cell_type = cell_class(
+    morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),  # yuck
+    cm=1.0,    # mF / cm**2
+    Ra=500.0,  # ohm.cm
+    ionic_species={
+            "na": IonicSpecies("na", reversal_potential=50.0),
+            "k": IonicSpecies("k", reversal_potential=-77.0)
+    },
+    pas={"conductance_density": uniform('all', 0.0003),
+         "e_rev":-54.3},
+    na={"conductance_density": uniform('soma', 0.120)},
+    kdr={"conductance_density": uniform('soma', 0.036)}
+)
 
 #import pdb; pdb.set_trace()
 
 # === Create a population with two cells ====================================
 
-cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
+cells = sim.Population(2, cell_type, initial_values={'v': [-50.0, -65.0]})  #*mV})
 
 # === Inject current into the soma of cell #0 and the dendrite of cell #1 ===
 
@@ -80,6 +79,7 @@ cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
 
 # === Run the simulation =====================================================
 
+#breakpoint()
 sim.run(200.0)
 
 
@@ -101,7 +101,7 @@ Figure(
               yticks=True, ylim=(-80, 40)),
         Panel(data.filter(name='dendrite.v')[0],
               ylabel="Membrane potential, dendrite (mV)",
-              yticks=True, ylim=(-70, -45)),
+              yticks=True, ylim=(-80, -20)),
         Panel(data.filter(name='soma.na.m')[0],
               ylabel="m, soma",
               yticks=True, ylim=(0, 1)),
@@ -115,6 +115,6 @@ Figure(
               yticks=True, ylim=(0, 1)),
         title="Responses of two-compartment neurons to current injection",
         annotations="Simulated with %s" % options.simulator.upper()
-    ).save("current_injection_mc.png")
+    ).save(f"current_injection_mc_{options.simulator}.png")
 
 sim.end()

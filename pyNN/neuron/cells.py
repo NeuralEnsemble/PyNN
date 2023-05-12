@@ -8,7 +8,7 @@ Definition of cell classes for the neuron module.
 """
 
 import logging
-from math import pi
+from math import pi, sqrt
 from collections import defaultdict
 from functools import reduce
 import numpy as np
@@ -746,6 +746,7 @@ class NeuronTemplate(object):
         import neuroml
         import neuroml.arraymorph
 
+        self.initial_values = defaultdict(dict)
         self.traces = defaultdict(list)
         self.recording_time = False
         self.spike_source = None
@@ -759,6 +760,11 @@ class NeuronTemplate(object):
         for receptor_name in self.post_synaptic_entities:
             self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
 
+        d_lambda = 0.1
+
+        def lambda_f(freq, section):
+            return 1e5 * sqrt(section.diam / (4 * pi * freq * section.Ra * section.cm))
+
         if isinstance(morphology._morphology, neuroml.arraymorph.ArrayMorphology):
             M = morphology._morphology
             for i in range(len(morphology._morphology)):
@@ -769,7 +775,7 @@ class NeuronTemplate(object):
                 for v in (vertex, parent):
                     x, y, z, d = v
                     h.pt3dadd(x, y, z, d, sec=section)
-                section.nseg = 1
+                section.nseg = 1 + 2 * int((0.999 + section.L/(d_lambda * lambda_f(100, section)))/2)
                 section.cm = cm
                 section.Ra = Ra
                 # ignore fractions_along for now
@@ -784,12 +790,12 @@ class NeuronTemplate(object):
                 section.L = segment.length
                 section(PROXIMAL).diam = segment.proximal.diameter
                 section(DISTAL).diam = segment.distal.diameter
-                section.nseg = 1
                 if isinstance(cm, NeuriteDistribution):
                     section.cm = cm.value_in(self.morphology, index)
                 else:
                     section.cm = cm
                 section.Ra = Ra
+                section.nseg = 1 + 2 * int((0.999 + section.L/(d_lambda * lambda_f(100, section)))/2)
                 segment_id = segment.id
                 assert segment_id is not None
                 if segment.parent:
@@ -823,7 +829,7 @@ class NeuronTemplate(object):
                     varname = ion_channel.conductance_density_parameter + "_" + ion_channel.model
                     setattr(section, varname, g)
                     ##print(index, mechanism_name, ion_channel.conductance_density_parameter, g)
-                    # temporary hack - we're not using the leak conductance from the hh mechanism,
+                    # We're not using the leak conductance from the hh mechanism,
                     # so set the conductance to zero
                     if mechanism_name == "hh":
                         setattr(section, "gl_hh", 0.0)
@@ -877,7 +883,6 @@ class NeuronTemplate(object):
                 if parameters.external_concentration:
                     set_in_section(section, index, "{}o".format(ion_name), parameters.external_concentration)
 
-
         # set source section
         if self.spike_source:
             self.source_section = self.sections[self.spike_source]
@@ -889,12 +894,23 @@ class NeuronTemplate(object):
         self.rec = h.NetCon(self.source, None, sec=self.source_section)
 
     def memb_init(self):
-        for state_var in ('v',):
-            initial_value = getattr(self, '{0}_init'.format(state_var))
-            assert initial_value is not None
-            if state_var == 'v':
-                for section in self.sections.values():
-                    for seg in section:
-                        seg.v = initial_value
-            else:
-                raise NotImplementedError()
+        # initialize membrane potential
+        initial_value = self.initial_values["v"]
+        assert initial_value is not None
+        for section in self.sections.values():
+            for seg in section:
+                seg.v = initial_value
+        # initialize state variables
+        for channel_name, channel_obj in self.ion_channels.items():
+            for std_state_name, (mech_name, mech_state_name) in channel_obj.variable_translations.items():
+                initial_value = self.initial_values[channel_name].get(std_state_name, None)
+                if initial_value is not None:
+                    for section in self.sections.values():
+                        for seg in section:
+                            try:
+                                mechanism = getattr(seg, mech_name)  # e.g. "hh"
+                            except Exception:  # todo: catch specific NEURON RuntimeError
+                                pass
+                            else:
+                                setattr(mechanism, mech_state_name, initial_value)
+        # todo: synaptic state variables?

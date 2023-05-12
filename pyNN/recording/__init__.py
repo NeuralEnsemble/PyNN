@@ -272,8 +272,9 @@ class Recorder(object):
         """
         if sampling_interval is not None and sampling_interval != self.sampling_interval:
             recorded_variables = list(self.recorded.keys())
-            if "spikes" in recorded_variables:
-                recorded_variables.remove("spikes")
+            spikes_var = Variable("spikes", location=None)
+            if spikes_var in recorded_variables:
+                recorded_variables.remove(spikes_var)
             if len(recorded_variables) > 0:
                 raise ValueError(
                     "All neurons in a population must be recorded "

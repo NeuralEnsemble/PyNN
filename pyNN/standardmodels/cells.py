@@ -537,7 +537,7 @@ class LIF(StandardCellTypeComponent):
     recordable = ['spikes', 'v']
     injectable = True
     default_initial_values = {
-        'v': -70.6,  # 'v_rest'
+        'v': -65.0,  # 'v_rest'
     }
     units = {
         'v': 'mV',
@@ -961,3 +961,13 @@ class MultiCompartmentNeuron(StandardCellType, metaclass=HasSections):
         for name, value in sub_ps.items():
             ps[name] = value
         return ps
+
+    @property
+    def default_initial_values(self):
+        defaults = {
+            "v": -65.0
+        }
+        for channel_name, ion_channel in self.ion_channels.items():
+            for state_name, value in ion_channel.default_initial_values.items():
+                defaults[f"{channel_name}.{state_name}"] = value
+        return defaults

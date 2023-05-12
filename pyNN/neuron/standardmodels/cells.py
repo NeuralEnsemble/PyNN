@@ -393,7 +393,6 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
         ('morphology', 'morphology'),
         ('ionic_species', 'ionic_species')
     )
-    default_initial_values = {}
     ion_channels = {}
     post_synaptic_entities = {}
 
