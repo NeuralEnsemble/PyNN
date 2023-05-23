@@ -34,10 +34,11 @@ Example::
         GABAB=sim.AlphaPSR(tau_syn=15.0, e_syn=-90.0))
 
 
-NEST 3.4, NEURON 8.2
---------------------
+NEST 3.4 support
+----------------
 
-PyNN now supports the latest versions of NEST_ and NEURON_.
+PyNN now supports the latest version of NEST_. NEST 3.3 should also work.
+For older versions of NEST, you will need an older version of PyNN to match.
 
 Changes for developers
 ----------------------

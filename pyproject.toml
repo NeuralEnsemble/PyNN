@@ -1,6 +1,6 @@
 [project]
 name = "PyNN"
-version = "0.11.0.dev.1"
+version = "0.11.0"
 description = "A Python package for simulator-independent specification of neuronal network models"
 readme = "README.rst"
 requires-python = ">=3.8"
@@ -40,6 +40,8 @@ examples = ["matplotlib", "scipy"]
 plotting = ["matplotlib", "scipy"]
 MPI = ["mpi4py"]
 sonata = ["h5py"]
+neuron = ["neuron"]
+brian2 = ["brian2"]
 
 [project.urls]
 homepage = "http://neuralensemble.org/PyNN/"
