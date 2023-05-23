@@ -20,7 +20,6 @@ In addition to the requirements listed in :doc:`../installation`, you will need 
 install:
 
     * pytest_
-    * mock_
     * coverage_
 
 to run tests, and:
@@ -197,12 +196,8 @@ Now you should commit any changes, then tag with the release number as follows::
     $ git tag x.y.z
 
 where ``x.y.z`` is the release number. You should now upload the documentation
-to http://neuralensemble.org/docs/PyNN/ by running::
-
-    $ make zip
-
-in the :file:`doc` directory, and then unpacking the resulting archive on the
-NeuralEnsemble server.
+to http://neuralensemble.org/docs/PyNN/ by updating the `neuralensemble.github.io`
+repository (in the :file:`docs/PyNN` directory).
 
 If this is a final release, there are a few more steps:
 
@@ -214,6 +209,8 @@ If this is a final release, there are a few more steps:
     * upload the packages to PyPI (Do **not** upload development releases to PyPI)::
 
         $ twine upload dist/PyNN-x.y.z*
+
+    * update the :file:`codemeta.json` file
 
     * make an announcement on the `mailing list`_
 
@@ -227,7 +224,6 @@ If this is a final release, there are a few more steps:
 .. _Sphinx: http://sphinx-doc.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/
 .. _pytest: https://docs.pytest.org
-.. _mock: http://www.voidspace.org.uk/python/mock/
 .. _coverage: http://nedbatchelder.com/code/coverage/
 .. _`Python Package Index`: http://pypi.python.org/
 .. _`mailing list`: http://groups.google.com/group/neuralensemble
@@ -239,3 +235,4 @@ If this is a final release, there are a few more steps:
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
 .. _contents: http://software.incf.org/software/pynn/pynn/folder_contents
+.. _`neuralensemble.github.io`: https://github.com/NeuralEnsemble/neuralensemble.github.io
