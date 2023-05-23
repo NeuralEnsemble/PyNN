@@ -33,8 +33,8 @@ your simulator, and are not restricted to the standard models.
 :copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-.. image:: https://travis-ci.org/NeuralEnsemble/PyNN.png?branch=master
-   :target: https://travis-ci.org/NeuralEnsemble/PyNN
+.. image:: https://github.com/NeuralEnsemble/PyNN/actions/workflows/full-test.yml/badge.svg
+   :target: https://github.com/NeuralEnsemble/PyNN/actions/workflows/full-test.yml
    :alt: Unit Test Status
 
 .. image:: https://coveralls.io/repos/NeuralEnsemble/PyNN/badge.svg?branch=master&service=github
