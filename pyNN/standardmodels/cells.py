@@ -607,7 +607,7 @@ class PointNeuron(StandardCellType):
             psr.set_parent(self)
         self.parameter_space = deepcopy(self.neuron.parameter_space)
         for name, psr in self.post_synaptic_receptors.items():
-            self.parameter_space.add_child(name, psr.parameter_space)
+            self.parameter_space[name] = psr.parameter_space
 
     @property
     def receptor_types(self):
