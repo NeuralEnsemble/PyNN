@@ -43,7 +43,7 @@ from .control import (                                              # noqa: F401
     num_processes,
     rank,
 )
-from .procedural_api import create, connect, record, record_v, record_gsyn  # noqa: F401
+from .procedural_api import create, connect, record, record_v, record_gsyn, set  # noqa: F401
 
 
 # ==============================================================================
