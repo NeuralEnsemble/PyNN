@@ -81,7 +81,7 @@ public:
    * can be created.
    *
    * `handles_test_event()` should be added for all event types that the
-   * synapse can transmit. The methods shall return `invalid_port_`; the
+   * synapse can transmit. The methods shall return `invalid_port`; the
    * return value will be ignored.
    *
    * Since this is a synapse model dropping spikes, it is only for spikes,
@@ -97,13 +97,13 @@ public:
     nest::port
     handles_test_event( nest::SpikeEvent&, nest::rport )
     {
-      return nest::invalid_port_;
+      return nest::invalid_port;
     }
 
     nest::port
     handles_test_event( nest::DSSpikeEvent&, nest::rport )
     {
-      return nest::invalid_port_;
+      return nest::invalid_port;
     }
   };
 

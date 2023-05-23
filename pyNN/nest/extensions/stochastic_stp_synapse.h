@@ -113,7 +113,7 @@ public:
     nest::port
     handles_test_event( nest::SpikeEvent&, nest::rport )
     {
-      return nest::invalid_port_;
+      return nest::invalid_port;
     }
   };
 
