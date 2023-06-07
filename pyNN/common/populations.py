@@ -1428,8 +1428,10 @@ class Assembly(object):
         for i, block in enumerate(blocks):
             logger.debug("%d: %s", i, block.name)
             for j, segment in enumerate(block.segments):
+                segment.block = blocks[0]
                 logger.debug("  %d: %s", j, segment.name)
                 for arr in segment.analogsignals:
+                    arr.segment = blocks[0].segments[j]
                     logger.debug("    %s %s", arr.shape, arr.name)
         merged_block = blocks[0]
         for block in blocks[1:]:

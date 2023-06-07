@@ -4,15 +4,15 @@
   "license": "https://spdx.org/licenses/CECILL-2.1",
   "codeRepository": "https://github.com/NeuralEnsemble/PyNN",
   "contIntegration": "https://github.com/NeuralEnsemble/PyNN/actions",
-  "dateModified": "2022-10-13",
-  "downloadUrl": "https://files.pythonhosted.org/packages/08/a5/f923f05ef1a12c64a0b674785c5c5abc376fe6386976fbfe376061837f5f/PyNN-0.10.1.tar.gz",
+  "dateModified": "2023-05-23",
+  "downloadUrl": "https://files.pythonhosted.org/packages/5e/55/4a904b95ecb1c50e716e0ba48e0918daf522c9c6bac5b75e0c08c1030217/PyNN-0.11.0.tar.gz",
   "issueTracker": "https://github.com/NeuralEnsemble/PyNN/issues",
   "name": "PyNN",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "identifier": "RRID:SCR_002715",
-  "description": "PyNN (pronounced 'pine') is a simulator-independent language for building neuronal network models.\n\nIn other words, you can write the code for a model once, using the PyNN API and the Python programming language, and then run it without modification on any simulator that PyNN supports (currently NEURON, NEST, and Brian), and on the SpiNNaker and BrainScaleS neuromorphic hardware systems.\n\nThe PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way, either using the Connection Set Algebra (Djurfeldt, 2010) or by writing your own Python code.\n\nThe low-level API is good for small networks, and perhaps gives more flexibility. The high-level API is good for hiding the details and the book-keeping, allowing you to concentrate on the overall structure of your model.\n\nThe other thing that is required to write a model once and run it on multiple simulators is standard cell models. PyNN translates standard cell-model names and parameter names into simulator-specific names, e.g. standard model IFcurralpha is iafneuron in NEST and StandardIF in NEURON, while SpikeSourcePoisson is a poissongenerator in NEST and a NetStim in NEURON.\n\nEven if you don't wish to run simulations on multiple simulators, you may benefit from writing your simulation code using PyNN's powerful, high-level interface. In this case, you can use any neuron or synapse model supported by your simulator, and are not restricted to the standard models.\n\nPyNN is a work in progress, but is already being used for several large-scale simulation projects.",
+  "description": "PyNN (pronounced 'pine') is a simulator-independent language for building neuronal network models.\n\nIn other words, you can write the code for a model once, using the PyNN API and the Python programming language, and then run it without modification on any  simulator that PyNN supports (currently NEURON, NEST and Brian 2) and on a number of neuromorphic hardware systems.\n\nThe PyNN API aims to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required. PyNN provides a library of standard neuron, synapse and synaptic plasticity models, which have been verified to work the same on the different supported simulators. PyNN also provides a set of commonly-used connectivity algorithms (e.g. all-to-all, random, distance-dependent, small-world) but makes it easy to provide your own connectivity in a simulator-independent way.\n\nEven if you don't wish to run simulations on multiple simulators, you may benefit from writing your simulation code using PyNN's powerful, high-level interface. In this case, you can use any neuron or synapse model supported by your simulator, and are not restricted to the standard models.",
   "applicationCategory": "neuroscience",
-  "releaseNotes": "http://neuralensemble.org/docs/PyNN/releases/0.10.1.html",
+  "releaseNotes": "http://neuralensemble.org/docs/PyNN/releases/0.11.0.html",
   "funding": "https://cordis.europa.eu/project/id/945539",
   "developmentStatus": "active",
   "referencePublication": "https://doi.org/10.3389/neuro.11.011.2008",
@@ -24,7 +24,7 @@
   "operatingSystem": ["Linux", "Windows", "macOS"],
   "softwareRequirements": [
     "at least one of the supported simulators: e.g. NEURON, NEST, or Brian.",
-    "Python (version 3.7-3.9)"
+    "Python (version 3.8-3.10)"
   ],
   "relatedLink": [
     "http://neuralensemble.org/docs/PyNN/",

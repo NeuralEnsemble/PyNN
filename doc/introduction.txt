@@ -12,7 +12,7 @@ Even if you don't wish to run simulations on multiple simulators, you may benefi
 
 It is straightforward to port an existing model from a Python-supporting simulator to PyNN, since this can be done incrementally, replacing one piece of simulator-specific code at a time with the PyNN equivalent, and testing that the model behaviour is unchanged at each step.
 
-:doc:`Download<download>` the current stable release of the library (0.10.1) or get the development version from the `Git repository`_ .
+:doc:`Download<download>` the current stable release of the library (0.11.0) or get the development version from the `Git repository`_ .
 
 Licence
 -------

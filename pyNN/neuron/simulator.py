@@ -23,12 +23,14 @@ modules.
 import logging
 import os.path
 from operator import itemgetter
+import warnings
 
 import numpy as np
 from neuron import h, nrn_dll_loaded
 
 from .. import __path__ as pyNN_path
 from .. import common
+from ..core import find, run_command
 
 
 logger = logging.getLogger("PyNN")
@@ -39,6 +41,27 @@ name = "NEURON"  # for use in annotating output data
 _MIN_PROJECTION_VARGID = 1000000
 
 # --- Internal NEURON functionality --------------------------------------------
+
+
+def build_extensions():
+
+    nrnivmodl = find("nrnivmodl")
+    if not nrnivmodl:
+        warnings.warn("Unable to find nrnivmodl. It will not be possible to use the pyNN.neuron module.")
+        return
+
+    logger.debug(f"nrnivmodl found at {nrnivmodl}")
+
+    mech_path = os.path.join(os.path.dirname(__file__), "nmodl")
+    result, stdout = run_command(nrnivmodl, mech_path)
+    # test if nrnivmodl was successful
+    if result != 0:
+        err_msg = "\n  ".join(stdout)
+        warnings.warn(f"Unable to compile NEURON extensions. Output was:\n  {err_msg}")
+    else:
+        logger.info("Successfully compiled NEURON extensions.")
+
+    return mech_path
 
 
 def load_mechanisms(path):
@@ -588,8 +611,12 @@ setattr(Connection, 'rho', generate_synapse_property('rho'))
 
 # --- Initialization, and module attributes ------------------------------------
 
-mech_path = os.path.join(pyNN_path[0], 'neuron', 'nmodl')
-load_mechanisms(mech_path)  # maintains a list of mechanisms that have already been imported
+mech_path = os.path.join(os.path.dirname(__file__), "nmodl")
+try:
+    load_mechanisms(mech_path)  # maintains a list of mechanisms that have already been imported
+except OSError:
+    mech_path = build_extensions()
+    load_mechanisms(mech_path)
 state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 initializer = _Initializer()

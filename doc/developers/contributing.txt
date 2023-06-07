@@ -20,7 +20,6 @@ In addition to the requirements listed in :doc:`../installation`, you will need 
 install:
 
     * pytest_
-    * mock_
     * coverage_
 
 to run tests, and:
@@ -43,10 +42,6 @@ To work on the development version::
 
     $ git checkout master
 
-To work on the latest stable release (for bug-fixes)::
-
-    $ git checkout --track origin/0.8
-
 To keep your PyNN repository up-to-date with respect to the official
 repository, add it as a remote::
 
@@ -62,12 +57,7 @@ To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
     * pip editable mode (`pip install -e /path/to/PyNN`)
     * creating a symbolic link named :file:`pyNN` from somewhere that is already
       on your :envvar:`PYTHONPATH`, such as the :file:`site-packages` directory,
-      to the :file:`pyNN_trunk/pyNN` directory.
-
-If you are developing with NEURON, don't forget to compile the NMODL files in
-:file:`pyNN/neuron/nmodl` by running :command:`nrnivmodl`, and to recompile any time
-you modify any of them.
-
+      to the :file:`pyNN_dev/pyNN` directory.
 
 Coding style
 ============
@@ -80,7 +70,7 @@ We try to stay fairly close to PEP8_. Please note in particular:
     - some function/method names in PyNN use ``mixedCase``, but these will
       gradually be deprecated and replaced with ``lower_case_with_underscores``.
       Any new functions or methods should use the latter.
-    - we currently target versions 2.7 and 3.6+
+    - we currently target versions 3.8+
 
 
 Testing
@@ -190,36 +180,24 @@ last time:
       you should do this on at least two Linux systems and one Mac OS X system.
     * does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-    * have you updated the version numbers in :file:`setup.py`, :file:`pyNN/__init__.py`,
+    * have you updated the version numbers in :file:`pyproject.toml`, :file:`pyNN/__init__.py`,
       :file:`doc/conf.py` and :file:`doc/installation.txt`?
     * have you updated the changelog?
 
-Once you've confirmed all the above, create a source package using::
+Once you've confirmed all the above, create source and wheel packages using::
 
-    $ python setup.py sdist
+    $ python -m build
 
-and check that it installs properly (you will find it in the :file:`dist`
-subdirectory.
+and check that they install properly (you will find them in the :file:`dist`
+subdirectory).
 
 Now you should commit any changes, then tag with the release number as follows::
 
     $ git tag x.y.z
 
 where ``x.y.z`` is the release number. You should now upload the documentation
-to http://neuralensemble.org/docs/PyNN/ by running::
-
-    $ make zip
-
-in the :file:`doc` directory, and then unpacking the resulting archive on the
-NeuralEnsemble server.
-
-If this is a development release (i.e. an *alpha* or *beta*), the final step is
-to upload the source package to the INCF Software Center.
-Do **not** upload development releases to PyPI.
-
-To upload a package to the INCF Software Center, log-in, and then go to the
-Contents_ tab. Click on "Add new..." then "File", then fill in the form and
-upload the source package.
+to http://neuralensemble.org/docs/PyNN/ by updating the `neuralensemble.github.io`
+repository (in the :file:`docs/PyNN` directory).
 
 If this is a final release, there are a few more steps:
 
@@ -228,9 +206,11 @@ If this is a final release, there are a few more steps:
 
         $ git branch x.y
 
-    * upload the source package to PyPI::
+    * upload the packages to PyPI (Do **not** upload development releases to PyPI)::
 
-        $ python setup.py sdist upload
+        $ twine upload dist/PyNN-x.y.z*
+
+    * update the :file:`codemeta.json` file
 
     * make an announcement on the `mailing list`_
 
@@ -244,7 +224,6 @@ If this is a final release, there are a few more steps:
 .. _Sphinx: http://sphinx-doc.org/
 .. _PEP8: http://www.python.org/dev/peps/pep-0008/
 .. _pytest: https://docs.pytest.org
-.. _mock: http://www.voidspace.org.uk/python/mock/
 .. _coverage: http://nedbatchelder.com/code/coverage/
 .. _`Python Package Index`: http://pypi.python.org/
 .. _`mailing list`: http://groups.google.com/group/neuralensemble
@@ -256,3 +235,4 @@ If this is a final release, there are a few more steps:
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
 .. _contents: http://software.incf.org/software/pynn/pynn/folder_contents
+.. _`neuralensemble.github.io`: https://github.com/NeuralEnsemble/neuralensemble.github.io
