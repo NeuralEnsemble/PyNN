@@ -78,12 +78,10 @@ class PopulationMixin(object):
                 else:
                     parameter_space = ParameterSpace({})
                 for component_label, names in names_by_component.items():
-                    parameter_space.add_child(
-                        component_label,
-                        _get_component_parameters(
+                    parameter_space[component_label] = _get_component_parameters(
                             self.celltype.post_synaptic_receptors[component_label],
                             names_by_component[component_label],
-                            component_label))
+                            component_label)
             else:
                 parameter_space = _get_component_parameters(self.celltype, names)
         else:
