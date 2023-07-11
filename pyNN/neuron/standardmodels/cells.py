@@ -355,7 +355,7 @@ class PointNeuron(base_cells.PointNeuron):
     def native_parameters(self):
         translated_parameters = self.neuron.native_parameters
         for name, psr in self.post_synaptic_receptors.items():
-            translated_parameters.add_child(name, psr.native_parameters)
+            translated_parameters[name] = psr.native_parameters
         return translated_parameters
 
     def get_native_names(self, *names):

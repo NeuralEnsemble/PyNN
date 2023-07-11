@@ -7,7 +7,7 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 3.7+)
+    * Python (version 3.8+)
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package (>= 0.11.0)
@@ -32,9 +32,8 @@ The easiest way to get PyNN is to use pip_::
 If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.10.1.tar.gz
-    $ cd PyNN-0.10.1
-    $ python setup.py install
+    $ tar xzf PyNN-0.11.0.tar.gz
+    $ pip install ./PyNN-0.11.0
 
 This will install it to your Python :file:`site-packages` directory, and may
 require root privileges. We strongly recommend, however, that you use a
@@ -55,30 +54,25 @@ Test it using something like the following::
    If you get a warning "Unable to install NEST extensions. Certain models may not be available" then ensure the
    program :command:`nest-config` is on your system PATH.
    If you still get this message even after adding the directory containing :command:`nest-config` to the PATH,
-   try ``pip uninstall PyNN``, then re-install with ``pip install --no-binary :all: PyNN``
+   then you will still be able to use pyNN.nest, just a small number of models will not be available.
 
-With NEURON as the simulator, make sure you install NEURON *before* you install PyNN.
-The PyNN installation will then compile PyNN-specific membrane mechanisms, which are loaded when importing the :mod:`neuron` module::
+For NEURON, PyNN will compile PyNN-specific membrane mechanisms the first time you import the :mod:`neuron` module::
 
     >>> import pyNN.neuron as sim
-    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
-    See http://www.neuron.yale.edu/neuron/credits
 
-    loading membrane mechanisms from /home/docker/dev/PyNN/pyNN/neuron/nmodl/x86_64/.libs/libnrnmech.so
-    Additional mechanisms from files
-     adexp.mod alphaisyn.mod alphasyn.mod expisyn.mod gap.mod gsfa_grr.mod hh_traub.mod
-     izhikevich.mod netstim2.mod refrac.mod reset.mod stdwa_guetig.mod stdwa_softlimits.mod
-     stdwa_songabbott.mod stdwa_symm.mod stdwa_vogels2011.mod tmgsyn.mod tmisyn.mod
-     tsodyksmarkram.mod vecstim.mod
-
-If you installed PyNN before installing NEURON, or if you update your PyNN installation,
-you will need to manually run :command:`nrnivmodl` in the :file:`pyNN/neuron/nmodl` directory.
 
 Installing NEURON
 =================
 
-Download the sources for NEURON 7.4 or later, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
+For recent versions of NEURON,
+
+::
+
+    $ pip install neuron
+
+may be all you need. If you have more complex needs, try the following.
+
+Download the sources for NEURON 8.0 or later, in ``.tar.gz`` format, from `<http://www.neuron.yale.edu/neuron/download/getstd>`_.
 Also download Interviews from the same location.
 
 Compile Interviews and NEURON according to the instructions given at `<http://www.neuron.yale.edu/neuron/static/download/compilestd_unix.html>`_,
@@ -92,9 +86,9 @@ Make sure that you add the Interviews and NEURON :file:`bin` directories to your
 Test that the Python support has been enabled by running::
 
     $ nrniv -python
-    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
-    See http://www.neuron.yale.edu/neuron/credits
+    NEURON -- VERSION 8.2.2 release/8.2 (93d41fafd) 2022-12-15
+    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2022
+    See http://neuron.yale.edu/neuron/credits
 
     >>> import hoc
     >>> import nrn
@@ -108,9 +102,6 @@ Now test everything worked::
 
     $ python
     >>> import neuron
-    NEURON -- Release 7.4 (1370:16a7055d4a86) 2015-11-09
-    Duke, Yale, and the BlueBrain Project -- Copyright 1984-2015
-    See http://www.neuron.yale.edu/neuron/credits
 
 If you run into problems, check out the `NEURON Forum`_.
 
@@ -118,25 +109,24 @@ If you run into problems, check out the `NEURON Forum`_.
 Installing NEST and PyNEST
 ==========================
 
-NEST 2.18.0 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 3.4 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST may not work with this version of PyNN.
-The full installation instructions are available in the file INSTALL, which you can find in the NEST source package,
-or at `<http://www.nest-simulator.org/installation/>`_.
+The full installation instructions are available at `<https://nest-simulator.readthedocs.io/en/v3.4/installation/index.html/>`_.
 
 Now try it out::
 
     $ cd ~
     $ python
     >>> import nest
-                 -- N E S T --
-      Copyright (C) 2004 The NEST Initiative
 
-    Version: v2.20.0
+                -- N E S T --
+    Copyright (C) 2004 The NEST Initiative
 
+    Version: 3.4
     ...
-    >>> nest.Models()
-    (u'ac_generator', u'aeif_cond_alpha', u'aeif_cond_alpha_RK5', u'aeif_cond_alpha_multisynapse',
-    ...
+
+    >>> nest.node_models
+    ('weight_recorder', 'gauss_rate_ipn', 'lin_rate_ipn', 'sigmoid_rate_ipn', 'sigmoid_rate_gg_1998_ipn', 'tanh_rate_ipn', ...)
 
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 

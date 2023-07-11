@@ -19,6 +19,9 @@ create = common.build_create(Population)
 connect = common.build_connect(Projection, FixedProbabilityConnector, StaticSynapse)
 
 
+set = common.set
+
+
 record = common.build_record(simulator)
 
 

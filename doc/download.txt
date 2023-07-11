@@ -5,7 +5,7 @@ Downloads
 Source distributions
 --------------------
 
-The `latest stable version of PyNN`_ (0.10.1) may be downloaded from the
+The `latest stable version of PyNN`_ (0.11.0) may be downloaded from the
 `Python Package Index`_. This is recommended for
 anyone using PyNN for the first time.
 
@@ -14,7 +14,7 @@ the links below.
 
 Older versions:
 
-    * `0.10.0 <https://pypi.python.org/pypi/PyNN/0.10.0>`_
+    * `0.10.1 <https://pypi.python.org/pypi/PyNN/0.10.1>`_
     * `0.9.6 <https://pypi.python.org/pypi/PyNN/0.9.6>`_
     * `0.8.0 <https://pypi.python.org/pypi/PyNN/0.8.0>`_
     * `0.7.5 <https://pypi.python.org/pypi/PyNN/0.7.5>`_

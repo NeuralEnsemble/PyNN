@@ -33,10 +33,20 @@ your simulator, and are not restricted to the standard models.
 :copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 
-.. image:: https://travis-ci.org/NeuralEnsemble/PyNN.png?branch=master
-   :target: https://travis-ci.org/NeuralEnsemble/PyNN
+.. image:: https://github.com/NeuralEnsemble/PyNN/actions/workflows/full-test.yml/badge.svg
+   :target: https://github.com/NeuralEnsemble/PyNN/actions/workflows/full-test.yml
    :alt: Unit Test Status
 
 .. image:: https://coveralls.io/repos/NeuralEnsemble/PyNN/badge.svg?branch=master&service=github
    :target: https://coveralls.io/github/NeuralEnsemble/PyNN?branch=master
    :alt: Test coverage
+
+Funding
+-------
+
+Development of PyNN has been partially funded by the European Union Sixth Framework Program (FP6) under
+grant agreement FETPI-015879 (FACETS), by the European Union Seventh Framework Program (FP7/2007­-2013)
+under grant agreements no. 269921 (BrainScaleS) and no. 604102 (HBP),
+and by the European Union’s Horizon 2020 Framework Programme for
+Research and Innovation under the Specific Grant Agreements No. 720270 (Human Brain Project SGA1)
+, No. 785907 (Human Brain Project SGA2) and No. 945539 (Human Brain Project SGA3).

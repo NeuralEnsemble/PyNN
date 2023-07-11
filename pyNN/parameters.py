@@ -277,7 +277,6 @@ class ParameterSpace(object):
 
         """
         self._parameters = {}
-        self.children = {}
         self.schema = schema
         self._shape = shape
         self.component = component
@@ -287,8 +286,6 @@ class ParameterSpace(object):
     def _set_shape(self, shape):
         for value in self._parameters.values():
             value.shape = shape
-        for child in self.children.values():
-            child.shape = shape
         self._shape = shape
     shape = property(fget=lambda self: self._shape, fset=_set_shape,
                      doc="Size of the lazy arrays contained within the parameter space")
@@ -319,20 +316,39 @@ class ParameterSpace(object):
         If the :class:`ParameterSpace` has a schema, the keys and the data types
         of the values will be checked against the schema.
         """
+        for name, value in parameters.items():
+            self.__setitem__(name, value)
+
+    def __getitem__(self, name):
+        """x.__getitem__(y) <==> x[y]"""
+        return self._parameters[name]
+
+    def __setitem__(self, name, value):
+        if self.schema and name in self.schema:
+            if isinstance(self.schema[name], dict):
+                self._setitem_subspace(name, value)
+            else:
+                self._setitem_value(name, value)
+        else:
+            if isinstance(value, (dict, ParameterSpace)):
+                self._setitem_subspace(name, value)
+            else:
+                self._setitem_value(name, value)
+
+    def _setitem_value(self, name, value):
         if self.schema:
-            for name, value in parameters.items():
-                try:
-                    expected_dtype = self.schema[name]
-                except KeyError:
-                    if self.component:
-                        model_name = self.component.__name__
-                    else:
-                        model_name = 'unknown'
-                    raise errors.NonExistentParameterError(
-                            name,
-                            model_name,
-                            valid_parameter_names=self.schema.keys())
-                if issubclass(expected_dtype, ArrayParameter) and isinstance(value, Sized):
+            try:
+                expected_dtype = self.schema[name]
+            except KeyError:
+                if self.component:
+                    model_name = self.component.__name__
+                else:
+                    model_name = 'unknown'
+                raise errors.NonExistentParameterError(
+                        name,
+                        model_name,
+                        valid_parameter_names=self.schema.keys())
+            if issubclass(expected_dtype, ArrayParameter) and isinstance(value, Sized):
                     if len(value) == 0:
                         value = ArrayParameter([])
                     elif not isinstance(value[0], ArrayParameter):
@@ -342,26 +358,28 @@ class ParameterSpace(object):
                             value = type(value)([ArrayParameter(x) for x in value])
                         else:
                             value = ArrayParameter(value)
-                try:
-                    self._parameters[name] = LazyArray(value, shape=self._shape,
-                                                       dtype=expected_dtype)
-                except (TypeError, errors.InvalidParameterValueError):
-                    raise errors.InvalidParameterValueError(
-                        f"For parameter {name} expected {expected_dtype}, got {type(value)}")
-                except ValueError as err:
-                    # maybe put the more specific error classes into lazyarray
-                    raise errors.InvalidDimensionsError(err)
+            try:
+                self._parameters[name] = LazyArray(value, shape=self._shape,
+                                                    dtype=expected_dtype)
+            except (TypeError, errors.InvalidParameterValueError):
+                raise errors.InvalidParameterValueError(
+                    f"For parameter {name} expected {expected_dtype}, got {type(value)}")
+            except ValueError as err:
+                # maybe put the more specific error classes into lazyarray
+                raise errors.InvalidDimensionsError(err)
         else:
-            for name, value in parameters.items():
-                self._parameters[name] = LazyArray(value, shape=self._shape)
+            self._parameters[name] = LazyArray(value, shape=self._shape)
 
-    def __getitem__(self, name):
-        """x.__getitem__(y) <==> x[y]"""
-        return self._parameters[name]
-
-    def __setitem__(self, name, value):
-        # need to add check against schema
-        self._parameters[name] = value
+    def _setitem_subspace(self, name, value):
+        if isinstance(value, dict):
+            self._parameters[name] = ParameterSpace(
+                value,
+                schema=self.schema.get(name, None) if self.schema else None,
+                shape=self.shape
+            )
+        else:
+             # todo: check and/or pass on schema to child
+            self._parameters[name] = value
 
     def pop(self, name, d=None):
         """
@@ -389,23 +407,29 @@ class ParameterSpace(object):
             raise Exception("Must set shape of parameter space before evaluating")
         if mask is None:
             for name, value in self._parameters.items():
-                self._parameters[name] = value.evaluate(simplify=simplify)
+                if isinstance(value, ParameterSpace):
+                    self._parameters[name].evaluate(mask, simplify)
+                else:
+                    self._parameters[name] = value.evaluate(simplify=simplify)
             self._evaluated_shape = self._shape
         else:
             for name, value in self._parameters.items():
-                try:
-                    if (
-                        isinstance(value.base_value, RandomDistribution)
-                        and value.base_value.rng.parallel_safe
-                    ):
-                        value = value.evaluate()  # can't partially evaluate if using parallel safe
-                    self._parameters[name] = value[mask]
-                except ValueError:
-                    raise errors.InvalidParameterValueError(
-                        f"{name} should not be of type {type(value)}")
+                if isinstance(value, ParameterSpace):
+                    self._parameters[name].evaluate(mask, simplify)
+                else:
+                    try:
+                        if (
+                            isinstance(value.base_value, RandomDistribution)
+                            and value.base_value.rng.parallel_safe
+                        ):
+                            value = value.evaluate()[mask]  # can't partially evaluate if using parallel safe
+                        else:
+                            value = value._partially_evaluate(mask, simplify=simplify)
+                        self._parameters[name] = value
+                    except ValueError:
+                        raise errors.InvalidParameterValueError(
+                            f"{name} should not be of type {type(value)}")
             self._evaluated_shape = partial_shape(mask, self._shape)
-        for child in self.children.values():
-            child.evaluate(mask, simplify)
         self._evaluated = True
         # should possibly update self.shape according to mask?
         return self
@@ -419,10 +443,11 @@ class ParameterSpace(object):
             raise Exception("Must call evaluate() method before calling ParameterSpace.as_dict()")
         D = {}
         for name, value in self._parameters.items():
-            D[name] = value
-            assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
-        for name, child in self.children.items():
-            D[name] = child.as_dict()
+            if isinstance(value, ParameterSpace):
+                D[name] = value.as_dict()
+            else:
+                D[name] = value
+                assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
         return D
 
     def __iter__(self):
@@ -451,18 +476,19 @@ class ParameterSpace(object):
         for i in range(self._evaluated_shape[0]):
             D = {}
             for name, value in self._parameters.items():
-                if is_listlike(value):
-                    D[name] = value[i]
+                if isinstance(value, ParameterSpace):
+                    D[name] = {}
+                    for cname, cvalue in value.items():
+                        if is_listlike(cvalue):
+                            D[name][cname] = cvalue[i]
+                        else:
+                            D[name][cname] = cvalue
                 else:
-                    D[name] = value
-                assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
-            for name, child in self.children.items():
-                D[name] = {}
-                for cname, cvalue in child.items():
-                    if is_listlike(cvalue):
-                        D[name][cname] = cvalue[i]
+                    if is_listlike(value):
+                        D[name] = value[i]
                     else:
-                        D[name][cname] = cvalue
+                        D[name] = value
+                    assert not isinstance(D[name], LazyArray)  # should all have been evaluated by now
             yield D
 
     def columns(self):
@@ -522,23 +548,22 @@ class ParameterSpace(object):
         New array values are set to NaN.
         """
         for name, value in self._parameters.items():
-            if isinstance(value.base_value, np.ndarray):
+            if isinstance(value, ParameterSpace):
+                value.expand(new_shape, mask)
+            elif isinstance(value.base_value, np.ndarray):
                 new_base_value = np.ones(new_shape) * np.nan
                 new_base_value[mask] = value.base_value
                 self._parameters[name].base_value = new_base_value
         self.shape = new_shape
 
-    def add_child(self, name, child_space):
-        self.children[name] = child_space
-
     def flatten(self, with_prefix=True):
-        for child_name, child in self.children.items():
-            for name, value in child.items():
-                if with_prefix:
-                    self._parameters["{}.{}".format(child_name, name)] = value
-                else:
-                    self._parameters[name] = value
-        self.children = {}
+        for name, value in self._parameters.copy().items():
+            if isinstance(value, ParameterSpace):
+                for cname, cvalue in value.items():
+                    if with_prefix:
+                        self._parameters["{}.{}".format(name, cname)] = cvalue
+                    else:
+                        self._parameters[cname] = cvalue
 
 
 def simplify(value):

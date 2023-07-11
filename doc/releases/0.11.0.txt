@@ -1,0 +1,65 @@
+=========================
+PyNN 0.11.0 release notes
+=========================
+
+May 23rd 2022
+
+Welcome to PyNN 0.11.0!
+
+
+Added "composed" models allowing multiple post-synaptic receptor types
+----------------------------------------------------------------------
+
+The existing PyNN "standard" models are defined by both their membrane properties
+(e.g., "leaky integrate-and-fire", "exponential integrate-and-fire") and by the
+number of type of their post-synaptic receptor currents (e.g., "alpha-shaped",
+"single-exponential", "excitatory", "inhibitory").
+
+A new, optional class, :class:`PointNeuron`, now allows cell types to be composed
+from a menu of membrane mechanisms (currently :class:`LIF` or :class:`AdExp`)
+and of an arbitrary number of post-synaptic response mechanisms:
+
+- :class:`CurrExpPostSynapticResponse`
+- :class:`CondExpPostSynapticResponse` (alias :class:`ExpPSR`)
+- :class:`CondAlphaPostSynapticResponse` (alias :class:`AlphaPSR`)
+- :class:`CondBetaPostSynapticResponse` (alias :class:`BetaPSR`)
+
+Example::
+
+    celltype = sim.PointNeuron(
+        sim.AdExp(tau_m=10.0, v_rest=-60.0),
+        AMPA=sim.AlphaPSR(tau_syn=1.0, e_syn=0.0),
+        NMDA=sim.AlphaPSR(tau_syn=20.0, e_syn=0.0),
+        GABAA=sim.AlphaPSR(tau_syn=1.5, e_syn=-70.0),
+        GABAB=sim.AlphaPSR(tau_syn=15.0, e_syn=-90.0))
+
+
+NEST 3.4 support
+----------------
+
+PyNN now supports the latest version of NEST_. NEST 3.3 should also work.
+For older versions of NEST, you will need an older version of PyNN to match.
+
+Changes for developers
+----------------------
+
+Most of the changes in this version of PyNN are not visible to the end user,
+but are intended to improve the developer experience, for both existing and
+new developers, and to bring PyNN up to date with current best practices
+for open-source Python projects:
+
+- Moved test suite from nose to pytest
+- Changed packing solution from setup.py to pyproject.toml
+- Fixed a lot of warnings produced by the flake8_ style checker
+- Internal refactoring and spring-cleaning, intended to remove old code and make the code base easier to understand
+
+
+Bug fixes
+---------
+
+A `small number of bugs`_ have been fixed.
+
+.. _`small number of bugs`: https://github.com/NeuralEnsemble/PyNN/issues?q=milestone%3A0.11.0+is%3Aclosed
+.. _NEST: https://www.nest-simulator.org
+.. _NEURON: https://neuron.yale.edu/neuron/
+.. _flake8: https://flake8.pycqa.org/en/latest/

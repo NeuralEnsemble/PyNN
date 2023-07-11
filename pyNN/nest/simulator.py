@@ -19,13 +19,16 @@ modules.
 :license: CeCILL, see LICENSE for details.
 """
 
-import nest
+import os.path
 import logging
 import tempfile
 import warnings
 import numpy as np
+
+import nest
+
 from .. import common
-from ..core import reraise
+from ..core import reraise, find, run_command
 
 logger = logging.getLogger("PyNN")
 name = "NEST"  # for use in annotating output data
@@ -37,6 +40,57 @@ name = "NEST"  # for use in annotating output data
 #       in case they are used with PyNN as "native" models.
 NEST_VARIABLES_TIME_DIMENSION = ("start", "stop")
 NEST_ARRAY_VARIABLES_TIME_DIMENSION = ("spike_times", "amplitude_times", "rate_times")
+
+
+# --- Building extensions ------------------------------------------------------
+
+def build_extensions(build_dir=None):
+    nest_config = find("nest-config")
+    if not nest_config:
+        warnings.warn("Cannot find nest-config, please check your PATH. Unable to build extensions.")
+        return
+
+    logger.debug("nest-config found at", nest_config)
+
+    build_dirs = []
+    if build_dir is not None:
+        build_dirs.append(build_dir)
+    # if a specific build directory is not provided,
+    # first try to build within the pyNN source dir
+    build_dirs.append(os.path.join(os.path.dirname(__file__), "_build"))
+    # if that directory is not writable, build in the current working directory
+    build_dirs.append(os.path.join(os.getcwd(), "_build", "nest_extensions"))
+
+    for nest_build_dir in build_dirs:
+        try:
+            os.makedirs(nest_build_dir, exist_ok=True)
+        except OSError:
+            continue
+        if os.access(nest_build_dir, os.W_OK):
+            break
+
+    if not os.access(nest_build_dir, os.W_OK):
+        warnings.warn("Cannot create build directory for nest extensions")
+        return
+
+    source_dir = os.path.join(os.path.dirname(__file__), "extensions")
+    result, stdout = run_command(f"cmake -Dwith-nest={nest_config} {source_dir}",
+                                 nest_build_dir)
+    if result != 0:
+        err_msg = "\n  ".join(stdout)
+        warnings.warn(f"Problem running cmake. Output was:\n  {err_msg}")
+    else:
+        result, stdout = run_command("make", nest_build_dir)
+        if result != 0:
+            err_msg = "\n  ".join(stdout)
+            warnings.warn(f"Unable to compile NEST extensions. Output was:\n  {err_msg}")
+        else:
+            result, stdout = run_command("make install", nest_build_dir)
+            if result != 0:
+                err_msg = "\n  ".join(stdout)
+                warnings.warn(f"Unable to install NEST extensions. Output was:\n  {err_msg}")
+            else:
+                logger.info("Successfully compiled NEST extensions.")
 
 
 # --- For implementation of get_time_step() and similar functions --------------
@@ -77,7 +131,12 @@ class _State(common.control.BaseState):
             nest.Install('pynn_extensions')
             self.extensions_loaded = True
         except nest.NESTError:
-            self.extensions_loaded = False
+            build_extensions()
+            try:
+                nest.Install('pynn_extensions')
+                self.extensions_loaded = True
+            except nest.NESTError:
+                self.extensions_loaded = False
         self.initialized = False
         self.optimize = False
         self.spike_precision = "off_grid"

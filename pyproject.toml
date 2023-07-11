@@ -1,0 +1,59 @@
+[project]
+name = "PyNN"
+version = "0.11.0"
+description = "A Python package for simulator-independent specification of neuronal network models"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = {text = "CeCILL http://www.cecill.info"}
+authors = [
+  {name = "The PyNN team", email = "pynn-maintainers@protonmail.com"}
+]
+maintainers = [
+  {name = "The PyNN team", email = "pynn-maintainers@protonmail.com"}
+]
+keywords = ["computational neuroscience, simulation, neuron, nest, brian2, neuromorphic"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Education",
+  "Topic :: Scientific/Engineering"
+]
+dependencies = [
+  "numpy>=1.18.5",
+  "lazyarray>=0.5.2",
+  "neo>=0.11.0",
+  "quantities>=0.12.1"
+]
+
+[project.optional-dependencies]
+test = ["pytest", "wheel", "mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py"]
+doc = ["sphinx"]
+examples = ["matplotlib", "scipy"]
+plotting = ["matplotlib", "scipy"]
+MPI = ["mpi4py"]
+sonata = ["h5py"]
+neuron = ["neuron"]
+brian2 = ["brian2"]
+
+[project.urls]
+homepage = "http://neuralensemble.org/PyNN/"
+documentation = "http://neuralensemble.org/docs/PyNN/"
+repository = "https://github.com/NeuralEnsemble/PyNN"
+changelog = "http://neuralensemble.org/docs/PyNN/release_notes.html"
+download = "http://pypi.python.org/pypi/PyNN"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyNN*"]
