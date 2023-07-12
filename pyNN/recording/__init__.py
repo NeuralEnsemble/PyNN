@@ -122,7 +122,7 @@ def mpi_sum(x):
 
 def localize_variables(variables, locations):
     """
-    
+
     """
     # If variables is a single string, encapsulate it in a list.
     if isinstance(variables, str) and variables != 'all':
@@ -130,13 +130,7 @@ def localize_variables(variables, locations):
     resolved_variables = []
     if locations is None:
         for var_path in variables:
-            if "." in var_path:
-                parts = var_path.split(".")
-                location = parts[0]
-                var_name = ".".join(parts[1:])
-                resolved_variables.append(Variable(location=location, name=var_name))
-            else:
-                resolved_variables.append(Variable(location=None, name=var_path))
+            resolved_variables.append(Variable(location=None, name=var_path))
     elif hasattr(locations, "items"):
         for label, location in locations.items():
             for var_name in variables:
@@ -357,7 +351,11 @@ class Recorder(object):
                     # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = np.fromiter(ids, dtype=int)
-                    channel_index = np.array([self.population.id_to_index(id) for id in ids])
+                    if len(ids) == signal_array.shape[1]:  # one channel per neuron
+                        channel_index = np.array([self.population.id_to_index(id) for id in ids])
+                    else:  # multiple recording locations per neuron
+                        # todo: improve this approach
+                        channel_index = np.arange(signal_array.shape[1])
                     if variable.location_label:
                         signal_name = "{}.{}".format(variable.location_label, variable.name)
                     elif variable.location:

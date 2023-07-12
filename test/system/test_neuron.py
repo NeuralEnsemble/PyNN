@@ -6,6 +6,8 @@ from pyNN.space import Grid2D, RandomStructure, Sphere
 from pyNN.utility import init_logging
 import quantities as pq
 import numpy as np
+import pytest
+
 
 try:
     import pyNN.neuron
@@ -160,7 +162,7 @@ def test_electrical_synapse():
 
 
 def test_record_native_model():
-    raise SkipTest  # to fix once mc branch is stable
+    pytest.skip("to fix once mc branch is stable")
     if not have_neuron:
         pytest.skip("neuron not available")
     nrn = pyNN.neuron
@@ -248,7 +250,7 @@ def test_artificial_cells():
 
 def test_2_compartment():
     if not (have_neuron and have_neuroml):
-        raise SkipTest
+        pytest.skip("Need neuron and neuroml")
     sim = pyNN.neuron
 
     sim.setup(timestep=0.025)
@@ -293,37 +295,39 @@ def test_2_compartment():
 
     hcell0 = cells[0]._cell
     hsoma = hcell0.section_labels["soma"]
-    assert_equal(hsoma.L, 18.8)
-    assert_equal(hsoma.diam, 18.8)
-    assert_equal(hsoma.cm, 1.01)
-    assert_equal(hsoma.gnabar_hh, 0.121)
-    assert_equal(hsoma.gkbar_hh, 0.0363)
-    assert_equal(hsoma.gl_hh, 0.0)
-    assert_equal(hsoma.ena, 50.1)
-    assert_equal(hsoma.ek, -77.7)
-    assert_equal(hsoma.e_pas, -54.32)
-    assert_equal(hsoma.g_pas, 0.00033)
+    assert hsoma.L == 18.8
+    assert hsoma.diam == 18.8
+    assert hsoma.cm == 1.01
+    assert hsoma.gnabar_hh == 0.121
+    assert hsoma.gkbar_hh == 0.0363
+    assert hsoma.gl_hh == 0.0
+    assert hsoma.ena == 50.1
+    assert hsoma.ek == -77.7
+    assert hsoma.e_pas == -54.32
+    assert hsoma.g_pas == 0.00033
 
     hdend = hcell0.section_labels["dendrite"]
-    assert_equal(hdend.L, 500.0)
-    assert_equal(hdend.diam, 2.0)
-    assert_equal(hsoma.cm, 1.01)
-    assert_equal(hdend.e_pas, -54.32)
-    assert_equal(hdend.g_pas, 0.00033)
-    assert_false(hasattr(hdend, "ena"))
+    assert hdend.L == 500.0
+    assert hdend.diam == 2.0
+    assert hsoma.cm == 1.01
+    assert hdend.e_pas == -54.32
+    assert hdend.g_pas == 0.00033
+    assert not hasattr(hdend, "ena")
 
     vm_soma = data.filter(name="soma.v")[0]
-    assert_equal(vm_soma[0, 0], pq.Quantity(-60.0, "mV"))
-    assert_equal(vm_soma[0, 1], pq.Quantity(-70.0, "mV"))
+    assert vm_soma[0, 0] == pq.Quantity(-60.0, "mV")
+    assert vm_soma[0, 1] == pq.Quantity(-70.0, "mV")
     vm_dend = data.filter(name="dendrite.v")[0]
-    assert_equal(vm_dend[0, 0], pq.Quantity(-60.0, "mV"))
-    assert_equal(vm_dend[0, 1], pq.Quantity(-70.0, "mV"))
+    assert vm_dend[0, 0] == pq.Quantity(-60.0, "mV")
+    assert vm_dend[0, 1] == pq.Quantity(-70.0, "mV")
 
 
 def test_mc_network():
     if not (have_neuron and have_neuroml):
-        raise SkipTest
+        pytest.skip("Need neuron and neuroml packages")
     sim = pyNN.neuron
+
+    sim.setup()
 
     pyr_morph = load_morphology(
         "http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
@@ -351,10 +355,10 @@ def test_mc_network():
                         cm=1.0,
                         Ra=500.0,
                         AMPA={"density": uniform('all', 0.05),  # number per µm
-                              "e_rev": 0.0,
+                              "e_syn": 0.0,
                               "tau_syn": 2.0},
                         GABA_A={"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
-                                "e_rev": -70.0,
+                                "e_syn": -70.0,
                                 "tau_syn": 5.0})
 
     pyramidal_cells = sim.Population(2, pyramidal_cell, initial_values={'v': -60.0}, structure=Grid2D())

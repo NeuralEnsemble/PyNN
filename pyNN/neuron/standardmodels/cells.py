@@ -356,6 +356,8 @@ class PointNeuron(base_cells.PointNeuron):
         translated_parameters = self.neuron.native_parameters
         for name, psr in self.post_synaptic_receptors.items():
             translated_parameters[name] = psr.native_parameters
+            # we don't use the density parameter for point neurons
+            translated_parameters[name].pop("density")
         return translated_parameters
 
     def get_native_names(self, *names):

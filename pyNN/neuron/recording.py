@@ -46,6 +46,8 @@ class Recorder(recording.Recorder):
                 hoc_var = cell.isyn._ref_g
             else:
                 source, var_name = self._resolve_variable(cell, variable.name)
+                if hasattr(self.population.celltype, "variable_map"):
+                    var_name = self.population.celltype.variable_map[variable.name]
                 hoc_var = getattr(source, "_ref_%s" % var_name)
             hoc_vars = [hoc_var]
         else:
@@ -146,7 +148,8 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         times = None
         if len(ids) > 0:
-            signals = np.vstack([id._cell.traces[variable] for id in ids]).T
+            # note: id._cell.traces[variable] is a list of Vectors, one per segment
+            signals = np.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
             if self.record_times:
                 assert not simulator.state.cvode.use_local_dt()
                 # the following line assumes all cells are sampled at the same time

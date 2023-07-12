@@ -163,6 +163,7 @@ class CurrExpPostSynapticResponse(
     def translations(self, suffix):
         return build_translations(
             ('tau_syn',  f'tau_syn_{suffix}', ms),
+            ('density', 'density')
         )
 
     def state_variable_translations(self, suffix):
@@ -192,6 +193,7 @@ class CondExpPostSynapticResponse(PSRMixin, receptors.CondExpPostSynapticRespons
         return build_translations(
             ('tau_syn',  f'tau_syn_{suffix}', ms),
             ('e_syn',    f'e_rev_{suffix}',   mV),
+            ('density', 'density')
         )
 
     def state_variable_translations(self, suffix):
@@ -222,6 +224,7 @@ class CondAlphaPostSynapticResponse(PSRMixin, receptors.CondAlphaPostSynapticRes
         return build_translations(
             ('tau_syn',  f'tau_syn_{suffix}',  ms),
             ('e_syn',    f'e_rev_{suffix}',    mV),
+            ('density', 'density')
         )
 
     def state_variable_translations(self, suffix):

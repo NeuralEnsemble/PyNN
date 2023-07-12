@@ -840,8 +840,7 @@ class NeuronTemplate(object):
         # insert post-synaptic mechanisms
         for name, pse in self.post_synaptic_entities.items():
             parameters = other_parameters[name]
-            mechanism_name = pse.model
-            synapse_model = getattr(h, mechanism_name)
+            synapse_model = pse.model
             density_function = parameters["density"]
             for index, id in enumerate(self.sections):
                 density = density_function.value_in(self.morphology, index)

@@ -208,7 +208,7 @@ class Recorder(recording.Recorder):
         recording.Recorder.__init__(self, population, file)
         self.recorded_all = defaultdict(set)
 
-    def record(self, variables, ids, sampling_interval=None):
+    def record(self, variables, ids, sampling_interval=None, locations=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
@@ -219,8 +219,8 @@ class Recorder(recording.Recorder):
         # sometimes hang with MPI if some nodes aren't recording anything
         all_ids = set(ids)
         local_ids = set([id for id in ids if id.local])
-        for variable in recording.normalize_variables_arg(variables):
-            if not self.population.can_record(variable):
+        for variable in recording.localize_variables(variables, locations):
+            if not self.population.can_record(variable.name):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = all_ids.difference(self.recorded_all[variable])
             self.recorded[variable] = self.recorded[variable].union(local_ids)
@@ -274,7 +274,7 @@ class Recorder(recording.Recorder):
         if hasattr(self.population.celltype, "variable_map"):
             nest_variable = self.population.celltype.variable_map[variable.name]
         else:
-            nest_variable = variable
+            nest_variable = variable.name
         if hasattr(self.population.celltype, "scale_factors"):
             scale_factor = self.population.celltype.scale_factors[variable.name]
         else:
