@@ -12,6 +12,7 @@ Classes:
 
 """
 
+from collections import defaultdict
 from neuron import h
 import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
@@ -28,7 +29,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self.cell_list = []
         self._amplitudes = None
         self._times = None
-        self._h_iclamps = {}
+        self._h_iclamps = defaultdict(list)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))
@@ -60,8 +61,9 @@ class NeuronCurrentSource(StandardCurrentSource):
             self._amplitudes = None
             self._times = None
             self._generate()
-        for iclamp in self._h_iclamps.values():
-            self._update_iclamp(iclamp, 0.0)    # send tstop = 0.0 on _reset()
+        for cell_iclamps in self._h_iclamps.values():
+            for iclamp in cell_iclamps:
+                self._update_iclamp(iclamp, 0.0)    # send tstop = 0.0 on _reset()
 
     def _update_iclamp(self, iclamp, tstop):
         if not self._is_playable:
@@ -136,25 +138,23 @@ class NeuronCurrentSource(StandardCurrentSource):
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
                 if location is None:
-                    sec = id._cell.source_section
+                    sections = [id._cell.source_section]
                 else:
                     if isinstance(location, str):
                         if location in id._cell.section_labels:
-                            sec = id._cell.section_labels[location]
-                        elif location == "soma":
-                            soma_index = id._cell.morphology.soma_index
-                            sec = id._cell.sections[soma_index]
+                            sections = id._cell.section_labels[location]
                         else:
                             raise ValueError("Cell has no location labelled '{}'".format(location))
                     elif isinstance(location, MorphologyFilter):
-                        sec_index = location(id._cell.morphology)  # todo: support lists of sections
-                        sec = id._cell.sections[sec_index]
+                        section_index = location(id._cell.morphology)
+                        sections = [id._cell.sections[i] for i in section_index]
                     else:
                         raise ValueError()
                 if not (id in self._h_iclamps):  # to modify for multi-compartment cells with multiple injection points
                     self.cell_list += [id]
-                    self._h_iclamps[id] = h.IClamp(0.5, sec=sec)
-                    self._devices.append(self._h_iclamps[id])
+                    for sec in sections:
+                        self._h_iclamps[id].append(h.IClamp(0.5, sec=sec))
+                    self._devices.extend(self._h_iclamps[id])
 
     def record(self):
         self.itrace = h.Vector()

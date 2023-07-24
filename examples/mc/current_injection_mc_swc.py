@@ -22,7 +22,7 @@ sim.setup(timestep=0.025) #*ms)
 # === Create neuron model template ===========================================
 
 #morph = load_morphology("http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc")  # todo: smart inference of morphology file format
-morph = load_morphology("oi15rpy4-1.CNG.swc")
+morph = load_morphology("oi15rpy4-1.CNG_alt.swc", use_library="morphio")
 
 # need to specify nseg for dendrite
 
@@ -39,23 +39,24 @@ cell_type = cell_class(morphology=morph,
                        },
                        pas={"conductance_density": uniform('all', 0.0003),
                             "e_rev":-54.3},
-                       na={"conductance_density": uniform('soma', 0.120),
-                           "e_rev": 50.0},
-                       kdr={"conductance_density": uniform('soma', 0.036),
-                            "e_rev": -77.0}
+                       na={"conductance_density": uniform('soma', 0.120)},
+                       kdr={"conductance_density": uniform('soma', 0.036)}
                        )
 
 # === Create a population with two cells ====================================
 
-cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
+cells = sim.Population(2, cell_type, initial_values={'v': [-50.0, -65.0]})  #*mV})
 
 # === Inject current into the soma of cell #0 and the dendrite of cell #1 ===
 
-step_current = sim.DCSource(amplitude=5.0, start=50.0, stop=150.0)
-step_current.inject_into(cells[0:1], location="soma")
+step_current_soma = sim.DCSource(amplitude=1.0, start=50.0, stop=150.0)
+step_current_soma.inject_into(cells[0:1], location="soma")
+
+step_current_dend = sim.DCSource(amplitude=5.0, start=100.0, stop=120.0)
 #step_current.inject_into(cells[1:2], location=apical_dendrites(fraction_along=0.9))
 #step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrites))
-step_current.inject_into(cells[1:2], location=random_section(apical_dendrites()))
+random_location = random_section(apical_dendrites())
+step_current_dend.inject_into(cells[1:2], location=random_location)
 
 
 # cells[0] --> ID - 1 cell
@@ -65,12 +66,11 @@ step_current.inject_into(cells[1:2], location=random_section(apical_dendrites())
 
 cells.record('spikes')
 cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-cells.record('v', locations={'soma': 'soma', 'dendrite': random_section(apical_dendrites())})
+cells.record('v', locations={'soma': 'soma', 'dendrite': random_location})
 
 # === Run the simulation =====================================================
 
 sim.run(200.0)
-
 
 # === Plot recorded data =====================================================
 
@@ -83,6 +83,7 @@ data = cells.get_data().segments[0]  # this is a Neo Segment
 # and one SpikeTrain per neuron
 
 print("Spike times: {}".format(data.spiketrains))
+filename = f"current_injection_mc_swc_alt_{options.simulator}.png"
 
 Figure(
         Panel(data.filter(name='soma.v')[0],
@@ -102,8 +103,10 @@ Figure(
               ylabel="n, soma",
               xticks=True, xlabel="Time (ms)",
               yticks=True, ylim=(0, 1)),
-        title="Responses of two-compartment neurons to current injection",
+        title="Responses of multi-compartment neurons to current injection",
         annotations="Simulated with %s" % options.simulator.upper()
-    ).save("current_injection_mc_swc.png")
+    ).save(filename)
 
 sim.end()
+
+print(filename)

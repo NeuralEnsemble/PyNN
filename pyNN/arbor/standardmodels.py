@@ -58,9 +58,16 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
             locset = '"root"'
         elif location == "dendrite":
             locset = '"mid-dend"'
-        else:
+        elif isinstance(location, str):
             # can we be sure location is a label?
             locset = f'(on-components 0.5 (region "{location}"))'
+        else:
+            morph = cells.celltype.parameter_space["morphology"].base_value
+            section_index = location(morph)
+            if len(section_index) == 1:
+                locset = f'(location {section_index[0]} 0.5)'  # for random_section(), should have random value instead of 0.5
+            else:
+                raise NotImplementedError()  # todo: use join - https://docs.arbor-sim.org/en/v0.8.1/concepts/labels.html#label-join-lhs-locset-rhs-locset-...locset
         for cell in cells:
             start = self.native_parameters["start"].base_value
             stop = self.native_parameters["stop"].base_value

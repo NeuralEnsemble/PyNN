@@ -2,8 +2,9 @@
 from collections import defaultdict
 import arbor
 from neuroml import Point3DWithDiam
-from ..morphology import uniform
+from ..morphology import uniform, NeuroMLMorphology, MorphIOMorphology
 from ..models import BaseCellType
+from morphio import SectionType
 
 
 def convert_point(p3d: Point3DWithDiam) -> arbor.mpoint:
@@ -28,27 +29,32 @@ def build_cable_cell_parameters(parameters, ion_channels):
     labels = {
         "all": "(all)",
         "soma": "(tag 1)",
-        #"axon": "(tag 2)",
+        "axon": "(tag 2)",
         "dend": "(tag 3)",
-        #"apic": "(tag 4)",
+        "basal_dendrite": "(tag 4)",
+        "apical_dendrite": "(tag 4)",
         "root": "(root)",
         "mid-dend": "(location 0 0.5)"
     }
 
     # tree
-    tree = arbor.segment_tree()
-    for i, segment in enumerate(std_morphology.segments):
-        assert i == segment.id
-        prox = convert_point(segment.proximal)
-        dist = convert_point(segment.distal)
-        tag = region_name_to_tag(segment.name)
-        if segment.parent is None:
-            parent = arbor.mnpos
-        else:
-            parent = segment.parent.id
-        tree.append(parent, prox, dist, tag=tag)
-        if segment.name not in labels:
-            labels[segment.name] = f"(segment {i})"
+    if isinstance(std_morphology, NeuroMLMorphology):
+        tree = arbor.segment_tree()
+        for i, segment in enumerate(std_morphology.segments):
+            prox = convert_point(segment.proximal)
+            dist = convert_point(segment.distal)
+            tag = region_name_to_tag(segment.name)
+            if segment.parent is None:
+                parent = arbor.mnpos
+            else:
+                parent = segment.parent.id
+            tree.append(parent, prox, dist, tag=tag)
+            if segment.name not in labels:
+                labels[segment.name] = f"(segment {i})"
+    elif isinstance(std_morphology, MorphIOMorphology):
+        tree = arbor.load_swc_neuron(std_morphology.morphology_file, raw=True)
+    else:
+        raise ValueError("{} not supported as a neuron morphology".format(type(std_morphology)))
 
     mechanism_parameters = defaultdict(lambda: defaultdict(dict))
     for mechanism_name, ion_channel in ion_channels.items():
@@ -56,8 +62,11 @@ def build_cable_cell_parameters(parameters, ion_channels):
         native_name = ion_channel.get_model(ion_channel_parameters)
         for pname, pval in ion_channel_parameters.items():
             if isinstance(pval.base_value, uniform):
-                region = f'"{pval.base_value.selector}"'
-                mechanism_parameters[native_name][region][pname] = pval.base_value.value_in(std_morphology, 0)
+                if isinstance(pval.base_value.selector, str):
+                    region = f'"{pval.base_value.selector}"'
+                    mechanism_parameters[native_name][region][pname] = pval.base_value.value
+                else:
+                    raise NotImplementedError()
             elif isinstance(pval.base_value, (int, float)):
                 region = '"all"'
                 mechanism_parameters[native_name][region][pname] = pval.base_value

@@ -53,9 +53,7 @@ class Recorder(recording.Recorder):
         else:
             if isinstance(variable.location, str):
                 if variable.location in cell.section_labels:
-                    sections = [cell.section_labels[variable.location]]
-                elif variable.location == "soma":
-                    sections = [cell.sections[cell.morphology.soma_index]]
+                    sections = cell.section_labels[variable.location]
                 else:
                     raise ValueError("Cell has no location labelled '{}'".format(variable.location))
             elif isinstance(variable.location, MorphologyFilter):

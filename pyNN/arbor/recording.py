@@ -31,7 +31,17 @@ class Recorder(recording.Recorder):
     def _get_arbor_probes(self, gid):
         probes = []
         for variable in self.recorded:
-            locset = f'(on-components 0.5 (region "{variable.location}"))'  # or variable.location_label?
+            if isinstance(variable.location, str):
+                locset = f'(on-components 0.5 (region "{variable.location}"))'  # or variable.location_label?
+            elif variable.location is None:
+                pass
+            else:
+                morph = self.population.celltype.parameter_space["morphology"].base_value
+                section_index = variable.location(morph)
+                if len(section_index) == 1:
+                    locset = f'(location {section_index[0]} 0.5)'  # see comments about this in inject_into()
+                else:
+                    raise NotImplementedError()
             if gid in [cell.gid for cell in self.recorded[variable]]:
                 if variable.name == "spikes":
                     continue

@@ -11,16 +11,8 @@ import numpy as np
 import numpy.random
 import neuroml.arraymorph
 import neuroml.loaders
-
-# swc compartment types
-UNDEFINED = 0
-SOMA = 1
-AXON = 2
-BASALDENDRITE = 3
-APICALDENDRITE = 4
-CUSTOM = 5
-UNSPECIFIEDNEURITES = 6
-GLIAPROCESSES = 7
+import morphio
+from morphio import SectionType
 
 
 def _download_file(url):
@@ -33,7 +25,7 @@ def _download_file(url):
     return local_filename
 
 
-def load_morphology(url, replace_axon=False):
+def load_morphology(url, replace_axon=False, use_library="neuroml"):
     if os.path.exists(url):
         local_morph_file = url
     else:
@@ -42,14 +34,18 @@ def load_morphology(url, replace_axon=False):
     # todo: fix load_swc to handle "standardized" somas as described
     #       in http://neurom.readthedocs.io/en/latest/definitions.html#soma
     #       and http://www.neuromorpho.org/SomaFormat.html
-    array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
-    return NeuroMLMorphology(array_morph)
+    if use_library == "neuroml":
+        array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
+        return NeuroMLMorphology(array_morph)
+    elif use_library == "morphio":
+        return MorphIOMorphology(local_morph_file)
 
 
 class Morphology(object):
     """
 
     """
+    is_lazyarray_scalar = True
 
     def __init__(self):
         self.section_groups = {}
@@ -65,13 +61,12 @@ class NeuroMLMorphology(Morphology):
     """
 
     """
-    is_lazyarray_scalar = True
 
     def __init__(self, morphology):
         super(NeuroMLMorphology, self).__init__()
         self._morphology = morphology
         if isinstance(morphology, neuroml.arraymorph.ArrayMorphology):
-            for neurite_type in (AXON, BASALDENDRITE, APICALDENDRITE):
+            for neurite_type in (SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
                 self.section_groups[neurite_type] = (morphology.node_types == neurite_type).nonzero()[0]
         elif isinstance(morphology, neuroml.Morphology):
             self.id_map = {seg.id: i
@@ -152,6 +147,14 @@ class BrianMorphology(Morphology):
     pass
 
 
+class MorphIOMorphology(Morphology):
+
+    def __init__(self, morphology_file):
+        super().__init__()
+        self.morphology_file = morphology_file
+        self._morphology = morphio.Morphology(morphology_file)
+        for neurite_type in (SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
+            self.section_groups[neurite_type] = (self._morphology.section_types == neurite_type).nonzero()[0]
 
 
 class NeuriteDistribution(object):
@@ -268,7 +271,7 @@ class dendrites(MorphologyFilter):
         """Return an index (integer NumPy array) that can be used
         to retrieve the sections corresponding to the filter. """
         section_index = np.array([], dtype=int)
-        for label in (APICALDENDRITE, BASALDENDRITE):
+        for label in (SectionType.apical_dendrite, SectionType.basal_dendrite):
             if label in morphology.section_groups:
                 section_index = np.hstack((section_index, morphology.section_groups[label]))
         if section_index.size < 1:
@@ -285,8 +288,8 @@ class apical_dendrites(MorphologyFilter):
         # if filter_by_receptor_type is not False,
         # return only sections that contain at least one post-synaptic receptor
         # of the specified name
-        if APICALDENDRITE in morphology.section_groups:
-            section_index = morphology.section_groups[APICALDENDRITE]
+        if SectionType.apical_dendrite in morphology.section_groups:
+            section_index = morphology.section_groups[SectionType.apical_dendrite]
             if filter_by_receptor_type:
                 section_index = np.intersect1d(section_index,
                                                np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
@@ -304,8 +307,8 @@ class basal_dendrites(MorphologyFilter):
         # if filter_by_receptor_type is not False,
         # return only sections that contain at least one post-synaptic receptor
         # of the specified name
-        if BASALDENDRITE in morphology.section_groups:
-            section_index = morphology.section_groups[BASALDENDRITE]
+        if SectionType.basal_dendrite in morphology.section_groups:
+            section_index = morphology.section_groups[SectionType.basal_dendrite]
             if filter_by_receptor_type:
                 section_index = np.intersect1d(section_index,
                                                np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
@@ -323,8 +326,8 @@ class axon(MorphologyFilter):
         # if filter_by_receptor_type is not False,
         # return only sections that contain at least one post-synaptic receptor
         # of the specified name
-        if AXON in morphology.section_groups:
-            section_index = morphology.section_groups[AXON]
+        if SectionType.axon in morphology.section_groups:
+            section_index = morphology.section_groups[SectionType.axon]
             if filter_by_receptor_type:
                 section_index = np.intersect1d(section_index,
                                                np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
@@ -342,7 +345,7 @@ class random_section(MorphologyFilter):
         section_index = self.f(morphology, **kwargs)
         if len(section_index) < 1:
             raise Exception("List of sections is empty.")
-        return numpy.random.choice(section_index)
+        return [numpy.random.choice(section_index)]
 
 
 sample = random_section  # alias

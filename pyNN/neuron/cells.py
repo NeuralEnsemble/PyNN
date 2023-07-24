@@ -14,6 +14,7 @@ from functools import reduce
 import numpy as np
 from neuron import h, nrn, hclass
 import numpy.random
+from morphio import SectionType
 
 from .. import errors
 from ..models import BaseCellType
@@ -745,6 +746,7 @@ class NeuronTemplate(object):
     def __init__(self, morphology, cm, Ra, ionic_species, **other_parameters):
         import neuroml
         import neuroml.arraymorph
+        from morphio import Morphology as MorphIOMorphology
 
         self.initial_values = defaultdict(dict)
         self.traces = defaultdict(list)
@@ -756,7 +758,7 @@ class NeuronTemplate(object):
         self.morphology = morphology
         self.ionic_species = ionic_species
         self.sections = {}
-        self.section_labels = {}
+        self.section_labels = defaultdict(set)
         for receptor_name in self.post_synaptic_entities:
             self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
 
@@ -809,10 +811,41 @@ class NeuronTemplate(object):
                 if segment.name == "soma":
                     self.morphology._soma_index = segment_id
                 if segment.name is not None:
-                    self.section_labels[segment.name] = section
+                    self.section_labels[segment.name].add(section)
                 segment._section = section
             for section_id, parent_id in unresolved_connections:
                 self.sections[section_id].connect(self.sections[parent_id], DISTAL, PROXIMAL)
+        elif isinstance(morphology._morphology, MorphIOMorphology):
+            m = morphology._morphology
+            soma = nrn.Section(name="soma")
+            self.sections[-1] = soma
+            self.section_labels["soma"].add(soma)
+            self.morphology._soma_index = 0
+            if isinstance(cm, NeuriteDistribution):
+                soma.cm = cm.value_in(self.morphology, "soma")
+            else:
+                soma.cm = cm
+            soma.Ra = Ra
+            for (x, y, z), d in zip(m.soma.points, m.soma.diameters):
+                h.pt3dadd(x, y, z, d, sec=soma)
+            for root_section in m.root_sections:
+                for m_section in root_section.iter():
+                    nrn_section = nrn.Section(name=f"section_{m_section.id}")
+                    for (x, y, z), d in zip(m_section.points, m_section.diameters):
+                        h.pt3dadd(x, y, z, d, sec=nrn_section)
+                    nrn_section.nseg = 1 + 2 * int((0.999 + nrn_section.L/(d_lambda * lambda_f(100, nrn_section)))/2)
+                    if isinstance(cm, NeuriteDistribution):
+                        nrn_section.cm = cm.value_in(self.morphology, section.id)
+                    else:
+                        nrn_section.cm = cm
+                    nrn_section.Ra = Ra
+                    if m_section.is_root:
+                        nrn_section.connect(soma, DISTAL, PROXIMAL)
+                        # todo: connect basal dendrites, axon, apical dendrites to different points on the soma
+                    else:
+                        nrn_section.connect(self.sections[m_section.parent.id], DISTAL, PROXIMAL)
+                    self.sections[m_section.id] = nrn_section
+                    self.section_labels[m_section.type.name].add(nrn_section)
         else:
             raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
 

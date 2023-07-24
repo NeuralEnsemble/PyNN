@@ -14,7 +14,7 @@ import neuroml
 import neuroml.arraymorph
 from neuroml import Morphology as NMLMorphology, Segment, SegmentGroup, Member, Point3DWithDiam as P
 from pyNN.morphology import (load_morphology, NeuroMLMorphology, dendrites, apical_dendrites,
-                             basal_dendrites, random_section, with_label, APICALDENDRITE,
+                             basal_dendrites, random_section, with_label, SectionType.apical_dendrite,
                              uniform, by_distance, by_diameter, any as morph_any)
 
 
@@ -43,7 +43,7 @@ morph_data = """# test morphology
 def setUpModule():
     global neuroml_morph, array_morph
 
-    test_file = "morph_test.swc" 
+    test_file = "morph_test.swc"
     with open(test_file, "w") as fp:
         fp.write(morph_data)
     array_morph = load_morphology(test_file)
@@ -107,18 +107,18 @@ def setUpModule():
         Segment(proximal=P(x=110, y=0, z=0, diameter=0.4),
                 distal=P(x=210, y=0, z=0, diameter=0.4),
                 name="axon0", parent=axon["axon0"], id="13")
-    
+
     segments = [soma] \
                 + list(basal_dendrites.values()) \
                 + list(apical_dendrites.values()) \
                 + list(axon.values())
     segment_groups = [
         SegmentGroup(id="soma_group", members=[Member(soma.id)]),
-        SegmentGroup(id="basal_dendrites", 
+        SegmentGroup(id="basal_dendrites",
                         members=[Member(seg.id) for seg in basal_dendrites.values()]),
-        SegmentGroup(id="apical_dendrites", 
+        SegmentGroup(id="apical_dendrites",
                         members=[Member(seg.id) for seg in apical_dendrites.values()]),
-        SegmentGroup(id="axon", 
+        SegmentGroup(id="axon",
                         members=[Member(seg.id) for seg in axon.values()]),
     ]
 
@@ -158,7 +158,7 @@ class NeuroMLArrayMorphologyTest(unittest.TestCase):
 
     def test_section_groups(self):
         # section_groups contains index arrays for the sections
-        assert_array_equal(self.morph.section_groups[APICALDENDRITE],
+        assert_array_equal(self.morph.section_groups[SectionType.apical_dendrite],
                            np.arange(7, 15))
 
     def test_len(self):
@@ -209,7 +209,7 @@ class MorphologyFilterTest(unittest.TestCase):
         self.assertIn(id, apical_dendrites()(self.array_morph))
 
     def test_with_label_filter_arraymorph(self):
-        filter1 = with_label(APICALDENDRITE)
+        filter1 = with_label(SectionType.apical_dendrite)
         filter2 = apical_dendrites()
         index1 = filter1(self.array_morph)
         index2 = filter2(self.array_morph)

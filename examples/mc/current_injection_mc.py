@@ -23,8 +23,8 @@ sim.setup(timestep=0.025) #*ms)
 
 # === Create neuron model template ===========================================
 
-soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
-               distal=P(x=18.8, y=0, z=0, diameter=18.8),
+soma = Segment(proximal=P(x=18.8, y=0, z=0, diameter=18.8),
+               distal=P(x=0, y=0, z=0, diameter=18.8),
                name="soma", id=0)
 dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
                distal=P(x=-500, y=0, z=0, diameter=2),
