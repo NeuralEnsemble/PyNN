@@ -54,7 +54,7 @@ class Projection(common.Projection):
                             location_selector=None,
                             **connection_parameters):
         if location_selector is not None:
-            raise NotImplementedError("mock backend does not support multicompartmental models.")
+            raise NotImplementedError()
         for name, value in connection_parameters.items():
             if isinstance(value, float):
                 connection_parameters[name] = repeat(value)

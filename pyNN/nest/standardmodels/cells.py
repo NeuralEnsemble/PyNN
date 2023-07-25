@@ -554,8 +554,8 @@ class PointNeuron(cells.PointNeuron):
         for name in self.receptor_types:
             psr = self.post_synaptic_receptors[name]
             for name, value in psr.native_parameters.items():
-                if name != "density":
-                    # for PointNeurons, we don't use the 'density' parameter
+                if name != "locations":
+                    # for PointNeurons, we don't use the 'locations' parameter
                     receptor_params[name].append(value)
 
         # merge list of lazyarray values into a single lazyarray

@@ -16,14 +16,14 @@ name = "Arbor"
 
 class Cell(int):  # (, common.IDMixin):
 
-    def __init__(self, n):  #, morph, decor, labels):
+    def __init__(self, n):
         """Create an ID object with numerical value `n`."""
         #int.__init__(n)
         #common.IDMixin.__init__(self)
         self.gid = n
-        self.morph = None  #morph
-        self.decor = None  # decor
-        self.labels = None  # labels
+        #self.morph = None  #morph
+        #self.decor = None  # decor
+        #self.labels = None  # labels
         self.local = True
         #self.decor.place('"root"', arbor.threshold_detector(-10), f"detector-{self.gid}")
 

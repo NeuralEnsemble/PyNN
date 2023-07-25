@@ -142,7 +142,8 @@ class NeuronCurrentSource(StandardCurrentSource):
                 else:
                     if isinstance(location, str):
                         if location in id._cell.section_labels:
-                            sections = id._cell.section_labels[location]
+                            section_index = id._cell.section_labels[location]
+                            sections = [id._cell.sections[i] for i in section_index]
                         else:
                             raise ValueError("Cell has no location labelled '{}'".format(location))
                     elif isinstance(location, MorphologyFilter):

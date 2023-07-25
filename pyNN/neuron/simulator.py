@@ -410,7 +410,7 @@ class Connection(common.Connection):
         self.presynaptic_cell = projection.pre[pre]
         self.postsynaptic_cell = projection.post[post]
         cell_obj = self.postsynaptic_cell._cell
-        if isinstance(location_selector, MorphologyFilter):  # point neuron model
+        if isinstance(location_selector, MorphologyFilter):
             section_index = location_selector(cell_obj.morphology,
                                               filter_by_receptor_type=projection.receptor_type)
             target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]  # what if there are multiple synapses in a single section? here we just take the first
@@ -421,6 +421,9 @@ class Connection(common.Connection):
                 section_index = cell_obj.sections[cell_obj.morphology.soma_index]
             else:
                 raise ValueError("Cell has no location labelled '{}'".format(location_selector))
+            if len(section_index) != 1:
+                raise Exception("need to fix this, move evaluation of location_selector up a level")
+            section_index, = section_index
             target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]
         elif location_selector is None:  # point neuron model
             if "." in projection.receptor_type:

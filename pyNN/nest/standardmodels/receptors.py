@@ -5,7 +5,7 @@ class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
     possible_models = set(["iaf_psc_exp_multisynapse"])
 
     translations = build_translations(
-        ('density', 'density'),
+        ('locations', 'locations'),
         ('tau_syn', 'tau_syn')
     )
     recordable = ["isyn"]
@@ -17,7 +17,7 @@ class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
     possible_models = set(["gif_cond_exp_multisynapse"])
 
     translations = build_translations(
-        ('density', 'density'),
+        ('locations', 'locations'),
         ('e_syn', 'E_rev'),
         ('tau_syn', 'tau_syn')
     )
@@ -30,7 +30,7 @@ class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
     possible_models = set(["aeif_cond_alpha_multisynapse"])
 
     translations = build_translations(
-        ('density', 'density'),
+        ('locations', 'locations'),
         ('e_syn', 'E_rev'),
         ('tau_syn', 'tau_syn')
     )
@@ -43,7 +43,7 @@ class CondBetaPostSynapticResponse(receptors.CondBetaPostSynapticResponse):
     possible_models = set(["aeif_cond_beta_multisynapse"])
 
     translations = build_translations(
-        ('density', 'density'),
+        ('locations', 'locations'),
         ('e_syn', 'E_rev'),
         ('tau_rise', 'tau_rise'),
         ('tau_decay', 'tau_decay')

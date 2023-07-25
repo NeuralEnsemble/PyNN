@@ -10,10 +10,10 @@ from copy import deepcopy
 
 import arbor
 
-from ..standardmodels import cells, ion_channels, synapses, electrodes, build_translations
+from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
 from ..parameters import ParameterSpace
 from ..morphology import Morphology, NeuriteDistribution, uniform
-from .cells import build_cable_cell_parameters
+from .cells import CellDescriptionBuilder
 from .simulator import state
 
 logger = logging.getLogger("PyNN")
@@ -47,32 +47,19 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
     __doc__ = electrodes.DCSource.__doc__
 
     translations = build_translations(
-        ('amplitude',  'amplitude'),
-        ('start',      'start'),
-        ('stop',       'stop')
+        ('amplitude',  'current'),
+        ('start',      'tstart'),
+        ('stop',       'duration', "stop - start", "tstart + duration")
     )
 
     def inject_into(self, cells, location=None):
-        if location == "soma":
-            # todo: proper location mapping
-            locset = '"root"'
-        elif location == "dendrite":
-            locset = '"mid-dend"'
-        elif isinstance(location, str):
-            # can we be sure location is a label?
-            locset = f'(on-components 0.5 (region "{location}"))'
+        cell_descr = cells.parent._arbor_cell_description.base_value   # todo: handle `cells` being Population, PopulationView, or Assembly
+        if hasattr(cells, "parent"):
+            index = cells.parent.id_to_index(cells.all_cells.astype(int))
         else:
-            morph = cells.celltype.parameter_space["morphology"].base_value
-            section_index = location(morph)
-            if len(section_index) == 1:
-                locset = f'(location {section_index[0]} 0.5)'  # for random_section(), should have random value instead of 0.5
-            else:
-                raise NotImplementedError()  # todo: use join - https://docs.arbor-sim.org/en/v0.8.1/concepts/labels.html#label-join-lhs-locset-rhs-locset-...locset
-        for cell in cells:
-            start = self.native_parameters["start"].base_value
-            stop = self.native_parameters["stop"].base_value
-            amplitude = self.native_parameters["amplitude"].base_value
-            cell.decor.place(locset, arbor.iclamp(start, stop - start, current=amplitude), "iclamp_label")
+            index = cells.id_to_index(cells.all_cells.astype(int))
+        self.parameter_space.shape = (1,)
+        cell_descr.add_current_source("iclamp", location, index, self.native_parameters)
 
 
 class StepCurrentSource(BaseCurrentSource, electrodes.StepCurrentSource):
@@ -162,10 +149,11 @@ class PassiveLeak(ion_channels.PassiveLeak):
 
     def get_model(self, parameters=None):
         if parameters:
+            assert parameters._evaluated
             param_entries = []
             for name, value in parameters.items():
                 if name in self.global_parameters:
-                    param_entries.append(f"{name}={value.base_value}")  # to fix: should be evaluated
+                    param_entries.append(f"{name}={value}")
             param_str = ",".join(param_entries)
             for name in self.global_parameters:
                 parameters.pop(name, None)
@@ -182,6 +170,7 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
     ion_channels = {}
     post_synaptic_entities = {}
     arbor_cell_kind = arbor.cell_kind.cable
+    variable_map = {"v": "Vm"}
 
     def __init__(self, **parameters):
         # replace ion channel classes with instantiated ion channel objects
@@ -220,9 +209,9 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
             # should replace this with a PyNN-specific exception type
             raise Exception(f"Schemas do not match: {parameters.schema} != {self.get_schema()}")
         # translate ion channel
-        native_parameters = build_cable_cell_parameters(parameters, self.ion_channels)
-        #return ParameterSpace(native_parameters, schema=None, shape=parameters.shape)
-        return native_parameters
+        arbor_description = CellDescriptionBuilder(_parameters, self.ion_channels, self.post_synaptic_entities)
+        native_parameters = {"cell_description": arbor_description}
+        return ParameterSpace(native_parameters, schema=None, shape=_parameters.shape)
 
     def reverse_translate(self, native_parameters):
         raise NotImplementedError
@@ -276,3 +265,15 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
     #                 "mechanism": mechanism,
     #                 "sections": sections
     #             }
+
+
+class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
+
+    translations = build_translations(
+        ('locations', 'locations'),
+        ('e_syn', 'e'),
+        ('tau_syn', 'tau')
+    )
+    model = "expsyn"
+    recordable = ["gsyn"]
+    variable_map = {"gsyn": "g"}

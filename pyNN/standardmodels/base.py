@@ -189,7 +189,7 @@ class StandardPostSynapticResponse(StandardModelType, models.BasePostSynapticRes
 
     def get_schema(self):
         return {
-            "density": SynapseDistribution,
+            "locations": SynapseDistribution,
             "e_syn": float,
             "tau_syn": float  # should be a tuple, if multiple time constants
         }

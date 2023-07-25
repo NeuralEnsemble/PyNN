@@ -170,8 +170,6 @@ class SynapseDistribution(NeuriteDistribution):
 
 
 
-
-
 class uniform(IonChannelDistribution, SynapseDistribution):
     # we inherit from two parents, because we want to use the name "uniform" for both
     # the implementation behaves differently depending on context
@@ -383,3 +381,45 @@ class with_label(MorphologyFilter):
         if labels:
             raise ValueError("No sections or groups match label '{}'".format("', '".join(labels)))
         return section_index
+
+
+class LocationGenerator:
+
+    def lazily_evaluate(self, mask=None, shape=None):
+        return self
+
+
+
+class at_distances(LocationGenerator):
+
+    def __init__(self, selector, distances):
+        self.selector = selector
+        self.distances = distances
+
+    def generate_locations(self, morphology, sections):
+        if isinstance(self.selector, str):
+            section_index = morphology.labels()[self.selector]
+        else:
+            raise NotImplementedError()
+        return [section_index]
+
+
+class random_placement(LocationGenerator):
+
+    def __init__(self, density_function):
+        self.density_function = density_function
+
+    def generate_locations(self, morphology, sections):
+        locations = []
+        for index, section_id in enumerate(sections):
+            density = self.density_function.value_in(morphology, index)
+            section = sections[section_id]
+            n_synapses = density * section.L
+            if n_synapses > 0:
+                n_synapses, remainder = divmod(n_synapses, 1)
+                rnd = numpy.random  # todo: use the RNG from the parent Population
+                if rnd.uniform() < remainder:
+                    n_synapses += 1
+            for i in range(int(n_synapses)):
+                locations.append(section_id)
+        return locations

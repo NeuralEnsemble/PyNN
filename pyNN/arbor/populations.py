@@ -79,10 +79,8 @@ class Population(common.Population):
 
     def arbor_cell_description(self, gid):
         index = self.id_to_index(gid)
-        tree = self[index].morph
-        decor = self[index].decor
-        labels = self[index].labels
-        return arbor.cable_cell(tree, decor, labels)
+        args = self._arbor_cell_description[index]
+        return arbor.cable_cell(args["tree"], args["decor"], args["labels"])
 
     def _create_cells(self):
         # for now, we create all cells and store them in memory,
@@ -94,9 +92,10 @@ class Population(common.Population):
         else:
             parameter_space = self.celltype.parameter_space
 
-        # parameter_space.shape = (self.size,)
-        # parameter_space.evaluate(mask=None, simplify=True)
-        # self._parameters = parameter_space.as_dict()
+        parameter_space.shape = (self.size,)
+
+        self._arbor_cell_description = parameter_space["cell_description"]
+        self._arbor_cell_description.base_value.set_shape(parameter_space.shape)
 
         id_range = np.arange(simulator.state.id_counter,
                              simulator.state.id_counter + self.size)
@@ -105,24 +104,21 @@ class Population(common.Population):
             dtype=simulator.Cell
         )
 
-        for i, cell in enumerate(self.all_cells):
-            #for key, value in parameter_space.items():
-            #    setattr(cell, key, value)
-            cell.morph = parameter_space["tree"]
-            cell.decor = parameter_space["decor"](i)
-            cell.labels = parameter_space["labels"]
-            cell.parent = self
-            cell.decor.place('"root"', arbor.threshold_detector(-10), f"detector-{cell.gid}")
+        # for i, cell in enumerate(self.all_cells):
+        #     #for key, value in parameter_space.items():
+        #     #    setattr(cell, key, value)
+        #     cell.morph = parameter_space["tree"]
+        #     cell.decor = parameter_space["decor"](i)
+        #     cell.labels = parameter_space["labels"]
+        #     cell.parent = self
+        #     cell.decor.place('"root"', arbor.threshold_detector(-10), f"detector-{cell.gid}")
 
-        self._parameters = parameter_space
+        self._parameters = parameter_space  # used for querying parameters before/after running simulation
 
         simulator.state.id_counter += self.size
         self._mask_local = np.ones_like(id_range, dtype=bool)
 
     def _set_initial_value_array(self, variable, initial_values):
-        # todo: fix this, currently sets the same value for all cells
-        if hasattr(self.celltype, "variable_map"):
-            variable = self.celltype.variable_map[variable]
         if variable != "v":
             warn("todo: handle initial values for ion channel states")
             # may have to handle this at the same time as setting parameters
@@ -130,14 +126,7 @@ class Population(common.Population):
             # after their creation, other than by set_property
             # maybe keep a reference to the return values of arbor.paint?
             return
-        value = initial_values.evaluate(simplify=True)
-        if initial_values.is_homogeneous:
-            #self._parameters["decor"].set_property(Vm=value)
-            for cell in self.all_cells:
-                cell.decor.set_property(Vm=value)
-        else:
-            for cell, val in zip(self.all_cells, value):
-                cell.decor.set_property(Vm=val)
+        self._arbor_cell_description.base_value.set_initial_values(variable, initial_values)
 
     def _get_view(self, selector, label=None):
         return PopulationView(self, selector, label)

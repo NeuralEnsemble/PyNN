@@ -354,10 +354,10 @@ def test_mc_network():
                         },
                         cm=1.0,
                         Ra=500.0,
-                        AMPA={"density": uniform('all', 0.05),  # number per µm
+                        AMPA={"locations": uniform('all', 0.05),  # number per µm
                               "e_syn": 0.0,
                               "tau_syn": 2.0},
-                        GABA_A={"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
+                        GABA_A={"locations": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
                                 "e_syn": -70.0,
                                 "tau_syn": 5.0})
 

@@ -13,11 +13,19 @@ import neuroml.loaders ##
 from quantities import S, cm, um
 from pyNN.space import Grid2D, RandomStructure, Sphere #, uniform, by_distance
 from pyNN.parameters import IonicSpecies
+from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
 #from neurom import longest_dendrite
 
 
-pyr_morph = load_morphology("oi15rpy4-1.CNG.swc", replace_axon=None)
+# === Configure the simulator ================================================
+
+sim, options = get_simulator()
+
+sim.setup(timestep=0.025) #*ms)
+
+
+pyr_morph = load_morphology("oi15rpy4-1.CNG.swc", replace_axon=None, use_library="morphio")
 
 # # support ion channel models defined in NineML, LEMS, or from built-in library
 # na_channel = XMLReader.read("na.xml")
@@ -41,25 +49,29 @@ pyramidal_cell_class.post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticRe
                                                'GABA_A': sim.CondExpPostSynapticResponse}
 
 pyramidal_cell = pyramidal_cell_class(
-                    morphology=pyr_morph,
-                    pas={"conductance_density": uniform('all', 0.0003),
-                         "e_rev":-54.3},
-                    na={"conductance_density": uniform('soma', 0.120),
-                           "e_rev": 50.0},
-                    kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0),
-                         "e_rev": -77.0},
-                    ionic_species={
-                        "na": IonicSpecies("na", reversal_potential=50.0),
-                        "k": IonicSpecies("k", reversal_potential=-77.0)
-                    },
-                    cm=1.0,
-                    Ra=500.0,
-                    AMPA={"density": uniform('all', 0.05),  # number per µm
-                          "e_rev": 0.0,
-                          "tau_syn": 2.0},
-                    GABA_A={"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
-                            "e_rev": -70.0,
-                            "tau_syn": 5.0})
+    morphology=pyr_morph,
+    pas={"conductance_density": uniform('all', 0.0003), "e_rev":-54.3},
+    na={"conductance_density": uniform('soma', 0.120)},
+    kdr={"conductance_density": uniform('soma', 0.036)},
+    #kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0)},
+    ionic_species={
+        "na": IonicSpecies("na", reversal_potential=50.0),
+        "k": IonicSpecies("k", reversal_potential=-77.0)
+    },
+    cm=1.0,
+    Ra=500.0,
+    AMPA={
+        "density": uniform('all', 0.05),  # number per µm
+        "e_syn": 0.0,
+        "tau_syn": 2.0
+    },
+    GABA_A={
+        #"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
+        "density": uniform('all', 0.05),
+        "e_syn": -70.0,
+        "tau_syn": 5.0
+    }
+)
 
 # interneuron = ...
 #
@@ -130,6 +142,6 @@ Figure(
               xticks=True, xlabel="Time (ms)"),
         title="Multi-compartment network",
         annotations="Simulated with NEURON"
-    ).save("mc_network.png")
+    ).save(f"mc_network_{options.simulator}.png")
 
 sim.end()

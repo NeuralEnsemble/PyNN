@@ -811,7 +811,7 @@ class NeuronTemplate(object):
                 if segment.name == "soma":
                     self.morphology._soma_index = segment_id
                 if segment.name is not None:
-                    self.section_labels[segment.name].add(section)
+                    self.section_labels[segment.name].add(segment_id)
                 segment._section = section
             for section_id, parent_id in unresolved_connections:
                 self.sections[section_id].connect(self.sections[parent_id], DISTAL, PROXIMAL)
@@ -819,7 +819,7 @@ class NeuronTemplate(object):
             m = morphology._morphology
             soma = nrn.Section(name="soma")
             self.sections[-1] = soma
-            self.section_labels["soma"].add(soma)
+            self.section_labels["soma"].add(-1)
             self.morphology._soma_index = 0
             if isinstance(cm, NeuriteDistribution):
                 soma.cm = cm.value_in(self.morphology, "soma")
@@ -845,7 +845,7 @@ class NeuronTemplate(object):
                     else:
                         nrn_section.connect(self.sections[m_section.parent.id], DISTAL, PROXIMAL)
                     self.sections[m_section.id] = nrn_section
-                    self.section_labels[m_section.type.name].add(nrn_section)
+                    self.section_labels[m_section.type.name].add(m_section.id)
         else:
             raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
 
@@ -855,6 +855,8 @@ class NeuronTemplate(object):
             mechanism_name = ion_channel.model
             conductance_density = parameters[ion_channel.conductance_density_parameter]
             for index, id in enumerate(self.sections):
+                #if id == -1:
+                #    breakpoint()
                 g = conductance_density.value_in(self.morphology, index)
                 if g is not None and g > 0:
                     section = self.sections[id]
@@ -880,17 +882,11 @@ class NeuronTemplate(object):
         for name, pse in self.post_synaptic_entities.items():
             parameters = other_parameters[name]
             synapse_model = pse.model
-            density_function = parameters["density"]
-            for index, id in enumerate(self.sections):
-                density = density_function.value_in(self.morphology, index)
-                if density > 0:
-                    n_synapses, remainder = divmod(density, 1)
-                    rnd = numpy.random  # todo: use the RNG from the parent Population
-                    if rnd.uniform() < remainder:
-                        n_synapses += 1
-                    section = self.sections[id]
-                    for i in range(int(n_synapses)):
-                        self.morphology.synaptic_receptors[name][id].append(synapse_model(0.5, sec=section))
+            location_generator = parameters["locations"]
+            for section_id in location_generator.generate_locations(self.morphology, self.sections):  # should really only need to pass self.morphology, no?
+                section = self.sections[section_id]
+                # todo: location_generator should give both a section_id and a fraction_along, rather than always using 0.5
+                self.morphology.synaptic_receptors[name][section_id].append(synapse_model(0.5, sec=section))
 
         # handle ionic species
         def set_in_section(section, index, name, value):

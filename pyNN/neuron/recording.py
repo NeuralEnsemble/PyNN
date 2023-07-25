@@ -53,17 +53,17 @@ class Recorder(recording.Recorder):
         else:
             if isinstance(variable.location, str):
                 if variable.location in cell.section_labels:
-                    sections = cell.section_labels[variable.location]
+                    section_index = cell.section_labels[variable.location]
                 else:
                     raise ValueError("Cell has no location labelled '{}'".format(variable.location))
             elif isinstance(variable.location, MorphologyFilter):
-                section_indices = variable.location(cell.morphology)  # todo: support lists of sections
-                if hasattr(section_indices, "__len__"):
-                    sections = [cell.sections[index] for index in section_indices]
-                else:
-                    sections = [cell.sections[section_indices]]
+                section_index = variable.location(cell.morphology)
             else:
                 raise ValueError("Invalid location specification: {}".format(variable.location))
+            if hasattr(section_index, "__len__"):
+                sections = [cell.sections[index] for index in section_index]
+            else:
+                sections = [cell.sections[section_index]]
             hoc_vars = []
             for section in sections:
                 source = section(0.5)
