@@ -42,6 +42,7 @@ MPI = ["mpi4py"]
 sonata = ["h5py"]
 neuron = ["neuron"]
 brian2 = ["brian2"]
+spiNNaker = ["spyNNaker"]
 
 [project.urls]
 homepage = "http://neuralensemble.org/PyNN/"
