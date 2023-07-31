@@ -8,5 +8,11 @@ from ..morphology import at_distances
 
 class at_distances(at_distances):
 
-    def generate_locations(self, morphology):
-        return '(on-components 0.9 (region "dendrite"))'  # to do
+    def generate_locations(self, morphology, label):
+        if isinstance(self.selector, str):
+            section = morphology.segments[morphology.labels()[self.selector]]
+        locations = [
+            (f'(on-components {d / section.length} (region "{self.selector}"))', label)
+            for d in self.distances
+        ]
+        return locations

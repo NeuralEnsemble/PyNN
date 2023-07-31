@@ -68,7 +68,11 @@ class NetworkRecipe(arbor.recipe):
         self._gid_lookup.append(n_gids_current + population.size)
 
     def add_projection(self, projection):
-        self._projection_map[projection.post].append(projection)
+        if hasattr(projection.post, "parent"):
+            postsynaptic_population = projection.post.parent
+        else:
+            postsynaptic_population = projection.post
+        self._projection_map[id(postsynaptic_population)].append(projection)
 
     def _get_population_by_gid(self, gid):
         population_index = np.argmax(np.array(self._gid_lookup) > gid)
@@ -100,8 +104,9 @@ class NetworkRecipe(arbor.recipe):
         By default returns an empty list.
         """
         postsynaptic_population = self._get_population_by_gid(gid)
-        projections = self._projection_map[postsynaptic_population]
-        return sum((proj.arbor_connections(gid) for proj in projections), start=[])
+        projections = self._projection_map.get(id(postsynaptic_population), [])
+        connections = sum((proj.arbor_connections(gid) for proj in projections), start=[])
+        return connections
 
     def event_generators(self, gid):
         """

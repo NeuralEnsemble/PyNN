@@ -122,12 +122,16 @@ class CellDescriptionBuilder:
                 #breakpoint()
 
         # insert post-synaptic mechanisms
+        morph = self.parameters["morphology"]._partially_evaluate([i], simplify=True)
         for name, pse in self.post_synaptic_entities.items():
-            pse_parameters = self.parameters[name][i]
-            location_generator = pse_parameters.pop("locations")[i]
+            pse_parameters = pse.native_parameters.evaluate([i], simplify=True)
+            location_generator = pse_parameters.pop("locations")
             # todo: handle setting other synaptic parameters
-            for locset in location_generator.generate_locations(self.parameters["morphology"][i]):
-                decor.place(locset, arbor.synapse(pse.model, **pse_parameters[i]))
+            locations = location_generator.generate_locations(morph, label=name)
+            assert isinstance(locations, list)
+            for (locset, label) in locations:
+                self.labels[label] = locset
+                decor.place(locset, arbor.synapse(pse.model, pse_parameters.as_dict()), label)
 
         # insert current sources
         for current_source in self.current_sources[i]:
@@ -141,7 +145,6 @@ class CellDescriptionBuilder:
                 # can we be sure location is a label?
                 locset = f'(on-components 0.5 (region "{location}"))'
             else:
-                morph = self.parameters["morphology"]._partially_evaluate([i], simplify=True)
                 section_index = location(morph)
                 if len(section_index) == 1:
                     locset = f'(location {section_index[0]} 0.5)'  # for random_section(), should have random value instead of 0.5
@@ -151,6 +154,9 @@ class CellDescriptionBuilder:
             mechanism = getattr(arbor, current_source["model_name"])
             #decor.place(locset, mechanism(start, stop - start, current=amplitude), "iclamp_label")
             decor.place(locset, mechanism(**current_source["parameters"].evaluate()), f"{current_source['model_name']}_label")
+
+        # add spike source
+        decor.place('"root"', arbor.threshold_detector(-10), "detector")  # todo: allow user to choose location and threshold value
 
         policy = arbor.cv_policy_max_extent(10.0)  # to do: allow user to specify this value and/or the policy more generally
         decor.discretization(policy)
@@ -173,6 +179,8 @@ class CellDescriptionBuilder:
         self.parameters.shape = value
         for ion_channel in self.ion_channels.values():
             ion_channel.parameter_space.shape = value
+        for pse in self.post_synaptic_entities.values():
+            pse.parameter_space.shape = value
 
     def __call__(self, i):
         return {

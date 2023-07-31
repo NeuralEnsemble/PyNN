@@ -98,8 +98,8 @@ class NoisyCurrentSource(BaseCurrentSource, electrodes.NoisyCurrentSource):
 class StaticSynapse(synapses.StaticSynapse):
     __doc__ = synapses.StaticSynapse.__doc__
     translations = build_translations(
-        ('weight', 'WEIGHT'),
-        ('delay', 'DELAY'),
+        ('weight', 'weight'),
+        ('delay', 'delay'),
     )
 
     def _get_minimum_delay(self):
