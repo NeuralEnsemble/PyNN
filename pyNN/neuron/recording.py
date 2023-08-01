@@ -5,12 +5,18 @@
 """
 
 from collections import defaultdict
+import logging
 import numpy as np
 from .. import recording
-from ..morphology import MorphologyFilter
+from .. import errors
+from ..morphology import LocationGenerator
+from .morphology import Location, LabelledLocations
 from . import simulator
 import re
 from neuron import h
+
+
+logger = logging.getLogger("PyNN")
 
 
 recordable_pattern = re.compile(
@@ -20,6 +26,58 @@ recordable_pattern = re.compile(
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
     _simulator = simulator
+
+
+    def record(self, variables, ids, sampling_interval=None, locations=None):
+        """
+        Add the cells in `ids` to the sets of recorded cells for the given variables.
+        """
+        logger.debug('Recorder.record(<%d cells>)' % len(ids))
+        self._check_sampling_interval(sampling_interval)
+
+        if isinstance(variables, str) and variables != 'all':
+            variables = [variables]
+
+        ids = set([id for id in ids if id.local])
+
+        if locations is None:  # point neurons
+            for var_path in variables:
+                if not self.population.can_record(var_path, None):
+                    raise errors.RecordingError(var_path, self.population.celltype)
+            var_obj = recording.Variable(location=None, name=var_path, label=None)
+            new_ids = ids.difference(self.recorded[var_obj])
+            self.recorded[var_obj] = self.recorded[var_obj].union(ids)
+            self._record(var_obj, new_ids, sampling_interval)
+
+        else:  # muti-compartment neurons
+            if not isinstance(locations, (list, tuple)):
+                assert isinstance(locations, (str, LocationGenerator))
+                locations = [locations]
+
+            resolved_variables = defaultdict(set)
+            for item in locations:
+                if isinstance(item, str):
+                    location_generator = LabelledLocations(item)
+                elif isinstance(item, LocationGenerator):
+                    location_generator = item
+                else:
+                    raise ValueError("'locations' should be a str, list, LocationGenerator or None")
+
+                # todo: avoid this loop if all the cells in the population have an identical morphology
+                for id in ids:
+                    morphology = id._cell.morphology
+                    # in principle, generate_locations() could give different locations for
+                    # cells with different morphologies, so we construct a dict containing
+                    # the ids of the neurons for which a given location exists
+                    for location in location_generator.generate_locations(morphology, label="recording-point", cell=id._cell):
+                        for var_name in variables:
+                            var_obj = recording.Variable(location=location, name=var_name, label="recording-point")  # better labels? include section id?
+                            resolved_variables[var_obj].add(id)
+
+            for var_obj, id_list in resolved_variables.items():
+                new_ids = id_list.difference(self.recorded[var_obj])
+                self.recorded[var_obj] = self.recorded[var_obj].union(id_list)
+                self._record(var_obj, new_ids, sampling_interval)
 
     def _record(self, variable, new_ids, sampling_interval=None):
         """Add the cells in `new_ids` to the set of recorded cells."""
@@ -51,29 +109,17 @@ class Recorder(recording.Recorder):
                 hoc_var = getattr(source, "_ref_%s" % var_name)
             hoc_vars = [hoc_var]
         else:
-            if isinstance(variable.location, str):
-                if variable.location in cell.section_labels:
-                    section_index = cell.section_labels[variable.location]
-                else:
-                    raise ValueError("Cell has no location labelled '{}'".format(variable.location))
-            elif isinstance(variable.location, MorphologyFilter):
-                section_index = variable.location(cell.morphology)
-            else:
-                raise ValueError("Invalid location specification: {}".format(variable.location))
-            if hasattr(section_index, "__len__"):
-                sections = [cell.sections[index] for index in section_index]
-            else:
-                sections = [cell.sections[section_index]]
+            assert isinstance(variable.location, Location)
             hoc_vars = []
-            for section in sections:
-                source = section(0.5)
-                if variable.name == 'v':
-                    hoc_vars.append(source._ref_v)
-                else:
-                    ion_channel, var_name = variable.name.split(".")
-                    mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
-                    mechanism = getattr(source, mechanism_name)
-                    hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
+
+            source = variable.location.section(variable.location.position)
+            if variable.name == 'v':
+                hoc_vars.append(source._ref_v)
+            else:
+                ion_channel, var_name = variable.name.split(".")
+                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
+                mechanism = getattr(source, mechanism_name)
+                hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
         for hoc_var in hoc_vars:
             vec = h.Vector()
             if self.sampling_interval == self._simulator.state.dt or self.record_times:
@@ -147,7 +193,7 @@ class Recorder(recording.Recorder):
         times = None
         if len(ids) > 0:
             # note: id._cell.traces[variable] is a list of Vectors, one per segment
-            signals = np.vstack((vec for id in ids for vec in id._cell.traces[variable])).T
+            signals = np.vstack([vec for id in ids for vec in id._cell.traces[variable]]).T
             if self.record_times:
                 assert not simulator.state.cvode.use_local_dt()
                 # the following line assumes all cells are sampled at the same time

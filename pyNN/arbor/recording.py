@@ -8,14 +8,51 @@ import arbor
 
 from .. import recording
 from . import simulator
+from ..morphology import LocationGenerator
+from .morphology import LabelledLocations
 
 
 class Recorder(recording.Recorder):
     _simulator = simulator
 
+    def record(self, variables, ids, sampling_interval=None, locations=None):
+        super().record(variables, ids, sampling_interval, locations)
+
     def _record(self, variable, new_ids, sampling_interval=None):
         if variable != "spikes" and sampling_interval is not None:
             self.sampling_interval = sampling_interval
+
+    def _localize_variables(self, variables, locations):
+        """
+
+        """
+        # If variables is a single string, encapsulate it in a list.
+        if isinstance(variables, str) and variables != 'all':
+            variables = [variables]
+        if isinstance(locations, str):
+            locations = [locations]
+        resolved_variables = []
+
+        if locations is None:
+            for var_path in variables:
+                resolved_variables.append(recording.Variable(location=None, name=var_path, label=None))
+        else:
+            if not isinstance(locations, (list, tuple)):
+                assert isinstance(locations, (str, LocationGenerator))
+                locations = [locations]
+
+            for item in locations:
+                if isinstance(item, str):
+                    location_generator = LabelledLocations(item)
+                elif isinstance(item, LocationGenerator):
+                    location_generator = item
+                else:
+                    raise ValueError("'locations' should be a str, list, LocationGenerator or None")
+                morphology = self.population.celltype.parameter_space["morphology"].base_value  # todo: handle inhomogeneous morphologies in a Population
+                for locset, label in location_generator.generate_locations(morphology, label="recording-point"):
+                    for var_name in variables:
+                        resolved_variables.append(recording.Variable(location=locset, name=var_name, label=label))
+        return resolved_variables
 
     def _set_arbor_sim(self, arbor_sim):
         self.handles = defaultdict(list)
@@ -31,17 +68,11 @@ class Recorder(recording.Recorder):
     def _get_arbor_probes(self, gid):
         probes = []
         for variable in self.recorded:
-            if isinstance(variable.location, str):
-                locset = f'(on-components 0.5 (region "{variable.location}"))'  # or variable.location_label?
-            elif variable.location is None:
+            if variable.location is None:
                 pass
             else:
-                morph = self.population.celltype.parameter_space["morphology"].base_value
-                section_index = variable.location(morph)
-                if len(section_index) == 1:
-                    locset = f'(location {section_index[0]} 0.5)'  # see comments about this in inject_into()
-                else:
-                    raise NotImplementedError()
+                locset = variable.location
+
             if gid in [cell.gid for cell in self.recorded[variable]]:
                 if variable.name == "spikes":
                     continue

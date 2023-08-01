@@ -42,6 +42,7 @@ from .control import (                                              # noqa: F401
     rank,
 )
 from .procedural_api import create, connect, record, record_v, record_gsyn, set  # noqa: F401
+from . import morphology
 try:
     from . import nineml                                            # noqa: F401
 except ImportError:

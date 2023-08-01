@@ -856,8 +856,12 @@ class NeuronTemplate(object):
             conductance_density = parameters[ion_channel.conductance_density_parameter]
             for index, id in enumerate(self.sections):
                 #if id == -1:
-                #    breakpoint()
-                g = conductance_density.value_in(self.morphology, index)
+                if isinstance(conductance_density, float):
+                    g = conductance_density
+                elif isinstance(conductance_density, IonChannelDistribution):
+                    g = conductance_density.value_in(self.morphology, index)
+                else:
+                    raise TypeError("Conductance density should be a float or an IonChannelDistribution object")
                 if g is not None and g > 0:
                     section = self.sections[id]
                     section.insert(mechanism_name)
@@ -883,10 +887,9 @@ class NeuronTemplate(object):
             parameters = other_parameters[name]
             synapse_model = pse.model
             location_generator = parameters["locations"]
-            for section_id in location_generator.generate_locations(self.morphology, self.sections):  # should really only need to pass self.morphology, no?
-                section = self.sections[section_id]
-                # todo: location_generator should give both a section_id and a fraction_along, rather than always using 0.5
-                self.morphology.synaptic_receptors[name][section_id].append(synapse_model(0.5, sec=section))
+            for location in location_generator.generate_locations(self.morphology, label=name, cell=self):
+                section, section_id, position = location.get_section_and_position()
+                self.morphology.synaptic_receptors[name][section_id].append(synapse_model(position, sec=section))
 
         # handle ionic species
         def set_in_section(section, index, name, value):

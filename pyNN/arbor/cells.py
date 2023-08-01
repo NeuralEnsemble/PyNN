@@ -3,7 +3,7 @@ from collections import defaultdict
 from lazyarray import larray
 import arbor
 from neuroml import Point3DWithDiam
-from ..morphology import uniform, NeuroMLMorphology, MorphIOMorphology
+from ..morphology import Morphology, NeuroMLMorphology, MorphIOMorphology, IonChannelDistribution
 from ..models import BaseCellType
 from ..parameters import ParameterSpace
 from morphio import SectionType
@@ -45,6 +45,7 @@ class CellDescriptionBuilder:
         self.current_sources = defaultdict(list)
 
     def _build_tree(self, i):
+        self.parameters["morphology"].dtype = Morphology
         std_morphology = self.parameters["morphology"]._partially_evaluate(i, simplify=True)  # evaluates the larray
         if isinstance(std_morphology, NeuroMLMorphology):
             tree = arbor.segment_tree()
@@ -60,22 +61,6 @@ class CellDescriptionBuilder:
                 if segment.name not in self.labels:
                     self.labels[segment.name] = f"(segment {i})"
         elif isinstance(std_morphology, MorphIOMorphology):
-            # m = std_morphology._morphology
-            # # this is for a 3-point cylinder type (<SomaType.SOMA_NEUROMORPHO_THREE_POINT_CYLINDERS: 2>)
-            # for i in range(len(m.soma.points) - 1):
-            #     prox = arbor.mpoint(*m.points[i], m.diameters[i])
-            #     dist = arbor.mpoint(*m.points[i + 1], m.diameters[i + 1])
-            #     tag = int(SectionType.soma)
-            #     if i == 0:
-            #         parent = arbor.mnpos
-            #     else:
-            #         parent = i - 1
-            #     tree.append(parent, prox, dist, tag=tag)
-            #     # labels?
-            # for root_section in m.root_sections:
-            #     for m_section in root_section.iter():
-            #         ...
-            ##tree = arbor.load_swc_arbor(std_morphology.morphology_file, raw=True)
             tree = arbor.load_swc_neuron(std_morphology.morphology_file, raw=True)
         else:
             raise ValueError("{} not supported as a neuron morphology".format(type(std_morphology)))
@@ -88,12 +73,9 @@ class CellDescriptionBuilder:
             ion_channel_parameters = ion_channel.native_parameters.evaluate(mask=[i], simplify=True)
             native_name = ion_channel.get_model(ion_channel_parameters)
             for pname, pval in ion_channel_parameters.items():
-                if isinstance(pval, uniform):
-                    if isinstance(pval.selector, str):
-                        region = f'"{pval.selector}"'
-                        mechanism_parameters[native_name][region][pname] = pval.value
-                    else:
-                        raise NotImplementedError()
+                if isinstance(pval, IonChannelDistribution):
+                    region, value = pval.resolve()
+                    mechanism_parameters[native_name][region][pname] = value
                 elif isinstance(pval, (int, float)):
                     region = '"all"'
                     mechanism_parameters[native_name][region][pname] = pval
@@ -108,52 +90,37 @@ class CellDescriptionBuilder:
             rL=self.parameters["Ra"][i] * 1,     # Ω·cm
             Vm=self.initial_values["v"][i]
         )
-        for ion_name, ionic_species in self.parameters["ionic_species"]._partially_evaluate([i], simplify=True).items():
+        for ion_name, ionic_species in self.parameters["ionic_species"].evaluate([i], simplify=True).items():
             assert ion_name == ionic_species.ion_name
             decor.set_ion(ion_name,
-                        int_con=ionic_species.internal_concentration,
-                        ext_con=ionic_species.external_concentration,
-                        rev_pot=ionic_species.reversal_potential) #method="nernst/na")
+                          int_con=ionic_species.internal_concentration,
+                          ext_con=ionic_species.external_concentration,
+                          rev_pot=ionic_species.reversal_potential) #method="nernst/na")
         for native_name, region_params in mechanism_parameters.items():
             for region, params in region_params.items():
                 if native_name == "hh":
                     params["gl"] = 0.0
                 decor.paint(region, arbor.density(native_name, params))
-                #breakpoint()
-
         # insert post-synaptic mechanisms
         morph = self.parameters["morphology"]._partially_evaluate([i], simplify=True)
-        for name, pse in self.post_synaptic_entities.items():
-            pse_parameters = pse.native_parameters.evaluate([i], simplify=True)
-            location_generator = pse_parameters.pop("locations")
-            # todo: handle setting other synaptic parameters
-            locations = location_generator.generate_locations(morph, label=name)
-            assert isinstance(locations, list)
-            for (locset, label) in locations:
-                self.labels[label] = locset
-                decor.place(locset, arbor.synapse(pse.model, pse_parameters.as_dict()), label)
+        if self.post_synaptic_entities:
+            for name, pse in self.post_synaptic_entities.items():
+                pse_parameters = pse.native_parameters.evaluate([i], simplify=True)
+                location_generator = pse_parameters.pop("locations")
+                # todo: handle setting other synaptic parameters
+                locations = location_generator.generate_locations(morph, label=name)
+                assert isinstance(locations, list)
+                for (locset, label) in locations:
+                    self.labels[label] = locset
+                    decor.place(locset, arbor.synapse(pse.model, pse_parameters.as_dict()), label)
 
         # insert current sources
         for current_source in self.current_sources[i]:
-            location = current_source["location"]
-            if location == "soma":
-                # todo: proper location mapping
-                locset = '"root"'
-            elif location == "dendrite":
-                locset = '"mid-dend"'
-            elif isinstance(location, str):
-                # can we be sure location is a label?
-                locset = f'(on-components 0.5 (region "{location}"))'
-            else:
-                section_index = location(morph)
-                if len(section_index) == 1:
-                    locset = f'(location {section_index[0]} 0.5)'  # for random_section(), should have random value instead of 0.5
-                else:
-                    raise NotImplementedError()  # todo: use join - https://docs.arbor-sim.org/en/v0.8.1/concepts/labels.html#label-join-lhs-locset-rhs-locset-...locset
-
+            location_generator = current_source["location_generator"]
             mechanism = getattr(arbor, current_source["model_name"])
-            #decor.place(locset, mechanism(start, stop - start, current=amplitude), "iclamp_label")
-            decor.place(locset, mechanism(**current_source["parameters"].evaluate()), f"{current_source['model_name']}_label")
+            for locset, label in  location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
+                #decor.place(locset, mechanism(start, stop - start, current=amplitude), "iclamp_label")
+                decor.place(locset, mechanism(**current_source["parameters"].evaluate()), label)
 
         # add spike source
         decor.place('"root"', arbor.threshold_detector(-10), "detector")  # todo: allow user to choose location and threshold value
@@ -167,12 +134,12 @@ class CellDescriptionBuilder:
         assert isinstance(initial_values, larray)
         self.initial_values[variable] = initial_values
 
-    def add_current_source(self, model_name, location, index, parameters):
+    def add_current_source(self, model_name, location_generator, index, parameters):
         for i in index:
             self.current_sources[i].append({
                 "model_name": model_name,
                 "parameters": parameters,
-                "location": location
+                "location_generator": location_generator
             })
 
     def set_shape(self, value):

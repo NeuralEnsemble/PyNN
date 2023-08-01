@@ -23,13 +23,11 @@ import quantities as pq
 
 from .. import errors
 
-
 logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
 
-Variable = namedtuple('Variable', ['name', 'location', 'location_label'])
-Variable.__new__.__defaults__ = (None,)  # make 'location_label' optional
+Variable = namedtuple('Variable', ['name', 'location', 'label'])
 
 
 def get_mpi_comm():
@@ -118,26 +116,6 @@ def mpi_sum(x):
         return mpi_comm.allreduce(x, op=mpi_flags['SUM'])
     else:
         return x
-
-
-def localize_variables(variables, locations):
-    """
-
-    """
-    # If variables is a single string, encapsulate it in a list.
-    if isinstance(variables, str) and variables != 'all':
-        variables = [variables]
-    resolved_variables = []
-    if locations is None:
-        for var_path in variables:
-            resolved_variables.append(Variable(location=None, name=var_path))
-    elif hasattr(locations, "items"):
-        for label, location in locations.items():
-            for var_name in variables:
-                resolved_variables.append(Variable(location=location, name=var_name, location_label=label))
-    else:
-        raise ValueError("'locations' should be a dictionary or None")
-    return resolved_variables
 
 
 def safe_makedirs(dir):
@@ -257,7 +235,7 @@ class Recorder(object):
         self._check_sampling_interval(sampling_interval)
 
         ids = set([id for id in ids if id.local])
-        for variable in localize_variables(variables, locations):
+        for variable in self._localize_variables(variables, locations):
             if not self.population.can_record(variable.name, variable.location):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
@@ -272,7 +250,7 @@ class Recorder(object):
         """
         if sampling_interval is not None and sampling_interval != self.sampling_interval:
             recorded_variables = list(self.recorded.keys())
-            spikes_var = Variable("spikes", location=None)
+            spikes_var = Variable("spikes", location=None, label=None)
             if spikes_var in recorded_variables:
                 recorded_variables.remove(spikes_var)
             if len(recorded_variables) > 0:
@@ -304,7 +282,8 @@ class Recorder(object):
             if variable.name == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
                 sids = sorted(self.filter_recorded(Variable(name='spikes',
-                                                            location=None),
+                                                            location=None,
+                                                            label=None),
                                                    filter_ids))
                 data = self._get_spiketimes(sids, clear=clear)
 
@@ -357,10 +336,9 @@ class Recorder(object):
                     else:  # multiple recording locations per neuron
                         # todo: improve this approach
                         channel_index = np.arange(signal_array.shape[1])
-                    if variable.location_label:
-                        signal_name = "{}.{}".format(variable.location_label, variable.name)
-                    elif variable.location:
-                        signal_name = "{}.{}".format(variable.location, variable.name)
+                    if variable.location:
+                        assert variable.label is not None
+                        signal_name = "{}.{}".format(variable.label, variable.name)
                     else:
                         signal_name = variable.name
                     if self.record_times:
@@ -423,7 +401,7 @@ class Recorder(object):
         if variables == "all":
             localized_variables = "all"
         else:
-            localized_variables = localize_variables(variables, locations)
+            localized_variables = self._localize_variables(variables, locations)
         data.segments = [filter_by_variables(segment, localized_variables)
                          for segment in self.cache]
         if self._simulator.state.running:

@@ -11,10 +11,11 @@ from copy import deepcopy
 import arbor
 
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
-from ..parameters import ParameterSpace
-from ..morphology import Morphology, NeuriteDistribution, uniform
+from ..parameters import ParameterSpace, IonicSpecies
+from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
 from .cells import CellDescriptionBuilder
 from .simulator import state
+from .morphology import LabelledLocations
 
 logger = logging.getLogger("PyNN")
 
@@ -52,14 +53,32 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
         ('stop',       'duration', "stop - start", "tstart + duration")
     )
 
-    def inject_into(self, cells, location=None):
-        cell_descr = cells.parent._arbor_cell_description.base_value   # todo: handle `cells` being Population, PopulationView, or Assembly
+    def inject_into(self, cells, location=None):  # rename to `locations` ?
         if hasattr(cells, "parent"):
+            cell_descr = cells.parent._arbor_cell_description.base_value
             index = cells.parent.id_to_index(cells.all_cells.astype(int))
         else:
+            cell_descr = cells._arbor_cell_description.base_value
             index = cells.id_to_index(cells.all_cells.astype(int))
         self.parameter_space.shape = (1,)
-        cell_descr.add_current_source("iclamp", location, index, self.native_parameters)
+        if location is None:
+            raise NotImplementedError
+        elif isinstance(location, str):
+            location = LabelledLocations(location)
+        elif isinstance(location, LocationGenerator):
+            # morphology = cells._arbor_cell_description.base_value.parameters["morphology"].base_value  # todo: evaluate lazyarray
+            # locations = location.generate_locations(morphology, label="dc_current_source")
+            # assert len(locations) == 1
+            # locset = locations[0]
+            pass
+        else:
+            raise TypeError("location must be a string or a LocationGenerator")
+        cell_descr.add_current_source(
+            model_name="iclamp",
+            location_generator=location,
+            index=index,
+            parameters=self.native_parameters
+        )
 
 
 class StepCurrentSource(BaseCurrentSource, electrodes.StepCurrentSource):
@@ -192,7 +211,12 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
             "morphology": Morphology,
             "cm": NeuriteDistribution,
             "Ra": float,
-            "ionic_species": dict
+            "ionic_species": {
+                "na": IonicSpecies,
+                "k": IonicSpecies,
+                "ca": IonicSpecies,
+                "cl": IonicSpecies
+            }
         }
         #for name, ion_channel in self.ion_channels.items():
         #    schema[name] = ion_channel.get_schema()
@@ -224,10 +248,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
     def segment_names(self):  # rename to section_names?
         return [seg.name for seg in self.morphology.segments]
 
-    #def __getattr__(self, item):
-    #    if item in self.segment_names:
-    #        return Segment(item, self)
-
     def has_parameter(self, name):
         """Does this model have a parameter with the given name?"""
         return False   # todo: implement this
@@ -253,18 +273,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
                     (NeuronTemplate,),
                     {"ion_channels": self.ion_channels,
                      "post_synaptic_entities": self.post_synaptic_entities})
-
-    # @classmethod
-    # def insert(cls, sections=None, **ion_channels):
-    #     for name, mechanism in ion_channels.items():
-    #         if name in cls.ion_channels:
-    #             assert cls.ion_channels[name]["mechanism"] == mechanism
-    #             cls.ion_channels[name]["sections"].extend(sections)
-    #         else:
-    #             cls.ion_channels[name] = {
-    #                 "mechanism": mechanism,
-    #                 "sections": sections
-    #             }
 
 
 class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):

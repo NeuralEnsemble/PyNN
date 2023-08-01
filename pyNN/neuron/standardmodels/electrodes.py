@@ -17,8 +17,9 @@ from neuron import h
 import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.morphology import MorphologyFilter
+from pyNN.morphology import MorphologyFilter, LocationGenerator
 from pyNN.neuron import simulator
+from ..morphology import LabelledLocations
 
 
 class NeuronCurrentSource(StandardCurrentSource):
@@ -138,23 +139,21 @@ class NeuronCurrentSource(StandardCurrentSource):
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
                 if location is None:
-                    sections = [id._cell.source_section]
+                    sections = [(id._cell.source_section, 0.5)]
                 else:
                     if isinstance(location, str):
-                        if location in id._cell.section_labels:
-                            section_index = id._cell.section_labels[location]
-                            sections = [id._cell.sections[i] for i in section_index]
-                        else:
-                            raise ValueError("Cell has no location labelled '{}'".format(location))
-                    elif isinstance(location, MorphologyFilter):
-                        section_index = location(id._cell.morphology)
-                        sections = [id._cell.sections[i] for i in section_index]
+                        location = LabelledLocations(location)
+                    elif isinstance(location, LocationGenerator):
+                        pass
                     else:
-                        raise ValueError()
+                        raise TypeError("location must be a string or a LocationGenerator")
+                    morphology = cells.celltype.parameter_space["morphology"].base_value  # todo: evaluate lazyarray
+                    locations = location.generate_locations(morphology, label="dc_current_source", cell=id._cell)
+                    sections = [(loc.section, loc.position) for loc in locations]
                 if not (id in self._h_iclamps):  # to modify for multi-compartment cells with multiple injection points
                     self.cell_list += [id]
-                    for sec in sections:
-                        self._h_iclamps[id].append(h.IClamp(0.5, sec=sec))
+                    for (sec, position) in sections:
+                        self._h_iclamps[id].append(h.IClamp(position, sec=sec))
                     self._devices.extend(self._h_iclamps[id])
 
     def record(self):

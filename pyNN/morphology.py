@@ -8,7 +8,6 @@ from __future__ import absolute_import
 import os.path
 import shutil
 import numpy as np
-import numpy.random
 import neuroml.arraymorph
 import neuroml.loaders
 import morphio
@@ -158,7 +157,16 @@ class MorphIOMorphology(Morphology):
 
 
 class NeuriteDistribution(object):
-    pass
+
+    def __init__(self, selector, value_provider, absence=0.0):
+        if isinstance(selector, MorphologyFilter):
+            self.selector = selector
+        elif isinstance(selector, str):
+            self.selector = self.get_with_label_selector(selector)
+        else:
+            raise TypeError("'selector' should be either a MorphologyFilter or a string")
+        self.value_provider = value_provider
+        self.absence = absence
 
 
 class IonChannelDistribution(NeuriteDistribution):
@@ -174,67 +182,16 @@ class uniform(IonChannelDistribution, SynapseDistribution):
     # we inherit from two parents, because we want to use the name "uniform" for both
     # the implementation behaves differently depending on context
     # we could perhaps just have a single parent, e.g. NeuriteDistribution
-
-    def __init__(self, selector, value, absence=0.0):
-        self.selector = selector
-        self.value = value
-        self.absence = absence
-
-    def value_in(self, morphology, index):
-        if self.selector == 'all':
-            return self.value
-        elif self.selector == 'soma':
-            if index == morphology.soma_index:
-                return self.value
-            else:
-                return self.absence
-        elif isinstance(self.selector, MorphologyFilter):
-            selected_indices = self.selector(morphology)
-            if index in selected_indices:
-                return self.value
-            else:
-                return self.absence
-        else:
-            raise NotImplementedError("selector '{}' not yet supported".format(self.selector))
+    pass
 
 
 class by_distance(IonChannelDistribution, SynapseDistribution):
-
-    def __init__(self, selector, distance_function, absence=0.0):
-        self.selector = selector
-        self.distance_function = distance_function
-        self.absence = absence
-
-    def value_in(self, morphology, index):
-        if isinstance(self.selector, MorphologyFilter):
-            selected_indices = self.selector(morphology)  # need to cache this, or allow index to be an array
-            if index in selected_indices:
-                distance = morphology.get_distance(index)
-                return self.distance_function(distance)
-            else:
-                return self.absence
-        else:
-            raise NotImplementedError("selector '{}' not yet supported".format(self.selector))
+    pass
 
 
 class by_diameter(IonChannelDistribution, SynapseDistribution):
     """Distribution as a function of neurite diameter."""
-
-    def __init__(self, selector, diameter_function, absence=0.0):
-        self.selector = selector
-        self.diameter_function = diameter_function
-        self.absence = absence
-
-    def value_in(self, morphology, index):
-        if isinstance(self.selector, MorphologyFilter):
-            selected_indices = self.selector(morphology)  # need to cache this, or allow index to be an array
-            if index in selected_indices:
-                diameter = morphology.get_diameter(index)
-                return self.diameter_function(diameter)
-            else:
-                return self.absence
-        else:
-            raise NotImplementedError("selector '{}' not yet supported".format(self.selector))
+    pass
 
 
 class any(IonChannelDistribution, SynapseDistribution):
@@ -265,35 +222,11 @@ class dendrites(MorphologyFilter):
     def __init__(self, fraction_along=None):
         self.fraction_along = fraction_along
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        """Return an index (integer NumPy array) that can be used
-        to retrieve the sections corresponding to the filter. """
-        section_index = np.array([], dtype=int)
-        for label in (SectionType.apical_dendrite, SectionType.basal_dendrite):
-            if label in morphology.section_groups:
-                section_index = np.hstack((section_index, morphology.section_groups[label]))
-        if section_index.size < 1:
-            raise Exception("No neurites labelled as dendrites")
-        return section_index
-
 
 class apical_dendrites(MorphologyFilter):
 
     def __init__(self, fraction_along=None):
         self.fraction_along = fraction_along
-
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
-        if SectionType.apical_dendrite in morphology.section_groups:
-            section_index = morphology.section_groups[SectionType.apical_dendrite]
-            if filter_by_receptor_type:
-                section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
-            return section_index
-        else:
-            raise Exception("No neurites labelled as apical dendrite")
 
 
 class basal_dendrites(MorphologyFilter):
@@ -301,49 +234,17 @@ class basal_dendrites(MorphologyFilter):
     def __init__(self, fraction_along=None):
         self.fraction_along = fraction_along
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
-        if SectionType.basal_dendrite in morphology.section_groups:
-            section_index = morphology.section_groups[SectionType.basal_dendrite]
-            if filter_by_receptor_type:
-                section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
-            return section_index
-        else:
-            raise Exception("No neurites labelled as basal dendrite")
-
 
 class axon(MorphologyFilter):
 
     def __init__(self, fraction_along=None):
         self.fraction_along = fraction_along
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
-        if SectionType.axon in morphology.section_groups:
-            section_index = morphology.section_groups[SectionType.axon]
-            if filter_by_receptor_type:
-                section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
-            return section_index
-        else:
-            raise Exception("No neurites labelled as axon")
-
 
 class random_section(MorphologyFilter):
 
     def __init__(self, f):
         self.f = f
-
-    def __call__(self, morphology, **kwargs):
-        section_index = self.f(morphology, **kwargs)
-        if len(section_index) < 1:
-            raise Exception("List of sections is empty.")
-        return [numpy.random.choice(section_index)]
 
 
 sample = random_section  # alias
@@ -358,29 +259,12 @@ class with_label(MorphologyFilter):
 
     Example:
 
-    by_label("soma", "dend", "axon")
+    with_label("soma", "dend", "axon")
     """
 
     def __init__(self, *labels):
         self.labels = labels
 
-    def __call__(self, morphology, **kwargs):
-        section_index = np.array([], dtype=int)
-        labels = list(self.labels)
-        for label in labels:
-            if label in morphology.section_groups:
-                #ids.extend([id(seg) for seg in morphology.section_groups[label]])
-                section_index = np.hstack((section_index, morphology.section_groups[label]))
-                labels.remove(label)
-        if labels:
-            for i, segment in enumerate(morphology.segments):
-                if segment.name in labels:
-                    #ids.append(id(segment))
-                    section_index = np.hstack((section_index, np.array([i])))
-                    labels.remove(segment.name)
-        if labels:
-            raise ValueError("No sections or groups match label '{}'".format("', '".join(labels)))
-        return section_index
 
 
 class LocationGenerator:
@@ -389,37 +273,28 @@ class LocationGenerator:
         return self
 
 
+class LabelledLocations(LocationGenerator):
+
+    def __init__(self, *labels):
+        for label in labels:
+            assert isinstance(label, str)
+        self.labels = labels
+
 
 class at_distances(LocationGenerator):
+    # fractional distances, 0-1
 
     def __init__(self, selector, distances):
-        self.selector = selector
-        self.distances = distances
-
-    def generate_locations(self, morphology, sections):
-        if isinstance(self.selector, str):
-            section_index = morphology.labels()[self.selector]
+        if isinstance(selector, MorphologyFilter):
+            self.selector = selector
+        elif isinstance(selector, str):
+            self.selector = self.get_with_label_selector(selector)
         else:
-            raise NotImplementedError()
-        return [section_index]
+            raise TypeError("'selector' should be either a MorphologyFilter or a string")
+        self.distances = distances
 
 
 class random_placement(LocationGenerator):
 
     def __init__(self, density_function):
         self.density_function = density_function
-
-    def generate_locations(self, morphology, sections):
-        locations = []
-        for index, section_id in enumerate(sections):
-            density = self.density_function.value_in(morphology, index)
-            section = sections[section_id]
-            n_synapses = density * section.L
-            if n_synapses > 0:
-                n_synapses, remainder = divmod(n_synapses, 1)
-                rnd = numpy.random  # todo: use the RNG from the parent Population
-                if rnd.uniform() < remainder:
-                    n_synapses += 1
-            for i in range(int(n_synapses)):
-                locations.append(section_id)
-        return locations

@@ -6,12 +6,12 @@
 
 
 from pyNN.standardmodels import StandardIonChannelModel
-from pyNN.morphology import uniform
+#from pyNN.morphology import uniform
 
 
 class NaChannel(StandardIonChannelModel):
     default_parameters = {
-        "conductance_density": uniform('all', 0.12),
+        "conductance_density": 0.12, #uniform('all', 0.12),
         #"e_rev": 50.0
     }
     default_initial_values = {
@@ -21,7 +21,7 @@ class NaChannel(StandardIonChannelModel):
 
 class KdrChannel(StandardIonChannelModel):
     default_parameters = {
-        "conductance_density": uniform('all', 0.036),
+        "conductance_density": 0.036, #uniform('all', 0.036),
         #"e_rev": -77.0
     }
     default_initial_values = {
@@ -31,6 +31,6 @@ class KdrChannel(StandardIonChannelModel):
 
 class PassiveLeak(StandardIonChannelModel):
     default_parameters = {
-        "conductance_density": uniform('all', 0.0003),
+        "conductance_density": 0.0003, #uniform('all', 0.0003),
         "e_rev": -65.0
     }
