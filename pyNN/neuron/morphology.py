@@ -95,6 +95,22 @@ class axon(base_morphology.axon):
             raise Exception("No neurites labelled as axon")
 
 
+class soma(base_morphology.axon):
+
+    def __call__(self, morphology, filter_by_receptor_type=False):
+        # if filter_by_receptor_type is not False,
+        # return only sections that contain at least one post-synaptic receptor
+        # of the specified name
+        if SectionType.soma in morphology.section_groups:
+            section_index = morphology.section_groups[SectionType.soma]
+            if filter_by_receptor_type:
+                section_index = np.intersect1d(section_index,
+                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+            return section_index
+        else:
+            raise Exception("No neurites labelled as soma")
+
+
 class random_section(base_morphology.random_section):
 
     def __call__(self, morphology, **kwargs):
@@ -160,7 +176,7 @@ class by_diameter(base_morphology.by_diameter, HasSelector):
             selected_indices = self.selector(morphology)  # need to cache this, or allow index to be an array
             if index in selected_indices:
                 diameter = morphology.get_diameter(index)
-                return self.diameter_function(diameter)
+                return diameter_function(diameter)
             else:
                 return self.absence
         else:
@@ -227,6 +243,23 @@ class random_placement(base_morphology.random_placement, HasSelector):
                 # todo: also randomize the position parameter?
                 locations.append(location_label)
         return locations
+
+
+class centre(base_morphology.centre, HasSelector):
+
+    def generate_locations(self, morphology, label_prefix, cell):
+        section_index = self.selector(morphology)
+        section_id = section_index[len(section_index)//2]
+        section = cell.sections[section_id]
+        location_label = f"centre"  # todo: add a part coming from selector
+        if label_prefix:
+            location_label = f"{label_prefix}-{location_label}"
+        cell.locations[location_label] = Location(section, section_id, 0.5, label=location_label)
+        # todo: also randomize the position parameter?
+        return [location_label]
+
+
+center = centre  # for trans-Atlantic compatibility
 
 
 # --- Location ---

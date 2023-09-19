@@ -413,7 +413,9 @@ class Connection(common.Connection):
         if isinstance(location_selector, MorphologyFilter):
             section_index = location_selector(cell_obj.morphology,
                                               filter_by_receptor_type=projection.receptor_type)
-            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]  # what if there are multiple synapses in a single section? here we just take the first
+            if len(section_index) > 1:
+                raise NotImplementedError
+            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index[0]][0]  # what if there are multiple synapses in a single section? here we just take the first
         elif isinstance(location_selector, str):
             if location_selector in cell_obj.section_labels:
                 section_index = cell_obj.section_labels[location_selector]

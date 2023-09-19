@@ -65,7 +65,7 @@ class NeuroMLMorphology(Morphology):
         super(NeuroMLMorphology, self).__init__()
         self._morphology = morphology
         if isinstance(morphology, neuroml.arraymorph.ArrayMorphology):
-            for neurite_type in (SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
+            for neurite_type in (SectionType.soma, SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
                 self.section_groups[neurite_type] = (morphology.node_types == neurite_type).nonzero()[0]
         elif isinstance(morphology, neuroml.Morphology):
             self.id_map = {seg.id: i
@@ -298,3 +298,14 @@ class random_placement(LocationGenerator):
 
     def __init__(self, density_function):
         self.density_function = density_function
+
+
+class centre(LocationGenerator):
+
+    def __init__(self, selector):
+        if isinstance(selector, MorphologyFilter):
+            self.selector = selector
+        elif isinstance(selector, str):
+            self.selector = self.get_with_label_selector(selector)
+        else:
+            raise TypeError("'selector' should be either a MorphologyFilter or a string")

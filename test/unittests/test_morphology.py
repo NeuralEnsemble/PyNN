@@ -13,9 +13,10 @@ from numpy.testing import assert_array_equal
 import neuroml
 import neuroml.arraymorph
 from neuroml import Morphology as NMLMorphology, Segment, SegmentGroup, Member, Point3DWithDiam as P
-from pyNN.morphology import (load_morphology, NeuroMLMorphology, dendrites, apical_dendrites,
-                             basal_dendrites, random_section, with_label, SectionType.apical_dendrite,
-                             uniform, by_distance, by_diameter, any as morph_any)
+from pyNN.morphology import load_morphology, NeuroMLMorphology, SectionType, any as morph_any
+from pyNN.neuron.morphology import (dendrites, apical_dendrites,
+                             basal_dendrites, random_section, with_label,
+                             uniform, by_diameter)
 
 
 morph_data = """# test morphology

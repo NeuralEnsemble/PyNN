@@ -219,7 +219,7 @@ class Recorder(recording.Recorder):
         # sometimes hang with MPI if some nodes aren't recording anything
         all_ids = set(ids)
         local_ids = set([id for id in ids if id.local])
-        for variable in recording.localize_variables(variables, locations):
+        for variable in self._localize_variables(variables, locations):
             if not self.population.can_record(variable.name):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = all_ids.difference(self.recorded_all[variable])

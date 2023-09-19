@@ -21,8 +21,7 @@ import pytest
 
 try:
     from neuroml import Morphology, Segment, Point3DWithDiam as P
-    from pyNN.morphology import (NeuroMLMorphology, load_morphology, uniform, random_section,
-                                 dendrites, apical_dendrites, by_distance)
+    from pyNN.morphology import NeuroMLMorphology, load_morphology
     import neuroml.loaders
     have_neuroml = True
 except ImportError:
@@ -116,7 +115,7 @@ class SimpleNeuron(object):
         """needed for PyNN"""
         for sec in (self.soma, self.axon, self.apical, self.basilar):
             for seg in sec:
-                seg.v = self.v_init
+                seg.v = self.initial_values["v"]
 
 
 if have_neuron:
@@ -274,10 +273,10 @@ def test_2_compartment():
                 "na": IonicSpecies("na", reversal_potential=50.1),
                 "k": IonicSpecies("k", reversal_potential=-77.7)
         },
-        pas={"conductance_density": uniform('all', 0.00033),
+        pas={"conductance_density": sim.morphology.uniform('all', 0.00033),
                 "e_rev":-54.32},
-        na={"conductance_density": uniform('soma', 0.121)},
-        kdr={"conductance_density": uniform('soma', 0.0363)}
+        na={"conductance_density": sim.morphology.uniform('soma', 0.121)},
+        kdr={"conductance_density": sim.morphology.uniform('soma', 0.0363)}
     )
 
     cells = sim.Population(2, cell_type, initial_values={'v': [-60.0, -70.0]})  #*mV})
@@ -286,15 +285,16 @@ def test_2_compartment():
     step_current.inject_into(cells[1:2], location="dendrite")
 
     cells.record('spikes')
-    cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-    cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
+    cells.record(['na.m', 'na.h', 'kdr.n'], locations="soma")
+    cells.record('v', locations=["soma", "dendrite"])
 
     sim.run(200.0)
 
     data = cells.get_data().segments[0]
 
     hcell0 = cells[0]._cell
-    hsoma = hcell0.section_labels["soma"]
+    soma_id,  = hcell0.section_labels["soma"]
+    hsoma = hcell0.sections[soma_id]
     assert hsoma.L == 18.8
     assert hsoma.diam == 18.8
     assert hsoma.cm == 1.01
@@ -306,7 +306,8 @@ def test_2_compartment():
     assert hsoma.e_pas == -54.32
     assert hsoma.g_pas == 0.00033
 
-    hdend = hcell0.section_labels["dendrite"]
+    dend_id, = hcell0.section_labels["dendrite"]
+    hdend = hcell0.sections[dend_id]
     assert hdend.L == 500.0
     assert hdend.diam == 2.0
     assert hsoma.cm == 1.01
@@ -326,6 +327,7 @@ def test_mc_network():
     if not (have_neuron and have_neuroml):
         pytest.skip("Need neuron and neuroml packages")
     sim = pyNN.neuron
+    from pyNN.neuron.morphology import (uniform, by_distance, random_placement as rp, centre, soma, apical_dendrites, dendrites, random_section)
 
     sim.setup()
 
@@ -354,10 +356,10 @@ def test_mc_network():
                         },
                         cm=1.0,
                         Ra=500.0,
-                        AMPA={"locations": uniform('all', 0.05),  # number per µm
+                        AMPA={"locations": rp(uniform('all', 0.05)),  # number per µm
                               "e_syn": 0.0,
                               "tau_syn": 2.0},
-                        GABA_A={"locations": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
+                        GABA_A={"locations": rp(by_distance(dendrites(), lambda d: 0.05 * (d < 50.0))),  # number per µm
                                 "e_syn": -70.0,
                                 "tau_syn": 5.0})
 
@@ -365,8 +367,8 @@ def test_mc_network():
     inputs = sim.Population(1000, sim.SpikeSourcePoisson(rate=1000.0))
 
     pyramidal_cells.record('spikes')
-    pyramidal_cells[:1].record('v', locations={"soma": "soma"})
-    pyramidal_cells[:1].record('v', locations={"dend": apical_dendrites()})
+    pyramidal_cells[:1].record('v', locations=centre(soma()))
+    pyramidal_cells[:1].record('v', locations=centre(apical_dendrites()))
 
     i2p = sim.Projection(inputs, pyramidal_cells,
                         connector=sim.AllToAllConnector(location_selector=random_section(apical_dendrites())),

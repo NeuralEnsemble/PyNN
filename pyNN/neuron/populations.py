@@ -118,7 +118,6 @@ class PopulationMixin(object):
             mech_name, state_name = variable_name.split(".")
         else:
             mech_name, state_name = None, variable_name
-            assert state_name == "v"
 
         if initial_values.is_homogeneous:
             value = initial_values.evaluate(simplify=True)

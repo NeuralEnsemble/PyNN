@@ -44,12 +44,12 @@ class Recorder(recording.Recorder):
             for var_path in variables:
                 if not self.population.can_record(var_path, None):
                     raise errors.RecordingError(var_path, self.population.celltype)
-            var_obj = recording.Variable(location=None, name=var_path, label=None)
-            new_ids = ids.difference(self.recorded[var_obj])
-            self.recorded[var_obj] = self.recorded[var_obj].union(ids)
-            self._record(var_obj, new_ids, sampling_interval)
+                var_obj = recording.Variable(location=None, name=var_path, label=None)
+                new_ids = ids.difference(self.recorded[var_obj])
+                self.recorded[var_obj] = self.recorded[var_obj].union(ids)
+                self._record(var_obj, new_ids, sampling_interval)
 
-        else:  # muti-compartment neurons
+        else:  # multi-compartment neurons
             if not isinstance(locations, (list, tuple)):
                 assert isinstance(locations, (str, LocationGenerator))
                 locations = [locations]

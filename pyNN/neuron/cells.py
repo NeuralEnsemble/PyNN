@@ -84,7 +84,7 @@ class SingleCompartmentNeuron(nrn.Section):
         self.traces = defaultdict(list)
         self.recording_time = 0
 
-        self.v_init = None
+        self.initial_values = {}
         self.parameters = {'c_m': c_m, 'i_offset': i_offset}
 
     def area(self):
@@ -95,9 +95,10 @@ class SingleCompartmentNeuron(nrn.Section):
     i_offset = _new_property('stim', 'amp')
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
+        assert "v" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
         for seg in self:
-            seg.v = self.v_init
+            seg.v = self.initial_values["v"]
 
     def set_parameters(self):
         for name, value in self.parameters.items():
@@ -176,7 +177,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     def __init__(self, tau_m, c_m, v_rest, i_offset):
         SingleCompartmentNeuron.__init__(self, c_m, i_offset)
         self.insert('pas')
-        self.v_init = v_rest  # default value
+        self.initial_values["v"] = v_rest  # default value
         self.parameters.update(tau_m=tau_m, v_rest=v_rest)
 
     def __set_tau_m(self, value):
@@ -296,11 +297,13 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             return self.adexp.vspike
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
-        assert self.w_init is not None
+        assert "v" in self.initial_values
+        assert "w" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
+        assert self.initial_values["w"] is not None
         for seg in self:
-            seg.v = self.v_init
-        self.adexp.w = self.w_init
+            seg.v = self.initial_values["v"]
+        self.adexp.w = self.initial_values["w"]
 
 
 class BretteGerstnerIFStandardReceptors(BretteGerstnerIF, StandardReceptorTypesMixin):
@@ -351,11 +354,13 @@ class Izhikevich_(SingleCompartmentNeuron):
         return self.izh.vthresh
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
-        assert self.u_init is not None
+        assert "v" in self.initial_values
+        assert "u" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
+        assert self.initial_values["u"] is not None
         for seg in self:
-            seg.v = self.v_init
-        self.izh.u = self.u_init
+            seg.v = self.initial_values["v"]
+        self.izh.u = self.initial_values["u"]
 
 
 class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
@@ -429,7 +434,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron, StandardReceptorTypesMixin
             self.parameters[name] = local_params[name]
         self.set_parameters()
 
-        self.v_init = e_leak  # default value
+        self.initial_values["v"] = e_leak  # default value
 
     # not sure ena and ek are handled correctly
 
@@ -526,7 +531,8 @@ class GIFNeuron(LeakySingleCompartmentNeuron, StandardReceptorTypesMixin):
 
     def memb_init(self):
         for state_var in ('v', 'v_t', 'i_eta'):
-            initial_value = getattr(self, '{0}_init'.format(state_var))
+            assert state_var in self.initial_values
+            initial_value = self.initial_values[state_var]
             assert initial_value is not None
             if state_var == 'v':
                 for seg in self:
@@ -678,6 +684,7 @@ class ArtificialCell(object):
         self.rec = h.NetCon(self.source, None)
         self.recording_time = False
         self.default = self.source
+        self.initial_values = {}
 
     def _set_tau(self, value):
         self.source.tau = value
@@ -696,7 +703,7 @@ class ArtificialCell(object):
     # ... gkbar and g_leak properties defined similarly
 
     def memb_init(self):
-        self.source.m = self.m_init
+        self.source.m = self.initial_values["m"]
 
 
 class IntFire1(NativeCellType):
@@ -888,7 +895,8 @@ class NeuronTemplate(object):
             parameters = other_parameters[name]
             synapse_model = pse.model
             location_generator = parameters["locations"]
-            for location in location_generator.generate_locations(self.morphology, label_prefix=name, cell=self):
+            for location_label in location_generator.generate_locations(self.morphology, label_prefix=name, cell=self):
+                location = self.locations[location_label]
                 section, section_id, position = location.get_section_and_position()
                 self.morphology.synaptic_receptors[name][section_id].append(synapse_model(position, sec=section))
 

@@ -243,6 +243,25 @@ class Recorder(object):
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids, sampling_interval)
 
+    def _localize_variables(self, variables, locations):
+        """
+
+        """
+        # If variables is a single string, encapsulate it in a list.
+        if isinstance(variables, str) and variables != 'all':
+            variables = [variables]
+        if isinstance(locations, str):
+            locations = [locations]
+        resolved_variables = []
+
+        if locations is None:
+            for var_path in variables:
+                resolved_variables.append(Variable(location=None, name=var_path, label=None))
+        else:
+            raise NotImplementedError
+
+        return resolved_variables
+
     def _check_sampling_interval(self, sampling_interval):
         """
         Check whether record() has been called previously with a different sampling interval
@@ -477,7 +496,7 @@ class Recorder(object):
         useful for spike counts or for variable-time-step integration methods.
         """
         if variable == 'spikes':
-            N = self._local_count(Variable(variable, location=None), filter_ids)
+            N = self._local_count(Variable(variable, location=None, label=None), filter_ids)
         else:
             raise Exception("Only implemented for spikes.")
         if gather and self._simulator.state.num_processes > 1:
