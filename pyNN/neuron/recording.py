@@ -69,9 +69,9 @@ class Recorder(recording.Recorder):
                     # in principle, generate_locations() could give different locations for
                     # cells with different morphologies, so we construct a dict containing
                     # the ids of the neurons for which a given location exists
-                    for location in location_generator.generate_locations(morphology, label="recording-point", cell=id._cell):
+                    for location in location_generator.generate_locations(morphology, label_prefix="", cell=id._cell):
                         for var_name in variables:
-                            var_obj = recording.Variable(location=location, name=var_name, label="recording-point")  # better labels? include section id?
+                            var_obj = recording.Variable(location=location, name=var_name, label=location)  # better labels? include section id?
                             resolved_variables[var_obj].add(id)
 
             for var_obj, id_list in resolved_variables.items():
@@ -109,10 +109,11 @@ class Recorder(recording.Recorder):
                 hoc_var = getattr(source, "_ref_%s" % var_name)
             hoc_vars = [hoc_var]
         else:
-            assert isinstance(variable.location, Location)
+            assert isinstance(variable.location, str)
             hoc_vars = []
 
-            source = variable.location.section(variable.location.position)
+            cell_location = cell.locations[variable.location]
+            source = cell_location.section(cell_location.position)
             if variable.name == 'v':
                 hoc_vars.append(source._ref_v)
             else:
@@ -192,6 +193,7 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         times = None
         if len(ids) > 0:
+            #breakpoint()
             # note: id._cell.traces[variable] is a list of Vectors, one per segment
             signals = np.vstack([vec for id in ids for vec in id._cell.traces[variable]]).T
             if self.record_times:

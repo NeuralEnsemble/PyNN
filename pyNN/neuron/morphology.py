@@ -172,7 +172,7 @@ class by_diameter(base_morphology.by_diameter, HasSelector):
 
 class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
 
-    def generate_locations(self, morphology, label, cell):
+    def generate_locations(self, morphology, label_prefix, cell):
         locations = []
         for label in self.labels:
             if label in cell.section_labels:
@@ -180,7 +180,9 @@ class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
                 assert len(section_index) == 1, "todo"
                 section_id = list(section_index)[0]
                 section = cell.sections[section_id]
-                locations.append(Location(section, section_id, 0.5))
+                location_label = f"{label_prefix}{label}"
+                cell.locations[location_label] = Location(section, section_id, 0.5, label=location_label)
+                locations.append(location_label)
             else:
                 raise ValueError("Cell has no location labelled '{}'".format(label))
         return locations
@@ -188,18 +190,25 @@ class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
 
 class at_distances(base_morphology.at_distances, HasSelector):
 
-    def generate_locations(self, morphology, label, cell):
+    def generate_locations(self, morphology, label_prefix, cell):
         # todo: this only works for a single section at present
         assert len(cell.sections) == 1, "not implemented"
         section_index = self.selector(morphology)
         assert len(section_index) == 1
         section = cell.sections[section_index[0]]
-        return [Location(section, section_index, d) for d in self.distances]
+        locations = []
+        for d in self.distances:
+            location_label = f"d-{d}"
+            if label_prefix:
+                location_label = f"{label_prefix}-{location_label}"
+            cell.locations[location_label] = Location(section, section_index, d, label=location_label)
+            locations.append(location_label)
+        return locations
 
 
 class random_placement(base_morphology.random_placement, HasSelector):
 
-    def generate_locations(self, morphology, label, cell):
+    def generate_locations(self, morphology, label_prefix, cell):
         locations = []
         for index, section_id in enumerate(cell.sections):
             density = self.density_function.value_in(morphology, index)
@@ -211,7 +220,12 @@ class random_placement(base_morphology.random_placement, HasSelector):
                 if rnd.uniform() < remainder:
                     n_synapses += 1
             for i in range(int(n_synapses)):
-                locations.append(Location(section, section_id, 0.5))  # todo: also randomize the position parameter?
+                location_label = f"random-{index}"
+                if label_prefix:
+                    location_label = f"{label_prefix}-{location_label}"
+                cell.locations[location_label] = Location(section, section_id, 0.5, label=location_label)
+                # todo: also randomize the position parameter?
+                locations.append(location_label)
         return locations
 
 
@@ -219,10 +233,11 @@ class random_placement(base_morphology.random_placement, HasSelector):
 
 class Location:
 
-    def __init__(self, section, section_id, position):
+    def __init__(self, section, section_id, position, label=""):
         self.section = section
         self.section_id = section_id
         self.position = position
+        self.label = label
 
     def get_section_and_position(self):
         return (self.section, self.section_id, self.position)

@@ -148,8 +148,11 @@ class NeuronCurrentSource(StandardCurrentSource):
                     else:
                         raise TypeError("location must be a string or a LocationGenerator")
                     morphology = cells.celltype.parameter_space["morphology"].base_value  # todo: evaluate lazyarray
-                    locations = location.generate_locations(morphology, label="dc_current_source", cell=id._cell)
-                    sections = [(loc.section, loc.position) for loc in locations]
+                    locations = location.generate_locations(morphology, label_prefix="dc_current_source", cell=id._cell)
+                    sections = []
+                    for loc in locations:
+                        cell_location = id._cell.locations[loc]
+                        sections.append((cell_location.section, cell_location.position))
                 if not (id in self._h_iclamps):  # to modify for multi-compartment cells with multiple injection points
                     self.cell_list += [id]
                     for (sec, position) in sections:

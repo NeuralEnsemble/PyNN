@@ -7,7 +7,7 @@ Injecting time-varying current into multi-compartment cells.
 import matplotlib
 matplotlib.use("Agg")
 from neuroml import Morphology, Segment, Point3DWithDiam as P
-from pyNN.morphology import NeuroMLMorphology, uniform
+from pyNN.morphology import NeuroMLMorphology
 from pyNN.parameters import IonicSpecies
 #from pyNN.units import uF_per_cm2, ohm_cm, S_per_cm2, mV, nA, ms
 from pyNN.utility import get_simulator
@@ -49,10 +49,10 @@ cell_type = cell_class(
             "na": IonicSpecies("na", reversal_potential=50.0),
             "k": IonicSpecies("k", reversal_potential=-77.0)
     },
-    pas={"conductance_density": uniform('all', 0.0003),
+    pas={"conductance_density": sim.morphology.uniform('all', 0.0003),
          "e_rev":-54.3},
-    na={"conductance_density": uniform('soma', 0.120)},
-    kdr={"conductance_density": uniform('soma', 0.036)}
+    na={"conductance_density": sim.morphology.uniform('soma', 0.120)},
+    kdr={"conductance_density": sim.morphology.uniform('soma', 0.036)}
 )
 
 #import pdb; pdb.set_trace()
@@ -74,8 +74,8 @@ step_current.inject_into(cells[1:2], location="dendrite")
 # === Record from both compartments of both cells ===========================
 
 cells.record('spikes')
-cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
+cells.record(['na.m', 'na.h', 'kdr.n'], locations="soma")
+cells.record('v', locations=("soma", "dendrite"))
 
 # === Run the simulation =====================================================
 

@@ -761,6 +761,7 @@ class NeuronTemplate(object):
         self.section_labels = defaultdict(set)
         for receptor_name in self.post_synaptic_entities:
             self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
+        self.locations = {}  # to store recording and current injection locations
 
         d_lambda = 0.1
 
@@ -887,7 +888,7 @@ class NeuronTemplate(object):
             parameters = other_parameters[name]
             synapse_model = pse.model
             location_generator = parameters["locations"]
-            for location in location_generator.generate_locations(self.morphology, label=name, cell=self):
+            for location in location_generator.generate_locations(self.morphology, label_prefix=name, cell=self):
                 section, section_id, position = location.get_section_and_position()
                 self.morphology.synaptic_receptors[name][section_id].append(synapse_model(position, sec=section))
 

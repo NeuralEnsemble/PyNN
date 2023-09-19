@@ -90,7 +90,9 @@ class CellDescriptionBuilder:
             rL=self.parameters["Ra"][i] * 1,     # Ω·cm
             Vm=self.initial_values["v"][i]
         )
-        for ion_name, ionic_species in self.parameters["ionic_species"].evaluate([i], simplify=True).items():
+        if not self.parameters["ionic_species"]._evaluated:
+            self.parameters["ionic_species"].evaluate(simplify=True)
+        for ion_name, ionic_species in self.parameters["ionic_species"].items():
             assert ion_name == ionic_species.ion_name
             decor.set_ion(ion_name,
                           int_con=ionic_species.internal_concentration,
