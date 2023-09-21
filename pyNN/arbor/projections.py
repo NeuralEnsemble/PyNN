@@ -13,17 +13,16 @@ from ..space import Space
 from . import simulator
 
 
-class Connection(common.Connection):
-    """
-    Store an individual plastic connection and information about it. Provide an
-    interface that allows access to the connection's weight, delay and other
-    attributes.
+class ConnectionGroup:
     """
 
-    def __init__(self, pre, post, target, **attributes):
+    """
+
+    def __init__(self, pre, post, receptor_type, location_selector, **attributes):
         self.presynaptic_index = pre
         self.postsynaptic_index = post
-        self.target = target
+        self.receptor_type = receptor_type
+        self.location_selector = location_selector
         for name, value in attributes.items():
             setattr(self, name, value)
 
@@ -57,17 +56,15 @@ class Projection(common.Projection):
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             location_selector=None,
                             **connection_parameters):
-        if location_selector is None:
-            target = self.receptor_type
-        else:
-            raise NotImplementedError()
+        print(presynaptic_indices, postsynaptic_index)  ###
         for name, value in connection_parameters.items():
             if isinstance(value, float):
                 connection_parameters[name] = repeat(value)
         for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
             other_attributes = dict(zip(connection_parameters.keys(), other))
+
             self.connections[postsynaptic_index].append(
-                Connection(pre_idx, postsynaptic_index, target, **other_attributes)
+                ConnectionGroup(pre_idx, postsynaptic_index, self.receptor_type, location_selector, **other_attributes)
             )
 
     def arbor_connections(self, gid):
@@ -77,11 +74,25 @@ class Projection(common.Projection):
         except IndexError:
             return []
         else:
-            return [
-                arbor.connection(
-                    (self.pre[c.presynaptic_index], "detector"),
-                    c.target,
-                    c.weight,
-                    c.delay
-                ) for c in self.connections[postsynaptic_index]
-            ]
+            if self.pre.celltype.injectable:
+                source = "detector"
+            else:
+                source = "spike-source"
+
+            connections = []
+            all_labels = list(self.post._arbor_cell_description[postsynaptic_index]["labels"])
+            for cg in self.connections[postsynaptic_index]:
+                if cg.location_selector in (None, "all"):
+                    target_labels = [lbl for lbl in all_labels if lbl.startswith(cg.receptor_type)]
+                    for target in target_labels:
+                        connections.append(
+                            arbor.connection(
+                                (self.pre[cg.presynaptic_index], source),
+                                target,
+                                cg.weight,
+                                cg.delay
+                            )
+                    )
+                else:
+                    raise NotImplementedError()
+            return connections

@@ -24,20 +24,23 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     __doc__ = cells.SpikeSourcePoisson.__doc__
 
     translations = build_translations(
-        ('start',    'START'),
-        ('rate',     'INTERVAL',  "1000.0/rate",  "1000.0/INTERVAL"),
-        ('duration', 'DURATION'),
+        ('start',    'tstart'),
+        ('rate',     'freq'),
+        ('duration', 'tstop', "start + duration", "tstop - tstart"),
     )
+    # todo: manage "seed"
     arbor_cell_kind = arbor.cell_kind.spike_source
+    arbor_schedule = arbor.poisson_schedule
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
     __doc__ = cells.SpikeSourceArray.__doc__
 
     translations = build_translations(
-        ('spike_times', 'SPIKE_TIMES'),
+        ('spike_times', 'times'),
     )
     arbor_cell_kind = arbor.cell_kind.spike_source
+    arbor_schedule = arbor.explicit_schedule
 
 
 class BaseCurrentSource(object):

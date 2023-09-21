@@ -8,7 +8,7 @@ import arbor
 
 from .. import common, errors
 from ..standardmodels import StandardCellType
-from ..parameters import ParameterSpace, simplify
+from ..parameters import ParameterSpace, simplify, Sequence
 from . import simulator
 from .recording import Recorder
 
@@ -79,8 +79,19 @@ class Population(common.Population):
 
     def arbor_cell_description(self, gid):
         index = self.id_to_index(gid)
-        args = self._arbor_cell_description[index]
-        return arbor.cable_cell(args["tree"], args["decor"], args["labels"])
+        if self.celltype.arbor_cell_kind == arbor.cell_kind.spike_source:
+            cell_descr = self._arbor_cell_description
+            if not cell_descr._evaluated:
+                cell_descr.evaluate()
+            params = list(cell_descr)[index]  # inefficient to do this for every gid, need to fix
+            for key, value in params.items():
+                if isinstance(value, Sequence):
+                    params[key] = value.value
+            schedule = self.celltype.arbor_schedule(**params)
+            return arbor.spike_source_cell("spike-source", schedule)
+        else:
+            args = self._arbor_cell_description[index]
+            return arbor.cable_cell(args["tree"], args["decor"], args["labels"])
 
     def _create_cells(self):
         # for now, we create all cells and store them in memory,
@@ -94,8 +105,11 @@ class Population(common.Population):
 
         parameter_space.shape = (self.size,)
 
-        self._arbor_cell_description = parameter_space["cell_description"]
-        self._arbor_cell_description.base_value.set_shape(parameter_space.shape)
+        if self.celltype.arbor_cell_kind == arbor.cell_kind.spike_source:
+            self._arbor_cell_description = parameter_space
+        else:
+            self._arbor_cell_description = parameter_space["cell_description"]
+            self._arbor_cell_description.base_value.set_shape(parameter_space.shape)
 
         id_range = np.arange(simulator.state.id_counter,
                              simulator.state.id_counter + self.size)

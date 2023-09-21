@@ -48,6 +48,8 @@ class Connector(object):
     Base class for connectors.
 
     All connector sub-classes have the following optional keyword arguments:
+        `location_selector`:
+            TO DO
         `safe`:
             if True, check that weights and delays have valid values. If False,
             this check is skipped.
@@ -542,7 +544,7 @@ class FromListConnector(Connector):
     """
     parameter_names = ('conn_list',)
 
-    def __init__(self, conn_list, column_names=None, 
+    def __init__(self, conn_list, column_names=None,
                  location_selector=None, safe=True, callback=None):
         """
         Create a new connector.
@@ -640,7 +642,7 @@ class FromFileConnector(FromListConnector):
     """
     parameter_names = ('file', 'distributed')
 
-    def __init__(self, file, distributed=False, 
+    def __init__(self, file, distributed=False,
                  location_selector=None, safe=True, callback=None):
         """
         Create a new connector.

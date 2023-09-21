@@ -140,9 +140,10 @@ class NetworkRecipe(arbor.recipe):
 
         By default returns an empty object.
         """
-        #props = arbor.cable_global_properties()
-        props = arbor.neuron_cable_properties()
-        return props
+        if kind == arbor.cell_kind.cable:
+            return arbor.neuron_cable_properties()
+        # Spike source cells have nothing to report.
+        return None
 
 
 class State(common.control.BaseState):

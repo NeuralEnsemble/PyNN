@@ -116,3 +116,10 @@ class random_placement(base_morphology.random_placement, HasSelector):
 
     def generate_locations(self, morphology, label):
         raise NotImplementedError
+
+
+class centre(base_morphology.centre, HasSelector):
+
+    def generate_locations(self, morphology, label):
+        region = self.selector.get_region()
+        return [(f'(on-components 0.5 (region {region}))', f"{label}-{region}-centre")]
