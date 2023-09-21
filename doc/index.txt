@@ -8,34 +8,35 @@ PyNN: documentation
 .. toctree::
    :maxdepth: 1
 
-   mc_installation
-   mc_aims
-   mc_api
-   mc_examples
+..   mc_installation
+..   mc_aims
+..   mc_api
+..   mc_examples
 
-..   introduction
-..   installation
+   introduction
+   installation
 ..   quickstart
-..   building_networks
-..   injecting_current
-..   recording
-..   data_handling
-..   simulation_control
-..   parameters
-..   random_numbers
-..   backends
-..   parallel
-..   units
-..   import_export
-..   examples
-..   publications
-..   contributors
-..   release_notes
+   building_networks
+   injecting_current
+   recording
+   data_handling
+   simulation_control
+   parameters
+   random_numbers
+   backends
+   parallel
+   units
+   import_export
+   examples
+   publications
+   contributors
+   release_notes
 
 .. note::
 
    This is the documentation for version |release|. Earlier versions:
 
+     - `version 0.11`_
      - `version 0.10`_
      - `version 0.9`_
      - `version 0.8`_
@@ -79,6 +80,7 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. _`version 0.11`: http://neuralensemble.org/docs/PyNN/0.11/
 .. _`version 0.10`: http://neuralensemble.org/docs/PyNN/0.10/
 .. _`version 0.9`: http://neuralensemble.org/docs/PyNN/0.9/
 .. _`version 0.8`: http://neuralensemble.org/docs/PyNN/0.8/

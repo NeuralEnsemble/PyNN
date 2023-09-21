@@ -74,6 +74,35 @@ regarded as templates, from which we will construct the actual neurons in our
 network.
 
 
+Multi-compartment neurons
+-------------------------
+
+This version of PyNN has *experimental* support for multi-compartment neuron models, implemented for the NEURON and Arbor simulators.
+
+The "standard library" approach described above needs to be modified for morphologically and biophysically-detailed neuron models,
+as the number of possible combinations of morphologies, ion-channel models and synapse models is infinite.
+
+Rather than a library of standard neuron models, we have a library of standard components (ion-channel models, synapse models)
+from which multi-compartment models can be composed by writing a simple class:
+
+.. code-block:: python
+
+    class MyNeuronModel(MultiCompartmentNeuron):
+        ion_channels = {
+            'pas': sim.PassiveLeak,  # standard library of ion channel models
+            'na': sim.NaChannel,
+            'kdr': sim.KdrChannel
+        }
+        post_synaptic_entities = {
+            'AMPA': sim.CondExpPostSynapticResponse,  # standard library of synapse models
+            'GABA_A': sim.CondExpPostSynapticResponse
+        }
+
+The morphology is provided as a parameter when creating a population (see next section),
+along with the distribution and parameters of ion channels and synapses.
+
+For more details on using multi-compartment neurons, see :doc:`mc`.
+
 Populations
 ===========
 

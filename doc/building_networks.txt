@@ -4,8 +4,8 @@ Building networks
 
 .. toctree::
    :maxdepth: 2
-   
+
    neurons
    connections
    space
-   
+   mc_api

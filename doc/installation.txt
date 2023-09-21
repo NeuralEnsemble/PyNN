@@ -11,7 +11,7 @@ Installing PyNN requires:
     * a recent version of the NumPy_ package
     * the lazyarray_ package
     * the Neo_ package (>= 0.11.0)
-    * at least one of the supported simulators: e.g. NEURON, NEST, or Brian 2.
+    * at least one of the supported simulators: e.g. NEURON, NEST, Brian 2 or Arbor.
 
 Optional dependencies are:
 
@@ -23,42 +23,21 @@ Optional dependencies are:
 Installing PyNN
 ===============
 
-.. note:: if using NEURON or NEST, it is easiest if you install NEURON/NEST *before* you install PyNN (see below).
-
 The easiest way to get PyNN is to use pip_::
 
-    $ pip install pyNN
+    $ pip install PyNN
 
 If you would prefer to install manually, :doc:`download the latest
 source distribution <download>`, then run the setup script, e.g.::
 
-    $ tar xzf PyNN-0.11.0.tar.gz
-    $ pip install ./PyNN-0.11.0
+    $ tar xzf PyNN-0.12.0.tar.gz
+    $ pip install ./PyNN-0.12.0
 
 This will install it to your Python :file:`site-packages` directory, and may
 require root privileges. We strongly recommend, however, that you use a
 virtualenv_ or a Conda_ environment. We assume you have already installed the
 simulator(s) you wish to use it with. If this is not the case, see below for
 installation instructions.
-
-Test it using something like the following::
-
-    >>> import pyNN.nest as sim
-    >>> sim.setup()
-    >>> sim.end()
-
-(This assumes you have NEST installed).
-
-.. warning::
-
-   If you get a warning "Unable to install NEST extensions. Certain models may not be available" then ensure the
-   program :command:`nest-config` is on your system PATH.
-   If you still get this message even after adding the directory containing :command:`nest-config` to the PATH,
-   then you will still be able to use pyNN.nest, just a small number of models will not be available.
-
-For NEURON, PyNN will compile PyNN-specific membrane mechanisms the first time you import the :mod:`neuron` module::
-
-    >>> import pyNN.neuron as sim
 
 
 Installing NEURON
@@ -105,11 +84,17 @@ Now test everything worked::
 
 If you run into problems, check out the `NEURON Forum`_.
 
+Now test that NEURON works with PyNN:
+
+    >>> import pyNN.neuron as sim
+
+(The first time you do this, PyNN will compile some PyNN-specific membrane mechanisms).
+
 
 Installing NEST and PyNEST
 ==========================
 
-NEST 3.4 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 3.4-3.6 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST may not work with this version of PyNN.
 The full installation instructions are available at `<https://nest-simulator.readthedocs.io/en/v3.4/installation/index.html/>`_.
 
@@ -130,12 +115,36 @@ Now try it out::
 
 Check that ``'aeif_cond_alpha'`` is in the list of models. If it is not, you may need to install a newer version of the `GNU Scientific Library`_ and then recompile NEST.
 
+Now test NEST together with PyNN using something like the following::
+
+    >>> import pyNN.nest as sim
+    >>> sim.setup()
+    >>> sim.end()
+
+.. warning::
+
+   If you get a warning "Unable to install NEST extensions. Certain models may not be available" then ensure the
+   program :command:`nest-config` is on your system PATH.
+   If you still get this message even after adding the directory containing :command:`nest-config` to the PATH,
+   then you will still be able to use pyNN.nest, just a small number of models will not be available.
+
 
 Installing Brian2
 =================
 
 Instructions for downloading and installing `Brian 2`_ are available from `<https://briansimulator.org/install/>`_.
 Note that this version of PyNN works with Brian 2. If you need to use Brian 1, try PyNN 0.9.6.
+
+
+Installing Arbor
+================
+
+Instructions for installing Arbor_ are available from `<https://docs.arbor-sim.org/en/latest/install>`_.
+
+.. warning::
+
+    At present, Arbor only works with the experimental multi-compartment neuron models;
+    support for point neuron models is planned for the next release.
 
 
 .. _PyNN: http://neuralensemble.org/PyNN
@@ -154,3 +163,4 @@ Note that this version of PyNN works with Brian 2. If you need to use Brian 1, t
 .. _Neo: http://neuralensemble.org/neo
 .. _virtualenv: https://virtualenv.readthedocs.org/
 .. _Conda: http://conda.pydata.org
+.. _Arbor: https://arbor-sim.org
