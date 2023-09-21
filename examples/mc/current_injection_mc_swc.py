@@ -6,7 +6,7 @@ Injecting time-varying current into multi-compartment cells.
 
 import matplotlib
 matplotlib.use("Agg")
-from pyNN.morphology import load_morphology, uniform, random_section, apical_dendrites
+from pyNN.morphology import load_morphology
 from pyNN.parameters import IonicSpecies
 from pyNN.utility import get_simulator
 from pyNN.utility.plotting import Figure, Panel
@@ -30,6 +30,8 @@ cell_class = sim.MultiCompartmentNeuron
 cell_class.label = "ExampleMultiCompartmentNeuron"
 cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel}
 
+m = sim.morphology
+
 cell_type = cell_class(morphology=morph,
                        cm=1.0,
                        Ra=500.0,  # allow to set per segment?
@@ -37,10 +39,10 @@ cell_type = cell_class(morphology=morph,
                               "na": IonicSpecies("na", reversal_potential=50.0),
                               "k": IonicSpecies("k", reversal_potential=-77.0)
                        },
-                       pas={"conductance_density": uniform('all', 0.0003),
+                       pas={"conductance_density": m.uniform('all', 0.0003),
                             "e_rev":-54.3},
-                       na={"conductance_density": uniform('soma', 0.120)},
-                       kdr={"conductance_density": uniform('soma', 0.036)}
+                       na={"conductance_density": m.uniform('soma', 0.120)},
+                       kdr={"conductance_density": m.uniform('soma', 0.036)}
                        )
 
 # === Create a population with two cells ====================================
@@ -55,7 +57,7 @@ step_current_soma.inject_into(cells[0:1], location="soma")
 step_current_dend = sim.DCSource(amplitude=5.0, start=100.0, stop=120.0)
 #step_current.inject_into(cells[1:2], location=apical_dendrites(fraction_along=0.9))
 #step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrites))
-random_location = random_section(apical_dendrites())
+random_location = m.random_placement(m.uniform(m.apical_dendrites()))
 step_current_dend.inject_into(cells[1:2], location=random_location)
 
 
@@ -65,8 +67,8 @@ step_current_dend.inject_into(cells[1:2], location=random_location)
 # === Record from both compartments of both cells ===========================
 
 cells.record('spikes')
-cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-cells.record('v', locations={'soma': 'soma', 'dendrite': random_location})
+cells.record(['na.m', 'na.h', 'kdr.n'], locations="soma")
+cells.record('v', locations=["soma", random_location])
 
 # === Run the simulation =====================================================
 
