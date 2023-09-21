@@ -21,25 +21,25 @@ class with_label(base_morphology.with_label):
 class apical_dendrites(base_morphology.apical_dendrites):
 
     def get_region(self):
-        return f"(tag {SectionType.apical_dendrite})"
+        return f"(tag {SectionType.apical_dendrite.value})"
 
 
 class basal_dendrites(base_morphology.basal_dendrites):
 
     def get_region(self):
-        return f"(tag {SectionType.basal_dendrite})"
+        return f"(tag {SectionType.basal_dendrite.value})"
 
 
-class basal_dendrites(base_morphology.dendrites):
+class dendrites(base_morphology.dendrites):
 
     def get_region(self):
-        raise NotImplementedError
+        return f"(join (tag {SectionType.apical_dendrite.value}) (tag {SectionType.basal_dendrite.value}))"
 
 
 class axon(base_morphology.axon):
 
     def get_region(self):
-        return f"(tag {SectionType.axon})"
+        return f"(tag {SectionType.axon.value})"
 
 
 class random_section(base_morphology.random_section):

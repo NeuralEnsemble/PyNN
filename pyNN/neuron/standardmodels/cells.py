@@ -456,7 +456,7 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
 
     @property
     def model(self):
-        return type(self.label,
+        return type(getattr(self, "label", self.__class__.__name__),
                     (NeuronTemplate,),
                     {"ion_channels": self.ion_channels,
                      "post_synaptic_entities": self.post_synaptic_entities})

@@ -31,7 +31,7 @@ from neuron import h, nrn_dll_loaded
 from .. import __path__ as pyNN_path
 from .. import common
 from ..core import find, run_command
-from .. morphology import MorphologyFilter
+from ..morphology import MorphologyFilter
 
 
 logger = logging.getLogger("PyNN")
@@ -401,40 +401,12 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, projection, pre, post, location_selector=None, **parameters):
+    def __init__(self, projection, pre, post, cell_obj, target_object, **parameters):
         """
         Create a new connection.
         """
         self.presynaptic_index = pre
-        self.postsynaptic_index = post
         self.presynaptic_cell = projection.pre[pre]
-        self.postsynaptic_cell = projection.post[post]
-        cell_obj = self.postsynaptic_cell._cell
-        if isinstance(location_selector, MorphologyFilter):
-            section_index = location_selector(cell_obj.morphology,
-                                              filter_by_receptor_type=projection.receptor_type)
-            if len(section_index) > 1:
-                raise NotImplementedError
-            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index[0]][0]  # what if there are multiple synapses in a single section? here we just take the first
-        elif isinstance(location_selector, str):
-            if location_selector in cell_obj.section_labels:
-                section_index = cell_obj.section_labels[location_selector]
-            elif location_selector == "soma":
-                section_index = cell_obj.sections[cell_obj.morphology.soma_index]
-            else:
-                raise ValueError("Cell has no location labelled '{}'".format(location_selector))
-            if len(section_index) != 1:
-                raise Exception("need to fix this, move evaluation of location_selector up a level")
-            section_index, = section_index
-            target_object = cell_obj.morphology.synaptic_receptors[projection.receptor_type][section_index][0]
-        elif location_selector is None:  # point neuron model
-            if "." in projection.receptor_type:
-                section, target = projection.receptor_type.split(".")
-                target_object = getattr(getattr(cell_obj, section), target)
-            else:
-                target_object = getattr(cell_obj, projection.receptor_type)
-        else:
-            raise ValueError("location selector not supported")
         self.nc = state.parallel_context.gid_connect(int(self.presynaptic_cell), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple

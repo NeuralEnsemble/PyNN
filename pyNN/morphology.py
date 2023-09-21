@@ -71,7 +71,7 @@ class NeuroMLMorphology(Morphology):
             self.id_map = {seg.id: i
                            for i, seg in enumerate(morphology.segments)}
             for grp in morphology.segment_groups:
-                self.section_groups[grp.id] = np.array([self.id_map[m.segments] for m in grp.members])
+                self.section_groups[grp.id] = np.array([self.id_map[seg.id] for seg in grp.members])
         self._path_lengths = None
 
     def __len__(self):
