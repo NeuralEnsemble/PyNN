@@ -94,14 +94,14 @@ public:
   {
   public:
     using nest::ConnTestDummyNodeBase::handles_test_event;
-    nest::port
-    handles_test_event( nest::SpikeEvent&, nest::rport )
+    size_t
+    handles_test_event( nest::SpikeEvent&, size_t )
     {
       return nest::invalid_port;
     }
 
-    nest::port
-    handles_test_event( nest::DSSpikeEvent&, nest::rport )
+    size_t
+    handles_test_event( nest::DSSpikeEvent&, size_t )
     {
       return nest::invalid_port;
     }
@@ -126,7 +126,7 @@ public:
   void
   check_connection( nest::Node& s,
     nest::Node& t,
-    nest::rport receptor_type,
+    size_t receptor_type,
     const CommonPropertiesType& )
   {
     ConnTestDummyNode dummy_target;
@@ -139,7 +139,7 @@ public:
    * @param t Thread
    * @param cp Common properties to all synapses.
    */
-  void send( nest::Event& e, nest::thread t, const CommonPropertiesType& cp );
+  void send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
 
   // The following methods contain mostly fixed code to forward the
   // corresponding tasks to corresponding methods in the base class and the w_
@@ -168,7 +168,7 @@ public:
 template < typename targetidentifierT >
 inline void
 simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
-  nest::thread t,
+  size_t t,
   const CommonPropertiesType& props )
 {
   if ( nest::get_vp_specific_rng( t )->drand() < (1 - p_) )  // drop spike
