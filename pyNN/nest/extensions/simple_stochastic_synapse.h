@@ -9,6 +9,7 @@
 
 // Includes from nestkernel:
 #include "connection.h"
+#include "kernel_manager.h"
 
 
 /* BeginUserDocs: synapse, short-term plasticity
@@ -47,16 +48,16 @@ namespace pynn
 template < typename targetidentifierT >
 class simple_stochastic_synapse : public nest::Connection< targetidentifierT >
 {
-private:
-  double weight_; //!< Synaptic weight
-  double p_;      //!< Probability of spike transmission
-
 public:
   //! Type to use for representing common synapse properties
   typedef nest::CommonSynapseProperties CommonPropertiesType;
 
   //! Shortcut for base class
   typedef nest::Connection< targetidentifierT > ConnectionBase;
+
+  static constexpr ConnectionModelProperties properties = ConnectionModelProperties::HAS_DELAY
+    | ConnectionModelProperties::IS_PRIMARY | ConnectionModelProperties::SUPPORTS_HPC
+    | ConnectionModelProperties::SUPPORTS_LBL;
 
   /**
    * Default Constructor.
@@ -73,6 +74,21 @@ public:
   ~simple_stochastic_synapse()
   {
   }
+
+  /**
+   * Copy constructor from a property object.
+   * Needs to be defined properly in order for GenericConnector to work.
+   */
+  simple_stochastic_synapse( const simple_stochastic_synapse& rhs ) = default;
+  simple_stochastic_synapse& operator=( const simple_stochastic_synapse& rhs ) = default;
+
+  // Explicitly declare all methods inherited from the dependent base
+  // ConnectionBase. This avoids explicit name prefixes in all places these
+  // functions are used. Since ConnectionBase depends on the template parameter,
+  // they are not automatically found in the base class.
+  using nest::ConnectionBase::get_delay_steps;
+  using nest::ConnectionBase::get_rport;
+  using nest::ConnectionBase::get_target;
 
   /**
    * Helper class defining which types of events can be transmitted.
@@ -94,14 +110,8 @@ public:
   {
   public:
     using nest::ConnTestDummyNodeBase::handles_test_event;
-    nest::port
-    handles_test_event( nest::SpikeEvent&, nest::rport )
-    {
-      return nest::invalid_port;
-    }
-
-    nest::port
-    handles_test_event( nest::DSSpikeEvent&, nest::rport )
+    size_t
+    handles_test_event( nest::SpikeEvent&, size_t )
     {
       return nest::invalid_port;
     }
@@ -126,7 +136,7 @@ public:
   void
   check_connection( nest::Node& s,
     nest::Node& t,
-    nest::rport receptor_type,
+    size_t receptor_type,
     const CommonPropertiesType& )
   {
     ConnTestDummyNode dummy_target;
@@ -139,7 +149,7 @@ public:
    * @param t Thread
    * @param cp Common properties to all synapses.
    */
-  void send( nest::Event& e, nest::thread t, const CommonPropertiesType& cp );
+  void send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
 
   // The following methods contain mostly fixed code to forward the
   // corresponding tasks to corresponding methods in the base class and the w_
@@ -162,13 +172,19 @@ public:
   {
     weight_ = w;
   }
+
+private:
+  double weight_; //!< Synaptic weight
+  double p_;      //!< Probability of spike transmission
 };
 
+template < typename targetidentifierT >
+constexpr ConnectionModelProperties simple_stochastic_synapse< targetidentifierT >::properties;
 
 template < typename targetidentifierT >
 inline void
 simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
-  nest::thread t,
+  size_t t,
   const CommonPropertiesType& props )
 {
   if ( nest::get_vp_specific_rng( t )->drand() < (1 - p_) )  // drop spike
