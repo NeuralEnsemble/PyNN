@@ -44,6 +44,7 @@ sonata = ["h5py"]
 neuron = ["neuron"]
 brian2 = ["brian2"]
 arbor = ["arbor"]
+spiNNaker = ["spyNNaker"]
 
 [project.urls]
 homepage = "http://neuralensemble.org/PyNN/"
