@@ -39,3 +39,13 @@ class PassiveLeak(standard.PassiveLeak):
     variable_translations = {}
     model = "pas"
     conductance_density_parameter = 'g'
+
+
+class PassiveLeakHH(standard.PassiveLeak):
+    translations = build_translations(
+        ('conductance_density', 'gl'),
+        ('e_rev', 'el'),
+    )
+    variable_translations = {}
+    model = "hh"
+    conductance_density_parameter = 'gl'

@@ -766,8 +766,9 @@ class NeuronTemplate(object):
         self.ionic_species = ionic_species
         self.sections = {}
         self.section_labels = defaultdict(set)
+        self.synaptic_receptors = {}
         for receptor_name in self.post_synaptic_entities:
-            self.morphology.synaptic_receptors[receptor_name] = defaultdict(list)
+            self.synaptic_receptors[receptor_name] = defaultdict(list)
         self.locations = {}  # to store recording and current injection locations
 
         d_lambda = 0.1
@@ -797,9 +798,8 @@ class NeuronTemplate(object):
             unresolved_connections = []
             for index, segment in enumerate(morphology.segments):
                 section = nrn.Section(name=segment.name)
-                section.L = segment.length
-                section(PROXIMAL).diam = segment.proximal.diameter
-                section(DISTAL).diam = segment.distal.diameter
+                for p in (segment.proximal, segment.distal):
+                    h.pt3dadd(p.x, p.y, p.z, p.diameter, sec=section)
                 if isinstance(cm, NeuriteDistribution):
                     section.cm = cm.value_in(self.morphology, index)
                 else:
@@ -875,7 +875,6 @@ class NeuronTemplate(object):
                     section.insert(mechanism_name)
                     varname = ion_channel.conductance_density_parameter + "_" + ion_channel.model
                     setattr(section, varname, g)
-                    ##print(index, mechanism_name, ion_channel.conductance_density_parameter, g)
                     # We're not using the leak conductance from the hh mechanism,
                     # so set the conductance to zero
                     if mechanism_name == "hh":
@@ -894,11 +893,14 @@ class NeuronTemplate(object):
         for name, pse in self.post_synaptic_entities.items():
             parameters = other_parameters[name]
             synapse_model = pse.model
-            location_generator = parameters["locations"]
+            location_generator = parameters.pop("locations")
             for location_label in location_generator.generate_locations(self.morphology, label_prefix=name, cell=self):
                 location = self.locations[location_label]
                 section, section_id, position = location.get_section_and_position()
-                self.morphology.synaptic_receptors[name][section_id].append(synapse_model(position, sec=section))
+                syn_obj = synapse_model(position, sec=section)
+                self.synaptic_receptors[name][section_id].append(syn_obj)
+                for name, value in parameters.items():
+                    setattr(syn_obj, name, value)
 
         # handle ionic species
         def set_in_section(section, index, name, value):

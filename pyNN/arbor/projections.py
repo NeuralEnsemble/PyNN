@@ -56,7 +56,6 @@ class Projection(common.Projection):
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
                             location_selector=None,
                             **connection_parameters):
-        print(presynaptic_indices, postsynaptic_index)  ###
         for name, value in connection_parameters.items():
             if isinstance(value, float):
                 connection_parameters[name] = repeat(value)

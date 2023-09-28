@@ -35,13 +35,16 @@ class with_label(base_morphology.with_label):
 
 class dendrites(base_morphology.dendrites):
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
+    def __call__(self, morphology, filter_by_section=False):
         """Return an index (integer NumPy array) that can be used
         to retrieve the sections corresponding to the filter. """
         section_index = np.array([], dtype=int)
         for label in (SectionType.apical_dendrite, SectionType.basal_dendrite):
             if label in morphology.section_groups:
                 section_index = np.hstack((section_index, morphology.section_groups[label]))
+        if filter_by_section:
+                section_index = np.intersect1d(section_index,
+                                               np.fromiter(filter_by_section, dtype=int))
         if section_index.size < 1:
             raise Exception("No neurites labelled as dendrites")
         return section_index
@@ -49,15 +52,12 @@ class dendrites(base_morphology.dendrites):
 
 class apical_dendrites(base_morphology.apical_dendrites):
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
+    def __call__(self, morphology, filter_by_section=False):
         if SectionType.apical_dendrite in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.apical_dendrite]
-            if filter_by_receptor_type:
+            if filter_by_section:
                 section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+                                               np.fromiter(filter_by_section, dtype=int))
             return section_index
         else:
             raise Exception("No neurites labelled as apical dendrite")
@@ -65,15 +65,12 @@ class apical_dendrites(base_morphology.apical_dendrites):
 
 class basal_dendrites(base_morphology.basal_dendrites):
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
+    def __call__(self, morphology, filter_by_section=False):
         if SectionType.basal_dendrite in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.basal_dendrite]
-            if filter_by_receptor_type:
+            if filter_by_section:
                 section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+                                               np.fromiter(filter_by_section, dtype=int))
             return section_index
         else:
             raise Exception("No neurites labelled as basal dendrite")
@@ -81,15 +78,12 @@ class basal_dendrites(base_morphology.basal_dendrites):
 
 class axon(base_morphology.axon):
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
+    def __call__(self, morphology, filter_by_section=False):
         if SectionType.axon in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.axon]
-            if filter_by_receptor_type:
+            if filter_by_section:
                 section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+                                               np.fromiter(filter_by_section, dtype=int))
             return section_index
         else:
             raise Exception("No neurites labelled as axon")
@@ -97,15 +91,12 @@ class axon(base_morphology.axon):
 
 class soma(base_morphology.axon):
 
-    def __call__(self, morphology, filter_by_receptor_type=False):
-        # if filter_by_receptor_type is not False,
-        # return only sections that contain at least one post-synaptic receptor
-        # of the specified name
+    def __call__(self, morphology, filter_by_section=False):
         if SectionType.soma in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.soma]
-            if filter_by_receptor_type:
+            if filter_by_section:
                 section_index = np.intersect1d(section_index,
-                                               np.fromiter(morphology.synaptic_receptors[filter_by_receptor_type].keys(), dtype=int))
+                                               np.fromiter(filter_by_section, dtype=int))
             return section_index
         else:
             raise Exception("No neurites labelled as soma")

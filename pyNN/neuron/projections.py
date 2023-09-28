@@ -98,11 +98,13 @@ class Projection(common.Projection):
 
         cell_obj = self.post[postsynaptic_index]._cell
         if isinstance(location_selector, MorphologyFilter):
-            section_index = location_selector(cell_obj.morphology,
-                                              filter_by_receptor_type=self.receptor_type)
+            section_index = location_selector(
+                cell_obj.morphology,
+                filter_by_section=cell_obj.synaptic_receptors[self.receptor_type].keys()
+            )
             target_objects = []
             for sid in section_index:
-                target = cell_obj.morphology.synaptic_receptors[self.receptor_type].get(sid, None)
+                target = cell_obj.synaptic_receptors[self.receptor_type].get(sid, None)
                 if target:
                     target_objects.append(target[0])
                     # what if there are multiple synapses in a single section? here we just take the first
@@ -117,7 +119,7 @@ class Projection(common.Projection):
                 raise ValueError("Cell has no location labelled '{}'".format(location_selector))
             target_objects = []
             for sid in section_index:
-                target = cell_obj.morphology.synaptic_receptors[self.receptor_type].get(sid, None)
+                target = cell_obj.synaptic_receptors[self.receptor_type].get(sid, None)
                 if target:
                     target_objects.append(target[0])
         elif location_selector is None:  # point neuron model

@@ -193,7 +193,6 @@ class Recorder(recording.Recorder):
     def _get_all_signals(self, variable, ids, clear=False):
         times = None
         if len(ids) > 0:
-            #breakpoint()
             # note: id._cell.traces[variable] is a list of Vectors, one per segment
             signals = np.vstack([vec for id in ids for vec in id._cell.traces[variable]]).T
             if self.record_times:

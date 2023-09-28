@@ -48,7 +48,6 @@ class Morphology(object):
 
     def __init__(self):
         self.section_groups = {}
-        self.synaptic_receptors = {}
 
     @property
     def soma_index(self):
