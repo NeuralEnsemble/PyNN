@@ -331,9 +331,12 @@ def test_mc_network():
 
     sim.setup()
 
-    pyr_morph = load_morphology(
-        "http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
-        replace_axon=None)
+    try:
+        pyr_morph = load_morphology(
+            "http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
+            replace_axon=None)
+    except Exception as err:
+        pytest.skip(f"Problem downloading morphology file: {str(err)}")
 
     pyramidal_cell_class = sim.MultiCompartmentNeuron
     pyramidal_cell_class.label = "PyramidalNeuron"
