@@ -14,9 +14,13 @@ import neuroml
 import neuroml.arraymorph
 from neuroml import Morphology as NMLMorphology, Segment, SegmentGroup, Member, Point3DWithDiam as P
 from pyNN.morphology import load_morphology, NeuroMLMorphology, SectionType, any as morph_any
-from pyNN.neuron.morphology import (dendrites, apical_dendrites,
-                             basal_dendrites, random_section, with_label,
-                             uniform, by_diameter)
+try:
+    from pyNN.neuron.morphology import (dendrites, apical_dendrites,
+                                 basal_dendrites, random_section, with_label,
+                                 uniform, by_diameter)
+    have_neuron = True
+except ModuleNotFoundError:
+    have_neuron = False
 
 
 morph_data = """# test morphology
@@ -198,6 +202,8 @@ class MorphologyFilterTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if not have_neuron:
+            pytest.skip("NEURON not available")
         cls.array_morph = array_morph
         cls.neuroml_morph = neuroml_morph
 
@@ -256,6 +262,8 @@ class NeuriteDistributionTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if not have_neuron:
+            pytest.skip("NEURON not available")
         cls.array_morph = array_morph
         cls.neuroml_morph = neuroml_morph
 
