@@ -22,7 +22,8 @@ class BaseModelType(object):
         """
         self.parameter_space = ParameterSpace(self.default_parameters,
                                               self.get_schema(),
-                                              shape=None)
+                                              shape=None,
+                                              component=self.__class__)
         if parameters:
             self.parameter_space.update(**parameters)
 
@@ -75,8 +76,21 @@ class BaseCellType(BaseModelType):
     conductance_based = True  # override for cells with current-based synapses
     injectable = True  # override for spike sources
 
-    def can_record(self, variable):
-        return variable in self.recordable
+    def can_record(self, variable, location=None):
+        if location is None:
+            return variable in self.recordable
+        else:
+            return False
+
+
+class BaseIonChannelModel(BaseModelType):
+    """Base class for ion channel models."""
+    pass
+
+
+class BasePostSynapticResponseModel(BaseModelType):
+    """Base class for post-synaptic response models."""
+    pass
 
 
 class BaseCellTypeComponent(BaseModelType):

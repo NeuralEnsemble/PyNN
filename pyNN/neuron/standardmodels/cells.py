@@ -7,6 +7,9 @@ Standard base_cells for the neuron module.
 
 """
 
+from collections import defaultdict
+from pyNN.models import BaseCellType
+from pyNN.parameters import ParameterSpace
 from pyNN.standardmodels import ModelNotAvailable, cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
@@ -15,8 +18,11 @@ from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTra
                                StandardIF,
                                BretteGerstnerIF,
                                BretteGerstnerIFStandardReceptors, GsfaGrrIF, Izhikevich_,
-                               GIFNeuron)
+                               GIFNeuron, NeuronTemplate)
+from pyNN.morphology import Morphology, NeuriteDistribution
 import logging
+from neuron import nrn, h
+
 
 logger = logging.getLogger("PyNN")
 
@@ -350,6 +356,8 @@ class PointNeuron(base_cells.PointNeuron):
         translated_parameters = self.neuron.native_parameters
         for name, psr in self.post_synaptic_receptors.items():
             translated_parameters[name] = psr.native_parameters
+            # we don't use the locations parameter for point neurons
+            translated_parameters[name].pop("locations")
         return translated_parameters
 
     def get_native_names(self, *names):
@@ -373,3 +381,94 @@ class PointNeuron(base_cells.PointNeuron):
             for variable, translated_variable in psr.variable_map.items():
                 var_map[f"{name}.{variable}"] = translated_variable
         return var_map
+
+
+class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
+    """
+
+    """
+    translations = build_translations(
+        ('Ra', 'Ra'),
+        ('cm', 'cm'),
+        ('morphology', 'morphology'),
+        ('ionic_species', 'ionic_species')
+    )
+    ion_channels = {}
+    post_synaptic_entities = {}
+
+    def __init__(self, **parameters):
+        # replace ion channel classes with instantiated ion channel objects
+        for name, ion_channel in self.ion_channels.items():
+            self.ion_channels[name] = ion_channel(**parameters.pop(name))
+        # ditto for post synaptic responses
+        for name, pse in self.post_synaptic_entities.items():
+            self.post_synaptic_entities[name] = pse(**parameters.pop(name))
+        super(MultiCompartmentNeuron, self).__init__(**parameters)
+        for name, ion_channel in self.ion_channels.items():
+            self.parameter_space[name] = ion_channel.parameter_space
+        for name, pse in self.post_synaptic_entities.items():
+            self.parameter_space[name] = pse.parameter_space
+
+        self.extra_parameters = {}
+        self.spike_source = None
+
+    def get_schema(self):
+        schema = {
+            "morphology": Morphology,
+            "cm": NeuriteDistribution,
+            "Ra": float,
+            "ionic_species": dict
+        }
+        #for name, ion_channel in self.ion_channels.items():
+        #    schema[name] = ion_channel.get_schema()
+        return schema
+
+    @property   # can you have a classmethod-like property?
+    def default_parameters(self):
+        return {}
+
+    @property
+    def segment_names(self):  # rename to section_names?
+        return [seg.name for seg in self.morphology.segments]
+
+    #def __getattr__(self, item):
+    #    if item in self.segment_names:
+    #        return Segment(item, self)
+
+    def has_parameter(self, name):
+        """Does this model have a parameter with the given name?"""
+        return False   # todo: implement this
+
+    def get_parameter_names(self):
+        """Return the names of the parameters of this model."""
+        raise NotImplementedError
+
+    @property
+    def recordable(self):
+        raise NotImplementedError
+
+    def can_record(self, variable, location=None):
+        return True  # todo: implement this properly
+
+    @property
+    def receptor_types(self):
+        return self.post_synaptic_entities.keys()
+
+    @property
+    def model(self):
+        return type(getattr(self, "label", self.__class__.__name__),
+                    (NeuronTemplate,),
+                    {"ion_channels": self.ion_channels,
+                     "post_synaptic_entities": self.post_synaptic_entities})
+
+    # @classmethod
+    # def insert(cls, sections=None, **ion_channels):
+    #     for name, mechanism in ion_channels.items():
+    #         if name in cls.ion_channels:
+    #             assert cls.ion_channels[name]["mechanism"] == mechanism
+    #             cls.ion_channels[name]["sections"].extend(sections)
+    #         else:
+    #             cls.ion_channels[name] = {
+    #                 "mechanism": mechanism,
+    #                 "sections": sections
+    #             }

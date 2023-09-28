@@ -30,7 +30,8 @@ dependencies = [
   "numpy>=1.18.5",
   "lazyarray>=0.5.2",
   "neo>=0.11.0",
-  "quantities>=0.12.1"
+  "quantities>=0.12.1",
+  "morphio"
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,7 @@ MPI = ["mpi4py"]
 sonata = ["h5py"]
 neuron = ["neuron"]
 brian2 = ["brian2"]
+arbor = ["arbor"]
 spiNNaker = ["spyNNaker"]
 
 [project.urls]

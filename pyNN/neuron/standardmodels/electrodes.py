@@ -12,11 +12,14 @@ Classes:
 
 """
 
+from collections import defaultdict
 from neuron import h
 import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
+from pyNN.morphology import MorphologyFilter, LocationGenerator
 from pyNN.neuron import simulator
+from ..morphology import LabelledLocations
 
 
 class NeuronCurrentSource(StandardCurrentSource):
@@ -27,7 +30,7 @@ class NeuronCurrentSource(StandardCurrentSource):
         self.cell_list = []
         self._amplitudes = None
         self._times = None
-        self._h_iclamps = {}
+        self._h_iclamps = defaultdict(list)
         parameter_space = ParameterSpace(self.default_parameters,
                                          self.get_schema(),
                                          shape=(1,))
@@ -59,8 +62,9 @@ class NeuronCurrentSource(StandardCurrentSource):
             self._amplitudes = None
             self._times = None
             self._generate()
-        for iclamp in self._h_iclamps.values():
-            self._update_iclamp(iclamp, 0.0)    # send tstop = 0.0 on _reset()
+        for cell_iclamps in self._h_iclamps.values():
+            for iclamp in cell_iclamps:
+                self._update_iclamp(iclamp, 0.0)    # send tstop = 0.0 on _reset()
 
     def _update_iclamp(self, iclamp, tstop):
         if not self._is_playable:
@@ -129,15 +133,31 @@ class NeuronCurrentSource(StandardCurrentSource):
     def get_native_parameters(self):
         return ParameterSpace(dict((k, self.__getattribute__(k)) for k in self.get_native_names()))
 
-    def inject_into(self, cells):
+    def inject_into(self, cells, location=None):
         for id in cells:
             if id.local:
                 if not id.celltype.injectable:
                     raise TypeError("Can't inject current into a spike source.")
-                if not (id in self._h_iclamps):
+                if location is None:
+                    sections = [(id._cell.source_section, 0.5)]
+                else:
+                    if isinstance(location, str):
+                        location = LabelledLocations(location)
+                    elif isinstance(location, LocationGenerator):
+                        pass
+                    else:
+                        raise TypeError("location must be a string or a LocationGenerator")
+                    morphology = cells.celltype.parameter_space["morphology"].base_value  # todo: evaluate lazyarray
+                    locations = location.generate_locations(morphology, label_prefix="dc_current_source", cell=id._cell)
+                    sections = []
+                    for loc in locations:
+                        cell_location = id._cell.locations[loc]
+                        sections.append((cell_location.section, cell_location.position))
+                if not (id in self._h_iclamps):  # to modify for multi-compartment cells with multiple injection points
                     self.cell_list += [id]
-                    self._h_iclamps[id] = h.IClamp(0.5, sec=id._cell.source_section)
-                    self._devices.append(self._h_iclamps[id])
+                    for (sec, position) in sections:
+                        self._h_iclamps[id].append(h.IClamp(position, sec=sec))
+                    self._devices.extend(self._h_iclamps[id])
 
     def record(self):
         self.itrace = h.Vector()

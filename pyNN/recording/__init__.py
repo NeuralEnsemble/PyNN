@@ -14,7 +14,7 @@ import logging
 from datetime import datetime
 import os
 from copy import copy
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from warnings import warn
 
 import numpy as np
@@ -23,10 +23,11 @@ import quantities as pq
 
 from .. import errors
 
-
 logger = logging.getLogger("PyNN")
 
 MPI_ROOT = 0
+
+Variable = namedtuple('Variable', ['name', 'location', 'label'])
 
 
 def get_mpi_comm():
@@ -117,14 +118,6 @@ def mpi_sum(x):
         return x
 
 
-def normalize_variables_arg(variables):
-    """If variables is a single string, encapsulate it in a list."""
-    if isinstance(variables, str) and variables != 'all':
-        return [variables]
-    else:
-        return variables
-
-
 def safe_makedirs(dir):
     """
     Version of makedirs not subject to race condition when using MPI.
@@ -170,7 +163,7 @@ def filter_by_variables(segment, variables):
         return segment
     else:
         new_segment = copy(segment)  # shallow copy
-        if 'spikes' not in variables:
+        if Variable(name='spikes', location=None) not in variables:
             new_segment.spiketrains = []
         new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
         # also need to handle Units, RecordingChannels
@@ -234,7 +227,7 @@ class Recorder(object):
         else:
             self.record_times = False
 
-    def record(self, variables, ids, sampling_interval=None):
+    def record(self, variables, ids, sampling_interval=None, locations=None):
         """
         Add the cells in `ids` to the sets of recorded cells for the given variables.
         """
@@ -242,12 +235,32 @@ class Recorder(object):
         self._check_sampling_interval(sampling_interval)
 
         ids = set([id for id in ids if id.local])
-        for variable in normalize_variables_arg(variables):
-            if not self.population.can_record(variable):
+        for variable in self._localize_variables(variables, locations):
+            if not self.population.can_record(variable.name, variable.location):
                 raise errors.RecordingError(variable, self.population.celltype)
             new_ids = ids.difference(self.recorded[variable])
+            assert isinstance(variable, Variable)
             self.recorded[variable] = self.recorded[variable].union(ids)
             self._record(variable, new_ids, sampling_interval)
+
+    def _localize_variables(self, variables, locations):
+        """
+
+        """
+        # If variables is a single string, encapsulate it in a list.
+        if isinstance(variables, str) and variables != 'all':
+            variables = [variables]
+        if isinstance(locations, str):
+            locations = [locations]
+        resolved_variables = []
+
+        if locations is None:
+            for var_path in variables:
+                resolved_variables.append(Variable(location=None, name=var_path, label=None))
+        else:
+            raise NotImplementedError
+
+        return resolved_variables
 
     def _check_sampling_interval(self, sampling_interval):
         """
@@ -256,8 +269,9 @@ class Recorder(object):
         """
         if sampling_interval is not None and sampling_interval != self.sampling_interval:
             recorded_variables = list(self.recorded.keys())
-            if "spikes" in recorded_variables:
-                recorded_variables.remove("spikes")
+            spikes_var = Variable("spikes", location=None, label=None)
+            if spikes_var in recorded_variables:
+                recorded_variables.remove(spikes_var)
             if len(recorded_variables) > 0:
                 raise ValueError(
                     "All neurons in a population must be recorded "
@@ -284,9 +298,12 @@ class Recorder(object):
         if variables != 'all':
             variables_to_include = variables_to_include.intersection(set(variables))
         for variable in variables_to_include:
-            if variable == 'spikes':
+            if variable.name == 'spikes':
                 t_stop = self._simulator.state.t * pq.ms  # must run on all MPI nodes
-                sids = sorted(self.filter_recorded('spikes', filter_ids))
+                sids = sorted(self.filter_recorded(Variable(name='spikes',
+                                                            location=None,
+                                                            label=None),
+                                                   filter_ids))
                 data = self._get_spiketimes(sids, clear=clear)
 
                 if isinstance(data, dict):
@@ -333,7 +350,16 @@ class Recorder(object):
                     # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
                     source_ids = np.fromiter(ids, dtype=int)
-                    channel_index = np.array([self.population.id_to_index(id) for id in ids])
+                    if len(ids) == signal_array.shape[1]:  # one channel per neuron
+                        channel_index = np.array([self.population.id_to_index(id) for id in ids])
+                    else:  # multiple recording locations per neuron
+                        # todo: improve this approach
+                        channel_index = np.arange(signal_array.shape[1])
+                    if variable.location:
+                        assert variable.label is not None
+                        signal_name = "{}.{}".format(variable.label, variable.name)
+                    else:
+                        signal_name = variable.name
                     if self.record_times:
                         if signal_array.shape == times_array.shape:
                             # in the current version of Neo, all channels in
@@ -345,7 +371,7 @@ class Recorder(object):
                                     signal_array[:, i],
                                     units=units,
                                     time_units=pq.ms,
-                                    name=variable,
+                                    name=signal_name,
                                     source_ids=[source_id],
                                     source_population=self.population.label,
                                     array_annotations={"channel_index": [i]}
@@ -358,7 +384,7 @@ class Recorder(object):
                             signals = [
                                 neo.IrregularlySampledSignal(
                                     times_array, signal_array, units=units, time_units=pq.ms,
-                                    name=variable, source_ids=source_ids,
+                                    name=signal_name, source_ids=source_ids,
                                     source_population=self.population.label,
                                     array_annotations={"channel_index": channel_index}
                                 )
@@ -376,7 +402,7 @@ class Recorder(object):
                             units=units,
                             t_start=t_start,
                             sampling_period=sampling_period,
-                            name=variable, source_ids=source_ids,
+                            name=signal_name, source_ids=source_ids,
                             source_population=self.population.label,
                             array_annotations={"channel_index": channel_index}
                         )
@@ -388,16 +414,20 @@ class Recorder(object):
         return segment
 
     def get(self, variables, gather=False, filter_ids=None, clear=False,
-            annotations=None):
+            annotations=None, locations=None):
         """Return the recorded data as a Neo `Block`."""
-        variables = normalize_variables_arg(variables)
         data = neo.Block()
-        data.segments = [filter_by_variables(segment, variables)
+        if variables == "all":
+            localized_variables = "all"
+        else:
+            localized_variables = self._localize_variables(variables, locations)
+        data.segments = [filter_by_variables(segment, localized_variables)
                          for segment in self.cache]
         if self._simulator.state.running:
             # reset() has not been called, so current segment is not in cache
             data.segments.append(self._get_current_segment(
-                filter_ids=filter_ids, variables=variables, clear=clear))
+                filter_ids=filter_ids, variables=localized_variables, clear=clear))
+        # collect channel indexes
         for segment in data.segments:
             segment.block = data
         data.name = self.population.label
@@ -427,7 +457,7 @@ class Recorder(object):
         self._clear_simulator()
 
     def write(self, variables, file=None, gather=False, filter_ids=None,
-              clear=False, annotations=None):
+              clear=False, annotations=None, locations=None):
         """Write recorded data to a Neo IO"""
         if isinstance(file, str):
             file = get_io(file)
@@ -436,7 +466,8 @@ class Recorder(object):
             io.filename += '.%d' % self._simulator.state.mpi_rank
         logger.debug("Recorder is writing '%s' to file '%s' with gather=%s" % (
             variables, io.filename, gather))
-        data = self.get(variables, gather, filter_ids, clear, annotations=annotations)
+        data = self.get(variables, gather, filter_ids, clear, annotations=annotations,
+                        locations=locations)
         if self._simulator.state.mpi_rank == 0 or gather is False:
             # Open the output file, if necessary and write the data
             logger.debug("Writing data to file %s" % io)
@@ -465,7 +496,7 @@ class Recorder(object):
         useful for spike counts or for variable-time-step integration methods.
         """
         if variable == 'spikes':
-            N = self._local_count(variable, filter_ids)
+            N = self._local_count(Variable(variable, location=None, label=None), filter_ids)
         else:
             raise Exception("Only implemented for spikes.")
         if gather and self._simulator.state.num_processes > 1:

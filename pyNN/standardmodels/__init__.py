@@ -26,6 +26,7 @@ from .base import (                # noqa: F401
     StandardCellType,
     StandardCellTypeComponent,
     StandardCurrentSource,
+    StandardIonChannelModel,
     StandardModelType,
     StandardPostSynapticResponse,
     StandardSynapseType,

@@ -21,6 +21,7 @@ from .standardmodels.cells import *                                 # noqa: F403
 from .connectors import *                                           # noqa: F403, F401
 from .standardmodels.synapses import *                              # noqa: F403, F401
 from .standardmodels.electrodes import *                            # noqa: F403, F401
+from .standardmodels.ion_channels import *                          # noqa: F403, F401
 from .standardmodels.receptors import *                             # noqa: F403, F401
 from .populations import Population, PopulationView, Assembly       # noqa: F401
 from .projections import Projection                                 # noqa: F401
@@ -41,6 +42,7 @@ from .control import (                                              # noqa: F401
     rank,
 )
 from .procedural_api import create, connect, record, record_v, record_gsyn, set  # noqa: F401
+from . import morphology
 try:
     from . import nineml                                            # noqa: F401
 except ImportError:

@@ -180,7 +180,7 @@ class Projection(common.Projection):
         return syn_dict
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
-                            **connection_parameters):
+                            location_selector=None, **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
 
@@ -189,6 +189,9 @@ class Projection(common.Projection):
         `connection_parameters` - dict whose keys are native NEST parameter names.
                                   Values may be scalars or arrays.
         """
+        if location_selector is not None:
+            raise NotImplementedError("NEST backend does not support multicompartmental models.")
+
         # Clean the connection parameters by removing parameters that are
         # used by PyNN but should not be passed to NEST
         # TODO: set tau_minus on the post-synaptic cells

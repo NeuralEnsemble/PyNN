@@ -1,0 +1,29 @@
+====================================================
+Multicompartmental modelling with PyNN: design goals
+====================================================
+
+The three principal aims of the PyNN project are:
+
+    (i) to make it easy to run models on different simulators (and on neuromorphic hardware), in order to facilitate cross-checking, reproducibility and re-use;
+    (ii) to provide a simulator-independent platform on which to build an ecosystem of tools for computational neuroscience (visualization libraries, workflow engines, etc.) rather than having tools that only work with one simulator;
+    (iii) to support modelling at a high-level of abstraction (populations of neurons, layers, columns and the connections between them) while still allowing access to the details of individual neurons and synapses when required.
+
+
+The scope of PyNN was originally limited to networks of point neurons (integrate-and-fire and related models).
+The primary reason for this was that at the time only the NEURON_ simulator had both support for multicompartment models and a Python interface.
+
+This situation has now changed, with the release of `Brian 2`_, the addition of Python support to MOOSE_, development of the Arbor_ simulation library, and support for multicompartment models in the future versions of the BrainScaleS and SpiNNaker neuromorphic chips.
+
+
+We are therefore adapting the PyNN API to support both point neuron models and morphologically-and-biophysically-detailed neuron models (and mixed networks of both model types). The principal design goals are:
+
+    (i) maintain the same main level of abstraction: populations of neurons and the sets of connections between populations (projections);
+    (ii) backwards compatibility (point neuron models created with PyNN 1.0 (not yet released) or later should work with no, or minimal, changes);
+    (iii) integrate with other open-source simulation tools and standards (e.g. NeuroML) wherever possible, rather than reinventing the wheel;
+    (iv) support neuromorphic hardware systems.
+
+
+.. _NEURON: https://www.neuron.yale.edu/neuron/
+.. _Arbor: https://github.com/eth-cscs/arbor
+.. _MOOSE: https://moose.ncbs.res.in
+.. _`Brian 2`: http://briansimulator.org

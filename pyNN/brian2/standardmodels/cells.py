@@ -359,4 +359,6 @@ class PointNeuron(cells.PointNeuron):
         translated_parameters = self.neuron.native_parameters
         for name, psr in self.post_synaptic_receptors.items():
             translated_parameters[name] = psr.native_parameters(name)
+            # remove the 'locations' parameter, which doesn't apply to point neurons
+            translated_parameters[name].pop("locations")
         return translated_parameters

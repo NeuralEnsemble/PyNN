@@ -8,13 +8,17 @@ Definition of cell classes for the neuron module.
 """
 
 import logging
-from math import pi
+from math import pi, sqrt
+from collections import defaultdict
 from functools import reduce
 import numpy as np
 from neuron import h, nrn, hclass
+import numpy.random
+from morphio import SectionType
 
 from .. import errors
 from ..models import BaseCellType
+from ..morphology import NeuriteDistribution, IonChannelDistribution
 from .recording import recordable_pattern
 from .simulator import state
 
@@ -49,7 +53,7 @@ def guess_units(variable):
 
 class NativeCellType(BaseCellType):
 
-    def can_record(self, variable):
+    def can_record(self, variable, location=None):
         # crude check, could be improved
         return bool(recordable_pattern.match(variable))
 
@@ -77,10 +81,10 @@ class SingleCompartmentNeuron(nrn.Section):
 
         # for recording
         self.spike_times = h.Vector(0)
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.recording_time = 0
 
-        self.v_init = None
+        self.initial_values = {}
         self.parameters = {'c_m': c_m, 'i_offset': i_offset}
 
     def area(self):
@@ -91,9 +95,10 @@ class SingleCompartmentNeuron(nrn.Section):
     i_offset = _new_property('stim', 'amp')
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
+        assert "v" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
         for seg in self:
-            seg.v = self.v_init
+            seg.v = self.initial_values["v"]
 
     def set_parameters(self):
         for name, value in self.parameters.items():
@@ -172,7 +177,7 @@ class LeakySingleCompartmentNeuron(SingleCompartmentNeuron):
     def __init__(self, tau_m, c_m, v_rest, i_offset):
         SingleCompartmentNeuron.__init__(self, c_m, i_offset)
         self.insert('pas')
-        self.v_init = v_rest  # default value
+        self.initial_values["v"] = v_rest  # default value
         self.parameters.update(tau_m=tau_m, v_rest=v_rest)
 
     def __set_tau_m(self, value):
@@ -292,11 +297,13 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
             return self.adexp.vspike
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
-        assert self.w_init is not None
+        assert "v" in self.initial_values
+        assert "w" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
+        assert self.initial_values["w"] is not None
         for seg in self:
-            seg.v = self.v_init
-        self.adexp.w = self.w_init
+            seg.v = self.initial_values["v"]
+        self.adexp.w = self.initial_values["w"]
 
 
 class BretteGerstnerIFStandardReceptors(BretteGerstnerIF, StandardReceptorTypesMixin):
@@ -347,11 +354,13 @@ class Izhikevich_(SingleCompartmentNeuron):
         return self.izh.vthresh
 
     def memb_init(self):
-        assert self.v_init is not None, "cell is a %s" % self.__class__.__name__
-        assert self.u_init is not None
+        assert "v" in self.initial_values
+        assert "u" in self.initial_values
+        assert self.initial_values["v"] is not None, "cell is a %s" % self.__class__.__name__
+        assert self.initial_values["u"] is not None
         for seg in self:
-            seg.v = self.v_init
-        self.izh.u = self.u_init
+            seg.v = self.initial_values["v"]
+        self.izh.u = self.initial_values["u"]
 
 
 class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
@@ -425,7 +434,7 @@ class SingleCompartmentTraub(SingleCompartmentNeuron, StandardReceptorTypesMixin
             self.parameters[name] = local_params[name]
         self.set_parameters()
 
-        self.v_init = e_leak  # default value
+        self.initial_values["v"] = e_leak  # default value
 
     # not sure ena and ek are handled correctly
 
@@ -522,7 +531,8 @@ class GIFNeuron(LeakySingleCompartmentNeuron, StandardReceptorTypesMixin):
 
     def memb_init(self):
         for state_var in ('v', 'v_t', 'i_eta'):
-            initial_value = getattr(self, '{0}_init'.format(state_var))
+            assert state_var in self.initial_values
+            initial_value = self.initial_values[state_var]
             assert initial_value is not None
             if state_var == 'v':
                 for seg in self:
@@ -669,11 +679,12 @@ class ArtificialCell(object):
         self.source_section = dummy
         # todo: only need a single dummy for entire network, not one per cell
         self.parameter_names = ('tau', 'refrac')
-        self.traces = {}
+        self.traces = defaultdict(list)
         self.spike_times = h.Vector(0)
         self.rec = h.NetCon(self.source, None)
         self.recording_time = False
         self.default = self.source
+        self.initial_values = {}
 
     def _set_tau(self, value):
         self.source.tau = value
@@ -692,7 +703,7 @@ class ArtificialCell(object):
     # ... gkbar and g_leak properties defined similarly
 
     def memb_init(self):
-        self.source.m = self.m_init
+        self.source.m = self.initial_values["m"]
 
 
 class IntFire1(NativeCellType):
@@ -731,3 +742,218 @@ class IntFire4(NativeCellType):
     receptor_types = ['default']
     model = ArtificialCell
     extra_parameters = {"mechanism_name": "IntFire4"}
+
+
+PROXIMAL = 0
+DISTAL = 1
+
+
+class NeuronTemplate(object):
+
+    def __init__(self, morphology, cm, Ra, ionic_species, **other_parameters):
+        import neuroml
+        import neuroml.arraymorph
+        from morphio import Morphology as MorphIOMorphology
+
+        self.initial_values = defaultdict(dict)
+        self.traces = defaultdict(list)
+        self.recording_time = False
+        self.spike_source = None
+        self.spike_times = h.Vector(0)
+
+        # create morphology
+        self.morphology = morphology
+        self.ionic_species = ionic_species
+        self.sections = {}
+        self.section_labels = defaultdict(set)
+        self.synaptic_receptors = {}
+        for receptor_name in self.post_synaptic_entities:
+            self.synaptic_receptors[receptor_name] = defaultdict(list)
+        self.locations = {}  # to store recording and current injection locations
+
+        d_lambda = 0.1
+
+        def lambda_f(freq, section):
+            return 1e5 * sqrt(section.diam / (4 * pi * freq * section.Ra * section.cm))
+
+        if isinstance(morphology._morphology, neuroml.arraymorph.ArrayMorphology):
+            M = morphology._morphology
+            for i in range(len(morphology._morphology)):
+                vertex = M.vertices[i]
+                parent_index = M.connectivity[i]
+                parent = M.vertices[parent_index]
+                section = nrn.Section()
+                for v in (vertex, parent):
+                    x, y, z, d = v
+                    h.pt3dadd(x, y, z, d, sec=section)
+                section.nseg = 1 + 2 * int((0.999 + section.L/(d_lambda * lambda_f(100, section)))/2)
+                section.cm = cm
+                section.Ra = Ra
+                # ignore fractions_along for now
+                if i > 1:
+                    section.connect(self.sections[parent_index], DISTAL, PROXIMAL)
+                self.sections[i] = section
+            self.morphology._soma_index = 0  # fragile temporary hack - should be index of the vertex with no parent
+        elif isinstance(morphology._morphology, neuroml.Morphology):
+            unresolved_connections = []
+            for index, segment in enumerate(morphology.segments):
+                section = nrn.Section(name=segment.name)
+                for p in (segment.proximal, segment.distal):
+                    h.pt3dadd(p.x, p.y, p.z, p.diameter, sec=section)
+                if isinstance(cm, NeuriteDistribution):
+                    section.cm = cm.value_in(self.morphology, index)
+                else:
+                    section.cm = cm
+                section.Ra = Ra
+                section.nseg = 1 + 2 * int((0.999 + section.L/(d_lambda * lambda_f(100, section)))/2)
+                segment_id = segment.id
+                assert segment_id is not None
+                if segment.parent:
+                    parent_id = segment.parent.id
+                    connection_point = DISTAL  # should generalize
+                    if segment.parent.id in self.sections:
+                        section.connect(self.sections[parent_id], connection_point, PROXIMAL)
+                    else:
+                        unresolved_connections.append((segment_id, parent_id))
+                self.sections[segment_id] = section
+                if segment.name == "soma":
+                    self.morphology._soma_index = segment_id
+                if segment.name is not None:
+                    self.section_labels[segment.name].add(segment_id)
+                segment._section = section
+            for section_id, parent_id in unresolved_connections:
+                self.sections[section_id].connect(self.sections[parent_id], DISTAL, PROXIMAL)
+        elif isinstance(morphology._morphology, MorphIOMorphology):
+            m = morphology._morphology
+            soma = nrn.Section(name="soma")
+            self.sections[-1] = soma
+            self.section_labels["soma"].add(-1)
+            self.morphology._soma_index = 0
+            if isinstance(cm, NeuriteDistribution):
+                soma.cm = cm.value_in(self.morphology, "soma")
+            else:
+                soma.cm = cm
+            soma.Ra = Ra
+            for (x, y, z), d in zip(m.soma.points, m.soma.diameters):
+                h.pt3dadd(x, y, z, d, sec=soma)
+            for root_section in m.root_sections:
+                for m_section in root_section.iter():
+                    nrn_section = nrn.Section(name=f"section_{m_section.id}")
+                    for (x, y, z), d in zip(m_section.points, m_section.diameters):
+                        h.pt3dadd(x, y, z, d, sec=nrn_section)
+                    nrn_section.nseg = 1 + 2 * int((0.999 + nrn_section.L/(d_lambda * lambda_f(100, nrn_section)))/2)
+                    if isinstance(cm, NeuriteDistribution):
+                        nrn_section.cm = cm.value_in(self.morphology, section.id)
+                    else:
+                        nrn_section.cm = cm
+                    nrn_section.Ra = Ra
+                    if m_section.is_root:
+                        nrn_section.connect(soma, DISTAL, PROXIMAL)
+                        # todo: connect basal dendrites, axon, apical dendrites to different points on the soma
+                    else:
+                        nrn_section.connect(self.sections[m_section.parent.id], DISTAL, PROXIMAL)
+                    self.sections[m_section.id] = nrn_section
+                    self.section_labels[m_section.type.name].add(m_section.id)
+        else:
+            raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
+
+        # insert ion channels
+        for name, ion_channel in self.ion_channels.items():
+            parameters = other_parameters[name]
+            mechanism_name = ion_channel.model
+            conductance_density = parameters[ion_channel.conductance_density_parameter]
+            for index, id in enumerate(self.sections):
+                #if id == -1:
+                if isinstance(conductance_density, float):
+                    g = conductance_density
+                elif isinstance(conductance_density, IonChannelDistribution):
+                    g = conductance_density.value_in(self.morphology, index)
+                else:
+                    raise TypeError("Conductance density should be a float or an IonChannelDistribution object")
+                if g is not None and g > 0:
+                    section = self.sections[id]
+                    section.insert(mechanism_name)
+                    varname = ion_channel.conductance_density_parameter + "_" + ion_channel.model
+                    setattr(section, varname, g)
+                    # We're not using the leak conductance from the hh mechanism,
+                    # so set the conductance to zero
+                    if mechanism_name == "hh":
+                        setattr(section, "gl_hh", 0.0)
+                    for param_name, value in parameters.items():
+                        if param_name != ion_channel.conductance_density_parameter:
+                            if isinstance(value, IonChannelDistribution):
+                                value = value.value_in(self.morphology, index)
+                            try:
+                                setattr(section, param_name + "_" + ion_channel.model, value)
+                            except AttributeError:  # e.g. parameters not defined within a mechanism, e.g. ena
+                                setattr(section, param_name, value)
+                            ##print(index, mechanism_name, param_name, value)
+
+        # insert post-synaptic mechanisms
+        for name, pse in self.post_synaptic_entities.items():
+            parameters = other_parameters[name]
+            synapse_model = pse.model
+            location_generator = parameters.pop("locations")
+            for location_label in location_generator.generate_locations(self.morphology, label_prefix=name, cell=self):
+                location = self.locations[location_label]
+                section, section_id, position = location.get_section_and_position()
+                syn_obj = synapse_model(position, sec=section)
+                self.synaptic_receptors[name][section_id].append(syn_obj)
+                for pname, pvalue in parameters.items():
+                    setattr(syn_obj, pname, pvalue)
+
+        # handle ionic species
+        def set_in_section(section, index, name, value):
+            if isinstance(value, IonChannelDistribution):  # should be "NeuriteDistribution"
+                value = value.value_in(self.morphology, index)
+            if value is not None:
+                if name == "eca":     # tmp hack
+                    section.push()
+                    h.ion_style("ca_ion", 1, 1, 0, 1, 0)
+                    h.pop_section()
+                try:
+                    setattr(section, name, value)
+                except (NameError, AttributeError) as err:  # section does not contain ion
+                    if "the mechanism does not exist" not in str(err):
+                        raise
+
+        for ion_name, parameters in self.ionic_species.items():
+            for index, id in enumerate(self.sections):
+                section = self.sections[id]
+                set_in_section(section, index, "e{}".format(ion_name), parameters.reversal_potential)
+                if parameters.internal_concentration:
+                    set_in_section(section, index, "{}i".format(ion_name), parameters.internal_concentration)
+                if parameters.external_concentration:
+                    set_in_section(section, index, "{}o".format(ion_name), parameters.external_concentration)
+
+        # set source section
+        if self.spike_source:
+            self.source_section = self.sections[self.spike_source]
+        elif "axon_initial_segment" in self.sections:
+            self.source_section = self.sections["axon_initial_segment"]
+        else:
+            self.source_section = self.sections[morphology.soma_index]
+        self.source = self.source_section(0.5)._ref_v
+        self.rec = h.NetCon(self.source, None, sec=self.source_section)
+
+    def memb_init(self):
+        # initialize membrane potential
+        initial_value = self.initial_values["v"]
+        assert initial_value is not None
+        for section in self.sections.values():
+            for seg in section:
+                seg.v = initial_value
+        # initialize state variables
+        for channel_name, channel_obj in self.ion_channels.items():
+            for std_state_name, (mech_name, mech_state_name) in channel_obj.variable_translations.items():
+                initial_value = self.initial_values[channel_name].get(std_state_name, None)
+                if initial_value is not None:
+                    for section in self.sections.values():
+                        for seg in section:
+                            try:
+                                mechanism = getattr(seg, mech_name)  # e.g. "hh"
+                            except Exception:  # todo: catch specific NEURON RuntimeError
+                                pass
+                            else:
+                                setattr(mechanism, mech_state_name, initial_value)
+        # todo: synaptic state variables?

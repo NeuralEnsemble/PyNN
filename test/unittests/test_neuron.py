@@ -15,6 +15,7 @@ except ImportError:
     h = Mock()
 
 from pyNN.common import populations
+from pyNN.recording import Variable
 import unittest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -285,7 +286,8 @@ class TestConnection(unittest.TestCase):
     def setUp(self):
         self.pre = 0
         self.post = 1
-        self.c = simulator.Connection(MockProjection(), self.pre, self.post,
+        mock_cell = MockCell()
+        self.c = simulator.Connection(MockProjection(), self.pre, self.post, mock_cell, mock_cell.excitatory,
                                       weight=0.123, delay=0.321)
 
     def test_create(self):
@@ -371,9 +373,9 @@ class TestRecorder(unittest.TestCase):
         pass
 
     def test__record(self):
-        self.rec._record('v', self.cells)
-        self.rec._record('gsyn_inh', self.cells)
-        self.rec._record('spikes', self.cells)
+        self.rec._record(Variable('v', None, label=None), self.cells)
+        self.rec._record(Variable('gsyn_inh', None, label=None), self.cells)
+        self.rec._record(Variable('spikes', None, label=None), self.cells)
         self.assertRaises(Exception, self.rec._record, self.cells)
 
     # def test__get_v(self):
@@ -388,11 +390,11 @@ class TestRecorder(unittest.TestCase):
     #                        np.vstack((self.cells[0]._cell.vtrace, self.cells[1]._cell.vtrace)).T)
 
     def test__get_spikes(self):
-        self.rec.recorded['spikes'] = self.cells
+        self.rec.recorded[Variable('spikes', None, label=None)] = self.cells
         self.cells[0]._cell.spike_times.from_python(np.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times.from_python(np.arange(13.0, 23.0))
         simulator.state.t = 111.0
-        sdata = self.rec._get_current_segment(variables=['spikes'], filter_ids=None)
+        sdata = self.rec._get_current_segment(variables=[Variable(location=None, name='spikes', label=None)], filter_ids=None)
         self.assertEqual(len(sdata.spiketrains), 2)
         assert_array_equal(np.array(sdata.spiketrains[0]), self.cells[0]._cell.spike_times.as_numpy())
 
@@ -415,10 +417,10 @@ class TestRecorder(unittest.TestCase):
     #                        cell._cell.gsyn_trace['inhibitory'])
     #
     def test__local_count(self):
-        self.rec.recorded['spikes'] = self.cells
+        self.rec.recorded[Variable('spikes', None, label=None)] = self.cells
         self.cells[0]._cell.spike_times = h.Vector(np.arange(101.0, 111.0))
         self.cells[1]._cell.spike_times = h.Vector(np.arange(13.0, 33.0))
-        self.assertEqual(self.rec._local_count('spikes', filter_ids=None),
+        self.assertEqual(self.rec._local_count(Variable('spikes', location=None, label=None), filter_ids=None),
                          {self.cells[0]: 10, self.cells[1]: 20})
 
 

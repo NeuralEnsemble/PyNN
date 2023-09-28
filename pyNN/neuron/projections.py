@@ -17,6 +17,8 @@ from .. import common, errors, core
 from ..space import Space
 from . import simulator
 from .standardmodels.synapses import StaticSynapse
+from ..morphology import MorphologyFilter
+
 
 logger = logging.getLogger("PyNN")
 
@@ -70,6 +72,7 @@ class Projection(common.Projection):
         return len(list(self.connections))
 
     def _convergent_connect(self, presynaptic_indices, postsynaptic_index,
+                            location_selector=None,
                             **connection_parameters):
         """
         Connect a neuron to one or more other neurons with a static connection.
@@ -92,10 +95,49 @@ class Projection(common.Projection):
             if isinstance(value, (float, int)):
                 connection_parameters[name] = repeat(value)
         assert postsynaptic_cell.local
+
+        cell_obj = self.post[postsynaptic_index]._cell
+        if isinstance(location_selector, MorphologyFilter):
+            section_index = location_selector(
+                cell_obj.morphology,
+                filter_by_section=cell_obj.synaptic_receptors[self.receptor_type].keys()
+            )
+            target_objects = []
+            for sid in section_index:
+                target = cell_obj.synaptic_receptors[self.receptor_type].get(sid, None)
+                if target:
+                    target_objects.append(target[0])
+                    # what if there are multiple synapses in a single section? here we just take the first
+        elif isinstance(location_selector, str):
+            if location_selector in cell_obj.section_labels:
+                section_index = cell_obj.section_labels[location_selector]
+            elif location_selector == "soma":
+                section_index = cell_obj.sections[cell_obj.morphology.soma_index]
+            elif location_selector == "all":
+                section_index = sum((list(item) for item in cell_obj.section_labels.values()), [])
+            else:
+                raise ValueError("Cell has no location labelled '{}'".format(location_selector))
+            target_objects = []
+            for sid in section_index:
+                target = cell_obj.synaptic_receptors[self.receptor_type].get(sid, None)
+                if target:
+                    target_objects.append(target[0])
+        elif location_selector is None:  # point neuron model
+            if "." in self.receptor_type:
+                section, target = self.receptor_type.split(".")
+                target_objects = [getattr(getattr(cell_obj, section), target)]
+            else:
+                target_objects = [getattr(cell_obj, self.receptor_type)]
+        else:
+            raise ValueError("location selector not supported")
+
         for pre_idx, values in core.ezip(presynaptic_indices, *connection_parameters.values()):
             parameters = dict(zip(connection_parameters.keys(), values))
-            self._connections[postsynaptic_index][pre_idx].append(
-                self.synapse_type.connection_type(self, pre_idx, postsynaptic_index, **parameters))
+            for target_object in target_objects:
+                self._connections[postsynaptic_index][pre_idx].append(
+                    self.synapse_type.connection_type(self, pre_idx, postsynaptic_index,
+                                                      cell_obj, target_object,
+                                                      **parameters))
 
     def _configure_presynaptic_components(self):
         """

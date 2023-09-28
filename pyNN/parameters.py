@@ -432,6 +432,7 @@ class ParameterSpace(object):
             self._evaluated_shape = partial_shape(mask, self._shape)
         self._evaluated = True
         # should possibly update self.shape according to mask?
+        return self
 
     def as_dict(self):
         """
@@ -583,3 +584,17 @@ def simplify(value):
     #    return arr
     # else:
     #    return arr[0]
+
+
+class IonicSpecies(object):
+    """Encapsulation of parameters for an ionic species"""
+
+    def __init__(self,
+                 ion_name,
+                 reversal_potential,
+                 internal_concentration=None,
+                 external_concentration=None):
+        self.ion_name = ion_name
+        self.reversal_potential = reversal_potential
+        self.internal_concentration = internal_concentration
+        self.external_concentration = external_concentration

@@ -31,6 +31,7 @@ from neuron import h, nrn_dll_loaded
 from .. import __path__ as pyNN_path
 from .. import common
 from ..core import find, run_command
+from ..morphology import MorphologyFilter
 
 
 logger = logging.getLogger("PyNN")
@@ -133,7 +134,7 @@ def h_property(name):
 class _Initializer(object):
     """
     Manage initialization of NEURON cells. Rather than create an
-    `FInializeHandler` instance for each cell that needs to initialize itself,
+    `FInitializeHandler` instance for each cell that needs to initialize itself,
     we create a single instance, and use an instance of this class to maintain
     a list of cells that need to be initialized.
 
@@ -148,7 +149,7 @@ class _Initializer(object):
         """
         h('objref initializer')
         h.initializer = self
-        self.fih = h.FInitializeHandler(1, "initializer._initialize()")
+        self.fih = h.FInitializeHandler(0, "initializer._initialize()")
         self.clear()
 
     def register(self, *items):
@@ -400,26 +401,20 @@ class Connection(common.Connection):
     attributes.
     """
 
-    def __init__(self, projection, pre, post, **parameters):
+    def __init__(self, projection, pre, post, cell_obj, target_object, **parameters):
         """
         Create a new connection.
         """
         self.presynaptic_index = pre
-        self.postsynaptic_index = post
         self.presynaptic_cell = projection.pre[pre]
+        self.postsynaptic_index = post
         self.postsynaptic_cell = projection.post[post]
-        if "." in projection.receptor_type:
-            section, target = projection.receptor_type.split(".")
-            target_object = getattr(getattr(self.postsynaptic_cell._cell, section), target)
-        else:
-            target_object = getattr(self.postsynaptic_cell._cell, projection.receptor_type)
         self.nc = state.parallel_context.gid_connect(int(self.presynaptic_cell), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple
         # synaptic channels, need to set nc.weight[1] here
-        if self.nc.wcnt() > 1 and hasattr(self.postsynaptic_cell._cell, "type"):
-            self.nc.weight[1] = self.postsynaptic_cell._cell.type.receptor_types.index(
-                projection.receptor_type)
+        if self.nc.wcnt() > 1 and hasattr(cell_obj, "type"):
+            self.nc.weight[1] = cell_obj.type.receptor_types.index(projection.receptor_type)
         self.nc.delay = parameters.pop('delay')
         if projection.synapse_type.model is not None:
             self._setup_plasticity(projection.synapse_type, parameters)
@@ -621,3 +616,4 @@ state = _State()  # a Singleton, so only a single instance ever exists
 del _State
 initializer = _Initializer()
 del _Initializer
+dummy = h.Section()  # dummy section to allow introspection of NMODL mechanisms

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" 
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+         xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta3.xsd" 
+         id="CaDynamics_E2_NML2">
+
+    <notes>NeuroML 2 implementation of the Ca Pool mechanism</notes>
+
+    <!--<decayingPoolConcentrationModel id="CaDynamics_E2_NML2" restingConc="1e-10mol_per_cm3" decayConstant="80ms" ion="ca" shellThickness="2.787e-4cm"/>-->
+    
+    <concentrationModel id="CaDynamics_E2_NML2" type="concentrationModelHayEtAl" minCai="1e-4 mM" decay="80 ms" depth="0.1 um" gamma="0.05" ion="ca"/>
+    
+    <concentrationModel id="CaDynamics_E2_NML2__cSTUT_7_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.010353" decay="64.277990 ms" depth="0.1 um"/>  <!-- For group axonal in cSTUT_7-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cSTUT_7_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000511" decay="731.707637 ms" depth="0.1 um"/>  <!-- For group somatic in cSTUT_7-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__dNAC_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.010353" decay="64.277990 ms" depth="0.1 um"/>  <!-- For group axonal in dNAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__dNAC_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000511" decay="731.707637 ms" depth="0.1 um"/>  <!-- For group somatic in dNAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bNAC_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.001739" decay="468.069681 ms" depth="0.1 um"/>  <!-- For group axonal in bNAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bNAC_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000500" decay="645.079741 ms" depth="0.1 um"/>  <!-- For group somatic in bNAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bSTUT_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.001739" decay="468.069681 ms" depth="0.1 um"/>  <!-- For group axonal in bSTUT_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bSTUT_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000500" decay="645.079741 ms" depth="0.1 um"/>  <!-- For group somatic in bSTUT_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_229_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.016713" decay="384.114655 ms" depth="0.1 um"/>  <!-- For group axonal in cADpyr_229-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_229_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000533" decay="342.544232 ms" depth="0.1 um"/>  <!-- For group somatic in cADpyr_229-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_230_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000502" decay="179.044149 ms" depth="0.1 um"/>  <!-- For group axonal in cADpyr_230-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_230_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.002253" decay="739.416497 ms" depth="0.1 um"/>  <!-- For group somatic in cADpyr_230-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_231_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.001734" decay="103.091390 ms" depth="0.1 um"/>  <!-- For group axonal in cADpyr_231-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_231_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000996" decay="873.498863 ms" depth="0.1 um"/>  <!-- For group somatic in cADpyr_231-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cNAC_149_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.010353" decay="64.277990 ms" depth="0.1 um"/>  <!-- For group axonal in cNAC_149-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cNAC_149_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000511" decay="731.707637 ms" depth="0.1 um"/>  <!-- For group somatic in cNAC_149-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cIR_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000503" decay="573.007045 ms" depth="0.1 um"/>  <!-- For group axonal in cIR_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cIR_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000814" decay="967.678789 ms" depth="0.1 um"/>  <!-- For group somatic in cIR_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bIR_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.003923" decay="20.715642 ms" depth="0.1 um"/>  <!-- For group axonal in bIR_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bIR_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000893" decay="605.033222 ms" depth="0.1 um"/>  <!-- For group somatic in bIR_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bAC_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.003923" decay="20.715642 ms" depth="0.1 um"/>  <!-- For group axonal in bAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__bAC_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000893" decay="605.033222 ms" depth="0.1 um"/>  <!-- For group somatic in bAC_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cACint_237_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000503" decay="573.007045 ms" depth="0.1 um"/>  <!-- For group axonal in cACint_237-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cACint_237_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000814" decay="967.678789 ms" depth="0.1 um"/>  <!-- For group somatic in cACint_237-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__dSTUT_1_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.010353" decay="64.277990 ms" depth="0.1 um"/>  <!-- For group axonal in dSTUT_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__dSTUT_1_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000511" decay="731.707637 ms" depth="0.1 um"/>  <!-- For group somatic in dSTUT_1-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_232_axonal" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.002910" decay="287.198731 ms" depth="0.1 um"/>  <!-- For group axonal in cADpyr_232-->
+
+    <concentrationModel id="CaDynamics_E2_NML2__cADpyr_232_somatic" ion="ca" type="concentrationModelHayEtAl" minCai="1e-4 mM" gamma="0.000609" decay="210.485284 ms" depth="0.1 um"/>  <!-- For group somatic in cADpyr_232-->
+
+
+    <!--
+    This is a new, custom ComponentType to handle the calcium mechanism with parameters
+
+    PARAMETER	{
+        gamma = 0.05 : percent of free calcium (not buffered)
+        decay = 80 (ms) : rate of removal of calcium
+        depth = 0.1 (um) : depth of shell
+        minCai = 1e-4 (mM)
+    }
+
+    and derivative mechanism:
+
+    DERIVATIVE states	{
+        cai' = -(10000)*(ica*gamma/(2*FARADAY*depth)) - (cai - minCai)/decay
+    }
+
+    See https://github.com/OpenSourceBrain/L5bPyrCellHayEtAl2011/blob/master/neuroConstruct/cellMechanisms/CaDynamics_E2_init_mod/CaDynamics_E2.mod
+
+    -->
+    
+
+    <ComponentType name="concentrationModelHayEtAl" extends="concentrationModel" description="Model of buffering of concentration of specific to Hay Et Al 2011">
+
+        <Parameter name="gamma" dimension="none"/>
+        <Parameter name="minCai" dimension="concentration"/>
+        <Parameter name="decay" dimension="time"/>
+        <Parameter name="depth" dimension="length"/>
+       
+
+        <Constant name="Faraday" dimension="charge_per_mole" value="96485.3C_per_mol"/>
+        <Constant name="AREA_SCALE" dimension="area" value="1m2"/>
+        <Constant name="LENGTH_SCALE" dimension="length" value="1m"/>
+
+        <Requirement name="iCa" dimension="current"/>
+
+        <Text name="ion"/>
+
+        <Dynamics>
+
+            <StateVariable name="concentration" exposure="concentration" dimension="concentration"/>
+            <StateVariable name="extConcentration" exposure="extConcentration" dimension="concentration"/>
+
+            <DerivedVariable name="currDensCa" dimension="currentDensity" value="iCa / surfaceArea"/>
+            
+
+            <TimeDerivative variable="concentration" value="(currDensCa*gamma/(2*Faraday*depth)) - ((concentration - minCai) / decay)"/>
+
+            <OnStart>
+                <StateAssignment variable="concentration" value="initialConcentration"/>
+                <StateAssignment variable="extConcentration" value="initialExtConcentration"/>
+            </OnStart>
+
+        </Dynamics>
+
+    </ComponentType>
+
+
+</neuroml>

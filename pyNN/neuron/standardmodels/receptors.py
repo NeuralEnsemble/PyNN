@@ -5,6 +5,7 @@ from pyNN.standardmodels import receptors, build_translations
 class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
 
     translations = build_translations(
+        ('locations', 'locations'),
         ('tau_syn', 'tau')
     )
     model = h.ExpISyn
@@ -15,6 +16,7 @@ class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
 class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
 
     translations = build_translations(
+        ('locations', 'locations'),
         ('e_syn', 'e'),
         ('tau_syn', 'tau')
     )
@@ -26,6 +28,7 @@ class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
 class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
 
     translations = build_translations(
+        ('locations', 'locations'),
         ('e_syn', 'e'),
         ('tau_syn', 'tau')
     )

@@ -14,6 +14,7 @@ import quantities as pq
 
 from .. import errors, models
 from ..parameters import ParameterSpace
+from ..morphology import IonChannelDistribution, SynapseDistribution
 
 
 excitatory_receptor_types = ["excitatory", "AMPA", "NMDA"]
@@ -173,8 +174,25 @@ class StandardCellTypeComponent(StandardModelType, models.BaseCellTypeComponent)
     pass
 
 
+class StandardIonChannelModel(StandardModelType, models.BaseIonChannelModel):
+    """Base class for standardized ion channel models."""
+
+    def get_schema(self):
+        return {
+            "conductance_density": IonChannelDistribution,
+            "e_rev": float
+        }
+
+
 class StandardPostSynapticResponse(StandardModelType, models.BasePostSynapticResponse):
-    """docstring needed"""
+    """Base class for standardized post-synaptic receptor models."""
+
+    def get_schema(self):
+        return {
+            "locations": SynapseDistribution,
+            "e_syn": float,
+            "tau_syn": float  # should be a tuple, if multiple time constants
+        }
 
     def set_parent(self, parent):
         """

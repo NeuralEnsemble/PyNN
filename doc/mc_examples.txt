@@ -1,0 +1,21 @@
+================================================
+Multicompartmental modelling with PyNN: examples
+================================================
+
+
+Injecting time-varying current into two-compartment cells
+---------------------------------------------------------
+
+.. literalinclude:: ../examples/mc/current_injection_mc.py
+
+
+Injecting time-varying current into multi-compartment cells
+-----------------------------------------------------------
+
+.. literalinclude:: ../examples/mc/current_injection_mc_swc.py
+
+
+A network of multi-compartment cells
+------------------------------------
+
+.. literalinclude:: ../examples/mc/mc_network.py

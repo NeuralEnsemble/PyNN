@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="NaTa_t">
+
+    <notes>NeuroML file containing a single Channel description</notes>
+
+    <ionChannel id="NaTa_t" conductance="10pS" type="ionChannelHH" species="na">
+
+        <notes>Fast inactivating Na+ current
+            
+Comment from original mod file: 
+:Reference :Colbert and Pan 2002</notes>
+                
+        <annotation>
+            <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+                <rdf:Description rdf:about="NaTa_t">
+                    
+                    <bqmodel:isDescribedBy xmlns:bqmodel="http://biomodels.net/model-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Models of Neocortical Layer 5b Pyramidal Cells Capturing a Wide Range of Dendritic and Perisomatic Active Properties,
+            Etay Hay, Sean Hill, Felix Schürmann, Henry Markram and Idan Segev, PLoS Comp Biol 2011</rdf:li>
+                            <rdf:li rdf:resource="http://www.ncbi.nlm.nih.gov/pubmed/21829333"/>
+                        </rdf:Bag>
+                    </bqmodel:isDescribedBy>
+
+                
+                    <bqbiol:isVersionOf xmlns:bqbiol="http://biomodels.net/biology-qualifiers/">
+                        <rdf:Bag>
+                            <rdf:li>Na channels</rdf:li>
+                            <rdf:li rdf:resource="http://senselab.med.yale.edu/neurondb/channelGene2.aspx#table2"/>
+                        </rdf:Bag>
+                    </bqbiol:isVersionOf>
+
+                </rdf:Description>
+            </rdf:RDF>
+        </annotation>
+
+        <gate id="m" type="gateHHrates" instances="3">
+            <q10Settings type="q10Fixed" fixedQ10="2.95288264"/>
+            <forwardRate type="HHExpLinearRate" rate="1.092per_ms" scale="6mV" midpoint="-38mV"/>
+            <reverseRate type="HHExpLinearRate" rate="0.744per_ms" scale="-6mV" midpoint="-38mV"/>
+        </gate>
+
+        <gate id="h" type="gateHHrates" instances="1">
+            <q10Settings type="q10Fixed" fixedQ10="2.95288264"/>
+            <forwardRate type="HHExpLinearRate" rate="0.09per_ms" scale="-6mV" midpoint="-66mV"/>
+            <reverseRate type="HHExpLinearRate" rate="0.09per_ms" scale="6mV" midpoint="-66mV"/>
+        </gate>
+                            
+    </ionChannel>
+
+</neuroml>
