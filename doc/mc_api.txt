@@ -1,6 +1,6 @@
-=============================================================
-Multicompartmental modelling with PyNN: extensions to the API
-=============================================================
+============================
+Multicompartmental modelling
+============================
 
 .. warning::
 

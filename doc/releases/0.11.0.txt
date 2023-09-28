@@ -2,7 +2,7 @@
 PyNN 0.11.0 release notes
 =========================
 
-May 23rd 2022
+May 23rd 2023
 
 Welcome to PyNN 0.11.0!
 
