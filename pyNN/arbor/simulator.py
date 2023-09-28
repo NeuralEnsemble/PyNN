@@ -3,6 +3,9 @@
 """
 
 from collections import defaultdict
+import logging
+import os.path
+import subprocess
 import numpy as np
 try:
     from mpi4py import MPI
@@ -10,8 +13,26 @@ except ImportError:
     pass
 import arbor
 from .. import common
+from ..core import find
 
+logger = logging.getLogger("PyNN")
 name = "Arbor"
+
+
+def build_mechanisms():
+    # run `arbor-build-catalogue <name> <path/to/nmodl>`
+    mech_path = os.path.join(os.path.dirname(__file__), "nmodl")
+    if not os.path.exists(os.path.join(mech_path, "PyNN-catalogue.so")):
+        cat_builder = find("arbor-build-catalogue")
+        if not cat_builder:
+            raise Exception("Unable to find arbor-build-catalogue. Please ensure Arbor is correctly installed.")
+        proc = subprocess.run([cat_builder, "PyNN", mech_path], cwd=mech_path)
+        if proc.returncode != 0:
+            err_msg = "\n  ".join(proc.stdout)
+            raise Exception(f"Unable to compile Arbor mechanisms. Output was:\n  {err_msg}")
+        else:
+            logger.info("Successfully compiled Arbor mechanisms.")
+        return mech_path
 
 
 class Cell(int):  # (, common.IDMixin):
@@ -141,7 +162,12 @@ class NetworkRecipe(arbor.recipe):
         By default returns an empty object.
         """
         if kind == arbor.cell_kind.cable:
-            return arbor.neuron_cable_properties()
+            props = arbor.neuron_cable_properties()
+            catalogue_path = os.path.join(
+                os.path.dirname(__file__), "nmodl", "PyNN-catalogue.so"
+            )
+            props.catalogue = arbor.load_catalogue(catalogue_path)
+            return props
         # Spike source cells have nothing to report.
         return None
 
@@ -204,4 +230,5 @@ class State(common.control.BaseState):
         self.segment_counter += 1
 
 
+build_mechanisms()
 state = State()

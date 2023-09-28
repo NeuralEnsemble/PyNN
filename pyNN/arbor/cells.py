@@ -53,6 +53,10 @@ class CellDescriptionBuilder:
                 prox = convert_point(segment.proximal)
                 dist = convert_point(segment.distal)
                 tag = region_name_to_tag(segment.name)
+                if tag == -1 and std_morphology.section_groups:
+                    for section_type, id_list in std_morphology.section_groups.items():
+                        if i in id_list:
+                            tag = section_type.value
                 if segment.parent is None:
                     parent = arbor.mnpos
                 else:

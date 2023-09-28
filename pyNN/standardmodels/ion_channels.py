@@ -34,3 +34,10 @@ class PassiveLeak(StandardIonChannelModel):
         "conductance_density": 0.0003, #uniform('all', 0.0003),
         "e_rev": -65.0
     }
+
+
+class PassiveLeakHH(StandardIonChannelModel):
+    default_parameters = {
+        "conductance_density": 0.0003, #uniform('all', 0.0003),
+        "e_rev": -54.3
+    }

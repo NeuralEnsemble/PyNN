@@ -81,7 +81,7 @@ class Recorder(recording.Recorder):
                     probe = arbor.cable_probe_membrane_voltage(locset)
                 else:
                     mech_name, state_name = variable.name.split(".")
-                    arbor_model = "hh"  # to do: find_arbor_model(mech_name)
+                    arbor_model = mech_name  # to do: find_arbor_model(mech_name)
                     probe = arbor.cable_probe_density_state(locset, arbor_model, state_name)
                 probes.append(probe)
         return probes

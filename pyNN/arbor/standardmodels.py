@@ -137,14 +137,14 @@ class NaChannel(ion_channels.NaChannel):
         ('e_rev', 'ena'),
     )
     variable_translations = {
-        'm': ('hh', 'm'),
-        'h': ('hh', 'h')
+        'm': ('na', 'm'),
+        'h': ('na', 'h')
     }
-    model = "hh"
+    model = "na"
     conductance_density_parameter = 'gnabar'
 
     def get_model(self, parameters=None):
-        return "hh"
+        return "na"
 
 
 class KdrChannel(ion_channels.KdrChannel):
@@ -153,12 +153,12 @@ class KdrChannel(ion_channels.KdrChannel):
         ('e_rev', 'ek'),
     )
     variable_translations = {
-        'n': ('hh', 'n')
+        'n': ('kdr', 'n')
     }
     conductance_density_parameter = 'gkbar'
 
     def get_model(self, parameters=None):
-        return "hh"
+        return "kdr"
 
 
 class PassiveLeak(ion_channels.PassiveLeak):
@@ -182,6 +182,29 @@ class PassiveLeak(ion_channels.PassiveLeak):
             return f"pas/{param_str}"
         else:
             return "pas"
+
+
+class PassiveLeakHH(ion_channels.PassiveLeak):
+    translations = build_translations(
+        ('conductance_density', 'gl'),
+        ('e_rev', 'el'),
+    )
+    conductance_density_parameter = 'gl'
+    global_parameters = ['el']
+
+    def get_model(self, parameters=None):
+        if parameters:
+            assert parameters._evaluated
+            param_entries = []
+            for name, value in parameters.items():
+                if name in self.global_parameters:
+                    param_entries.append(f"{name}={value}")
+            param_str = ",".join(param_entries)
+            for name in self.global_parameters:
+                parameters.pop(name, None)
+            return f"leak/{param_str}"
+        else:
+            return "leak"
 
 
 class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
