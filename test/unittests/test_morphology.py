@@ -21,6 +21,7 @@ try:
     have_neuron = True
 except ModuleNotFoundError:
     have_neuron = False
+import pytest
 
 
 morph_data = """# test morphology
