@@ -407,6 +407,8 @@ class Connection(common.Connection):
         """
         self.presynaptic_index = pre
         self.presynaptic_cell = projection.pre[pre]
+        self.postsynaptic_index = post
+        self.postsynaptic_cell = projection.post[post]
         self.nc = state.parallel_context.gid_connect(int(self.presynaptic_cell), target_object)
         self.nc.weight[0] = parameters.pop('weight')
         # if we have a mechanism (e.g. from 9ML) that includes multiple

@@ -286,7 +286,8 @@ class TestConnection(unittest.TestCase):
     def setUp(self):
         self.pre = 0
         self.post = 1
-        self.c = simulator.Connection(MockProjection(), self.pre, self.post,
+        mock_cell = MockCell()
+        self.c = simulator.Connection(MockProjection(), self.pre, self.post, mock_cell, mock_cell.excitatory,
                                       weight=0.123, delay=0.321)
 
     def test_create(self):

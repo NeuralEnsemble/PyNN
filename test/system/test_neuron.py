@@ -295,8 +295,8 @@ def test_2_compartment():
     hcell0 = cells[0]._cell
     soma_id,  = hcell0.section_labels["soma"]
     hsoma = hcell0.sections[soma_id]
-    assert hsoma.L == 18.8
-    assert hsoma.diam == 18.8
+    assert abs(hsoma.L - 18.8) < 1e-6
+    assert abs(hsoma.diam - 18.8) < 1e-6
     assert hsoma.cm == 1.01
     assert hsoma.gnabar_hh == 0.121
     assert hsoma.gkbar_hh == 0.0363

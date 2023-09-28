@@ -899,8 +899,8 @@ class NeuronTemplate(object):
                 section, section_id, position = location.get_section_and_position()
                 syn_obj = synapse_model(position, sec=section)
                 self.synaptic_receptors[name][section_id].append(syn_obj)
-                for name, value in parameters.items():
-                    setattr(syn_obj, name, value)
+                for pname, pvalue in parameters.items():
+                    setattr(syn_obj, pname, pvalue)
 
         # handle ionic species
         def set_in_section(section, index, name, value):
