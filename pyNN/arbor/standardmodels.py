@@ -293,13 +293,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
     def receptor_types(self):
         return self.post_synaptic_entities.keys()
 
-    @property
-    def model(self):
-        return type(self.label,
-                    (NeuronTemplate,),
-                    {"ion_channels": self.ion_channels,
-                     "post_synaptic_entities": self.post_synaptic_entities})
-
 
 class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
 
