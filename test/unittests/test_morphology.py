@@ -10,9 +10,13 @@ import unittest
 from math import sqrt
 import numpy as np
 from numpy.testing import assert_array_equal
-import neuroml
-import neuroml.arraymorph
-from neuroml import Morphology as NMLMorphology, Segment, SegmentGroup, Member, Point3DWithDiam as P
+try:
+    import neuroml
+    import neuroml.arraymorph
+    from neuroml import Morphology as NMLMorphology, Segment, SegmentGroup, Member, Point3DWithDiam as P
+    have_neuroml = True
+except ImportError:
+    have_neuroml = False
 from pyNN.morphology import load_morphology, NeuroMLMorphology, SectionType, any as morph_any
 try:
     from pyNN.neuron.morphology import (dendrites, apical_dendrites,
@@ -48,6 +52,9 @@ morph_data = """# test morphology
 
 def setUpModule():
     global neuroml_morph, array_morph
+
+    if not have_neuroml:
+            pytest.skip("libNeuroML not installed")
 
     test_file = "morph_test.swc"
     with open(test_file, "w") as fp:
@@ -148,6 +155,8 @@ class NeuroMLArrayMorphologyTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        if not have_neuroml:
+            pytest.skip("libNeuroML not installed")
         cls.morph = array_morph
 
     #def test_soma_index(self):

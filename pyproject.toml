@@ -31,8 +31,7 @@ dependencies = [
   "lazyarray>=0.5.2",
   "neo>=0.11.0",
   "quantities>=0.12.1",
-  "morphio",
-  "libNeuroML>=0.4.1"
+  "morphio"
 ]
 
 [project.optional-dependencies]
@@ -46,6 +45,7 @@ neuron = ["neuron"]
 brian2 = ["brian2"]
 arbor = ["arbor"]
 spiNNaker = ["spyNNaker"]
+neuroml = ["libNeuroML"]
 
 [project.urls]
 homepage = "http://neuralensemble.org/PyNN/"

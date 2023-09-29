@@ -8,8 +8,12 @@ from __future__ import absolute_import
 import os.path
 import shutil
 import numpy as np
-import neuroml.arraymorph
-import neuroml.loaders
+try:
+    import neuroml.arraymorph
+    import neuroml.loaders
+    have_neuroml = True
+except ImportError:
+    have_neuroml = False
 import morphio
 from morphio import SectionType
 
@@ -34,7 +38,10 @@ def load_morphology(url, replace_axon=False, use_library="neuroml"):
     #       in http://neurom.readthedocs.io/en/latest/definitions.html#soma
     #       and http://www.neuromorpho.org/SomaFormat.html
     if use_library == "neuroml":
-        array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
+        if have_neuroml:
+            array_morph = neuroml.loaders.SWCLoader.load_swc_single(local_morph_file)
+        else:
+            raise ImportError("Please install libNeuroML")
         return NeuroMLMorphology(array_morph)
     elif use_library == "morphio":
         return MorphIOMorphology(local_morph_file)
@@ -61,6 +68,8 @@ class NeuroMLMorphology(Morphology):
     """
 
     def __init__(self, morphology):
+        if not have_neuroml:
+            raise ImportError("Please install libNeuroML to use the NeuroMLMorphology class")
         super(NeuroMLMorphology, self).__init__()
         self._morphology = morphology
         if isinstance(morphology, neuroml.arraymorph.ArrayMorphology):
