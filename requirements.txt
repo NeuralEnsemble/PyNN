@@ -9,5 +9,5 @@ neo>=0.11.0
 setuptools>=20.5
 h5py
 #git+https://github.com/NeuralEnsemble/libNeuroML@development#egg=libneuroml
-libNeuroML==0.4.1
+libNeuroML>=0.4.1
 morphio
