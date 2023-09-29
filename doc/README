@@ -12,4 +12,8 @@ Many of the files contain examples of interactive Python sessions. The validity 
 
     $ make doctest
 
+To copy the built docs to a checkout of the NeuralEnsemble server sources:
+
+    $ rsync -avz doc/_build/html/ ~/dev/web/neuralensemble.github.io/docs/PyNN/
+
 .. _Sphinx: http://sphinx.pocoo.org/
