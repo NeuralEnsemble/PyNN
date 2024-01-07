@@ -2,10 +2,7 @@ import unittest
 
 from pyNN import common, errors, random, standardmodels, space, descriptions
 import numpy as np
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
+from unittest.mock import Mock
 import os.path
 
 
