@@ -7,9 +7,6 @@
 
 #include "pynn_extensions.h"
 
-// Generated includes:
-#include "config.h"
-
 // include headers with your own stuff
 #include "simple_stochastic_synapse.h"
 #include "stochastic_stp_synapse.h"
