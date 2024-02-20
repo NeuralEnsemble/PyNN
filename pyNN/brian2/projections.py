@@ -169,10 +169,15 @@ class Projection(common.Projection):
         if isinstance(self.pre, common.Assembly):
             boundaries = np.cumsum([0] + [p.size for p in self.pre.populations])
             assert indices.max() < boundaries[-1]
-            partitions = np.split(indices, np.searchsorted(
-                indices, boundaries[1:-1])) - boundaries[:-1]
+            split_points = np.searchsorted(indices, boundaries[1:-1])
+            partitions = np.split(indices, split_points)
+            # partitions is now a list of arrays containing the assembly indices
+            for partition, first_index in zip(partitions, boundaries[:-1]):
+                # we now transform the assembly indices into local indices
+                partition -= first_index
             for i_group, local_indices in enumerate(partitions):
                 if isinstance(self.pre.populations[i_group], common.PopulationView):
+                    # for views, we replace view indices with population indices
                     partitions[i_group] = self.pre.populations[i_group].index_in_grandparent(
                         local_indices)
         elif isinstance(self.pre, common.PopulationView):

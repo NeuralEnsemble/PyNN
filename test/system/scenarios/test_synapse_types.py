@@ -36,14 +36,9 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
     assert crossings[1].size < 0.6*spike_times.size
     assert crossings[1].size > 0.4*spike_times.size
     assert crossings[3].size == spike_times.size
-    try:
-        assert crossings[1] != crossings[2]
-    except ValueError:
-        assert not (crossings[1] == crossings[2]).all()
+    assert not np.array_equal(crossings[1], crossings[2])
     print(crossings[1].size / spike_times.size)
     return data
-
-
 
 
 if __name__ == '__main__':
