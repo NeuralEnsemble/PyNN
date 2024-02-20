@@ -4,6 +4,7 @@ from collections import defaultdict
 from unittest.mock import Mock
 import pytest
 
+import neo
 from pyNN import recording, errors
 from pyNN.recording import Variable
 
@@ -60,6 +61,7 @@ class MockRecorder(recording.Recorder):
     def _get_current_segment(self, filter_ids=None, variables='all', clear=False):
         segment = Mock()
         segment.analogsignals = [Mock(), Mock()]
+        segment.proxy_for = neo.Segment
         return segment
 
     def _localize_variables(self, variables, locations):
