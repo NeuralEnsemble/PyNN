@@ -73,7 +73,7 @@ class MockCurrentSource(object):
 
 class Test_IDMixin():
 
-    def setup(self):
+    def setup_method(self):
         self.id = MockID(standard_cell=True)
         self.id_ns = MockID(standard_cell=False)
 
