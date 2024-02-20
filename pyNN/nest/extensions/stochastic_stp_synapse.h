@@ -67,9 +67,9 @@ public:
   typedef nest::CommonSynapseProperties CommonPropertiesType;
   typedef nest::Connection< targetidentifierT > ConnectionBase;
 
-  static constexpr ConnectionModelProperties properties = ConnectionModelProperties::HAS_DELAY
-    | ConnectionModelProperties::IS_PRIMARY | ConnectionModelProperties::SUPPORTS_HPC
-    | ConnectionModelProperties::SUPPORTS_LBL;
+  static constexpr nest::ConnectionModelProperties properties = nest::ConnectionModelProperties::HAS_DELAY
+    | nest::ConnectionModelProperties::IS_PRIMARY | nest::ConnectionModelProperties::SUPPORTS_HPC
+    | nest::ConnectionModelProperties::SUPPORTS_LBL;
 
   /**
    * Default Constructor.
@@ -149,7 +149,7 @@ private:
 };
 
 template < typename targetidentifierT >
-constexpr ConnectionModelProperties stochastic_stp_synapse< targetidentifierT >::properties;
+constexpr nest::ConnectionModelProperties stochastic_stp_synapse< targetidentifierT >::properties;
 
 /**
  * Send an event to the receiver of this connection.

@@ -55,9 +55,9 @@ public:
   //! Shortcut for base class
   typedef nest::Connection< targetidentifierT > ConnectionBase;
 
-  static constexpr ConnectionModelProperties properties = ConnectionModelProperties::HAS_DELAY
-    | ConnectionModelProperties::IS_PRIMARY | ConnectionModelProperties::SUPPORTS_HPC
-    | ConnectionModelProperties::SUPPORTS_LBL;
+  static constexpr nest::ConnectionModelProperties properties = nest::ConnectionModelProperties::HAS_DELAY
+    | nest::ConnectionModelProperties::IS_PRIMARY | nest::ConnectionModelProperties::SUPPORTS_HPC
+    | nest::ConnectionModelProperties::SUPPORTS_LBL;
 
   /**
    * Default Constructor.
@@ -86,9 +86,9 @@ public:
   // ConnectionBase. This avoids explicit name prefixes in all places these
   // functions are used. Since ConnectionBase depends on the template parameter,
   // they are not automatically found in the base class.
-  using nest::ConnectionBase::get_delay_steps;
-  using nest::ConnectionBase::get_rport;
-  using nest::ConnectionBase::get_target;
+  using ConnectionBase::get_delay_steps;
+  using ConnectionBase::get_rport;
+  using ConnectionBase::get_target;
 
   /**
    * Helper class defining which types of events can be transmitted.
@@ -179,7 +179,7 @@ private:
 };
 
 template < typename targetidentifierT >
-constexpr ConnectionModelProperties simple_stochastic_synapse< targetidentifierT >::properties;
+constexpr nest::ConnectionModelProperties simple_stochastic_synapse< targetidentifierT >::properties;
 
 template < typename targetidentifierT >
 inline void
