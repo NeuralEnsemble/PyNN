@@ -19,9 +19,9 @@ jobs:
         python-version: ["3.8", "3.10", "3.12"]
         os: ["ubuntu-latest", "windows-latest"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Linux system dependencies
@@ -52,6 +52,13 @@ jobs:
     - name: Install PyNN itself
       run: |
         pip install -e ".[test]"
+    - name: Test installation has worked
+      # this is needed because the PyNN tests are just skipped if the simulator
+      # fails to install, so we need to catch import failures separately
+      run: |
+        python -c "import pyNN.nest"
+        python -c "import pyNN.neuron"
+        python -c "import pyNN.brian2"
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
