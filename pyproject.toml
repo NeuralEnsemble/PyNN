@@ -35,7 +35,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "wheel", "mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py"]
+test = ["pytest", "pytest-cov", "flake8", "wheel", "mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py", "Jinja2"]
 doc = ["sphinx"]
 examples = ["matplotlib", "scipy"]
 plotting = ["matplotlib", "scipy"]
