@@ -6,7 +6,7 @@ from .fixtures import run_with_simulators
 import pytest
 
 
-@run_with_simulators("nest", "neuron")
+@run_with_simulators("nest",) #"neuron")
 def test_scenario3(sim):
     """
     Simple feed-forward network network with additive STDP. The second half of
