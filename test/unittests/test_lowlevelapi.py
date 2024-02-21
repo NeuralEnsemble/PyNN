@@ -1,9 +1,6 @@
 from pyNN import common
 from pyNN.common.populations import BasePopulation
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
+from unittest.mock import Mock
 from inspect import isfunction
 
 

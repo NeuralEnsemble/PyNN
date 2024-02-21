@@ -11,10 +11,7 @@ import numpy as np
 import sys
 import quantities as pq
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-try:
-    from unittest.mock import Mock, patch
-except ImportError:
-    from mock import Mock, patch
+from unittest.mock import Mock, patch
 from .mocks import MockRNG
 import pyNN.mock as sim
 from pyNN.parameters import Sequence
