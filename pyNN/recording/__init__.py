@@ -163,7 +163,7 @@ def filter_by_variables(segment, variables):
         return segment
     else:
         new_segment = copy(segment)  # shallow copy
-        if Variable(name='spikes', location=None) not in variables:
+        if Variable(name='spikes', location=None, label=None) not in variables:
             new_segment.spiketrains = []
         new_segment.analogsignals = [sig for sig in segment.analogsignals if sig.name in variables]
         # also need to handle Units, RecordingChannels
