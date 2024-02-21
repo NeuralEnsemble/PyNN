@@ -1,6 +1,7 @@
 
 
 import logging
+import sys
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.space import Space, Grid3D, RandomStructure, Cuboid
 from pyNN.utility import init_logging
@@ -58,7 +59,8 @@ def test_scenario4(sim):
     sim.run(1000.0)
     data = outputs.get_data()
     sim.end()
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 if __name__ == '__main__':

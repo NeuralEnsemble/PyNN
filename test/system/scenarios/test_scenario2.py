@@ -1,4 +1,4 @@
-
+import sys
 import numpy as np
 from .fixtures import run_with_simulators
 
@@ -54,7 +54,8 @@ def test_scenario2(sim):
     print("max error =", max_error)
     assert max_error < 0.005, max_error
     sim.end()
-    return a, b, spike_times
+    if "pytest" not in sys.modules:
+        return a, b, spike_times
 
 
 if __name__ == '__main__':

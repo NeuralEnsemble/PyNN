@@ -1,4 +1,4 @@
-
+import sys
 import numpy as np
 try:
     import scipy
@@ -34,7 +34,8 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
             expected_spike_times) / expected_spike_times
     assert abs(diff).max() < 0.01, abs(diff).max()
     sim.end()
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 @run_with_simulators("nest", "neuron", "brian2")
@@ -98,7 +99,8 @@ def issue367(sim, plot_figure=False):
                                                                    vm_before_spike.mean())
     assert abs((vm_before_spike.mean() - v_thresh) / v_thresh) < 0.01, err_msg
     sim.end()
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 @run_with_simulators("nest", "neuron", "brian2")
@@ -146,8 +148,8 @@ def test_SpikeSourcePoisson(sim, plot_figure=False):
                       alternative='two-sided')
         print(expected_rate, expected_mean_isi, isi.mean(), p, D)
         assert D < 0.1
-
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 @run_with_simulators("nest", "neuron")
@@ -203,7 +205,8 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
         print(alpha, beta, expected_mean_isi, isi.mean(), p, D)
         assert D < 0.1
 
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 @run_with_simulators("nest", "neuron")
@@ -261,7 +264,8 @@ def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
         print(expected_rate, poisson_mean_isi, corrected_isi.mean(), p, D)
         assert D < 0.1
 
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 @run_with_simulators("nest", "neuron", "brian2")

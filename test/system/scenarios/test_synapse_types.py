@@ -1,4 +1,5 @@
 
+import sys
 import numpy as np
 from .fixtures import run_with_simulators
 
@@ -38,7 +39,8 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
     assert crossings[3].size == spike_times.size
     assert not np.array_equal(crossings[1], crossings[2])
     print(crossings[1].size / spike_times.size)
-    return data
+    if "pytest" not in sys.modules:
+        return data
 
 
 if __name__ == '__main__':
