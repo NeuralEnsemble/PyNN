@@ -2,7 +2,7 @@
 Tests of the common implementation of the simulation control functions, using
 the pyNN.mock backend.
 
-:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

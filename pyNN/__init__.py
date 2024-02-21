@@ -65,11 +65,11 @@ Other modules:
     random
     space
 
-:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
-__version__ = '0.12.1'
+__version__ = '0.12.2'
 __all__ = ["common", "random", "nest", "neuron", "brian2",
            "recording", "errors", "space", "descriptions",
            "standardmodels", "parameters", "core", "morphology",

@@ -1,0 +1,7 @@
+=========================
+PyNN 0.12.2 release notes
+=========================
+
+February 21st 2024
+
+This is a bug-fix release, primarily fixing problems arising from changes in dependencies.

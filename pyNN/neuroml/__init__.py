@@ -5,7 +5,7 @@ See https://github.com/NeuroML/NeuroML2/issues/73 for more details
 
 Contact Padraig Gleeson for more details
 
-:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 

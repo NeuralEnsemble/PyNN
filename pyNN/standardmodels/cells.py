@@ -24,7 +24,7 @@ Spike sources (input neurons)
     SpikeSourceArray
     SpikeSourceInhGamma
 
-:copyright: Copyright 2006-2023 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
