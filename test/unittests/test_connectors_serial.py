@@ -530,7 +530,10 @@ class TestFromFileConnector(unittest.TestCase):
         sim.end()
         for path in ("test.connections", "test.connections.1", "test.connections.2"):
             if os.path.exists(path):
-                os.remove(path)
+                try:
+                    os.remove(path)
+                except PermissionError:
+                    pass
 
     def test_connect_with_standard_text_file_not_distributed(self, sim=sim):
         np.savetxt("test.connections", self.connection_list)
