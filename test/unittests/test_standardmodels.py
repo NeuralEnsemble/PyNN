@@ -3,10 +3,7 @@ from pyNN.standardmodels import build_translations, StandardModelType, \
 from pyNN.standardmodels.synapses import StaticSynapse, STDPMechanism
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
+from unittest.mock import Mock
 import pytest
 import numpy as np
 

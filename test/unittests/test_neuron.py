@@ -1,10 +1,7 @@
 # encoding: utf-8
 
 import os
-try:
-    from unittest.mock import Mock
-except ImportError:
-    from mock import Mock
+from unittest.mock import Mock
 try:
     from neuron import h
     import pyNN.neuron as sim
