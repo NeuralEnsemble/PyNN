@@ -186,7 +186,7 @@ class State(common.control.BaseState):
             comm = arbor.mpi_comm(MPI.COMM_WORLD)
         else:
             comm = None
-        self.arbor_context = arbor.context(alloc, comm)
+        self.arbor_context = arbor.context(alloc, mpi=comm)
         # unclear if we can create the recipe now, or if we have to
         # construct it only when we've assembled the whole network
         self.network = NetworkRecipe()
