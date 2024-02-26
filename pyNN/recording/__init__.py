@@ -333,13 +333,15 @@ class Recorder(object):
                         mask = times <= t_stop
                         times = times[mask]
                         id_array = id_array[mask]
+                    sids = np.array(sids, dtype=int)
                     segment.spiketrains = neo.spiketrainlist.SpikeTrainList.from_spike_time_array(
                         times, id_array,
-                        np.array(sids, dtype=int),
+                        sids,
                         t_stop=t_stop,
                         units="ms",
                         t_start=self._recording_start_time,
-                        source_population=self.population.label
+                        source_population=self.population.label,
+                        source_id = sids, source_index=[self.population.id_to_index(sid) for sid in sids]
                     )
                     segment.spiketrains.segment = segment
             else:
