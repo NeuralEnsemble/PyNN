@@ -149,7 +149,7 @@ public:
    * @param t Thread
    * @param cp Common properties to all synapses.
    */
-  void send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
+  bool send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
 
   // The following methods contain mostly fixed code to forward the
   // corresponding tasks to corresponding methods in the base class and the w_
@@ -182,13 +182,13 @@ template < typename targetidentifierT >
 constexpr nest::ConnectionModelProperties simple_stochastic_synapse< targetidentifierT >::properties;
 
 template < typename targetidentifierT >
-inline void
+inline bool
 simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
   size_t t,
   const CommonPropertiesType& props )
 {
   if ( nest::get_vp_specific_rng( t )->drand() < (1 - p_) )  // drop spike
-    return;
+    return false;
 
   // Even time stamp, we send the spike using the normal sending mechanism
   // send the spike to the target
@@ -197,6 +197,7 @@ simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
   e.set_receiver( *ConnectionBase::get_target( t ) );
   e.set_rport( ConnectionBase::get_rport() );
   e(); // this sends the event
+  return true;
 }
 
 template < typename targetidentifierT >
