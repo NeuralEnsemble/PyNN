@@ -1,6 +1,6 @@
 [project]
 name = "PyNN"
-version = "0.12.2"
+version = "0.12.3"
 description = "A Python package for simulator-independent specification of neuronal network models"
 readme = "README.rst"
 requires-python = ">=3.8"

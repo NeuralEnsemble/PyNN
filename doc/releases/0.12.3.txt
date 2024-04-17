@@ -1,0 +1,25 @@
+=========================
+PyNN 0.12.3 release notes
+=========================
+
+April 17th 2024
+
+Welcome to PyNN 0.12.3!
+
+
+NEST 3.7 support
+----------------
+
+PyNN now supports the latest version of NEST_.
+NEST 3.4-3.6 should also work for most neuron models, but since the extension module interface
+has changed in NEST 3.7, those models that require NEST extensions will not work with older versions.
+For older versions of NEST, you will need an older version of PyNN to match.
+
+
+Beta: API extensions for multicompartment neurons
+-------------------------------------------------
+
+The beta API for multicompartment neurons has been updated to work with Arbor_ 0.9.0.
+
+.. _NEST: https://www.nest-simulator.org
+.. _Arbor: https://arbor-sim.org
