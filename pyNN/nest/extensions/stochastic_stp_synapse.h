@@ -106,7 +106,7 @@ public:
    * \param e The event to send
    * \param cp Common properties to all synapses (empty).
    */
-  void send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
+  bool send( nest::Event& e, size_t t, const CommonPropertiesType& cp );
 
   class ConnTestDummyNode : public nest::ConnTestDummyNodeBase
   {
@@ -159,7 +159,7 @@ constexpr nest::ConnectionModelProperties stochastic_stp_synapse< targetidentifi
  * \param cp Common properties object, containing the stochastic_stp parameters.
  */
 template < typename targetidentifierT >
-inline void
+inline bool
 stochastic_stp_synapse< targetidentifierT >::send( nest::Event& e,
   size_t thr,
   const CommonPropertiesType& )
@@ -212,6 +212,7 @@ stochastic_stp_synapse< targetidentifierT >::send( nest::Event& e,
   }
 
   t_lastspike_ = t_spike;
+  return release;
 }
 
 } // namespace

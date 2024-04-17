@@ -96,7 +96,7 @@ Now test that NEURON works with PyNN:
 Installing NEST and PyNEST
 ==========================
 
-NEST 3.4-3.6 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
+NEST 3.4-3.7 can be downloaded from `<http://www.nest-simulator.org/download/>`_.
 Earlier versions of NEST may not work with this version of PyNN.
 The full installation instructions are available at `<https://nest-simulator.readthedocs.io/en/v3.4/installation/index.html/>`_.
 

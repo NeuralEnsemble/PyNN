@@ -11,31 +11,23 @@ cmake_minimum_required( VERSION 2.8.12 )
 # For more informations on how to extend and use your module see:
 #           https://nest.github.io/nest-simulator/extension_modules
 
-# 1) Name your module here, i.e. add later with -Dexternal-modules=my:
-set( SHORT_NAME pynn )
-
-#    the complete module name is here:
+# 1)   the complete module name is here:
 set( MODULE_NAME pynn_extensions )
 
 # 2) Add all your sources here
 set( MODULE_SOURCES
-    pynn_extensions.h pynn_extensions.cpp
+    pynn_extensions.cpp
     simple_stochastic_synapse.h
     stochastic_stp_synapse.h
     stochastic_stp_synapse_impl.h
     )
-
-# 3) We require a header name like this:
-set( MODULE_HEADER ${MODULE_NAME}.h )
-# containing the class description of the class extending the SLIModule
 
 # 4) Specify your module version
 set( MODULE_VERSION_MAJOR 1 )
 set( MODULE_VERSION_MINOR 0 )
 set( MODULE_VERSION "${MODULE_VERSION_MAJOR}.${MODULE_VERSION_MINOR}" )
 
-# 5) Leave the rest as is. All files in `sli` will be installed to
-#    `share/nest/sli/`, so that NEST will find the during initialization.
+# 5) Leave the rest as is.
 
 # Leave the call to "project(...)" for after the compiler is determined.
 
@@ -116,20 +108,6 @@ if ( NEST_INCLUDES )
       endif ()
     endif ()
   endforeach ()
-endif ()
-
-# Get, if NEST is build as a (mostly) static application. If yes, also only build
-# static library.
-execute_process(
-    COMMAND ${NEST_CONFIG} --static-libraries
-    RESULT_VARIABLE RES_VAR
-    OUTPUT_VARIABLE NEST_STATIC_LIB
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-if ( NEST_STATIC_LIB )
-  set( BUILD_SHARED_LIBS OFF )
-else ()
-  set( BUILD_SHARED_LIBS ON )
 endif ()
 
 # Get all linked libraries.
@@ -214,38 +192,21 @@ add_custom_target( dist
     )
 
 
-if ( BUILD_SHARED_LIBS )
-  # When building shared libraries, also create a module for loading at runtime
-  # with the `Install` command.
-  add_library( ${MODULE_NAME}_module MODULE ${MODULE_SOURCES} )
-  set_target_properties( ${MODULE_NAME}_module
-      PROPERTIES
-      COMPILE_FLAGS "${NEST_CXXFLAGS} -DLTX_MODULE"
-      LINK_FLAGS "${NEST_LIBS}"
-      PREFIX ""
-      OUTPUT_NAME ${MODULE_NAME} )
-  install( TARGETS ${MODULE_NAME}_module
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}
-      )
-endif ()
-
-# Build dynamic/static library for standard linking from NEST.
-add_library( ${MODULE_NAME}_lib ${MODULE_SOURCES} )
-if ( BUILD_SHARED_LIBS )
-  # Dynamic libraries are initiated by a `global` variable of the `SLIModule`,
-  # which is included, when the flag `LINKED_MODULE` is set.
-  target_compile_definitions( ${MODULE_NAME}_lib PRIVATE -DLINKED_MODULE )
-endif ()
-set_target_properties( ${MODULE_NAME}_lib
+# Create a module for loading at runtime
+# with the `Install` command.
+add_library( ${MODULE_NAME}_module MODULE ${MODULE_SOURCES} )
+target_link_libraries(${MODULE_NAME}_module ${USER_LINK_LIBRARIES})
+set_target_properties( ${MODULE_NAME}_module
     PROPERTIES
-    COMPILE_FLAGS "${NEST_CXXFLAGS}"
+    COMPILE_FLAGS "${NEST_CXXFLAGS} -DLTX_MODULE"
     LINK_FLAGS "${NEST_LIBS}"
+    PREFIX ""
     OUTPUT_NAME ${MODULE_NAME} )
+install( TARGETS ${MODULE_NAME}_module
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
 
 # Install library, header and sli init files.
-install( TARGETS ${MODULE_NAME}_lib DESTINATION ${CMAKE_INSTALL_LIBDIR} )
-install( FILES ${MODULE_HEADER} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR} )
-install( DIRECTORY sli DESTINATION ${CMAKE_INSTALL_DATADIR} )
 
 message( "" )
 message( "-------------------------------------------------------" )
@@ -253,7 +214,6 @@ message( "${MODULE_NAME} Configuration Summary" )
 message( "-------------------------------------------------------" )
 message( "" )
 message( "C++ compiler         : ${CMAKE_CXX_COMPILER}" )
-message( "Build static libs    : ${NEST_STATIC_LIB}" )
 message( "C++ compiler flags   : ${CMAKE_CXX_FLAGS}" )
 message( "NEST compiler flags  : ${NEST_CXXFLAGS}" )
 message( "NEST include dirs    : ${NEST_INCLUDES}" )
