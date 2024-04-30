@@ -32,14 +32,14 @@ plt.figure(1, figsize=(6, 8))
 
 def plot_spiketrains(segment):
     for spiketrain in segment.spiketrains:
-        y = np.ones_like(spiketrain) * spiketrain.annotations['source_id']
+        y = np.ones_like(spiketrain) * spiketrain.annotations['channel_id']
         plt.plot(spiketrain, y, '.')
         plt.ylabel(segment.name)
         plt.setp(plt.gca().get_xticklabels(), visible=False)
 
 
 def plot_signal(signal, index, colour='b'):
-    label = "Neuron %d" % signal.annotations['source_ids'][index]
+    label = "Neuron %d" % signal.annotations['channel_ids'][index]
     plt.plot(signal.times, signal[:, index], colour, label=label)
     plt.ylabel("%s (%s)" % (signal.name, signal.units._dimensionality.string))
     plt.setp(plt.gca().get_xticklabels(), visible=False)

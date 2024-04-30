@@ -105,7 +105,7 @@ def gather_blocks(data, ordered=True):
     if ordered:
         for segment in merged.segments:
             ordered_spiketrains = sorted(
-                segment.spiketrains, key=lambda s: s.annotations['source_id'])
+                segment.spiketrains, key=lambda s: s.annotations['channel_id'])
             segment.spiketrains = ordered_spiketrains
     return merged
 
@@ -319,7 +319,7 @@ class Recorder(object):
                                 t_stop=t_stop,
                                 units='ms',
                                 source_population=self.population.label,
-                                source_id=int(id),
+                                channel_id=int(id),
                                 source_index=self.population.id_to_index(int(id)))
                         )
                         for train in segment.spiketrains:
@@ -333,13 +333,15 @@ class Recorder(object):
                         mask = times <= t_stop
                         times = times[mask]
                         id_array = id_array[mask]
+                    channel_ids = np.array(sids, dtype=int)
                     segment.spiketrains = neo.spiketrainlist.SpikeTrainList.from_spike_time_array(
                         times, id_array,
-                        np.array(sids, dtype=int),
+                        channel_ids,
                         t_stop=t_stop,
                         units="ms",
                         t_start=self._recording_start_time,
-                        source_population=self.population.label
+                        source_population=self.population.label,
+                        source_index=self.population.id_to_index(channel_ids)
                     )
                     segment.spiketrains.segment = segment
             else:
@@ -349,7 +351,7 @@ class Recorder(object):
                 if signal_array.size > 0:
                     # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
-                    source_ids = np.fromiter(ids, dtype=int)
+                    channel_ids = np.fromiter(ids, dtype=int)
                     if len(ids) == signal_array.shape[1]:  # one channel per neuron
                         channel_index = np.array([self.population.id_to_index(id) for id in ids])
                     else:  # multiple recording locations per neuron
@@ -372,11 +374,11 @@ class Recorder(object):
                                     units=units,
                                     time_units=pq.ms,
                                     name=signal_name,
-                                    source_ids=[source_id],
+                                    channel_ids=[channel_id],
                                     source_population=self.population.label,
                                     array_annotations={"channel_index": [i]}
                                 )
-                                for i, source_id in zip(channel_index, source_ids)
+                                for i, channel_id in zip(channel_index, channel_ids)
                             ]
                         else:
                             # all channels have the same sample times
@@ -384,7 +386,7 @@ class Recorder(object):
                             signals = [
                                 neo.IrregularlySampledSignal(
                                     times_array, signal_array, units=units, time_units=pq.ms,
-                                    name=signal_name, source_ids=source_ids,
+                                    name=signal_name, channel_ids=channel_ids,
                                     source_population=self.population.label,
                                     array_annotations={"channel_index": channel_index}
                                 )
@@ -402,13 +404,13 @@ class Recorder(object):
                             units=units,
                             t_start=t_start,
                             sampling_period=sampling_period,
-                            name=signal_name, source_ids=source_ids,
+                            name=signal_name, channel_ids=channel_ids,
                             source_population=self.population.label,
                             array_annotations={"channel_index": channel_index}
                         )
                         assert signal.t_stop - current_time - 2 * sampling_period < 1e-10
-                        logger.debug("%d **** ids=%s, channels=%s", mpi_node,
-                                     source_ids, signal.array_annotations["channel_index"])
+                        logger.debug("%d **** channel_ids=%s, channel_index=%s", mpi_node,
+                                     channel_ids, signal.array_annotations["channel_index"])
                         segment.analogsignals.append(signal)
                         signal.segment = segment
         return segment

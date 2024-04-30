@@ -98,7 +98,7 @@ class SonataIO(BaseIO):
                                t_stop=spike_times.max() + 1.0,
                                t_start=0.0,
                                units='ms',
-                               source_id=gid)
+                               channel_id=gid)
             )
         block.segments.append(segment)
         return [block]
