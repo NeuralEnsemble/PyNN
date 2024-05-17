@@ -332,15 +332,18 @@ class PointNeuron(cells.PointNeuron):
         self.translations = deepcopy(neuron.translations)
         self.state_variable_translations = neuron.state_variable_translations
         self.post_synaptic_variables = {}
-        synaptic_current_equation = "i_syn ="
-        for psr_label, psr in post_synaptic_receptors.items():
-            self.eqs += psr.eqs(psr_label)
-            self.translations.update(psr.translations(psr_label))
-            self.state_variable_translations.update(psr.state_variable_translations(psr_label))
-            self.post_synaptic_variables.update({psr_label: psr.post_synaptic_variable(psr_label)})
-            synaptic_current_equation += f" {psr.synaptic_current(psr_label)} +"
-        synaptic_current_equation = synaptic_current_equation.strip("+")
-        synaptic_current_equation += "  : amp"
+        if post_synaptic_receptors:
+            synaptic_current_equation = "i_syn ="
+            for psr_label, psr in post_synaptic_receptors.items():
+                self.eqs += psr.eqs(psr_label)
+                self.translations.update(psr.translations(psr_label))
+                self.state_variable_translations.update(psr.state_variable_translations(psr_label))
+                self.post_synaptic_variables.update({psr_label: psr.post_synaptic_variable(psr_label)})
+                synaptic_current_equation += f" {psr.synaptic_current(psr_label)} +"
+            synaptic_current_equation = synaptic_current_equation.strip("+")
+            synaptic_current_equation += "  : amp"
+        else:
+            synaptic_current_equation = "i_syn = 0*amp : amp"
         self.eqs += brian2.Equations(synaptic_current_equation)
         self.brian2_model = neuron.brian2_model
 
