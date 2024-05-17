@@ -218,6 +218,7 @@ class StandardIF(LeakySingleCompartmentNeuron):
 
         # process arguments
         self.parameters.update(v_thresh=v_thresh, t_refrac=t_refrac, v_reset=v_reset)
+        self.set_parameters()
 
     v_thresh = _new_property('spike_reset', 'vthresh')
     v_reset = _new_property('spike_reset', 'vreset')
@@ -252,7 +253,7 @@ class BretteGerstnerIF(LeakySingleCompartmentNeuron):
         for name in ('v_thresh', 't_refrac', 'v_reset',
                      'A', 'B', 'tau_w', 'delta', 'v_spike'):
             self.parameters[name] = local_params[name]
-
+        self.set_parameters()
         self.w_init = None
 
     v_thresh = _new_property('adexp', 'vthresh')
