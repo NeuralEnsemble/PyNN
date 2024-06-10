@@ -28,7 +28,7 @@ for dt in timesteps:
     newsim.run(1000.0)
 
     data_v = neuron.get_data().segments[0].filter(name="v")[0]
-    data_spikes = neuron.get_data().segments[0].spiketrains
+    data_spikes = neuron.get_data().segments[0].spiketrains[0]
 
     fig_counter += 1
     plt.figure(fig_counter)
