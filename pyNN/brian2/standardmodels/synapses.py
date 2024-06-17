@@ -124,7 +124,8 @@ class STDPMechanism(synapses.STDPMechanism):
         if dendritic_delay_fraction != 0:
             raise ValueError("The pyNN.brian2 backend does not currently support "
                              "dendritic delays: for the purpose of STDP calculations "
-                             "all delays are assumed to be axonal.")
+                             "all delays are assumed to be axonal. "
+                             "Set dendritic_delay_fraction=0 to avoid this error message.")
         # could perhaps support axonal delays using parrot neurons?
         super(STDPMechanism, self).__init__(timing_dependence, weight_dependence,
                                             voltage_dependence, dendritic_delay_fraction,
