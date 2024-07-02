@@ -55,7 +55,7 @@ def output_rate(spec_dict, guess):
     
     newsim.run(1000)
     
-    data_spikes = neuron.get_data().segments[0].spiketrains[0]
+    data_spikes = neuron.get_data(clear=True).segments[0].spiketrains[0]
     n_spikes = len(data_spikes)
     output_rate = (n_spikes * 1000.0) / spec_dict["simulation_time"]
     
