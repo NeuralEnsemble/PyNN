@@ -1,9 +1,30 @@
-import pyNN.nest as sim
+# encoding: utf-8
+"""
+A native NEST example of simulating One Neuron with Poisson-distribution Noise with the help of PyNN.
+
+
+Usage: one_neuron_noise_example.py [-h] [--plot-figure] [--debug DEBUG] simulator
+
+positional arguments:
+  simulator      neuron, nest, brian or another backend simulator
+
+optional arguments:
+  -h, --help     show this help message and exit
+  --plot-figure  plot the simulation results to a file
+  --debug DEBUG  print debugging information
+"""
+
+from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.utility.plotting import Figure, Panel
-import matplotlib.pyplot as plt
 
-sim.setup(timestep=0.1) # (ms)
+sim, options = get_simulator(("--plot-figure", "Plot the simulation results to a file.", {"action": "store_true"}),
+                             ("--debug", "Print debugging information."))
 
+
+if options.debug:
+    init_logging(None, debug=True)
+
+# === Define parameters ========================================================
 
 cell_params = {
     "v_rest": -70.0, # (mV)
@@ -17,6 +38,9 @@ cell_params = {
     "i_offset": 0, # (nA)
 }
 
+# === Build the network ========================================================
+
+sim.setup(timestep=0.1) # (ms)
 
 cell_type = sim.IF_curr_alpha(**cell_params)
 
@@ -32,12 +56,21 @@ prj = sim.Projection(poisson_noise_generators, neuron, sim.AllToAllConnector() ,
 prj.setWeights([0.0012, 0.001])
 prj.setDelays([1, 1])
 
+# === Run simulation ===========================================================
+
 sim.run(1000)
 
 data_v = neuron.get_data().segments[0].filter(name="v")[0]
 data_spikes = neuron.get_data().segments[0].spiketrains
 
-Figure(
-    Panel(data_v[:,0], xlabel="Time (in ms)", ylabel="Membrane Potential", xticks=True, yticks=True)
-).show()
+if options.plot_figure:
+    figure_filename = normalized_filename("Results", "one_neuron_noise_example", "png",
+                                          options.simulator, sim.num_processes())
+    Figure(
+        Panel(data_v[:,0], xlabel="Time (in ms)", ylabel="Membrane Potential", xticks=True, yticks=True)
+    ).save(figure_filename)
+    print(figure_filename)
 
+# === Clean up and quit ========================================================
+
+sim.end()

@@ -12,7 +12,6 @@ optional arguments:
   --debug DEBUG  print debugging information
 """
 
-import pyNN.nest as sim
 from pyNN.utility import get_simulator, init_logging, normalized_filename
 from pyNN.utility.plotting import Figure, Panel 
 
