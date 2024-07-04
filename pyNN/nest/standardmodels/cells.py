@@ -397,6 +397,31 @@ class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
     standard_receptor_type = True
 
 
+class Kobayashi(cells.Kobayashi):
+
+    __doc__ = cells.Kobayashi.__doc__
+
+    translations = build_translations(
+       ('cm', 'C_m', 1000.0), # C_m is in pF, cm in nF
+       ('i_offset', 'I_e', 1000.0), # I_e is in pA, i_offset in nA
+       ('tau_m', 'tau_m'),
+       ('v_rest', 'E_L'),
+       ('tau_syn_E', 'tau_syn_ex'),
+       ('tau_syn_I', 'tau_syn_in'),
+       ('tau_refrac', 't_ref'),
+       ('tau_1', 'tau_1'),
+       ('tau_2', 'tau_2'),
+       ('alpha_1', 'alpha_1'),
+       ('alpha_2', 'alpha_2'),
+       ('v_thresh', 'omega'),
+   )
+    variable_map = {'v': 'V_m', 'v_th': 'V_th'}
+    scale_factors = {'v': 1, 'v_th': 1}
+    nest_name = {"on_grid": "mat2_psc_exp",
+                 "off_grid": "mat2_psc_exp"}
+    standard_receptor_type = True
+
+
 class Izhikevich(cells.Izhikevich):
     __doc__ = cells.Izhikevich.__doc__
 
