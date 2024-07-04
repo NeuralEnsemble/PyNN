@@ -709,7 +709,7 @@ class Kobayashi(StandardCellType):
         'alpha_2': 2.0,
         'v_thresh': 19.0 
     }
-    recordable = ['spikes', 'v']
+    recordable = ['spikes', 'v', 'v_th']
     units = {
         'cm': 'nF',
         'tau_m': 'ms',
