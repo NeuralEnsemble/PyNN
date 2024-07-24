@@ -424,13 +424,11 @@ class IF_eprop_adaptive(cells.IF_eprop_adaptive):
     standard_receptor_type = True
 
 
-class IF_eprop(cells.IF_eprop_adaptive):
+class IF_eprop(cells.IF_eprop):
 
     __doc__ = cells.IF_eprop.__doc__
 
     translations = build_translations(
-        ('adapt_beta', 'adapt_beta'),
-        ('adapt_tau',  'adapt_tau'),
         ('cm',         'C_m',       1000.0),  # nF -> pF
         ('c_reg',      'c_reg'),
         ('v_rest',     'E_L'),
@@ -448,6 +446,25 @@ class IF_eprop(cells.IF_eprop_adaptive):
     scale_factors = {'v': 1, 'learning_signal': 0.001, 'surrogate_gradient': 1}
     nest_name = {"on_grid": "eprop_iaf_bsshslm_2020",
                  "off_grid": "eprop_iaf_bsshslm_2020"}
+    standard_receptor_type = True
+
+
+class IF_eprop_readout(cells.IF_eprop_readout):
+
+    __doc__ = cells.IF_eprop_readout.__doc__
+
+    translations = build_translations(
+        ('cm',         'C_m',       1000.0),  # nF -> pF
+        ('v_rest',     'E_L'),
+        ('i_offset',   'I_e',       1000.0),  # nA -> pA
+        ('reg_spike_arr', 'regular_spike_arrival'),
+        ('tau_m', 'tau_m'),        
+        ('v_min',      'V_min'),
+    )
+    variable_map = {'v': 'V_m', 'error signal': 'error signal', 'readout_signal': 'readout_signal', 'readout_signal_unnorm': 'readout_signal_unnorm', 'target_signal': 'target_signal' }
+    scale_factors = {'v': 1, 'error signal': 1, 'readout_signal': 1, 'readout_signal_unnorm': 1, 'target_signal': 1}
+    nest_name = {"on_grid": "eprop_iaf_readout_bsshslm_2020",
+                 "off_grid": "eprop_iaf_readout_bsshslm_2020"}
     standard_receptor_type = True
 
 

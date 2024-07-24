@@ -766,7 +766,6 @@ class IF_eprop(StandardCellType):
     recordable = ['v', 'spikes', 'learning_signal', 'surrogate_gradient']
     
     default_initial_values = {
-        'adaptation': 0.0,  # Adaptation variable
         'learning_signal': 0.0,  # Learning signal
         'surrogate_gradient': 0.0,  # Surrogate gradient
         'v': -70.0,  # Membrane potential
@@ -783,6 +782,52 @@ class IF_eprop(StandardCellType):
         'v_thresh': 'mV',
         'v': 'mV',
         'learning_signal': 'nA',
+    }
+
+
+class IF_eprop_readout(StandardCellType):
+    """
+    Implementation of a integrate-and-fire neuron model with delta-shaped postsynaptic currents 
+    used as readout neuron for eligibility propagation (e-prop) plasticity.
+
+    Bellec G, Scherr F, Subramoney F, Hajek E, Salaj D, Legenstein R, Maass W (2020). 
+    A solution to the learning dilemma for recurrent networks of spiking neurons. 
+    Nature Communications, 11:3625. https://doi.org/10.1038/s41467-020-17236-y
+    """
+
+    default_parameters = {
+        'cm': 0.250,  # Membrane capacitance in nF
+        'v_rest': -70.0,  # Resting membrane potential in mV
+        'i_offset': 0.0,  # Offset current in nA
+        'loss': 'mean_squared_error',  # Loss function
+        'reg_spike_arr': True,  # Regularize spike arrival times
+        'surrogate_gradient_function': 'piecewise_linear',  # Surrogate gradient function
+        'tau_m': 10.0,  # Membrane time constant in ms
+        'v_min': -1.79e308,  # Minimum membrane potential in mV
+    }
+
+    recordable = ['v', 'spikes', 'error_signal', 'readout_signal', 'readout_signal_unnorm', 'target_signal']
+    
+    default_initial_values = {
+        'error_signal': 0.0,  # Error signal
+        'readout_signal': 0.0,  # Readout signal
+        'readout_signal_unnorm': 0.0,  # Unnormalized readout signal
+        'target_signal': 0.0,  # Target signal
+        'v': -70.0,  # Membrane potential
+    }
+    
+    units = {
+        'cm': 'nF',
+        'v_rest': 'mV',
+        'i_offset': 'nA',
+        'tau_m': 'ms',
+        'v_min': 'mV',
+        'v_thresh': 'mV',
+        'v': 'mV',
+        'error_signal': 'mV',
+        'readout_signal': 'mV',
+        'readout_signal_unnorm': 'mV',
+        'target_signal': 'mV',
     }
 
 
