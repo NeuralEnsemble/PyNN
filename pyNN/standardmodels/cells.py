@@ -684,6 +684,58 @@ class PointNeuron(StandardCellType):
                        for psr in self.post_synaptic_receptors.values()])
         )
 
+class IF_eprop_adaptive(StandardCellType):
+    """
+    Implementation of a leaky integrate-and-fire neuron model with delta-shaped 
+    postsynaptic currents and threshold adaptation used for 
+    eligibility propagation (e-prop) plasticity.
+
+    Bellec G, Scherr F, Subramoney F, Hajek E, Salaj D, Legenstein R, Maass W (2020). 
+    A solution to the learning dilemma for recurrent networks of spiking neurons. 
+    Nature Communications, 11:3625. https://doi.org/10.1038/s41467-020-17236-y
+    """
+
+    default_parameters = {
+        'adapt_beta': 1.0,  # Prefactor of threshold adaptation
+        'adapt_tau': 10.0,  # Time constant of threshold adaptation in ms
+        'cm': 0.250,  # Membrane capacitance in nF
+        'c_reg': 0.0,  # Regularization factor
+        'v_rest': -70.0,  # Resting membrane potential in mV
+        'f_target': 10.0,  # Target firing rate of regularization factor in Hz
+        'gamma': 0.3,  # Scaling of surrogate gradient
+        'i_offset': 0.0,  # Offset current in nA
+        'reg_spike_arr': True,  # Regularize spike arrival times
+        'surrogate_gradient_function': 'piecewise_linear',  # Surrogate gradient function
+        'tau_refrac': 2.0,  # Refractory period in ms
+        'tau_m': 10.0,  # Membrane time constant in ms
+        'v_min': -1.79e308,  # Minimum membrane potential in mV
+        'v_thresh': -55.0,  # Spike threshold in mV
+    }
+
+    recordable = ['v', 'spikes', 'adaptation', 'v_th_adapt', 'learning_signal', 'surrogate_gradient']
+    
+    default_initial_values = {
+        'adaptation': 0.0,  # Adaptation variable
+        'learning_signal': 0.0,  # Learning signal
+        'surrogate_gradient': 0.0,  # Surrogate gradient
+        'v': -70.0,  # Membrane potential
+        'v_th_adapt': -55.0,  # Threshold adaptation variable
+    }
+    
+    units = {
+        'adapt_tau': 'ms',
+        'cm': 'nF',
+        'v_rest': 'mV',
+        'f_target': 'Hz',
+        'i_offset': 'nA',
+        't_ref': 'ms',
+        'tau_m': 'ms',
+        'v_min': 'mV',
+        'v_thresh': 'mV',
+        'v': 'mV',
+        'v_th_adapt': 'mV',
+    }
+
 
 class Izhikevich(StandardCellType):
     """
