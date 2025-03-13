@@ -1,0 +1,80 @@
+# izhikevich - Izhikevich neuron model
+# ####################################
+# 
+# Description
+# +++++++++++
+# 
+# Implementation of the simple spiking neuron model introduced by Izhikevich [1]_. The dynamics are given by:
+# 
+# .. math::
+# 
+# dV_{m}/dt &= 0.04 V_{m}^2 + 5 V_{m} + 140 - U_{m} + I\\
+# dU_{m}/dt &= a (b V_{m} - U_{m})
+# 
+# 
+# .. math::
+# 
+# &\text{if}\;\; V_{m} \geq V_{th}:\\
+# &\;\;\;\; V_{m} \text{ is set to } c\\
+# &\;\;\;\; U_{m} \text{ is incremented by } d\\
+# & \, \\
+# &V_{m} \text{ jumps on each spike arrival by the weight of the spike}
+# 
+# Incoming spikes cause an instantaneous jump in the membrane potential proportional to the strength of the synapse.
+# 
+# As published in [1]_, the numerics differs from the standard forward Euler technique in two ways:
+# 
+# 1) the new value of :math:`U_{m}` is calculated based on the new value of :math:`V_{m}`, rather than the previous value
+# 2) the variable :math:`V_{m}` is updated using a time step half the size of that used to update variable :math:`U_{m}`.
+# 
+# This model will instead be simulated using the numerical solver that is recommended by ODE-toolbox during code generation.
+# 
+# 
+# References
+# ++++++++++
+# 
+# .. [1] Izhikevich, Simple Model of Spiking Neurons, IEEE Transactions on Neural Networks (2003) 14:1569-1572
+#
+#
+model izhikevich_neuron:
+    state:
+        V_m mV = V_m_init         # Membrane potential
+        U_m real = b * V_m_init   # Membrane potential recovery variable
+
+    equations:
+        V_m' = ( 0.04 * V_m * V_m / mV + 5.0 * V_m + ( 140 - U_m ) * mV + ( (I_e + I_stim) * GOhm ) ) / ms
+        U_m' = a*(b*V_m-U_m * mV) / (mV*ms)
+
+    parameters:
+        a real = 0.02        # describes time scale of recovery variable
+        b real = 0.2         # sensitivity of recovery variable
+        c mV = -65 mV        # after-spike reset value of V_m
+        d real = 8.0         # after-spike reset value of U_m
+        V_m_init mV = -65 mV # initial membrane potential
+        V_min mV = -inf * mV # Absolute lower value for the membrane potential.
+        V_th mV = 30 mV      # Threshold potential
+
+        # constant external input current
+        I_e pA = 0 pA
+
+    input:
+        spikes <- spike
+        I_stim pA <- continuous
+
+    output:
+        spike
+
+    update:
+        integrate_odes()
+
+        # Add synaptic current
+        V_m += spikes * mV * s
+
+        # lower bound of membrane potential
+        V_m = max(V_min, V_m)
+
+    onCondition(V_m >= V_th):
+        # threshold crossing
+        V_m = c
+        U_m += d
+        emit_spike()
