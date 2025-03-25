@@ -7,18 +7,18 @@ install and run PyNN on Windows, but this has not been tested.
 
 Installing PyNN requires:
 
-    * Python (version 3.8+)
-    * a recent version of the NumPy_ package
-    * the lazyarray_ package
-    * the Neo_ package (>= 0.11.0)
-    * at least one of the supported simulators: e.g. NEURON, NEST, Brian 2 or Arbor.
+* Python (version 3.8+)
+* a recent version of the NumPy_ package
+* the lazyarray_ package
+* the Neo_ package (>= 0.11.0)
+* at least one of the supported simulators: e.g. NEURON, NEST, Brian 2 or Arbor.
 
 Optional dependencies are:
 
-    * mpi4py_ (if you wish to run distributed simulations using MPI)
-    * either Jinja2_ or Cheetah_ (templating engines)
-    * the CSA_ library
-    * h5py (to use the SONATA format)
+* mpi4py_ (if you wish to run distributed simulations using MPI)
+* either Jinja2_ or Cheetah_ (templating engines)
+* the CSA_ library
+* h5py (to use the SONATA format)
 
 Installing PyNN
 ===============

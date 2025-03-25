@@ -19,13 +19,13 @@ Requirements
 In addition to the requirements listed in :doc:`../installation`, you will need to
 install:
 
-    * pytest_
-    * coverage_
+* pytest_
+* coverage_
 
 to run tests, and:
 
-    * Sphinx_
-    * matplotlib
+* Sphinx_
+* matplotlib
 
 to build the documentation.
 
@@ -54,8 +54,8 @@ and then you can pull in any upstream changes::
 
 To get PyNN onto your :envvar:`PYTHONPATH` there are many options, such as:
 
-    * pip editable mode (`pip install -e /path/to/PyNN`)
-    * creating a symbolic link named :file:`pyNN` from somewhere that is already
+* pip editable mode (`pip install -e /path/to/PyNN`)
+* creating a symbolic link named :file:`pyNN` from somewhere that is already
       on your :envvar:`PYTHONPATH`, such as the :file:`site-packages` directory,
       to the :file:`pyNN_dev/pyNN` directory.
 
@@ -169,20 +169,20 @@ in becoming release manager for PyNN, please contact us via the `mailing list`_.
 When you think a release is ready, run through the following checklist one
 last time:
 
-    * do all the tests pass? This means running :command:`pytest` in
+* do all the tests pass? This means running :command:`pytest` in
       :file:`test/unittests` and :file:`test/system` and running :command:`make doctest` in
       :file:`doc`. You should do this on at least two Linux systems -- one a very
       recent version and one at least a year old, and on at least one version of
       Mac OS X. You should also do this with multiple Python versions (3.7+).
-    * do all the example scripts generate the correct output? Run the
+* do all the example scripts generate the correct output? Run the
       :file:`run_all_examples.py` script in :file:`examples/tools` and then visually
       check the :file:`.png` files generated in :file:`examples/tools/Results`. Again,
       you should do this on at least two Linux systems and one Mac OS X system.
-    * does the documentation build without errors? You should then at least skim
+* does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-    * have you updated the version numbers in :file:`pyproject.toml`, :file:`pyNN/__init__.py`,
+* have you updated the version numbers in :file:`pyproject.toml`, :file:`pyNN/__init__.py`,
       :file:`doc/conf.py` and :file:`doc/installation.txt`?
-    * have you updated the changelog?
+* have you updated the changelog?
 
 Once you've confirmed all the above, create source and wheel packages using::
 
@@ -201,23 +201,23 @@ repository (in the :file:`docs/PyNN` directory).
 
 If this is a final release, there are a few more steps:
 
-    * if it is a major release (i.e. an ``x.y.0`` release), create a new bug-fix
+* if it is a major release (i.e. an ``x.y.0`` release), create a new bug-fix
       branch::
 
         $ git branch x.y
 
-    * upload the packages to PyPI (Do **not** upload development releases to PyPI)::
+* upload the packages to PyPI (Do **not** upload development releases to PyPI)::
 
         $ twine upload dist/PyNN-x.y.z*
 
-    * update the :file:`codemeta.json` file
+* update the :file:`codemeta.json` file
 
-    * make an announcement on the `mailing list`_
+* make an announcement on the `mailing list`_
 
-    * if it is a major release, write a blog post about it with a focus on the
+* if it is a major release, write a blog post about it with a focus on the
       new features and major changes
 
-    * go home, take a headache pill and lie down for a while in a darkened room (-;
+* go home, take a headache pill and lie down for a while in a darkened room (-;
 
 
 
