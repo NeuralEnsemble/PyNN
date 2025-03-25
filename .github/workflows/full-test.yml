@@ -53,12 +53,17 @@ jobs:
     - name: Install PyNN itself
       run: |
         pip install -e ".[test]"
-    - name: Test installation has worked
+    - name: Test installation has worked (Ubuntu)
       # this is needed because the PyNN tests are just skipped if the simulator
       # fails to install, so we need to catch import failures separately
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         python -c "import pyNN.nest"
         python -c "import pyNN.neuron"
+        python -c "import pyNN.brian2"
+    - name: Test installation has worked (Windows)
+      if: startsWith(matrix.os, 'windows')
+      run: |
         python -c "import pyNN.brian2"
     - name: Lint with flake8
       run: |
