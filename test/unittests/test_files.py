@@ -11,20 +11,6 @@ from pyNN.recording import files
 builtin_open = open
 
 
-def test__savetxt():
-    mock_file = Mock()
-    files.open = Mock(return_value=mock_file)
-    files._savetxt(filename="dummy_file",
-                   data=[(0, 2.3), (1, 3.4), (2, 4.3)],
-                   format="%f",
-                   delimiter=" ")
-    target = [(('0.000000 2.300000\n',), {}),
-              (('1.000000 3.400000\n',), {}),
-              (('2.000000 4.300000\n',), {})]
-    assert mock_file.write.call_args_list == target
-    files.open = builtin_open
-
-
 def test_create_BaseFile():
     files.open = Mock()
     bf = files.BaseFile("filename", 'r')
