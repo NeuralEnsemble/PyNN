@@ -70,7 +70,7 @@ We try to stay fairly close to PEP8_. Please note in particular:
     - some function/method names in PyNN use ``mixedCase``, but these will
       gradually be deprecated and replaced with ``lower_case_with_underscores``.
       Any new functions or methods should use the latter.
-    - we currently target versions 3.8+
+    - we currently target versions 3.9+
 
 
 Testing
