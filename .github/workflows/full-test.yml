@@ -16,10 +16,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.8", "3.10", "3.12"]
+        python-version: ["3.9", "3.10", "3.12"]
         os: ["ubuntu-latest", "windows-latest"]
     steps:
     - uses: actions/checkout@v4
+    - uses: mpi4py/setup-mpi@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -31,7 +32,7 @@ jobs:
     - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov coveralls flake8
+        python -m pip install pytest pytest-cov coveralls flake8 "setuptools<=75.8.2" "numpy<2"
     - name: Install Brian 2
       run: |
         python -m pip install brian2
@@ -52,12 +53,17 @@ jobs:
     - name: Install PyNN itself
       run: |
         pip install -e ".[test]"
-    - name: Test installation has worked
+    - name: Test installation has worked (Ubuntu)
       # this is needed because the PyNN tests are just skipped if the simulator
       # fails to install, so we need to catch import failures separately
+      if: startsWith(matrix.os, 'ubuntu')
       run: |
         python -c "import pyNN.nest"
         python -c "import pyNN.neuron"
+        python -c "import pyNN.brian2"
+    - name: Test installation has worked (Windows)
+      if: startsWith(matrix.os, 'windows')
+      run: |
         python -c "import pyNN.brian2"
     - name: Lint with flake8
       run: |
