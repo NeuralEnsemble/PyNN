@@ -79,7 +79,7 @@ def build_run(simulator):
         if callbacks:
             callback_events = [(callback(simulator.state.t), callback)
                                for callback in callbacks]
-            while simulator.state.t + 1e-9 < time_point:
+            while simulator.state.t + 1e-9 < time_point - simulator.state.dt:
                 callback_events.sort(key=lambda cbe: cbe[0], reverse=True)
                 next, callback = callback_events.pop()
                 # collapse multiple events that happen within the same timestep
