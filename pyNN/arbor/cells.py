@@ -125,7 +125,9 @@ class CellDescriptionBuilder:
             location_generator = current_source["location_generator"]
             mechanism = getattr(arbor, current_source["model_name"])
             for locset, label in location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
-                decor.place(locset, mechanism(**current_source["parameters"].evaluate()), label)
+                params = current_source["parameters"].evaluate(simplify=True)
+                mech = mechanism(**params)
+                decor.place(locset, mech, label)
 
         # add spike source
         decor.place('"root"', arbor.threshold_detector(-10), "detector")

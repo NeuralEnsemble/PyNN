@@ -147,7 +147,7 @@ class NeuronCurrentSource(StandardCurrentSource):
                         pass
                     else:
                         raise TypeError("location must be a string or a LocationGenerator")
-                    morphology = cells.celltype.parameter_space["morphology"].base_value  # todo: evaluate lazyarray
+                    morphology = id.celltype.parameter_space["morphology"].base_value  # todo: evaluate lazyarray
                     locations = location.generate_locations(morphology, label_prefix="dc_current_source", cell=id._cell)
                     sections = []
                     for loc in locations:
