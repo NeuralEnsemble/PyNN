@@ -19,8 +19,9 @@ from morphio import SectionType
 
 
 def _download_file(url):
-    import requests  # consider rewriting using just standard library
-                     # to avoid adding another dependency
+    import requests
+    # consider rewriting using just standard library
+    # to avoid adding another dependency
     local_filename = url.split('/')[-1]
     r = requests.get(url, stream=True)
     with open(local_filename, 'wb') as f:
@@ -61,7 +62,6 @@ class Morphology(object):
         return self._soma_index
 
 
-
 class NeuroMLMorphology(Morphology):
     """
 
@@ -100,7 +100,8 @@ class NeuroMLMorphology(Morphology):
 
     @property
     def soma_index(self):
-        return self.labels().get("soma", 0)  # todo: more robust way to handle morphologies without a declared soma, e.g. single dendrites
+        return self.labels().get("soma", 0)
+        # todo: more robust way to handle morphologies without a declared soma, e.g. single dendrites
 
     @property
     def path_lengths(self):
@@ -185,7 +186,6 @@ class SynapseDistribution(NeuriteDistribution):
     pass
 
 
-
 class uniform(IonChannelDistribution, SynapseDistribution):
     # we inherit from two parents, because we want to use the name "uniform" for both
     # the implementation behaves differently depending on context
@@ -219,10 +219,8 @@ class any(IonChannelDistribution, SynapseDistribution):
         return self.absence
 
 
-
 class MorphologyFilter(object):
     pass
-
 
 
 class dendrites(MorphologyFilter):
@@ -272,7 +270,6 @@ class with_label(MorphologyFilter):
 
     def __init__(self, *labels):
         self.labels = labels
-
 
 
 class LocationGenerator:

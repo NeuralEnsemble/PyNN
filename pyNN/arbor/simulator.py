@@ -35,36 +35,12 @@ def build_mechanisms():
         return mech_path
 
 
-class Cell(int):  # (, common.IDMixin):
+class Cell(int):
 
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
-        #int.__init__(n)
-        #common.IDMixin.__init__(self)
         self.gid = n
-        #self.morph = None  #morph
-        #self.decor = None  # decor
-        #self.labels = None  # labels
         self.local = True
-        #self.decor.place('"root"', arbor.threshold_detector(-10), f"detector-{self.gid}")
-
-    # def __lt__(self, other):
-    #     return self.gid < other.gid
-
-    # def __lte__(self, other):
-    #     return self.gid <= other.gid
-
-    # def __gt__(self, other):
-    #     return self.gid > other.gid
-
-    # def __gte__(self, other):
-    #     return self.gid >= other.gid
-
-    # def __eq__(self, other):
-    #     return self.gid == other.gid
-
-    # def __ne__(self, other):
-    #     return self.gid != other.gid
 
 
 class NetworkRecipe(arbor.recipe):
@@ -206,7 +182,8 @@ class State(common.control.BaseState):
             hints = {}
             decomp = arbor.partition_load_balance(recipe, self.arbor_context, hints)
             self.arbor_sim = arbor.simulation(recipe, self.arbor_context, decomp, self.rng_seed)
-            self.arbor_sim.record(arbor.spike_recording.all)  # todo: for now record all, but should be controlled by population.record()
+            self.arbor_sim.record(arbor.spike_recording.all)
+            # todo: for now record all, but should be controlled by population.record()
             for recorder in self.recorders:
                 recorder._set_arbor_sim(self.arbor_sim)
         self.t += simtime

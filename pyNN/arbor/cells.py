@@ -101,7 +101,7 @@ class CellDescriptionBuilder:
             decor.set_ion(ion_name,
                           int_con=ionic_species.internal_concentration,
                           ext_con=ionic_species.external_concentration,
-                          rev_pot=ionic_species.reversal_potential) #method="nernst/na")
+                          rev_pot=ionic_species.reversal_potential)  # method="nernst/na")
         for native_name, region_params in mechanism_parameters.items():
             for region, params in region_params.items():
                 if native_name == "hh":
@@ -124,14 +124,15 @@ class CellDescriptionBuilder:
         for current_source in self.current_sources[i]:
             location_generator = current_source["location_generator"]
             mechanism = getattr(arbor, current_source["model_name"])
-            for locset, label in  location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
-                #decor.place(locset, mechanism(start, stop - start, current=amplitude), "iclamp_label")
+            for locset, label in location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
                 decor.place(locset, mechanism(**current_source["parameters"].evaluate()), label)
 
         # add spike source
-        decor.place('"root"', arbor.threshold_detector(-10), "detector")  # todo: allow user to choose location and threshold value
+        decor.place('"root"', arbor.threshold_detector(-10), "detector")
+        # todo: allow user to choose location and threshold value
 
-        policy = arbor.cv_policy_max_extent(10.0)  # to do: allow user to specify this value and/or the policy more generally
+        policy = arbor.cv_policy_max_extent(10.0)
+        # to do: allow user to specify this value and/or the policy more generally
         decor.discretization(policy)
 
         return decor

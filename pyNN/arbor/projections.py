@@ -91,7 +91,7 @@ class Projection(common.Projection):
                                 cg.weight,
                                 cg.delay
                             )
-                    )
+                        )
                 else:
                     raise NotImplementedError()
             return connections

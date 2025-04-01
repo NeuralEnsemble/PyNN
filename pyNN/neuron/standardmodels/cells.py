@@ -7,9 +7,6 @@ Standard base_cells for the neuron module.
 
 """
 
-from collections import defaultdict
-from pyNN.models import BaseCellType
-from pyNN.parameters import ParameterSpace
 from pyNN.standardmodels import ModelNotAvailable, cells as base_cells, build_translations
 from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTraub,
                                RandomSpikeSource, VectorSpikeSource,
@@ -21,7 +18,6 @@ from pyNN.neuron.cells import (StandardIFStandardReceptors, SingleCompartmentTra
                                GIFNeuron, NeuronTemplate)
 from pyNN.morphology import Morphology, NeuriteDistribution
 import logging
-from neuron import nrn, h
 
 
 logger = logging.getLogger("PyNN")
@@ -419,8 +415,8 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
             "Ra": float,
             "ionic_species": dict
         }
-        #for name, ion_channel in self.ion_channels.items():
-        #    schema[name] = ion_channel.get_schema()
+        # for name, ion_channel in self.ion_channels.items():
+        #     schema[name] = ion_channel.get_schema()
         return schema
 
     @property   # can you have a classmethod-like property?
@@ -431,9 +427,9 @@ class MultiCompartmentNeuron(base_cells.MultiCompartmentNeuron):
     def segment_names(self):  # rename to section_names?
         return [seg.name for seg in self.morphology.segments]
 
-    #def __getattr__(self, item):
-    #    if item in self.segment_names:
-    #        return Segment(item, self)
+    # def __getattr__(self, item):
+    #     if item in self.segment_names:
+    #         return Segment(item, self)
 
     def has_parameter(self, name):
         """Does this model have a parameter with the given name?"""

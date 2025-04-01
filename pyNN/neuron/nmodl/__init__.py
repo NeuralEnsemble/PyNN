@@ -2,14 +2,13 @@
 
 """
 
-from neuron import h
 from pyNN.models import BaseIonChannelModel
 from pyNN.morphology import IonChannelDistribution
 from .. import simulator
 
 
 class NMODLIonChannelModel(BaseIonChannelModel):
-    conductance_density_parameter=None
+    conductance_density_parameter = None
 
     def __init__(self, **parameters):
         mechanism = getattr(simulator.dummy(0.5), self.name)
@@ -28,21 +27,17 @@ class NMODLIonChannelModel(BaseIonChannelModel):
                     break
         BaseIonChannelModel.__init__(self, **parameters)
 
-
-    def translate(self, parameters):       
+    def translate(self, parameters):
         return parameters
 
     def get_schema(self):
-        #return {
-        #    self.conductance_density_parameter: IonChannelDistribution
-        #}
         return {varname: IonChannelDistribution
                 for varname in self.range_variables}
 
 
 def NMODLChannel(name, conductance_density_parameter=None):
     simulator.dummy.insert(name)
-    return type(name, 
+    return type(name,
                 (NMODLIonChannelModel,),
                 {"name": name,
                  "model": name,

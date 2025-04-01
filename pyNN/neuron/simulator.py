@@ -28,7 +28,6 @@ import warnings
 import numpy as np
 from neuron import h, nrn_dll_loaded
 
-from .. import __path__ as pyNN_path
 from .. import common
 from ..core import find, run_command
 from ..morphology import MorphologyFilter

@@ -244,8 +244,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
                 "cl": IonicSpecies
             }
         }
-        #for name, ion_channel in self.ion_channels.items():
-        #    schema[name] = ion_channel.get_schema()
         return schema
 
     def translate(self, parameters, copy=True):
@@ -254,7 +252,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
             _parameters = deepcopy(parameters)
         else:
             _parameters = parameters
-        cls = self.__class__
         if parameters.schema != self.get_schema():
             # should replace this with a PyNN-specific exception type
             raise Exception(f"Schemas do not match: {parameters.schema} != {self.get_schema()}")

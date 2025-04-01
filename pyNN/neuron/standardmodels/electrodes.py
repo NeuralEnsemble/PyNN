@@ -17,7 +17,7 @@ from neuron import h
 import numpy as np
 from pyNN.standardmodels import electrodes, build_translations, StandardCurrentSource
 from pyNN.parameters import ParameterSpace, Sequence
-from pyNN.morphology import MorphologyFilter, LocationGenerator
+from pyNN.morphology import LocationGenerator
 from pyNN.neuron import simulator
 from ..morphology import LabelledLocations
 

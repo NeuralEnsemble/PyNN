@@ -195,7 +195,7 @@ class MapConnector(Connector):
             _proceed = False
             if source_mask is True or source_mask.any():
                 _proceed = True
-            elif type(source_mask) == np.ndarray:
+            elif isinstance(source_mask, np.ndarray):
                 if source_mask.dtype == bool:
                     if source_mask.any():
                         _proceed = True

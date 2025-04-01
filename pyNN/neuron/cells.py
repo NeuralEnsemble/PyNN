@@ -864,7 +864,6 @@ class NeuronTemplate(object):
             mechanism_name = ion_channel.model
             conductance_density = parameters[ion_channel.conductance_density_parameter]
             for index, id in enumerate(self.sections):
-                #if id == -1:
                 if isinstance(conductance_density, float):
                     g = conductance_density
                 elif isinstance(conductance_density, IonChannelDistribution):
@@ -888,7 +887,6 @@ class NeuronTemplate(object):
                                 setattr(section, param_name + "_" + ion_channel.model, value)
                             except AttributeError:  # e.g. parameters not defined within a mechanism, e.g. ena
                                 setattr(section, param_name, value)
-                            ##print(index, mechanism_name, param_name, value)
 
         # insert post-synaptic mechanisms
         for name, pse in self.post_synaptic_entities.items():
