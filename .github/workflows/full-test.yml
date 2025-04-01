@@ -50,9 +50,13 @@ jobs:
         cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.8
         make
         make install
+    - name: Install Arbor
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        python -m pip install arbor==0.9.0 libNeuroML
     - name: Install PyNN itself
       run: |
-        pip install -e ".[test]"
+        python -m pip install -e ".[test]"
     - name: Test installation has worked (Ubuntu)
       # this is needed because the PyNN tests are just skipped if the simulator
       # fails to install, so we need to catch import failures separately
@@ -61,6 +65,7 @@ jobs:
         python -c "import pyNN.nest"
         python -c "import pyNN.neuron"
         python -c "import pyNN.brian2"
+        python -c "import pyNN.arbor"
     - name: Test installation has worked (Windows)
       if: startsWith(matrix.os, 'windows')
       run: |
