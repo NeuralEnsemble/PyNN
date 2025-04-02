@@ -1,10 +1,10 @@
 [project]
 name = "PyNN"
-version = "0.12.3"
+version = "0.12.4"
 description = "A Python package for simulator-independent specification of neuronal network models"
 readme = "README.rst"
 requires-python = ">=3.9"
-license = {text = "CeCILL http://www.cecill.info"}
+license = "CECILL-2.1"
 authors = [
   {name = "The PyNN team", email = "pynn-maintainers@protonmail.com"}
 ]
@@ -16,7 +16,6 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: CEA CNRS Inria Logiciel Libre License, version 2.1 (CeCILL-2.1)",
   "Natural Language :: English",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
@@ -43,7 +42,7 @@ MPI = ["mpi4py"]
 sonata = ["h5py"]
 neuron = ["neuron", "nrnutils"]
 brian2 = ["brian2"]
-arbor = ["arbor"]
+arbor = ["arbor==0.9.0", "libNeuroML"]
 spiNNaker = ["spyNNaker"]
 neuroml = ["libNeuroML"]
 

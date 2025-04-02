@@ -1,0 +1,42 @@
+=========================
+PyNN 0.12.4 release notes
+=========================
+
+April 2nd 2025
+
+Welcome to PyNN 0.12.4!
+
+New documentation theme
+-----------------------
+
+Many thanks to @sdivyanshu90 for suggesting use of the sphinxawesome_ theme,
+which fixes some problems with over-flowing side-bars,
+and in general provides much nicer navigation through the documentation_.
+
+
+NEST 3.8 support
+----------------
+
+PyNN now supports NEST_ v3.8.
+NEST 3.4-3.7 should also work for most neuron models, but since the extension module interface
+has changed in NEST 3.7, those models that require NEST extensions will not work with older versions.
+For older versions of NEST, you will need an older version of PyNN to match.
+
+Bug fixes
+---------
+
+- Fix some problems with creating SpikeTrain objects, following the addition of SpikeTrainList to Neo.
+- Correctly set parameters when creating a point neuron with no synapses, with the neuron backend.
+- Correctly write equations for Brian2 when creating a point neuron with no synapses.
+
+Dependency updates
+------------------
+
+We have dropped support for Python 3.8.
+This version should also work with NumPy v2+.
+
+
+.. _NEST: https://www.nest-simulator.org
+.. _Arbor: https://arbor-sim.org
+.. _sphinxawesome: https://sphinxawesome.xyz
+.. _documentation: https://neuralensemble.org/docs/PyNN/
