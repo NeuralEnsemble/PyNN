@@ -21,6 +21,12 @@ try:
 except ImportError:
     pass
 
+try:
+    import pyNN.arbor
+    available_modules["arbor"] = pyNN.arbor
+except ImportError:
+    pass
+
 
 class SimulatorNotAvailable:
 

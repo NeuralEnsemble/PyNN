@@ -35,12 +35,17 @@ def build_mechanisms():
         return mech_path
 
 
-class Cell(int):
+class Cell(int, common.IDMixin):
+    local = True
 
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
-        self.gid = n
-        self.local = True
+        int.__init__(n)
+        common.IDMixin.__init__(self)
+
+    @property
+    def gid(self):
+        return int(self)
 
 
 class NetworkRecipe(arbor.recipe):

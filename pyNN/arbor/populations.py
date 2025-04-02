@@ -117,6 +117,8 @@ class Population(common.Population):
             [simulator.Cell(id) for id in id_range],
             dtype=simulator.Cell
         )
+        for obj in self.all_cells:
+            obj.parent = self
 
         # for i, cell in enumerate(self.all_cells):
         #     #for key, value in parameter_space.items():
