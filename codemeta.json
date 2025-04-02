@@ -4,8 +4,8 @@
   "license": "https://spdx.org/licenses/CECILL-2.1",
   "codeRepository": "https://github.com/NeuralEnsemble/PyNN",
   "contIntegration": "https://github.com/NeuralEnsemble/PyNN/actions",
-  "dateModified": "2024-04-17",
-  "downloadUrl": null,
+  "dateModified": "2025-04-02",
+  "downloadUrl": "https://files.pythonhosted.org/packages/f2/04/371f66ed8175e41a3d5ee04d957f6253e378cc4616b485e4c6a1b9f27626/pynn-0.12.4.tar.gz",
   "issueTracker": "https://github.com/NeuralEnsemble/PyNN/issues",
   "name": "PyNN",
   "version": "0.12.4",
@@ -24,7 +24,7 @@
   "operatingSystem": ["Linux", "Windows", "macOS"],
   "softwareRequirements": [
     "at least one of the supported simulators: e.g. NEURON, NEST, or Brian.",
-    "Python (version 3.8-3.12)"
+    "Python (version 3.9-3.13)"
   ],
   "relatedLink": [
     "http://neuralensemble.org/docs/PyNN/",
