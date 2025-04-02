@@ -5,7 +5,7 @@ Two ball-and-stick cells with an excitatory synaptic connection
 import matplotlib
 matplotlib.use("Agg")
 from neuroml import Morphology, Segment, Point3DWithDiam as P
-from pyNN.morphology import NeuroMLMorphology, uniform
+from pyNN.morphology import NeuroMLMorphology
 from pyNN.parameters import IonicSpecies
 #from pyNN.units import uF_per_cm2, ohm_cm, S_per_cm2, mV, nA, ms
 from pyNN.utility import get_simulator
@@ -15,6 +15,8 @@ from pyNN.utility.plotting import Figure, Panel
 # === Configure the simulator ================================================
 
 sim, options = get_simulator()
+
+m = sim.morphology
 
 sim.setup(timestep=0.025) #*ms)
 
@@ -45,11 +47,10 @@ cell_type = cell_class(
             "na": IonicSpecies("na", reversal_potential=50.0),
             "k": IonicSpecies("k", reversal_potential=-77.0)
     },
-    pas={"conductance_density": uniform('all', 0.0003), "e_rev":-54.3},
-    na={"conductance_density": uniform('soma', 0.120)},
-    kdr={"conductance_density": uniform('soma', 0.036)},
+    pas={"conductance_density": m.uniform('all', 0.0003), "e_rev":-54.3},
+    na={"conductance_density": m.uniform('soma', 0.120)},
+    kdr={"conductance_density": m.uniform('soma', 0.036)},
     AMPA={
-        #"locations": random_placement(uniform('dendrite ', 0.05)),  # number per µm
         "locations": sim.morphology.at_distances("dendrite", [450]),
         "e_syn": 0.0,
         "tau_syn": 2.0
@@ -68,8 +69,8 @@ step_current.inject_into(cells[0:1], location="soma")
 # === Record from both compartments of both cells ===========================
 
 cells.record('spikes')
-cells.record(['na.m', 'na.h', 'kdr.n'], locations={'soma': 'soma'})
-cells.record('v', locations={'soma': 'soma', 'dendrite': 'dendrite'})
+cells.record(['na.m', 'na.h', 'kdr.n'], locations="soma")
+cells.record('v', locations=["soma", "dendrite"])
 
 # === Connect the two cells
 

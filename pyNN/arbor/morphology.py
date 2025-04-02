@@ -41,6 +41,12 @@ class axon(base_morphology.axon):
         return f"(tag {SectionType.axon.value})"
 
 
+class soma(base_morphology.soma):
+
+    def get_region(self):
+        return f"(tag {SectionType.soma.value})"
+
+
 class random_section(base_morphology.random_section):
 
     def get_region(self):

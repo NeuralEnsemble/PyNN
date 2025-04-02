@@ -7,7 +7,7 @@ Andrew Davison, May 2012
 
 
 import pyNN.neuron as sim
-from pyNN.morphology import load_morphology, uniform, random_section, dendrites, apical_dendrites, by_distance
+from pyNN.morphology import load_morphology
 import neuroml.loaders ##
 #from nineml.abstraction_layer.readers import XMLReader
 from quantities import S, cm, um
@@ -21,11 +21,12 @@ from pyNN.utility.plotting import Figure, Panel
 # === Configure the simulator ================================================
 
 sim, options = get_simulator()
+morph = sim.morphology
 
 sim.setup(timestep=0.025) #*ms)
 
 
-pyr_morph = load_morphology("oi15rpy4-1.CNG.swc", replace_axon=None, use_library="morphio")
+pyr_morph = load_morphology("oi15rpy4-1.CNG.swc", replace_axon=None)
 
 # # support ion channel models defined in NineML, LEMS, or from built-in library
 # na_channel = XMLReader.read("na.xml")
@@ -50,9 +51,9 @@ pyramidal_cell_class.post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticRe
 
 pyramidal_cell = pyramidal_cell_class(
     morphology=pyr_morph,
-    pas={"conductance_density": uniform('all', 0.0003), "e_rev":-54.3},
-    na={"conductance_density": uniform('soma', 0.120)},
-    kdr={"conductance_density": uniform('soma', 0.036)},
+    pas={"conductance_density": morph.uniform('all', 0.0003), "e_rev":-54.3},
+    na={"conductance_density": morph.uniform('soma', 0.120)},
+    kdr={"conductance_density": morph.uniform('soma', 0.036)},
     #kdr={"conductance_density": by_distance(apical_dendrites(), lambda d: 0.05*d/200.0)},
     ionic_species={
         "na": IonicSpecies("na", reversal_potential=50.0),
@@ -61,13 +62,14 @@ pyramidal_cell = pyramidal_cell_class(
     cm=1.0,
     Ra=500.0,
     AMPA={
-        "density": uniform('all', 0.05),  # number per µm
+        #"density": sim.morphology.uniform('all', 0.05),  # number per µm
+        "locations": morph.random_placement(morph.uniform('all', 0.05)),  # number per µm
         "e_syn": 0.0,
         "tau_syn": 2.0
     },
     GABA_A={
         #"density": by_distance(dendrites(), lambda d: 0.05 * (d < 50.0)),  # number per µm
-        "density": uniform('all', 0.05),
+        "locations": morph.random_placement(morph.uniform('all', 0.05)),
         "e_syn": -70.0,
         "tau_syn": 5.0
     }
@@ -87,8 +89,8 @@ inputs = sim.Population(1000, sim.SpikeSourcePoisson(rate=1000.0))
 # define which variables to record
 #(pyramidal_cells + interneurons).record('spikes')    # record spikes from all cells
 pyramidal_cells.record('spikes')
-pyramidal_cells[:1].record('v', locations={"soma": "soma"})
-pyramidal_cells[:1].record('v', locations={"dend": apical_dendrites()})
+pyramidal_cells[:1].record('v', locations=morph.centre(morph.soma()))
+pyramidal_cells[:1].record('v', locations=morph.centre(morph.apical_dendrites()))
 # interneurons.sample(20).record('v')                 # record soma.v from a sample of 20 granule cells
 # interneurons[0:5].record('GABA_A.i', locations=['dendrite'])  # record the GABA_A synaptic current from the synapse
 # pyramidal_cells[0].record('na.m', locations=longest_dendrite(pkj_morph)) # record the sodium channel m state variable along the length of one dendrite
@@ -115,7 +117,7 @@ print("Connecting populations")
 #                      source="soma.v", target="AMPA")
 
 i2p = sim.Projection(inputs, pyramidal_cells,
-                     connector=sim.AllToAllConnector(location_selector=random_section(apical_dendrites())),
+                     connector=sim.AllToAllConnector(location_selector=morph.random_section(morph.apical_dendrites())),
                      synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
                      receptor_type="AMPA"
                      )
@@ -132,16 +134,16 @@ sim.end()
 
 
 Figure(
-        Panel(data.filter(name='soma.v')[0],
+        Panel(data.filter(name='soma.centre.v')[0],
               ylabel="Membrane potential, soma (mV)",
               yticks=True, ylim=(-80, 40),
               xticks=True, xlabel="Time (ms)"),
-        Panel(data.filter(name='dend.v')[0][:, 0::10],
+        Panel(data.filter(name='apical_dendrites.centre.v')[0][:, 0::10],
               ylabel="Membrane potential, dendrites (mV)",
               yticks=True, ylim=(-80, 40),
               xticks=True, xlabel="Time (ms)"),
         title="Multi-compartment network",
-        annotations="Simulated with NEURON"
+        annotations=f"Simulated with {options.simulator}"
     ).save(f"mc_network_{options.simulator}.png")
 
 sim.end()
