@@ -92,11 +92,13 @@ def load_mechanisms(path):
     else:
         arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc', 'umac']
         for arch in arch_list:
-            lib_path = os.path.join(path, arch, '.libs', 'libnrnmech.so')
-            if os.path.exists(lib_path):
-                h.nrn_load_dll(lib_path)
-                nrn_dll_loaded.append(path)
-                return
+            path_list = ['.so', '.dylib']
+            for p in path_list:
+                lib_path = os.path.join(path, arch, f'libnrnmech{p}')
+                if os.path.exists(lib_path):
+                    h.nrn_load_dll(lib_path)
+                    nrn_dll_loaded.append(path)
+                    return
     raise IOError(
         f"NEURON mechanisms not found in {path}. "
         "You may need to run 'nrnivmodl' in this directory.")
