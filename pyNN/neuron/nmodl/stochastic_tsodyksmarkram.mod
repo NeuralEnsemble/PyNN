@@ -87,7 +87,7 @@ NET_RECEIVE(w, p_surv, t_surv) {
 VERBATIM
 #ifndef NRN_VERSION_GTEQ_8_2_0
 double nrn_random_pick(void* r);
-Rand* nrn_random_arg(int argpos);
+void* nrn_random_arg(int argpos);
 #define RANDCAST
 #else
 #define RANDCAST (Rand*)
