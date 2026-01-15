@@ -40,17 +40,24 @@ class NESTSynapseMixin(object):
             if value.is_homogeneous:
                 value.shape = (1,)
                 synapse_defaults[name] = value.evaluate(simplify=True)
+
+        if self.weight_variable and self.weight_variable != "weight":
+            synapse_defaults.pop("weight")
+
+        if self.delay_variable and self.delay_variable != "delay":
+            synapse_defaults.pop("delay")
+
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
-        try:
-            nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        except nest.NESTError:
-            if not state.extensions_loaded:
-                raise NoModelAvailableError(
-                    "{self.__class__.__name__} is not available."
-                    "There was a problem loading NEST extensions".format(self=self)
-                )
-            raise
+        # try:
+        nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        # except nest.NESTError:
+        #     if not state.extensions_loaded:
+        #         raise NoModelAvailableError(
+        #             "{self.__class__.__name__} is not available."
+        #             "There was a problem loading NEST extensions".format(self=self)
+        #         )
+        #     raise
         return self.nest_name + '_lbl'
 
     def _get_minimum_delay(self):

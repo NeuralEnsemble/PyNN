@@ -1,0 +1,130 @@
+# iaf_psc_exp - Leaky integrate-and-fire neuron model
+# ###################################################
+#
+# Description
+# +++++++++++
+#
+# iaf_psc_exp is an implementation of a leaky integrate-and-fire model
+# with exponentially decaying synaptic currents according to [1]_.
+# Thus, postsynaptic currents have an infinitely short rise time.
+#
+# The threshold crossing is followed by an absolute refractory period
+# during which the membrane potential is clamped to the resting potential
+# and spiking is prohibited.
+#
+# The general framework for the consistent formulation of systems with
+# neuron like dynamics interacting by point events is described in
+# [1]_.  A flow chart can be found in [2]_.
+#
+# Critical tests for the formulation of the neuron model are the
+# comparisons of simulation results for different computation step
+# sizes.
+#
+# .. note::
+#
+#    If tau_m is very close to tau_syn_exc or tau_syn_inh, numerical problems
+#    may arise due to singularities in the propagator matrics. If this is
+#    the case, replace equal-valued parameters by a single parameter.
+#
+# For details, please see ``IAF_neurons_singularity.ipynb`` in
+# the NEST source code (``docs/model_details``).
+#
+#
+# References
+# ++++++++++
+#
+# .. [1] Rotter S,  Diesmann M (1999). Exact simulation of
+#        time-invariant linear systems with applications to neuronal
+#        modeling. Biologial Cybernetics 81:381-402.
+#        DOI: https://doi.org/10.1007/s004220050570
+# .. [2] Diesmann M, Gewaltig M-O, Rotter S, & Aertsen A (2001). State
+#        space analysis of synchronous spiking in cortical neural
+#        networks. Neurocomputing 38-40:565-571.
+#        DOI: https://doi.org/10.1016/S0925-2312(01)00409-X
+# .. [3] Morrison A, Straube S, Plesser H E, Diesmann M (2006). Exact
+#        subthreshold integration with continuous spike times in discrete time
+#        neural network simulations. Neural Computation, in press
+#        DOI: https://doi.org/10.1162/neco.2007.19.1.47
+#
+#
+# See also
+# ++++++++
+#
+# iaf_psc_delta, iaf_psc_alpha, iaf_cond_exp
+#
+#
+# Copyright statement
+# +++++++++++++++++++
+#
+# This file is part of NEST.
+#
+# Copyright (C) 2004 The NEST Initiative
+#
+# NEST is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# NEST is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+#
+#
+model iaf_psc_exp_neuron:
+
+    state:
+        V_m mV = E_L    # Membrane potential
+        refr_t ms = 0 ms    # Refractory period timer
+        I_syn_exc pA = 0 pA
+        I_syn_inh pA = 0 pA
+
+    equations:
+        I_syn_exc' = -I_syn_exc / tau_syn_exc
+        I_syn_inh' = -I_syn_inh / tau_syn_inh
+        V_m' = -(V_m - E_L) / tau_m + (I_syn_exc - I_syn_inh + I_e + I_stim) / C_m
+        refr_t' = -1e3 * ms/s    # refractoriness is implemented as an ODE, representing a timer counting back down to zero. XXX: TODO: This should simply read ``refr_t' = -1 / s`` (see https://github.com/nest/nestml/issues/984)
+
+    parameters:
+        C_m pF = 250 pF           # Capacitance of the membrane
+        tau_m ms = 10 ms          # Membrane time constant
+        tau_syn_inh ms = 2 ms     # Time constant of inhibitory synaptic current
+        tau_syn_exc ms = 2 ms     # Time constant of excitatory synaptic current
+        refr_T ms = 2 ms          # Duration of refractory period
+        E_L mV = -70 mV           # Resting potential
+        V_reset mV = -70 mV       # Reset value of the membrane potential
+        V_th mV = -55 mV          # Spike threshold potential
+
+        # constant external input current
+        I_e pA = 0 pA
+
+    input:
+        exc_spikes <- excitatory spike
+        inh_spikes <- inhibitory spike
+        I_stim pA <- continuous
+
+    output:
+        spike
+
+    update:
+        if refr_t > 0 ms:
+            # neuron is absolute refractory, do not evolve V_m
+            integrate_odes(I_syn_exc, I_syn_inh, refr_t)
+        else:
+            # neuron not refractory
+            integrate_odes(I_syn_exc, I_syn_inh, V_m)
+
+    onReceive(exc_spikes):
+        I_syn_exc += exc_spikes * pA * s
+
+    onReceive(inh_spikes):
+        I_syn_inh += inh_spikes * pA * s
+
+    onCondition(refr_t <= 0 ms and V_m >= V_th):
+        # threshold crossing
+        refr_t = refr_T    # start of the refractory period
+        V_m = V_reset
+        emit_spike()

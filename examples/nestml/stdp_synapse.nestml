@@ -1,0 +1,108 @@
+# stdp_synapse - Synapse model for spike-timing dependent plasticity
+# ##################################################################
+#
+#
+# Description
+# +++++++++++
+#
+# stdp_synapse is a synapse with spike-timing dependent plasticity (as defined in [1]_). Here the weight dependence exponent can be set separately for potentiation and depression. Examples:
+#
+# =================== ==== =============================
+# Multiplicative STDP [2]_ mu_plus = mu_minus = 1
+# Additive STDP       [3]_ mu_plus = mu_minus = 0
+# Guetig STDP         [1]_ mu_plus, mu_minus in [0, 1]
+# Van Rossum STDP     [4]_ mu_plus = 0 mu_minus = 1
+# =================== ==== =============================
+#
+# Note that in this particular STDP synapse model, the weight is not allowed to be negative. In case an inhibitory STDP synapse needs to be modeled, this model (with weight >= 0 at all times) can be connected to a postsynaptic neuron at its appropriate (inhibitory) input port. The sign of the postsynaptic response is thus handled in the postsynaptic neuron. In principle, an STDP synapse model can be defined that allows for negative weights, but in this case, care should be taken to prevent the sign of the weight from changing during learning, as a biological synapse cannot simply switch from one type to another, say, from glutamatergic to GABAergic.
+#
+#
+# References
+# ++++++++++
+#
+# .. [1] Guetig et al. (2003) Learning Input Correlations through Nonlinear
+#        Temporally Asymmetric Hebbian Plasticity. Journal of Neuroscience
+#
+# .. [2] Rubin, J., Lee, D. and Sompolinsky, H. (2001). Equilibrium
+#        properties of temporally asymmetric Hebbian plasticity, PRL
+#        86,364-367
+#
+# .. [3] Song, S., Miller, K. D. and Abbott, L. F. (2000). Competitive
+#        Hebbian learning through spike-timing-dependent synaptic
+#        plasticity,Nature Neuroscience 3:9,919--926
+#
+# .. [4] van Rossum, M. C. W., Bi, G-Q and Turrigiano, G. G. (2000).
+#        Stable Hebbian learning from spike timing-dependent
+#        plasticity, Journal of Neuroscience, 20:23,8812--8821
+#
+#
+# Copyright statement
+# +++++++++++++++++++
+#
+# This file is part of NEST.
+#
+# Copyright (C) 2004 The NEST Initiative
+#
+# NEST is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# NEST is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+#
+model stdp_synapse:
+    state:
+        w real = 1 [[w >= 0]]   # Synaptic weight
+        pre_trace real = 0.
+        post_trace real = 0.
+
+    parameters:
+        d ms = 1 ms    # Synaptic transmission delay
+        lambda real =  0.01         # (dimensionless) learning rate for causal updates
+        alpha real = 1              # relative learning rate for acausal firing
+        tau_tr_pre ms = 20 ms       # time constant of presynaptic trace
+        tau_tr_post ms = 20 ms      # time constant of postsynaptic trace
+        mu_plus real = 1            # weight dependence exponent for causal updates
+        mu_minus real = 1           # weight dependence exponent for acausal updates
+
+        Wmin real = 0. [[Wmin >= 0]]             # minimum absolute value of synaptic weight
+        Wmax real = 100. [[Wmax >= 0]]           # maximum absolute value of synaptic weight
+
+    equations:
+        pre_trace' = -pre_trace / tau_tr_pre
+        post_trace' = -post_trace / tau_tr_post
+
+    input:
+        pre_spikes <- spike
+        post_spikes <- spike
+
+    output:
+        spike(weight real, delay ms)
+
+    onReceive(post_spikes):
+        post_trace += 1
+
+        # potentiate synapse
+        # note that w is at all times >= 0
+        w_ real = Wmax * (w / Wmax + (lambda * (1. - (w / Wmax))**mu_plus * pre_trace))
+        w = min(Wmax, w_)
+
+    onReceive(pre_spikes):
+        pre_trace += 1
+
+        # depress synapse
+        # note that w is at all times >= 0
+        w_ real = Wmax * (w / Wmax - (alpha * lambda * (w / Wmax)**mu_minus * post_trace))
+        w = max(Wmin, w_)
+
+        # deliver spike to postsynaptic partner
+        emit_spike(w, d)
+
+    update:
+        integrate_odes()
