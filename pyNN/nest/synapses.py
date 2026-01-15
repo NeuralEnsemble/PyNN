@@ -49,15 +49,15 @@ class NESTSynapseMixin(object):
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
-        # try:
-        nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
-        # except nest.NESTError:
-        #     if not state.extensions_loaded:
-        #         raise NoModelAvailableError(
-        #             "{self.__class__.__name__} is not available."
-        #             "There was a problem loading NEST extensions".format(self=self)
-        #         )
-        #     raise
+        try:
+            nest.SetDefaults(self.nest_name + '_lbl', synapse_defaults)
+        except nest.NESTError:
+            if not state.extensions_loaded:
+                raise NoModelAvailableError(
+                    "{self.__class__.__name__} is not available."
+                    "There was a problem loading NEST extensions".format(self=self)
+                )
+            raise
         return self.nest_name + '_lbl'
 
     def _get_minimum_delay(self):

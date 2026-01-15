@@ -142,7 +142,6 @@ def nestml_synapse_type(synapse_name, nestml_description, postsynaptic_neuron_ne
         shutil.rmtree(neuron_input_path)
 
     nest.Install(module_name)
-    import pdb;pdb.set_trace()
 
     # todo: get units information from nestml_description, provide to "native_cell_type()"
     if postsynaptic_neuron_nestml_description:
