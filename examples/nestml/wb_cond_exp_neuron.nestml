@@ -1,36 +1,56 @@
-"""
-wb_cond_exp - Wang-Buzsaki model
-################################
-
-Description
-+++++++++++
-
-wb_cond_exp is an implementation of a modified Hodkin-Huxley model.
-
-(1) Post-synaptic currents: Incoming spike events induce a post-synaptic change
-    of conductance modeled by an exponential function.
-
-(2) Spike Detection: Spike detection is done by a combined threshold-and-local-
-    maximum search: if there is a local maximum above a certain threshold of
-    the membrane potential, it is considered a spike.
-
-References
-++++++++++
-
-.. [1] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
-       inhibition in a hippocampal interneuronal network model. Journal of
-       neuroscience, 16(20), pp.6402-6413.
-
-See Also
-++++++++
-
-hh_cond_exp_traub, wb_cond_multisyn
-"""
-model wb_cond_exp:
+# wb_cond_exp - Wang-Buzsaki model
+# ################################
+# 
+# Description
+# +++++++++++
+# 
+# wb_cond_exp is an implementation of a modified Hodkin-Huxley model.
+# 
+# (1) Post-synaptic currents: Incoming spike events induce a post-synaptic change
+# of conductance modeled by an exponential function.
+# 
+# (2) Spike Detection: Spike detection is done by a combined threshold-and-local-
+# maximum search: if there is a local maximum above a certain threshold of
+# the membrane potential, it is considered a spike.
+# 
+# References
+# ++++++++++
+# 
+# .. [1] Wang, X.J. and Buzsaki, G., (1996) Gamma oscillation by synaptic
+#        inhibition in a hippocampal interneuronal network model. Journal of
+#        neuroscience, 16(20), pp.6402-6413.
+# 
+# See Also
+# ++++++++
+# 
+# hh_cond_exp_traub, wb_cond_multisyn
+#
+#
+# Copyright statement
+# +++++++++++++++++++
+#
+# This file is part of NEST.
+# 
+# Copyright (C) 2004 The NEST Initiative
+#
+# NEST is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+#
+# NEST is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with NEST.  If not, see <http://www.gnu.org/licenses/>.
+#
+model wb_cond_exp_neuron:
     state:
-        r integer = 0 # number of steps in the current refractory phase
-
         V_m mV = E_L    # Membrane potential
+        V_m_old mV = E_L    # Membrane potential at previous timestep for threshold check
+        refr_t ms = 0 ms    # Refractory period timer
 
         Inact_h real = alpha_h_init / ( alpha_h_init + beta_h_init )
         Act_n real = alpha_n_init / ( alpha_n_init + beta_n_init )
@@ -40,7 +60,7 @@ model wb_cond_exp:
         kernel g_inh = exp(-t / tau_syn_inh)
         kernel g_exc = exp(-t / tau_syn_exc)
 
-        recordable inline I_syn_exc pA = convolve(g_exc, exc_spikes) * nS * ( E_exc - V_m )
+        recordable inline I_syn_exc pA = convolve(g_exc, exc_spikes) * nS * ( V_m - E_exc )
         recordable inline I_syn_inh pA = convolve(g_inh, inh_spikes) * nS * ( V_m - E_inh )
 
         inline I_Na  pA = g_Na * _subexpr(V_m) * Inact_h * ( V_m - E_Na )
@@ -50,17 +70,19 @@ model wb_cond_exp:
         V_m' =( -( I_Na + I_K + I_L ) + I_e + I_stim + I_syn_exc - I_syn_inh ) / C_m
         Act_n' = ( alpha_n(V_m) * ( 1 - Act_n ) - beta_n(V_m) * Act_n )  # n-variable
         Inact_h' = ( alpha_h(V_m) * ( 1 - Inact_h ) - beta_h(V_m) * Inact_h ) # h-variable
+        refr_t' = -1e3 * ms/s    # refractoriness is implemented as an ODE, representing a timer counting back down to zero. XXX: TODO: This should simply read ``refr_t' = -1 / s`` (see https://github.com/nest/nestml/issues/984)
 
     parameters:
-        t_ref ms = 2 ms           # Refractory period
+        C_m pF = 100 pF           # Membrane capacitance
         g_Na nS = 3500 nS         # Sodium peak conductance
         g_K nS = 900 nS           # Potassium peak conductance
         g_L nS = 10 nS            # Leak conductance
-        C_m pF = 100 pF           # Membrane capacitance
         E_Na mV = 55 mV           # Sodium reversal potential
         E_K mV = -90 mV           # Potassium reversal potential
         E_L mV = -65 mV           # Leak reversal potential (aka resting potential)
         V_Tr mV = -55 mV          # Spike threshold
+        refr_T ms = 2 ms         # Duration of refractory period
+
         tau_syn_exc ms = 0.2 ms   # Rise time of the excitatory synaptic alpha function
         tau_syn_inh ms = 10 ms    # Rise time of the inhibitory synaptic alpha function
         E_exc mV = 0 mV           # Excitatory synaptic reversal potential
@@ -70,30 +92,33 @@ model wb_cond_exp:
         I_e pA = 0 pA
 
     internals:
-        RefractoryCounts integer = steps(t_ref) # refractory time in steps
-
         alpha_n_init 1/ms = -0.05/(ms*mV) * (E_L + 34.0 mV) / (exp(-0.1 * (E_L + 34.0 mV)) - 1.0)
         beta_n_init  1/ms = 0.625/ms * exp(-(E_L + 44.0 mV) / 80.0 mV)
         alpha_h_init 1/ms = 0.35/ms * exp(-(E_L + 58.0 mV) / 20.0 mV)
         beta_h_init  1/ms = 5.0 / (exp(-0.1 / mV * (E_L + 28.0 mV)) + 1.0) /ms
 
     input:
-        inh_spikes <- inhibitory spike
         exc_spikes <- excitatory spike
+        inh_spikes <- inhibitory spike
         I_stim pA <- continuous
 
     output:
         spike
 
     update:
-        U_old mV = V_m
-        integrate_odes()
-        # sending spikes: crossing 0 mV, pseudo-refractoriness and local maximum...
-        if r > 0: # is refractory?
-            r -= 1
-        elif V_m > V_Tr and U_old > V_m: # threshold && maximum
-            r = RefractoryCounts
-            emit_spike()
+        # Hodgkin-Huxley type model: ODEs are always integrated, regardless of refractory state
+        V_m_old = V_m
+        if refr_t > 0 ms:
+            # neuron is absolute refractory
+            integrate_odes(V_m, Act_n, Inact_h, refr_t)
+        else:
+            # neuron not refractory
+            integrate_odes(V_m, Act_n, Inact_h)
+
+    onCondition(refr_t <= 0 ms and V_m > 0 mV and V_m_old > V_m):
+        # threshold crossing and maximum
+        refr_t = refr_T    # start of the refractory period
+        emit_spike()
 
     function _subexpr(V_m mV) real:
         return alpha_m(V_m)**3 / ( alpha_m(V_m) + beta_m(V_m) )**3

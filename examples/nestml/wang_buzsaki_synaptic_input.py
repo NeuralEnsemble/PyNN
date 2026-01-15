@@ -22,6 +22,7 @@ optional arguments:
 
 """
 
+import os
 from pyNN.utility import get_simulator, init_logging, normalized_filename, SimulationProgressBar
 from pyNN.random import NumpyRNG, RandomDistribution
 
@@ -45,7 +46,9 @@ sim.setup(timestep=0.01, min_delay=1.0)
 
 # === Create the cell type from a NESTML definition
 
-celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp", "wb_cond_exp.nestml")
+current_dir = os.path.dirname(os.path.abspath(__file__))
+input_path = os.path.join(current_dir, "wb_cond_exp_neuron.nestml")
+celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp_neuron", input_path)
 
 # add some variability between neurons
 rng = NumpyRNG(seed=1309463846)
