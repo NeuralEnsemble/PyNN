@@ -39,10 +39,11 @@ class Recorder(recording.Recorder):
             varname = translations[variable.name]['translated_name']
             neurons_to_record = np.sort(np.fromiter(
                 self.recorded[variable], dtype=int)) - self.population.first_id
-            self._devices[variable.name] = brian2.StateMonitor(group, varname,
-                                                          record=neurons_to_record,
-                                                          when='end',
-                                                          dt=self.sampling_interval * ms)
+            self._devices[variable.name] = brian2.StateMonitor(
+                group, varname,
+                record=neurons_to_record,
+                when='end',
+                dt=self.sampling_interval * ms)
         simulator.state.network.add(self._devices[variable.name])
 
     def _record(self, variable, new_ids, sampling_interval=None):

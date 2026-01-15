@@ -95,11 +95,11 @@ when constructing a cell type for use in the :class:`Population` constructor
 (see above) and in the :meth:`Population.set` method, parameter values can be
 any of the following:
 
-    * a single number - sets the same value for all cells in the :class:`Population`;
-    * a :class:`RandomDistribution` object - for each cell, sets a different
+* a single number - sets the same value for all cells in the :class:`Population`;
+* a :class:`RandomDistribution` object - for each cell, sets a different
       random value drawn from the distribution;
-    * a list or 1D NumPy array of the same size as the :class:`Population`;
-    * a function that takes a single integer argument; this function will be
+* a list or 1D NumPy array of the same size as the :class:`Population`;
+* a function that takes a single integer argument; this function will be
       called with the index of every cell in the :class:`Population` to return
       the parameter value for that cell.
 
@@ -197,11 +197,11 @@ package, which provides a common Python object model for neurophysiology data
 
 Using Neo provides several advantages:
 
-    * data objects contain essential metadata, such as units, sampling interval, etc.;
-    * data can be saved to any of the file formats supported by Neo, including HDF5 and Matlab files;
-    * it is easier to handle data when running multiple simulations with the same network (calling :meth:`reset` between each one);
-    * it is possible to save multiple signals to a single file;
-    * better interoperability with other Python packages using Neo (for data analysis, etc.).
+* data objects contain essential metadata, such as units, sampling interval, etc.;
+* data can be saved to any of the file formats supported by Neo, including HDF5 and Matlab files;
+* it is easier to handle data when running multiple simulations with the same network (calling :meth:`reset` between each one);
+* it is possible to save multiple signals to a single file;
+* better interoperability with other Python packages using Neo (for data analysis, etc.).
 
 Note that Neo is based on NumPy, and most Neo data objects sub-class the NumPy
 :class:`ndarray` class, so much of your data handling code should work exactly
@@ -230,7 +230,7 @@ arguments to a :class:`SynapseType` sub-class such as :class:`StaticSynapse` or
 :class:`TsodyksMarkramSynapse`. For example, instead of::
 
     prj = Projection(p1, p2, AllToAllConnector(weights=0.05, delays=0.5))  # PyNN 0.7
-    
+
 you should now write::
 
     prj = Projection(p1, p2, AllToAllConnector(), StaticSynapse(weight=0.05, delay=0.5))  # PyNN 0.8
@@ -268,13 +268,13 @@ Specifying heterogeneous synapse parameters
 As for neuron parameters, synapse parameter values can now be any of the
 following:
 
-    * a single number - sets the same value for all connections in the :class:`Projection`;
-    * a :class:`RandomDistribution` object - for each connection, sets a different
+* a single number - sets the same value for all connections in the :class:`Projection`;
+* a :class:`RandomDistribution` object - for each connection, sets a different
       random value drawn from the distribution;
-    * a list or 1D NumPy array of the same size as the :class:`Projection`
+* a list or 1D NumPy array of the same size as the :class:`Projection`
       (although this is not very useful for random networks, whose size may not
       be known in advance);
-    * a function that takes a single float argument; this function will be
+* a function that takes a single float argument; this function will be
       called with the *distance* between the pre- and post-synaptic cell to return
       the parameter value for that cell.
 
@@ -305,10 +305,10 @@ as follows::
 
     prj.printWeights('exc_weights.txt', format='array')    # PyNN 0.7
     prj.save('weight', 'exc_weights.txt', format='array')  # PyNN 0.8
-    
+
     prj.saveConnections('exc_conn.txt')                    # PyNN 0.7
     prj.save('all', 'exc_conn.txt', format='list')         # PyNN 0.8
-    
+
 Also note that all three new methods can operate on several parameters at a time::
 
     weights, delays = prj.getWeights('array'), prj.getDelays('array')  # PyNN 0.7

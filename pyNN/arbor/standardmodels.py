@@ -8,6 +8,7 @@ Standard cells for the Arbor module.
 import logging
 from copy import deepcopy
 
+import numpy as np
 import arbor
 
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
@@ -60,9 +61,15 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
         if hasattr(cells, "parent"):
             cell_descr = cells.parent._arbor_cell_description.base_value
             index = cells.parent.id_to_index(cells.all_cells.astype(int))
-        else:
+        elif hasattr(cells, "_arbor_cell_description"):
             cell_descr = cells._arbor_cell_description.base_value
             index = cells.id_to_index(cells.all_cells.astype(int))
+        else:
+            assert isinstance(cells, (list, tuple))
+            # we're assuming all cells have the same parent here
+            cell_descr = cells[0].parent._arbor_cell_description.base_value
+            index = np.array(cells, dtype=int)
+
         self.parameter_space.shape = (1,)
         if location is None:
             raise NotImplementedError
@@ -244,8 +251,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
                 "cl": IonicSpecies
             }
         }
-        #for name, ion_channel in self.ion_channels.items():
-        #    schema[name] = ion_channel.get_schema()
         return schema
 
     def translate(self, parameters, copy=True):
@@ -254,7 +259,6 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
             _parameters = deepcopy(parameters)
         else:
             _parameters = parameters
-        cls = self.__class__
         if parameters.schema != self.get_schema():
             # should replace this with a PyNN-specific exception type
             raise Exception(f"Schemas do not match: {parameters.schema} != {self.get_schema()}")

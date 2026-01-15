@@ -46,7 +46,7 @@ class IDMixin(object):
     where p is a Population object.
     """
     # Simulator ID classes should inherit both from the base type of the ID
-    # (e.g., int or long) and from IDMixin.
+    # (e.g., int) and from IDMixin.
 
     def __getattr__(self, name):
         if name == "parent":
@@ -128,9 +128,12 @@ class IDMixin(object):
     def local(self):
         return self.parent.is_local(self)
 
-    def inject(self, current_source):
+    def inject(self, current_source, location=None):
         """Inject current from a current source object into the cell."""
-        current_source.inject_into([self])
+        if location is None:
+            current_source.inject_into([self])
+        else:
+            current_source.inject_into([self], location=location)
 
     def get_initial_value(self, variable):
         """Get the initial value of a state variable of the cell."""

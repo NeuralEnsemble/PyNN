@@ -73,28 +73,28 @@ def test(cases=[1]):
         synapse = StaticSynapse(weight=w, delay=delay)
         rng = NumpyRNG(23434, parallel_safe=parallel_safe)
 
-        if case is 1:
+        if case == 1:
             conn = DistanceDependentProbabilityConnector(d_expression, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "DistanceDependent_%s_np_%d.png" % (simulator_name, np)
-        elif case is 2:
+        elif case == 2:
             conn = FixedProbabilityConnector(0.02, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedProbability_%s_np_%d.png" % (simulator_name, np)
-        elif case is 3:
+        elif case == 3:
             conn = AllToAllConnector(delays=delay, safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "AllToAll_%s_np_%d.png" % (simulator_name, np)
-        elif case is 4:
+        elif case == 4:
             conn = FixedNumberPostConnector(50, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedNumberPost_%s_np_%d.png" % (simulator_name, np)
-        elif case is 5:
+        elif case == 5:
             conn = FixedNumberPreConnector(50, safe=safe, callback=callback, allow_self_connections=autapse, rng=rng)
             fig_name = "FixedNumberPre_%s_np_%d.png" % (simulator_name, np)
-        elif case is 6:
+        elif case == 6:
             conn = OneToOneConnector(safe=safe, callback=callback)
             fig_name = "OneToOne_%s_np_%d.png" % (simulator_name, np)
-        elif case is 7:
+        elif case == 7:
             conn = FromFileConnector(files.NumpyBinaryFile('Results/connections.dat', mode='r'), safe=safe, callback=callback, distributed=True)
             fig_name = "FromFile_%s_np_%d.png" % (simulator_name, np)
-        elif case is 8:
+        elif case == 8:
             conn = SmallWorldConnector(degree=0.1, rewiring=0., safe=safe, callback=callback, allow_self_connections=autapse)
             fig_name = "SmallWorld_%s_np_%d.png" % (simulator_name, np)
 

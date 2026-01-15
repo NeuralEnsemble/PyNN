@@ -77,7 +77,7 @@ class NeuroMLCell(NeuronTemplate):
             segment_group = segment_groups[cable_section_id]
             for segment_id in segment_group["members"]:
                 seg_elem = segments[segment_id]
-                 # (note that pt3d accepts arrays in NEURON 7.5+ so we could make "nodes" an array)
+                # (note that pt3d accepts arrays in NEURON 7.5+ so we could make "nodes" an array)
                 if seg_elem.proximal:
                     segment_group["nodes"].append(seg_elem.proximal)
                 if seg_elem.distal:
@@ -95,7 +95,6 @@ class NeuroMLCell(NeuronTemplate):
             raise NotImplementedError("todo")
 
         return segment_groups, cable_sections
-
 
     def __init__(self):
         # since we might wish to create a large population
@@ -196,11 +195,9 @@ class NeuroMLCell(NeuronTemplate):
             segment_group_id = elem.segment_groups
             if segment_group_id in self.sections:
                 setattr(self.sections[segment_group_id], property_name, float(value))
-                #print("Setting {}={} in {}".format(property_name, value, segment_group_id))
             else:
                 for child_group_id in segment_groups[segment_group_id]["includes"]:
                     setattr(self.sections[child_group_id], property_name, float(value))
-                    #print("Setting {}={} in {} (part of {})".format(property_name, value, child_group_id, segment_group_id))
 
     def set_channel_properties(self, element, segment_groups):
         segment_group_id = element.segment_groups
@@ -208,7 +205,7 @@ class NeuroMLCell(NeuronTemplate):
         gmax = float(gmax)
         expected_units = "S_per_cm2"
         if units != expected_units:
-             raise ValueError("Unexpected units. Got {}, expected {}".format(units, expected_units))
+            raise ValueError("Unexpected units. Got {}, expected {}".format(units, expected_units))
         if hasattr(element, "e_rev"):
             e_rev, units = element.e_rev.split()
             e_rev = float(e_rev)
@@ -276,10 +273,10 @@ class NeuroMLCell(NeuronTemplate):
 
         # todo: handle non-variable params, e.g. e_rev
 
-        #<variableParameter segmentGroup="apical" parameter="condDensity">
-        #    <inhomogeneousValue value="1e4 * ((-0.869600 + 2.087000*exp((p-0.000000)*0.003100))*0.000080)"
-        #                        inhomogeneousParameter="PathLengthOver_apical"/>
-        #</variableParameter>
+        # <variableParameter segmentGroup="apical" parameter="condDensity">
+        #     <inhomogeneousValue value="1e4 * ((-0.869600 + 2.087000*exp((p-0.000000)*0.003100))*0.000080)"
+        #                         inhomogeneousParameter="PathLengthOver_apical"/>
+        # </variableParameter>
 
     def memb_init(self):
         for state_var in ('v',):
@@ -311,14 +308,12 @@ class NeuroMLCellType(BaseCellType):
         return True  # todo: implement this properly
 
 
-
 def neuroml_cell_type(nml_cell):
     """
     Return a new NeuroMLCellType subclass.
     """
     name = nml_cell.id + "_CellType"
     return type(name, (NeuroMLCellType,), {"nml_cell": nml_cell})
-
 
 
 def load_neuroml_cell_types(filename):
@@ -331,15 +326,13 @@ def load_neuroml_cell_types(filename):
 
 def load_neuroml_ion_channels(filenames):
     from pyneuroml import pynml
-    from shutil import rmtree
     dirnames = set([])
     for filename in filenames:
         print("Handling {}".format(filename))
         pynml.run_lems_with_jneuroml_neuron(filename, nogui=True, only_generate_scripts=True,
-                                            compile_mods = False, verbose=False)
+                                            compile_mods=False, verbose=False)
         dirnames.add(os.path.abspath(os.path.dirname(filename)))
     for dirname in dirnames:
         if not os.path.exists(dirname + "/x86_64"):
-            #rmtree(dirname + "/x86_64")  # tmp hack
             compile_nmodl(dirname)
             load_mechanisms(dirname)

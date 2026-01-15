@@ -349,18 +349,18 @@ class ParameterSpace(object):
                         model_name,
                         valid_parameter_names=self.schema.keys())
             if issubclass(expected_dtype, ArrayParameter) and isinstance(value, Sized):
-                    if len(value) == 0:
-                        value = ArrayParameter([])
-                    elif not isinstance(value[0], ArrayParameter):
-                        # may be a more generic way to do it, but for now this special-casing
-                        # seems like the most robust approach
-                        if isinstance(value[0], Sized):  # e.g. list of tuples
-                            value = type(value)([ArrayParameter(x) for x in value])
-                        else:
-                            value = ArrayParameter(value)
+                if len(value) == 0:
+                    value = ArrayParameter([])
+                elif not isinstance(value[0], ArrayParameter):
+                    # may be a more generic way to do it, but for now this special-casing
+                    # seems like the most robust approach
+                    if isinstance(value[0], Sized):  # e.g. list of tuples
+                        value = type(value)([ArrayParameter(x) for x in value])
+                    else:
+                        value = ArrayParameter(value)
             try:
                 self._parameters[name] = LazyArray(value, shape=self._shape,
-                                                    dtype=expected_dtype)
+                                                   dtype=expected_dtype)
             except (TypeError, errors.InvalidParameterValueError):
                 raise errors.InvalidParameterValueError(
                     f"For parameter {name} expected {expected_dtype}, got {type(value)}")
@@ -378,7 +378,7 @@ class ParameterSpace(object):
                 shape=self.shape
             )
         else:
-             # todo: check and/or pass on schema to child
+            # todo: check and/or pass on schema to child
             self._parameters[name] = value
 
     def pop(self, name, d=None):

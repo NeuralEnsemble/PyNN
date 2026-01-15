@@ -45,12 +45,12 @@ Standard cell types
 
 * Composed models:
 
-   * :class:`AdExp`
-   * :class:`LIF`
-   * :class:`~pyNN.standardmodels.receptors.CurrExpPostSynapticResponse`
-   * :class:`~pyNN.standardmodels.receptors.CondExpPostSynapticResponse`
-   * :class:`~pyNN.standardmodels.receptors.CondAlphaPostSynapticResponse`
-   * :class:`~pyNN.standardmodels.receptors.CondBetaPostSynapticResponse`
+  * :class:`AdExp`
+  * :class:`LIF`
+  * :class:`~pyNN.standardmodels.receptors.CurrExpPostSynapticResponse`
+  * :class:`~pyNN.standardmodels.receptors.CondExpPostSynapticResponse`
+  * :class:`~pyNN.standardmodels.receptors.CondAlphaPostSynapticResponse`
+  * :class:`~pyNN.standardmodels.receptors.CondBetaPostSynapticResponse`
 
 
 Base class

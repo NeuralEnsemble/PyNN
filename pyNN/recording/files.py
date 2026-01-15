@@ -28,17 +28,6 @@ except ImportError:
 DEFAULT_BUFFER_SIZE = 10000
 
 
-def _savetxt(filename, data, format, delimiter):
-    """
-    Due to the lack of savetxt in older versions of numpy
-    we provide a cut-down version of that function.
-    """
-    f = open(filename, 'w')
-    for row in data:
-        f.write(delimiter.join([format % val for val in row]) + '\n')
-    f.close()
-
-
 def savez(file, *args, **kwds):
     import zipfile
     from numpy.lib import format
@@ -148,10 +137,9 @@ class StandardTextFile(BaseFile):
         # write header
         header_lines = ["# %s = %s" % item for item in metadata.items()]
         header = "\n".join(header_lines) + '\n'
-        self.fileobj.write(header.encode('utf-8'))
+        self.fileobj.write(header)
         # write data
-        savetxt = getattr(np, 'savetxt', _savetxt)
-        savetxt(self.fileobj, data, fmt='%r', delimiter='\t')
+        np.savetxt(self.fileobj, data, delimiter='\t')
         self.fileobj.close()
 
     def read(self):

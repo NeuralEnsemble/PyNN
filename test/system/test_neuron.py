@@ -28,11 +28,6 @@ except ImportError:
     have_neuroml = False
 
 
-skip_ci = False
-if "JENKINS_SKIP_TESTS" in os.environ:
-    skip_ci = os.environ["JENKINS_SKIP_TESTS"] == "1"
-
-
 def test_ticket168():
     """
     Error setting firing rate of `SpikeSourcePoisson` after `reset()` in NEURON
@@ -131,8 +126,6 @@ if have_neuron:
 
 def test_electrical_synapse():
     pytest.skip("Skipping test for now as it produces a segmentation fault")
-    if skip_ci:
-        pytest.skip("Skipping test on CI server as it produces a segmentation fault")
     p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
     syn = pyNN.neuron.ElectricalSynapse(weight=1.0)

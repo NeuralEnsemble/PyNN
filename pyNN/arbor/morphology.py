@@ -6,7 +6,6 @@ from morphio import SectionType
 from .. import morphology as base_morphology
 
 
-
 # --- MorphologyFilters ---
 
 class with_label(base_morphology.with_label):
@@ -48,7 +47,6 @@ class random_section(base_morphology.random_section):
         raise NotImplementedError
 
 
-
 # --- IonChannelDistributions ---
 
 
@@ -68,10 +66,12 @@ class uniform(base_morphology.uniform, HasSelector):
             value = self.value_provider.get_value()
         return region, value
 
+
 class by_distance(base_morphology.by_distance, HasSelector):
 
     def resolve(self):
         raise NotImplementedError
+
 
 class by_diameter(base_morphology.by_diameter, HasSelector):
 

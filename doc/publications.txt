@@ -53,7 +53,7 @@ Publications about, relating to or using PyNN
 
 * Davison AP, Brüderle D, Eppler J, Kremkow J, Muller E, Pecevski D, Perrinet L and Yger P (2009) **PyNN: a
   common interface for neuronal network simulators.** Front. Neuroinform. 2:11. doi:10.3389/neuro.11.011.2008.
-  `[link] <http://www.frontiersin.org/neuroinformatics/paper/10.3389/neuro.11/011.2008/>`_
+  `[link] <https://doi.org/10.3389/neuro.11.011.2008>`_
 
 * Brüderle D, Muller E, Davison A, Muller E, Schemmel J and Meier K (2009) **Establishing a novel modeling tool: a
   python-based interface for a neuromorphic hardware system.**

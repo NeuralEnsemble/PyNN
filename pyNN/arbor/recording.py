@@ -48,9 +48,11 @@ class Recorder(recording.Recorder):
                     location_generator = item
                 else:
                     raise ValueError("'locations' should be a str, list, LocationGenerator or None")
-                morphology = self.population.celltype.parameter_space["morphology"].base_value  # todo: handle inhomogeneous morphologies in a Population
+                morphology = self.population.celltype.parameter_space["morphology"].base_value
+                # todo: handle inhomogeneous morphologies in a Population
                 for locset, label in location_generator.generate_locations(morphology, label="recording-point"):
-                    short_label = label[len("recording-point-"):]  # not sure we need the 'recording-point' in the first place
+                    short_label = label[len("recording-point-"):]
+                    # not sure we need the 'recording-point' in the first place
                     for var_name in variables:
                         resolved_variables.append(recording.Variable(location=locset, name=var_name, label=short_label))
         return resolved_variables

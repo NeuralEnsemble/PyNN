@@ -10,7 +10,7 @@ import numpy as np
 from .. import recording
 from .. import errors
 from ..morphology import LocationGenerator
-from .morphology import Location, LabelledLocations
+from .morphology import LabelledLocations
 from . import simulator
 import re
 from neuron import h
@@ -26,7 +26,6 @@ recordable_pattern = re.compile(
 class Recorder(recording.Recorder):
     """Encapsulates data and functions related to recording model variables."""
     _simulator = simulator
-
 
     def record(self, variables, ids, sampling_interval=None, locations=None):
         """
@@ -69,9 +68,12 @@ class Recorder(recording.Recorder):
                     # in principle, generate_locations() could give different locations for
                     # cells with different morphologies, so we construct a dict containing
                     # the ids of the neurons for which a given location exists
-                    for location in location_generator.generate_locations(morphology, label_prefix="", cell=id._cell):
+                    for location in location_generator.generate_locations(
+                        morphology, label_prefix="", cell=id._cell
+                    ):
                         for var_name in variables:
-                            var_obj = recording.Variable(location=location, name=var_name, label=location)  # better labels? include section id?
+                            var_obj = recording.Variable(location=location, name=var_name, label=location)
+                            # better labels? include section id?
                             resolved_variables[var_obj].add(id)
 
             for var_obj, id_list in resolved_variables.items():
@@ -118,7 +120,8 @@ class Recorder(recording.Recorder):
                 hoc_vars.append(source._ref_v)
             else:
                 ion_channel, var_name = variable.name.split(".")
-                mechanism_name, hoc_var_name = self.population.celltype.ion_channels[ion_channel].variable_translations[var_name]
+                ic_obj = self.population.celltype.ion_channels[ion_channel]
+                mechanism_name, hoc_var_name = ic_obj.variable_translations[var_name]
                 mechanism = getattr(source, mechanism_name)
                 hoc_vars.append(getattr(mechanism, "_ref_{}".format(hoc_var_name)))
         for hoc_var in hoc_vars:

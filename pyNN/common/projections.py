@@ -443,7 +443,7 @@ class Projection(object):
         if attribute_names in ('all', 'connections'):
             attribute_names = self.synapse_type.get_parameter_names()
         if isinstance(file, str):
-            file = recording.files.StandardTextFile(file, mode='wb')
+            file = recording.files.StandardTextFile(file, mode='w')
         all_values = self.get(attribute_names, format=format,
                               gather=gather, with_address=with_address)
         if format == 'array':

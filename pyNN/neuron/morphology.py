@@ -19,13 +19,13 @@ class with_label(base_morphology.with_label):
         labels = list(self.labels)
         for label in labels:
             if label in morphology.section_groups:
-                #ids.extend([id(seg) for seg in morphology.section_groups[label]])
+                # ids.extend([id(seg) for seg in morphology.section_groups[label]])
                 section_index = np.hstack((section_index, morphology.section_groups[label]))
                 labels.remove(label)
         if labels:
             for i, segment in enumerate(morphology.segments):
                 if segment.name in labels:
-                    #ids.append(id(segment))
+                    # ids.append(id(segment))
                     section_index = np.hstack((section_index, np.array([i])))
                     labels.remove(segment.name)
         if labels:
@@ -43,8 +43,8 @@ class dendrites(base_morphology.dendrites):
             if label in morphology.section_groups:
                 section_index = np.hstack((section_index, morphology.section_groups[label]))
         if filter_by_section:
-                section_index = np.intersect1d(section_index,
-                                               np.fromiter(filter_by_section, dtype=int))
+            section_index = np.intersect1d(section_index,
+                                           np.fromiter(filter_by_section, dtype=int))
         if section_index.size < 1:
             raise Exception("No neurites labelled as dendrites")
         return section_index
@@ -242,7 +242,7 @@ class centre(base_morphology.centre, HasSelector):
         section_index = self.selector(morphology)
         section_id = section_index[len(section_index)//2]
         section = cell.sections[section_id]
-        location_label = f"centre"  # todo: add a part coming from selector
+        location_label = "centre"  # todo: add a part coming from selector
         if label_prefix:
             location_label = f"{label_prefix}-{location_label}"
         cell.locations[location_label] = Location(section, section_id, 0.5, label=location_label)

@@ -125,9 +125,9 @@ To create a :class:`Population`, we need to specify at minimum the number of
 neurons and the cell type. Three additional arguments may optionally be
 specified:
 
-    * the spatial structure of the population;
-    * initial values for the neuron state variables;
-    * a label.
+* the spatial structure of the population;
+* initial values for the neuron state variables;
+* a label.
 
 .. testcode::
    :hide:

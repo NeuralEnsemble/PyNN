@@ -69,4 +69,5 @@ def compile_nest_extensions(extension_directory, nest_build_dir="_build"):
                 else:
                     print("Successfully compiled NEST extensions.")
     else:
-        print("Unable to find nest-config. You can use NEST built-in models, but it will not be possible to use NEST extensions")
+        print("Unable to find nest-config. You can use NEST built-in models, "
+              "but it will not be possible to use NEST extensions")

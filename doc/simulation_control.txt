@@ -33,12 +33,12 @@ Getting information about the simulation state
 Several functions are available for obtaining information about the simulation
 state:
 
-    * :func:`get_current_time` - the time within the simulation
-    * :func:`get_time_step` - the integration time step
-    * :func:`get_min_delay` - the minimum allowed synaptic delay
-    * :func:`get_max_delay` - the maximum allowed synaptic delay
-    * :func:`num_processes` - the number of MPI processes
-    * :func:`rank` - the MPI rank of the current node
+* :func:`get_current_time` - the time within the simulation
+* :func:`get_time_step` - the integration time step
+* :func:`get_min_delay` - the minimum allowed synaptic delay
+* :func:`get_max_delay` - the maximum allowed synaptic delay
+* :func:`num_processes` - the number of MPI processes
+* :func:`rank` - the MPI rank of the current node
 
 Running a simulation
 ====================
@@ -46,7 +46,7 @@ Running a simulation
 The :func:`run()` function advances the simulation for a given number of milliseconds, e.g.::
 
     >>> run(1000.0)
-    
+
 You can also use :func:`run_for()`, which is an alias for :func:`run()`.
 The :func:`run_until()` function advances the simulation until a given future
 time point, e.g.::
@@ -70,7 +70,7 @@ the operation at the end of each step, e.g.::
     The time is 100
     The time is 200
     The time is 300
-    
+
 Alternatively, PyNN can take care of breaking the simulation into steps for you.
 :func:`run()` and :func:`run_until()` each accept an optional list of callbacks
 functions. Each callback should accept the current time as an argument, and
@@ -87,7 +87,7 @@ return the next time it wishes to be called.
     300.0
 
 For simple cases, this requires a bit more code, but it is potentially much more
-powerful, especially if you have complex or multiple callbacks.   
+powerful, especially if you have complex or multiple callbacks.
 
 
 Repeating a simulation
