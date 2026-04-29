@@ -255,7 +255,8 @@ class _State(common.control.BaseState):
             nest.Simulate(simtime)
 
     def run_until(self, tstop):
-        self.run(tstop - self.t)
+        if tstop > self.t:
+            self.run(tstop - self.t)
 
     def reset(self):
         if self.t > 0:

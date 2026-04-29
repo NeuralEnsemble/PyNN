@@ -61,7 +61,8 @@ class State(common.control.BaseState):
         self.network.run(simtime * ms)
 
     def run_until(self, tstop):
-        self.run(tstop - self.t)
+        if tstop > self.t:
+            self.run(tstop - self.t)
 
     def clear(self):
         self.recorders = set([])
