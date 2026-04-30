@@ -14,8 +14,6 @@ try:
     have_neuroml = True
 except ImportError:
     have_neuroml = False
-import morphio
-from morphio import SectionType
 
 
 def _download_file(url):
@@ -68,6 +66,8 @@ class NeuroMLMorphology(Morphology):
     """
 
     def __init__(self, morphology):
+        from morphio import SectionType
+
         if not have_neuroml:
             raise ImportError("Please install libNeuroML to use the NeuroMLMorphology class")
         super(NeuroMLMorphology, self).__init__()
@@ -158,6 +158,9 @@ class BrianMorphology(Morphology):
 class MorphIOMorphology(Morphology):
 
     def __init__(self, morphology_file):
+        import morphio
+        from morphio import SectionType
+
         super().__init__()
         self.morphology_file = morphology_file
         self._morphology = morphio.Morphology(morphology_file)

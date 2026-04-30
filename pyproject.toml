@@ -29,8 +29,7 @@ classifiers = [
 ]
 dependencies = [
   "lazyarray>=0.5.2",
-  "neo>=0.13.4",
-  "morphio"
+  "neo>=0.13.4"
 ]
 
 [project.optional-dependencies]
@@ -40,9 +39,10 @@ examples = ["matplotlib", "scipy"]
 plotting = ["matplotlib", "scipy"]
 MPI = ["mpi4py"]
 sonata = ["h5py"]
+morphologies = ["morphio"]
 neuron = ["neuron", "nrnutils"]
 brian2 = ["brian2"]
-arbor = ["arbor==0.9.0", "libNeuroML"]
+arbor = ["arbor==0.9.0", "libNeuroML", "morphio"]
 spiNNaker = ["spyNNaker"]
 neuroml = ["libNeuroML"]
 

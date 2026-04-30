@@ -17,7 +17,12 @@ try:
     have_neuroml = True
 except ImportError:
     have_neuroml = False
-from pyNN.morphology import load_morphology, NeuroMLMorphology, SectionType, any as morph_any
+try:
+    from pyNN.morphology import load_morphology, NeuroMLMorphology, any as morph_any
+    from morphio import SectionType
+    have_morphio = True
+except ImportError:
+    have_morphio = False
 try:
     from pyNN.neuron.morphology import (dendrites, apical_dendrites,
                                  basal_dendrites, random_section, with_label,
@@ -53,8 +58,10 @@ morph_data = """# test morphology
 def setUpModule():
     global neuroml_morph, array_morph
 
+    if not have_morphio:
+        pytest.skip("morphio not installed")
     if not have_neuroml:
-            pytest.skip("libNeuroML not installed")
+        pytest.skip("libNeuroML not installed")
 
     test_file = "morph_test.swc"
     with open(test_file, "w") as fp:
