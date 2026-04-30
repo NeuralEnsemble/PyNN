@@ -53,7 +53,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 input_path = os.path.join(current_dir, "wb_cond_exp_neuron.nestml")
 # celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp_neuron", input_path)
 
-synapse_type, post_cell_type = sim.nestml.nestml_synapse_type("stdp_synapse", "stdp_synapse.nestml", "iaf_psc_exp_neuron.nestml")
+synapse_type = sim.nestml.nestml_synapse_type("stdp_synapse", "stdp_synapse.nestml", "iaf_psc_exp_neuron.nestml")
+post_cell_type = synapse_type.postsynaptic_cell_type
 
 
 # === Build and instrument the network =======================================

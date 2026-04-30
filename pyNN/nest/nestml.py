@@ -60,6 +60,7 @@ def nestml_cell_type(name, nestml_description):
     # todo: get units information from nestml_description, provide to "native_cell_type()"
     return native_cell_type(name)
 
+
 def _get_model_name(filename: str) -> str:
     """Get the model filename from a NESTML model file"""
     with open(filename, "r") as fp:
@@ -68,11 +69,21 @@ def _get_model_name(filename: str) -> str:
 
     return model_name
 
-def nestml_synapse_type(synapse_name, nestml_description, postsynaptic_neuron_nestml_description=None, weight_variable="w", delay_variable="d"):
-    """
-    Return a new NESTMLCellType subclass from a NESTML description.
 
-    For plastic synapses, the synapse code needs to be generated in close combination with the postsynaptic neuron code. For this reason, for plastic synapses, it is necessary to specify the ``postsynaptic_neuron_nestml_description``.
+def nestml_synapse_type(
+        synapse_name,
+        nestml_description,
+        postsynaptic_neuron_nestml_description=None,
+        weight_variable="w",
+        delay_variable="d"
+):
+    """
+    Return a new NativeSynapseType subclass from a NESTML description.
+
+    For plastic synapses, the synapse code needs to be generated in close combination with the
+    postsynaptic neuron code. For this reason, for plastic synapses, it is necessary to specify
+    ``postsynaptic_neuron_nestml_description``. In this case the returned synapse class will have
+    a ``postsynaptic_cell_type`` attribute containing the co-generated neuron class.
     """
 
     from pynestml.frontend.pynestml_frontend import generate_nest_target
@@ -143,11 +154,12 @@ def nestml_synapse_type(synapse_name, nestml_description, postsynaptic_neuron_ne
 
     nest.Install(module_name)
 
-    # todo: get units information from nestml_description, provide to "native_cell_type()"
-    if postsynaptic_neuron_nestml_description:
-        synapse_instance = pyNN.nest.native_synapse_type(synapse_name)
-        synapse_instance.delay_variable = delay_variable
-        synapse_instance.weight_variable = weight_variable
-        return synapse_instance, pyNN.nest.native_cell_type(neuron_name)
+    # todo: get units information from nestml_description, provide to "native_synapse_type()"
+    synapse_class = pyNN.nest.native_synapse_type(synapse_name)
+    synapse_class.delay_variable = delay_variable
+    synapse_class.weight_variable = weight_variable
 
-    return pyNN.nest.native_synapse_type(synapse_name)
+    if postsynaptic_neuron_nestml_description:
+        synapse_class.postsynaptic_cell_type = pyNN.nest.native_cell_type(neuron_name)
+
+    return synapse_class
