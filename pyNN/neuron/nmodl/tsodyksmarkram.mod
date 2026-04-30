@@ -5,6 +5,7 @@ Andrew Davison, UNIC, CNRS, 2013
 ENDCOMMENT
 
 NEURON {
+    THREADSAFE
     POINT_PROCESS TsodyksMarkramWA
     RANGE tau_rec, tau_facil, U, u0, tau_syn
     POINTER wsyn

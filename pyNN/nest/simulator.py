@@ -73,6 +73,13 @@ def build_extensions(build_dir=None):
         warnings.warn("Cannot create build directory for nest extensions")
         return
 
+    # Remove any stale CMakeCache.txt so cmake re-detects the SDK and toolchain.
+    stale_cache = os.path.join(nest_build_dir, "CMakeCache.txt")
+    try:
+        os.remove(stale_cache)
+    except FileNotFoundError:
+        pass
+
     source_dir = os.path.join(os.path.dirname(__file__), "extensions")
     result, stdout = run_command(f"cmake -Dwith-nest={nest_config} {source_dir}",
                                  nest_build_dir)
@@ -255,7 +262,8 @@ class _State(common.control.BaseState):
             nest.Simulate(simtime)
 
     def run_until(self, tstop):
-        self.run(tstop - self.t)
+        if tstop > self.t:
+            self.run(tstop - self.t)
 
     def reset(self):
         if self.t > 0:

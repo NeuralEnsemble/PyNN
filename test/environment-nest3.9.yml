@@ -1,0 +1,44 @@
+# micromamba environment for PyNN development with NEST 3.9
+# Uses conda-forge only (no Anaconda default channel).
+#
+# Setup:
+#   micromamba env create -p .condaenv-nest3.9 -f environment-nest3.9.yml -y
+#   micromamba run -p .condaenv-nest3.9 pip install -e .
+#
+# Run tests:
+#   micromamba run -p .condaenv-nest3.9 pytest -v test/
+#
+# Or via Makefile:
+#   make conda-setup [NEST_VERSION=3.9]
+#   make conda-test  [NEST_VERSION=3.9]
+#
+# To lock all package versions for reproducibility:
+#   micromamba env export -p .condaenv-nest3.9 > environment-nest3.9.lock.yml
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.12
+  - nest-simulator=3.9
+  - brian2
+  - numpy
+  - scipy
+  - matplotlib
+  - mpi4py
+  - h5py
+  - pip
+  - pip:
+    - arbor==0.9.0
+    - libNeuroML
+    - lazyarray>=0.5.2
+    - neo>=0.13.4
+    - morphio
+    - neuron
+    - nrnutils
+    - Cheetah3
+    - Jinja2
+    - pytest
+    - pytest-xdist
+    - pytest-cov
+    - flake8

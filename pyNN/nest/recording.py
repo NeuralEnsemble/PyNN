@@ -151,7 +151,7 @@ class SpikeDetector(RecordingDevice):
         id_array, times_array = self._get_data_arrays("times", "times", 1, clear=clear)
         recorded_ids = np.unique(id_array)
         desired_and_existing_ids = np.intersect1d(recorded_ids, np.array(desired_ids))
-        mask = np.in1d(id_array, desired_and_existing_ids)
+        mask = np.isin(id_array, desired_and_existing_ids)
         return id_array[mask], times_array[mask]
 
     def get_spike_counts(self, desired_ids):

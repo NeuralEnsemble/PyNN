@@ -585,7 +585,7 @@ class FromListConnector(Connector):
         #  - use np.unique, or just do in1d(self.conn_list)?
         idx = np.argsort(self.conn_list[:, 1])
         targets = np.unique(self.conn_list[:, 1]).astype(int)
-        local = np.in1d(targets,
+        local = np.isin(targets,
                         np.arange(projection.post.size)[projection.post._mask_local],
                         assume_unique=True)
         local_targets = targets[local]

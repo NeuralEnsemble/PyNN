@@ -74,7 +74,7 @@ class Recorder(recording.Recorder):
     def _get_spiketimes(self, requested_ids, clear=False):
         id_array = self._devices["spikes"].i + self.population.first_id
         times_array = self._devices["spikes"].t / ms
-        mask = np.in1d(id_array, requested_ids)
+        mask = np.isin(id_array, requested_ids)
         return id_array[mask], times_array[mask]
 
     def _get_all_signals(self, variable, ids, clear=False):

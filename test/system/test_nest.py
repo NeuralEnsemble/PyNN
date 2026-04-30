@@ -3,9 +3,17 @@ from numpy.testing import assert_array_equal
 
 try:
     import pyNN.nest
+    import nest as _nest
     have_nest = True
+    try:
+        _nest.SetKernelStatus({'local_num_threads': 2})
+        _nest.ResetKernel()
+        have_nest_threads = True
+    except Exception:
+        have_nest_threads = False
 except ImportError:
     have_nest = False
+    have_nest_threads = False
 
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
@@ -82,6 +90,8 @@ def test_native_stdp_model():
 def test_ticket240():
     if not have_nest:
         pytest.skip("nest not available")
+    if not have_nest_threads:
+        pytest.skip("NEST built without threading support")
     nest = pyNN.nest
     nest.setup(threads=4)
     parameters = {'tau_m': 17.0}
@@ -98,6 +108,8 @@ def test_ticket240():
 def test_ticket244():
     if not have_nest:
         pytest.skip("nest not available")
+    if not have_nest_threads:
+        pytest.skip("NEST built without threading support")
     nest = pyNN.nest
     nest.setup(threads=4)
     p1 = nest.Population(4, nest.IF_curr_exp())
