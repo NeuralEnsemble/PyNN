@@ -3,6 +3,17 @@ try:
     import nest
 except ImportError:
     nest = False
+
+if nest:
+    try:
+        nest.SetKernelStatus({'local_num_threads': 2})
+        nest.ResetKernel()
+        nest_threads_available = True
+    except Exception:
+        nest_threads_available = False
+else:
+    nest_threads_available = False
+
 from pyNN.standardmodels import StandardCellType
 import unittest
 import numpy as np
@@ -20,6 +31,7 @@ class TestFunctions(unittest.TestCase):
         self.assertTrue(len(cell_types) > 10)
         self.assertIsInstance(cell_types[0], str)
 
+    @unittest.skipUnless(nest_threads_available, "NEST built without threading support")
     def test_setup(self):
         sim.setup(timestep=0.05, min_delay=0.1, max_delay=1.0,
                   verbosity='debug', spike_precision='off_grid',

@@ -78,7 +78,7 @@ jobs:
         flake8 pyNN --count --exit-zero --max-complexity=20 --max-line-length=127 --statistics
     - name: Run unit and system tests
       run: |
-        pytest -v --cov=pyNN --cov-report=term test
+        pytest -v -n auto --cov=pyNN --cov-report=term test
     - name: Upload coverage data
       run: |
         coveralls --service=github
