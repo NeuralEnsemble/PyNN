@@ -214,7 +214,11 @@ class _State(common.control.BaseState):
     spike_precision = property(fget=_get_spike_precision, fset=_set_spike_precision)
 
     def _set_verbosity(self, verbosity):
-        nest.set_verbosity('M_{}'.format(verbosity.upper()))
+        try:
+            nest.set_verbosity('M_{}'.format(verbosity.upper()))
+        except AttributeError:
+            vb_level = getattr(nest.VerbosityLevel, verbosity.upper())
+            nest.verbosity = vb_level
     verbosity = property(fset=_set_verbosity)
 
     def set_status(self, nodes, params, val=None):
@@ -301,8 +305,11 @@ class _State(common.control.BaseState):
         self.current_sources = []
         self.recording_devices = []
         self.recorders = set()
-        # clear the sli stack, if this is not done --> memory leak cause the stack increases
-        nest.ll_api.sr('clear')
+        try:
+            # clear the sli stack, if this is not done --> memory leak cause the stack increases
+            nest.ll_api.sr('clear')
+        except AttributeError:  # NEST 3.10+
+            pass
         # reset the simulation kernel
         nest.ResetKernel()
         # but this reverts some of the PyNN settings, so we have to repeat them (see NEST #716)

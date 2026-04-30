@@ -25,7 +25,9 @@ def test_record_native_model():
     parameters = {'tau_m': 17.0}
     n_cells = 10
     p1 = nest.Population(n_cells, nest.native_cell_type("ht_neuron")(**parameters))
-    p1.initialize(V_m=-70.0, Theta=-50.0)
+    # 'Theta' was renamed to 'theta' in NEST 3.10
+    theta_key = 'theta' if 'theta' in _nest.GetDefaults('ht_neuron') else 'Theta'
+    p1.initialize(V_m=-70.0, **{theta_key: -50.0})
     p1.set(theta_eq=-51.5)
     #assert_array_equal(p1.get('theta_eq'), -51.5*np.ones((10,)))
     assert p1.get('theta_eq') == -51.5

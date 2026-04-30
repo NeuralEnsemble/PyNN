@@ -53,10 +53,7 @@ def get_receptor_types(model_name):
 
 
 def get_recordables(model_name):
-    try:
-        return [name for name in nest.GetDefaults(model_name, "recordables")]
-    except nest.NESTError:
-        return []
+    return list(nest.GetDefaults(model_name).get("recordables", []))
 
 
 def native_cell_type(model_name):
