@@ -22,7 +22,7 @@ dependencies:
   - python=3.12
   - nest-simulator=3.9
   - brian2
-  - numpy<2
+  - numpy
   - scipy
   - matplotlib
   - mpi4py

@@ -19,10 +19,10 @@ jobs:
         python-version: ["3.9", "3.10", "3.12"]
         os: ["ubuntu-latest", "windows-latest"]
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - uses: mpi4py/setup-mpi@v1
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install Linux system dependencies
@@ -32,14 +32,14 @@ jobs:
     - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install pytest pytest-cov coveralls flake8 "setuptools<=75.8.2" "numpy<2"
+        python -m pip install pytest pytest-cov coveralls flake8
     - name: Install Brian 2
       run: |
-        python -m pip install brian2 "numpy<2"
+        python -m pip install brian2
     - name: Install NEURON
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install "neuron>=9.0.0" "numpy<2"
+        python -m pip install "neuron>=9.0.0"
         python -m pip install "nrnutils>0.2.0"
     - name: Install NEST
       if: startsWith(matrix.os, 'ubuntu')
@@ -53,10 +53,10 @@ jobs:
     - name: Install Arbor
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install arbor==0.9.0 libNeuroML "numpy<2"
+        python -m pip install arbor==0.9.0 libNeuroML
     - name: Install PyNN itself
       run: |
-        python -m pip install -e ".[test]" "numpy<2"
+        python -m pip install -e ".[test]"
     - name: Test installation has worked (Ubuntu)
       # this is needed because the PyNN tests are just skipped if the simulator
       # fails to install, so we need to catch import failures separately

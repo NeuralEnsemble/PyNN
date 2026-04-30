@@ -97,7 +97,7 @@ $(NEST_STAMP): $(NEST_VENV_STAMP) $(NEST_SRC_UNPACKED)
 	    $(CURDIR)/pyNN/nest/extensions
 	cd $(NEST_BUILD_DIR)/pynn_extensions && make install
 	$(NEST_PIP) install \
-	    "numpy<2" "neuron>=9.0.0" nrnutils "arbor==0.9.0" \
+	    "neuron>=9.0.0" nrnutils "arbor==0.9.0" \
 	    brian2 libNeuroML scipy matplotlib Cheetah3 h5py Jinja2 \
 	    pytest pytest-xdist pytest-cov flake8
 	$(NEST_PIP) install -e .
