@@ -93,3 +93,18 @@ tmp
 doc/logos
 docker_*.eggs/
 /test/system/tmp_serialization_test
+
+# Test coverage output
+coverage.lcov
+coverage.xml
+
+# Compiled shared libraries (NEURON, Arbor, NESTML)
+*.so
+pyNN/neuron/nmodl/*/
+
+# Simulation output and NESTML compilation targets
+**/Results/
+**/target/
+
+# Scratch directories
+tmp_*/

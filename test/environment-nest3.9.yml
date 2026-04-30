@@ -36,6 +36,7 @@ dependencies:
     - morphio
     - neuron
     - nrnutils
+    - pynestml
     - Cheetah3
     - Jinja2
     - pytest

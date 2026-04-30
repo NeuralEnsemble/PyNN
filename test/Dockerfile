@@ -51,7 +51,7 @@ COPY pyproject.toml /tmp/pynn-meta/
 RUN mkdir -p /tmp/pynn-meta/pyNN && touch /tmp/pynn-meta/pyNN/__init__.py && \
     pip install --no-cache-dir \
         "numpy<2" \
-        "/tmp/pynn-meta[test,neuron,brian2,arbor,MPI,sonata,neuroml]" && \
+        "/tmp/pynn-meta[test,neuron,brian2,arbor,MPI,sonata,neuroml,nestml]" && \
     rm -rf /tmp/pynn-meta
 
 COPY test/docker-entrypoint.sh /entrypoint.sh
