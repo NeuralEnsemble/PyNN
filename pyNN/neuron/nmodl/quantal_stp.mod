@@ -82,8 +82,13 @@ NET_RECEIVE(w, available, t_last (ms)) {
 }
 
 VERBATIM
+#ifndef NRN_VERSION_GTEQ_8_2_0
 double nrn_random_pick(void* r);
 void* nrn_random_arg(int argpos);
+#define RANDCAST
+#else
+#define RANDCAST (Rand*)
+#endif
 ENDVERBATIM
 
 PROCEDURE setRNG() {
@@ -110,12 +115,12 @@ VERBATIM
             : each instance. However, the corresponding hoc Random
             : distribution MUST be set to Random.negexp(1)
             */
-            value = nrn_random_pick(_p_rng);
+            value = nrn_random_pick(RANDCAST _p_rng);
             //printf("random stream for this simulation = %lf\n",value);
             return value;
         } else {
 ENDVERBATIM
-            value = scop_random(1)
+            value = scop_random()
 VERBATIM
         }
 ENDVERBATIM

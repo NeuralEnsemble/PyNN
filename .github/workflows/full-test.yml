@@ -35,16 +35,16 @@ jobs:
         python -m pip install pytest pytest-cov coveralls flake8 "setuptools<=75.8.2" "numpy<2"
     - name: Install Brian 2
       run: |
-        python -m pip install brian2
+        python -m pip install brian2 "numpy<2"
     - name: Install NEURON
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install neuron==8.2.4
+        python -m pip install "neuron>=9.0.0" "numpy<2"
         python -m pip install "nrnutils>0.2.0"
     - name: Install NEST
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install cython
+        python -m pip install "cython<3.1.0"
         wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.8.tar.gz -O nest-simulator-3.8.tar.gz
         tar xzf nest-simulator-3.8.tar.gz
         cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.8
@@ -53,10 +53,10 @@ jobs:
     - name: Install Arbor
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install arbor==0.9.0 libNeuroML
+        python -m pip install arbor==0.9.0 libNeuroML "numpy<2"
     - name: Install PyNN itself
       run: |
-        python -m pip install -e ".[test]"
+        python -m pip install -e ".[test]" "numpy<2"
     - name: Test installation has worked (Ubuntu)
       # this is needed because the PyNN tests are just skipped if the simulator
       # fails to install, so we need to catch import failures separately
