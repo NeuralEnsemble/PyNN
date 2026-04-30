@@ -78,6 +78,12 @@ examples/*.svg
 /examples/Potjans2014/clean.sh
 /test/benchmarks/*.h5
 
+# Test environment (Makefile targets)
+.local-nest*/
+.nest-src/
+.nest-build/
+.condaenv-*/
+
 # Other
 *.btr
 *.log
