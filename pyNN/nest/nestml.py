@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Support cell types defined in NESTML.
+Support for neuron and synapse models defined in NESTML.
 
-
-Classes:
-    NESTMLCellType   - base class for cell types, not used directly
+NESTML models must be registered before calling sim.setup(). setup() triggers a
+single compilation pass (via PyNESML) covering all registered models, then installs
+the resulting NEST module. After setup() the returned classes behave identically to
+those returned by native_cell_type() / native_synapse_type().
 
 Functions:
-    nestml_cell_type - return a new NESTMLCellType subclass
-
+    nestml_cell_type    - register a NESTML neuron description; return a cell type class
+    nestml_synapse_type - register a NESTML synapse description; return a synapse type class
 
 :copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
@@ -21,53 +22,85 @@ import shutil
 import tempfile
 
 from pyNN.nest.cells import native_cell_type
+from pyNN.models import BaseCellType, BaseSynapseType
+from pyNN.nest.synapses import NESTSynapseMixin
 import pyNN
 
 logger = logging.getLogger("PyNN")
 
+_MODULE_NAME = "pynnnestmlmodule"
+
+# Module-level registry — survives state.clear() so definitions persist across setup() calls
+_pending = []    # list of entry dicts, one per registered model
+_compiled = False  # True after the first successful compile + install
+
+
+def _check_not_compiled():
+    if _compiled:
+        raise RuntimeError(
+            "NESTML models must be registered before sim.setup() is called. "
+            "Cannot add new NESTML models after compilation."
+        )
+
+
+def _make_pending_cell_type_class(name):
+    """Return a stub cell type class that will be resolved at setup() time."""
+
+    class NESTPendingCellType:
+        _is_nestml_pending = True
+        _nestml_name = name
+        default_parameters = {}
+        default_initial_values = {}
+        nest_name = {"on_grid": name, "off_grid": name}
+        recordable = []
+        injectable = True
+        uses_parrot = False
+
+        def __init__(self, **parameters):
+            self._pending_parameters = parameters
+
+        def get_schema(self):
+            return {n: type(v) for n, v in self.default_parameters.items()}
+
+        @classmethod
+        def _resolve(cls, nest_name=None):
+            real = native_cell_type(nest_name or cls._nestml_name)
+            for attr in ("nest_name", "default_parameters", "default_initial_values",
+                         "recordable", "injectable", "uses_parrot"):
+                setattr(cls, attr, getattr(real, attr))
+            if hasattr(real, "units"):
+                cls.units = real.units
+            cls._is_nestml_pending = False
+            cls.__init__ = BaseCellType.__init__
+
+    NESTPendingCellType.__name__ = name
+    NESTPendingCellType.__qualname__ = name
+    return NESTPendingCellType
 
 
 def nestml_cell_type(name, nestml_description):
     """
-    Return a new NESTMLCellType subclass from a NESTML description.
+    Register a NESTML neuron description and return a cell type class.
+
+    ``nestml_description`` may be a path to a .nestml file or a string containing
+    NESTML source code.
+
+    The returned class is a stub until sim.setup() is called. setup() compiles all
+    registered NESTML models together in a single PyNESML invocation and installs
+    the resulting NEST module. After setup() the class behaves identically to one
+    returned by native_cell_type().
     """
-
-    from pynestml.frontend.pynestml_frontend import generate_nest_target
-    import nest
-
-    module_name = "pynnnestmlmodule"  # todo: customize this
-    if os.path.exists(nestml_description):
-        # description is a file path
-        input_path = nestml_description
-        have_tmpdir = False
-    else:
-        # assume description is a string containing nestml code
-        input_path = tempfile.mkdtemp()
-        with open(os.path.join(input_path, "tmp.nestml"), "w") as fp:
-            fp.write(nestml_description)
-        have_tmpdir = True
-    generate_nest_target(
-        input_path=input_path,
-        target_path=None,  # "/tmp/nestml_target",
-        install_path=None,
-        module_name=module_name,
-    )
-    if have_tmpdir:
-        shutil.rmtree(input_path)
-
-    nest.Install(module_name)
-
-    # todo: get units information from nestml_description, provide to "native_cell_type()"
-    return native_cell_type(name)
+    _check_not_compiled()
+    stub = _make_pending_cell_type_class(name)
+    _pending.append({"type": "neuron", "name": name, "description": nestml_description, "stub": stub})
+    return stub
 
 
 def _get_model_name(filename: str) -> str:
-    """Get the model filename from a NESTML model file"""
+    """Extract the model name from a NESTML source file."""
     with open(filename, "r") as fp:
         nestml_model = fp.read()
-        model_name = re.findall(r"model [^:\s]*:", nestml_model)[0][6:-1]
-
-    return model_name
+    return re.findall(r"model [^:\s]*:", nestml_model)[0][6:-1]
 
 
 def nestml_synapse_type(
@@ -78,88 +111,160 @@ def nestml_synapse_type(
         delay_variable="d"
 ):
     """
-    Return a new NativeSynapseType subclass from a NESTML description.
+    Register a NESTML synapse description and return a synapse type class.
 
-    For plastic synapses, the synapse code needs to be generated in close combination with the
-    postsynaptic neuron code. For this reason, for plastic synapses, it is necessary to specify
-    ``postsynaptic_neuron_nestml_description``. In this case the returned synapse class will have
-    a ``postsynaptic_cell_type`` attribute containing the co-generated neuron class.
+    ``nestml_description`` and (optionally) ``postsynaptic_neuron_nestml_description``
+    may each be a path to a .nestml file or a string containing NESTML source code.
+
+    For plastic synapses that require co-generation with a postsynaptic neuron model,
+    provide ``postsynaptic_neuron_nestml_description``. The co-generated neuron class
+    is then accessible as ``synapse_class.postsynaptic_cell_type`` both before and
+    after sim.setup().
+
+    The returned class is a stub until sim.setup() triggers compilation (see
+    nestml_cell_type() for details).
     """
+    _check_not_compiled()
+
+    # For co-generation, create the neuron stub now so callers can hold a reference to it
+    # before setup() is called. It will be resolved during _compile_and_resolve().
+    neuron_stub = None
+    if postsynaptic_neuron_nestml_description:
+        neuron_stub = _make_pending_cell_type_class(synapse_name + "_postsynaptic_neuron")
+
+    class NESTPendingSynapseType(NESTSynapseMixin, BaseSynapseType):
+        _is_nestml_pending = True
+        _nestml_synapse_name = synapse_name
+        default_parameters = {}
+        nest_name = synapse_name
+        delay_variable = delay_variable
+        weight_variable = weight_variable
+
+        def __init__(self, **parameters):
+            self._pending_parameters = parameters
+
+        def get_schema(self):
+            return {n: type(v) for n, v in self.default_parameters.items()}
+
+        @classmethod
+        def _resolve(cls, resolved_synapse_name, resolved_neuron_name=None):
+            real = pyNN.nest.native_synapse_type(resolved_synapse_name)
+            for attr in ("nest_name", "default_parameters"):
+                setattr(cls, attr, getattr(real, attr))
+            if resolved_neuron_name and hasattr(cls, 'postsynaptic_cell_type'):
+                cls.postsynaptic_cell_type._resolve(resolved_neuron_name)
+            cls._is_nestml_pending = False
+            cls.__init__ = BaseSynapseType.__init__
+
+    NESTPendingSynapseType.__name__ = synapse_name
+    NESTPendingSynapseType.__qualname__ = synapse_name
+
+    if neuron_stub is not None:
+        NESTPendingSynapseType.postsynaptic_cell_type = neuron_stub
+
+    _pending.append({
+        "type": "synapse",
+        "name": synapse_name,
+        "description": nestml_description,
+        "neuron_description": postsynaptic_neuron_nestml_description,
+        "weight_variable": weight_variable,
+        "delay_variable": delay_variable,
+        "stub": NESTPendingSynapseType,
+        "neuron_stub": neuron_stub,
+    })
+    return NESTPendingSynapseType
+
+
+def _ensure_file(description, tmpdirs):
+    """
+    Return a path to a .nestml file for the given description.
+
+    If ``description`` is already a file path, return it unchanged. If it is inline
+    NESTML source code, write it to a temporary file and return that path (the temp
+    directory is appended to ``tmpdirs`` for later cleanup).
+    """
+    if os.path.isfile(description):
+        return description
+    tmpdir = tempfile.mkdtemp()
+    tmpdirs.append(tmpdir)
+    filepath = os.path.join(tmpdir, "model.nestml")
+    with open(filepath, "w") as fp:
+        fp.write(description)
+    return filepath
+
+
+def _compile_and_resolve():
+    """
+    Compile all pending NESTML models together and resolve their stub classes.
+
+    Called by sim.setup() after the NEST kernel is initialised. If no models have
+    been registered this is a no-op.
+    """
+    global _compiled, _pending
+
+    if not _pending:
+        _compiled = True
+        return
 
     from pynestml.frontend.pynestml_frontend import generate_nest_target
     import nest
 
-    module_name = "pynnnestmlmodule"  # todo: customize this
-
-    input_path = []
+    tmpdirs = []
+    input_paths = []
     codegen_opts = {}
+    synapse_pairs = []  # tracks co-generation relationships for name resolution
 
-    # write synapse model to file if necessary
-    if os.path.exists(nestml_description):
-        # description is a file path
-        input_path.append(nestml_description)
-        synapse_filename = nestml_description
-        have_synapse_tmpdir = False
-    else:
-        # assume description is a string containing nestml code
-        synapse_input_path = tempfile.mkdtemp()
-        synapse_filename = os.path.join(synapse_input_path, "tmp.nestml")
-        input_path.append(synapse_input_path)
-        with open(synapse_filename, "w") as fp:
-            fp.write(nestml_description)
-        have_synapse_tmpdir = True
+    for entry in _pending:
+        filepath = _ensure_file(entry["description"], tmpdirs)
+        input_paths.append(filepath)
 
-    codegen_opts["weight_variable"] = {}
-    codegen_opts["weight_variable"][_get_model_name(synapse_filename)] = weight_variable
-    codegen_opts["delay_variable"] = {}
-    codegen_opts["delay_variable"][_get_model_name(synapse_filename)] = delay_variable
+        if entry["type"] == "synapse":
+            syn_model = _get_model_name(filepath)
+            codegen_opts.setdefault("weight_variable", {})[syn_model] = entry["weight_variable"]
+            codegen_opts.setdefault("delay_variable", {})[syn_model] = entry["delay_variable"]
 
-    if postsynaptic_neuron_nestml_description:
-        # write neuron model to file if necessary
-        if os.path.exists(postsynaptic_neuron_nestml_description):
-            # description is a file path
-            input_path.append(postsynaptic_neuron_nestml_description)
-            neuron_filename = postsynaptic_neuron_nestml_description
-            have_neuron_tmpdir = False
+            if entry["neuron_description"]:
+                neuron_filepath = _ensure_file(entry["neuron_description"], tmpdirs)
+                input_paths.append(neuron_filepath)
+                neu_model = _get_model_name(neuron_filepath)
+                synapse_pairs.append({
+                    "neuron": neu_model,
+                    "synapse": syn_model,
+                    "post_ports": ["post_spikes"],
+                    "entry": entry,
+                })
+
+    if synapse_pairs:
+        codegen_opts["neuron_synapse_pairs"] = [
+            {"neuron": p["neuron"], "synapse": p["synapse"], "post_ports": p["post_ports"]}
+            for p in synapse_pairs
+        ]
+
+    try:
+        generate_nest_target(
+            input_path=input_paths,
+            target_path=None,
+            install_path=None,
+            module_name=_MODULE_NAME,
+            codegen_opts=codegen_opts,
+        )
+        nest.Install(_MODULE_NAME)
+    finally:
+        for tmpdir in tmpdirs:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    for entry in _pending:
+        stub = entry["stub"]
+        if entry["type"] == "neuron":
+            stub._resolve()
         else:
-            # assume description is a string containing nestml code
-            neuron_input_path = tempfile.mkdtemp()
-            neuron_filename = os.path.join(neuron_input_path, "tmp.nestml")
-            input_path.append(neuron_input_path)
-            with open(neuron_filename, "w") as fp:
-                fp.write(postsynaptic_neuron_nestml_description)
-            have_neuron_tmpdir = True
+            pair = next((p for p in synapse_pairs if p["entry"] is entry), None)
+            if pair:
+                resolved_syn = pair["synapse"] + "__with_" + pair["neuron"]
+                resolved_neu = pair["neuron"] + "__with_" + pair["synapse"]
+                stub._resolve(resolved_syn, resolved_neu)
+            else:
+                stub._resolve(entry["name"])
 
-        # specify co-generation of synapse and postsynaptic neuron code in the codegen_opts dictionary
-        codegen_opts["neuron_synapse_pairs"] = [{"neuron": _get_model_name(neuron_filename),
-                                                 "synapse": _get_model_name(synapse_filename),
-                                                 "post_ports": ["post_spikes"]}]
-
-        neuron_name = _get_model_name(neuron_filename) + "__with_" + _get_model_name(synapse_filename)
-        synapse_name = _get_model_name(synapse_filename) + "__with_" + _get_model_name(neuron_filename)
-
-    generate_nest_target(
-        input_path=input_path,
-        target_path=None,  # "/tmp/nestml_target",
-        install_path=None,
-        module_name=module_name,
-        codegen_opts=codegen_opts
-    )
-
-    if have_synapse_tmpdir:
-        shutil.rmtree(synapse_input_path)
-
-    if postsynaptic_neuron_nestml_description and have_neuron_tmpdir:
-        shutil.rmtree(neuron_input_path)
-
-    nest.Install(module_name)
-
-    # todo: get units information from nestml_description, provide to "native_synapse_type()"
-    synapse_class = pyNN.nest.native_synapse_type(synapse_name)
-    synapse_class.delay_variable = delay_variable
-    synapse_class.weight_variable = weight_variable
-
-    if postsynaptic_neuron_nestml_description:
-        synapse_class.postsynaptic_cell_type = pyNN.nest.native_cell_type(neuron_name)
-
-    return synapse_class
+    _compiled = True
+    _pending.clear()

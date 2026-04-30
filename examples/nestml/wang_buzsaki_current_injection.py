@@ -40,10 +40,7 @@ sim, options = get_simulator(
 if options.debug:
     init_logging(None, debug=True)
 
-sim.setup(timestep=0.01, min_delay=1.0)
-
-
-# === Create the cell type from a NESTML definition
+# === Register the NESTML cell type (must happen before sim.setup())
 
 # note that the NESTML definition can also be stored in a separate file
 
@@ -140,6 +137,8 @@ model wb_cond_exp:
 """
 
 celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp", nestml_description)
+
+sim.setup(timestep=0.01, min_delay=1.0)
 
 # add some variability between neurons
 rng = NumpyRNG(seed=1309463846)

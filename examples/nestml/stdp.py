@@ -41,36 +41,27 @@ sim, options = get_simulator(
 if options.debug:
     init_logging(None, debug=True)
 
-sim.setup(timestep=0.01, min_delay=1.0)
-
-import pyNN
-nest = pyNN.nest
-from pyNN.utility import init_logging
-
-# === Create the cell type from a NESTML definition
+# === Register the NESTML synapse (and co-generated neuron) before sim.setup()
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-input_path = os.path.join(current_dir, "wb_cond_exp_neuron.nestml")
-# celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp_neuron", input_path)
-
-synapse_type = sim.nestml.nestml_synapse_type("stdp_synapse", "stdp_synapse.nestml", "iaf_psc_exp_neuron.nestml")
+synapse_type = sim.nestml.nestml_synapse_type(
+    "stdp_synapse",
+    os.path.join(current_dir, "stdp_synapse.nestml"),
+    postsynaptic_neuron_nestml_description=os.path.join(current_dir, "iaf_psc_exp_neuron.nestml"),
+)
 post_cell_type = synapse_type.postsynaptic_cell_type
+
+sim.setup(timestep=0.01, min_delay=1.0)
 
 
 # === Build and instrument the network =======================================
 
-init_logging(logfile=None, debug=True)
+p2 = sim.Population(10, sim.SpikeSourcePoisson())
+p1 = sim.Population(10, post_cell_type())
 
-# nest.setup()
+connector = sim.AllToAllConnector()
 
-p2 = nest.Population(10, nest.SpikeSourcePoisson())
-p1 = nest.Population(10, post_cell_type())
-
-connector = nest.AllToAllConnector()
-
-# stdp_params = {'Wmax': 50.0, 'lambda': 0.015, 'w': 0.001}
-stdp_params = {}
-prj = nest.Projection(p2, p1, connector, receptor_type='excitatory', synapse_type=synapse_type(**stdp_params))
+prj = sim.Projection(p2, p1, connector, receptor_type='excitatory', synapse_type=synapse_type())
 
 p1.record(["V_m", "I_syn_exc", "I_syn_inh"])
 
