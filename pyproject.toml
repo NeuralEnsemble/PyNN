@@ -35,7 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest", "pytest-xdist", "pytest-cov", "flake8", "wheel", "mpi4py", "scipy", "matplotlib", "Cheetah3", "h5py", "Jinja2"]
-doc = ["sphinx"]
+doc = ["sphinx", "sphinxawesome_theme"]
 examples = ["matplotlib", "scipy"]
 plotting = ["matplotlib", "scipy"]
 MPI = ["mpi4py"]
