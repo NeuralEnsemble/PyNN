@@ -25,6 +25,7 @@ import os.path
 from operator import itemgetter
 import warnings
 
+import neuron
 import numpy as np
 from neuron import h, nrn_dll_loaded
 
@@ -76,32 +77,11 @@ def load_mechanisms(path):
     which the directory 'i686' (or 'x86_64' or 'powerpc' depending on your
     platform) was created.
     """
-    import platform
-
-    if path in nrn_dll_loaded:
-        logger.warning("Mechanisms already loaded from path: %s" % path)
-        return
-    # in case NEURON is assuming a different architecture to Python,
-    # we try multiple possibilities
-    if platform.system() == 'Windows':
-        lib_path = os.path.join(path, 'nrnmech.dll')
-        if os.path.exists(lib_path):
-            h.nrn_load_dll(lib_path)
-            nrn_dll_loaded.append(path)
-            return
-    else:
-        arch_list = [platform.machine(), 'i686', 'x86_64', 'powerpc', 'umac']
-        for arch in arch_list:
-            path_list = ['.so', '.dylib']
-            for p in path_list:
-                lib_path = os.path.join(path, arch, f'libnrnmech{p}')
-                if os.path.exists(lib_path):
-                    h.nrn_load_dll(lib_path)
-                    nrn_dll_loaded.append(path)
-                    return
-    raise IOError(
-        f"NEURON mechanisms not found in {path}. "
-        "You may need to run 'nrnivmodl' in this directory.")
+    result = neuron.load_mechanisms(path)
+    if not result:
+        raise IOError(
+            f"NEURON mechanisms not found in {path}. "
+            "You may need to run 'nrnivmodl' in this directory.")
 
 
 def is_point_process(obj):
