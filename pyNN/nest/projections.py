@@ -250,17 +250,31 @@ class Projection(common.Projection):
             try:
                 weights = connection_parameter_group.pop('weight')
                 delays = connection_parameter_group.pop('delay')
+
+                weight_var = getattr(self.synapse_type, 'weight_variable', None) or 'weight'
+                delay_var = getattr(self.synapse_type, 'delay_variable', None) or 'delay'
+
+                if weight_var != 'weight':
+                    # Route user weight into the custom weight variable; leave NEST internal weight alone
+                    connection_parameter_group[weight_var] = weights
+                    weights = None
+                if delay_var != 'delay':
+                    # Route user delay into the custom delay variable; leave NEST internal delay alone
+                    connection_parameter_group[delay_var] = delays
+                    delays = None
+
                 # nest.Connect expects a 2D array
-                if not np.isscalar(weights):
+                if weights is not None and not np.isscalar(weights):
                     weights = np.array([weights])
-                if not np.isscalar(delays):
+                if delays is not None and not np.isscalar(delays):
                     delays = np.array([delays])
-                syn_dict.update({'weight': weights, 'delay': delays})
+                if weights is not None or delays is not None:
+                    syn_dict.update({'weight': weights, 'delay': delays})
 
                 if postsynaptic_cell.celltype.standard_receptor_type:
                     # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
                     # the relevant "tau_syn" parameter from the post-synaptic neuron.
-                    if 'tsodyks' in self.nest_synapse_model:
+                    if 'tsodyks' in self.nest_synapse_model and hasattr(postsynaptic_cell.celltype, 'translations'):
                         translations = postsynaptic_cell.celltype.translations
                         if self.receptor_type == 'inhibitory':
                             param_name = translations['tau_syn_I']['translated_name']

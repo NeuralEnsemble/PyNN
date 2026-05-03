@@ -79,7 +79,9 @@ def setup(timestep=DEFAULT_TIMESTEP, min_delay=DEFAULT_MIN_DELAY,
     # Set min_delay and max_delay
     simulator.state.set_delays(min_delay, max_delay)
     nest.SetDefaults('spike_generator', {'precise_times': True})
+
     from . import nestml
+    nestml._compiled = False
     nestml._compile_and_resolve()
     return rank()
 

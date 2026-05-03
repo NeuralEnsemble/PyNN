@@ -42,10 +42,14 @@ class NESTSynapseMixin(object):
                 synapse_defaults[name] = value.evaluate(simplify=True)
 
         if self.weight_variable and self.weight_variable != "weight":
-            synapse_defaults.pop("weight")
+            w = synapse_defaults.pop("weight", None)
+            if w is not None:
+                synapse_defaults[self.weight_variable] = w
 
         if self.delay_variable and self.delay_variable != "delay":
-            synapse_defaults.pop("delay")
+            d = synapse_defaults.pop("delay", None)
+            if d is not None:
+                synapse_defaults[self.delay_variable] = d
 
         synapse_defaults = make_sli_compatible(synapse_defaults)
         synapse_defaults.pop("tau_minus", None)
