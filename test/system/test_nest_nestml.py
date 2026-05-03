@@ -148,3 +148,57 @@ def test_nestml_tsodyks_synapse_vm_trace():
                                err_msg="V_m traces differ between NESTML and native tsodyks_synapse")
 
     sim.end()
+
+
+def test_nestml_cell_type_inline_string():
+    """nestml_cell_type() should accept inline NESTML source, not just file paths."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    if not have_pynestml:
+        pytest.skip("pynestml not available")
+
+    from pyNN.nest import nestml as pynn_nestml
+    iaf_path = os.path.join(NESTML_MODEL_DIR, "iaf_psc_exp_neuron.nestml")
+    with open(iaf_path) as f:
+        iaf_source = f.read()
+
+    NestmlIAF = pynn_nestml.nestml_cell_type("iaf_psc_exp_neuron", iaf_source)
+    sim.setup(timestep=0.1, min_delay=1.0)
+
+    pop = sim.Population(1, NestmlIAF(I_e=400.0), label="nestml_inline")
+    pop.record("V_m")
+    sim.run(100.0)
+
+    vm = pop.get_data().segments[0].filter(name="V_m")[0].magnitude
+    assert np.ptp(vm) > 5.0, "No membrane potential dynamics — inline model may not have compiled"
+
+    sim.end()
+
+
+def test_nestml_register_after_setup_raises():
+    """Calling nestml_cell_type() after sim.setup() should raise RuntimeError."""
+    if not have_nest:
+        pytest.skip("nest not available")
+
+    from pyNN.nest import nestml as pynn_nestml
+    sim.setup(timestep=0.1, min_delay=1.0)
+    iaf_path = os.path.join(NESTML_MODEL_DIR, "iaf_psc_exp_neuron.nestml")
+
+    with pytest.raises(RuntimeError, match="before sim.setup"):
+        pynn_nestml.nestml_cell_type("iaf_psc_exp_neuron", iaf_path)
+
+    sim.end()
+
+
+def test_nestml_setup_without_models():
+    """sim.setup() should succeed and set _compiled even when no NESTML models are registered."""
+    if not have_nest:
+        pytest.skip("nest not available")
+
+    from pyNN.nest import nestml as pynn_nestml
+    sim.setup(timestep=0.1, min_delay=1.0)
+
+    assert pynn_nestml._compiled, "_compiled should be True after setup() even with no models"
+    assert pynn_nestml._pending == [], "_pending should be empty after setup()"
+
+    sim.end()
