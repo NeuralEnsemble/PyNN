@@ -113,9 +113,9 @@ NET_RECEIVE (w) {
 
 
 VERBATIM
-extern double* vector_vec();
-extern int vector_capacity();
-extern void* vector_arg();
+extern double* vector_vec(void *);
+extern int vector_capacity(void *);
+extern void* vector_arg(int);
 ENDVERBATIM     
 
 PROCEDURE element() {
