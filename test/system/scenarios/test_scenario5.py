@@ -2,6 +2,12 @@ import sys
 import numpy as np
 
 try:
+    import morphio
+    have_morphio = True
+except ImportError:
+    have_morphio = False
+
+try:
     from neuroml import Morphology, Segment, Point3DWithDiam as P
     have_neuroml = True
 except ImportError:
@@ -21,6 +27,8 @@ def test_scenario5(sim):
     """
     Array of multi-compartment neurons, each injected with a different current.
     """
+    if not have_morphio:
+        pytest.skip("morphio not available")
     if not have_neuroml:
         pytest.skip("libNeuroML not available")
 
