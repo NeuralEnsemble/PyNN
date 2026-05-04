@@ -11,7 +11,7 @@ Functions:
     nestml_cell_type    - register a NESTML neuron description; return a cell type class
     nestml_synapse_type - register a NESTML synapse description; return a synapse type class
 
-:copyright: Copyright 2006-2024 by the PyNN team, see AUTHORS.
+:copyright: Copyright 2006-2026 by the PyNN team, see AUTHORS.
 :license: CeCILL, see LICENSE for details.
 """
 
