@@ -1,0 +1,72 @@
+=========================
+PyNN 0.13.0 release notes
+=========================
+
+[release date]
+
+Welcome to PyNN 0.13.0!
+
+NESTML support
+--------------
+
+PyNN now supports NESTML_ neuron and synapse models with the NEST_ backend,
+via the new :mod:`pyNN.nest.nestml` module.
+The :func:`nestml_cell_type` and :func:`nestml_synapse_type` factory functions
+allow you to define custom neuron and synapse models in NESTML and use them
+as standard PyNN cell and synapse types, with full support for PyNN's
+:class:`Population` and :class:`Projection` interfaces.
+NESTML compilation is deferred to :func:`sim.setup()` for correct initialisation.
+
+Many thanks to Charl Linssen for co-designing and co-implementing this.
+
+To use NESTML models, install the optional dependency::
+
+    pip install PyNN[nestml]
+
+
+NEURON 9 compatibility
+----------------------
+
+This release includes several fixes for compatibility with NEURON_ 9:
+
+- Fixed extern declarations in :file:`vecstim.mod`.
+- Fixed mod files for the C23 standard (thanks to Ankur Sinha, PR #819).
+- Applied a compatibility patch for random number handling provided by
+  Goran Jelic-Cizmek.
+
+NEST 3.10 compatibility
+-----------------------
+
+
+morphio is now optional
+-----------------------
+
+The morphio_ dependency is now optional. It is only required for models
+that use morphologically detailed neuron descriptions. To install with
+morphio support::
+
+    pip install PyNN[morphologies]
+
+
+Python and NumPy version support
+--------------------------------
+
+We have dropped support for Python 3.9.
+Python 3.14 has been added to the test matrix.
+PyNN now works with NumPy 2.x.
+
+
+Bug fixes
+---------
+
+- Fix a floating-point precision issue in pyNN.brian2 that could cause a
+  tiny negative run duration to be computed when resuming a simulation at
+  a time such as 12.7 ms (where floating-point arithmetic leaves the
+  internal time fractionally above the target).
+- Fixed building of Arbor NMODL mechanisms.
+
+
+.. _NESTML: https://nestml.readthedocs.io
+.. _NEST: https://www.nest-simulator.org
+.. _NEURON: https://neuron.yale.edu
+.. _morphio: https://morphio.readthedocs.io
