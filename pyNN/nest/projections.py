@@ -272,16 +272,10 @@ class Projection(common.Projection):
                     syn_dict.update({'weight': weights, 'delay': delays})
 
                 if postsynaptic_cell.celltype.standard_receptor_type:
-<<<<<<< issue810
                     # For the standard TsodyksMarkramSynapse, copy "tau_psc" from the
                     # post-synaptic neuron's tau_syn so they stay consistent. For
                     # native_synapse_type, the user-supplied tau_psc is left untouched.
                     if isinstance(self.synapse_type, TsodyksMarkramSynapse):
-=======
-                    # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
-                    # the relevant "tau_syn" parameter from the post-synaptic neuron.
-                    if 'tsodyks' in self.nest_synapse_model and hasattr(postsynaptic_cell.celltype, 'translations'):
->>>>>>> master
                         translations = postsynaptic_cell.celltype.translations
                         if self.receptor_type == 'inhibitory':
                             param_name = translations['tau_syn_I']['translated_name']
