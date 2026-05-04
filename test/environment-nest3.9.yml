@@ -21,6 +21,7 @@ channels:
 dependencies:
   - python=3.12
   - nest-simulator=3.9
+  - nestml
   - brian2
   - numpy
   - scipy
@@ -36,6 +37,7 @@ dependencies:
     - morphio
     - neuron
     - nrnutils
+    - pynestml
     - Cheetah3
     - Jinja2
     - pytest

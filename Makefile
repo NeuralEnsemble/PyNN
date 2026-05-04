@@ -99,7 +99,7 @@ $(NEST_STAMP): $(NEST_VENV_STAMP) $(NEST_SRC_UNPACKED)
 	$(NEST_PIP) install \
 	    "neuron>=9.0.0" nrnutils "arbor==0.9.0" \
 	    brian2 libNeuroML scipy matplotlib Cheetah3 h5py Jinja2 \
-	    pytest pytest-xdist pytest-cov flake8
+	    pytest pytest-xdist pytest-cov flake8 morphio nestml
 	$(NEST_PIP) install -e .
 	# Compile NEURON .mod mechanisms against the venv's NEURON.
 	# The compiled arm64/ dir lives in the source tree and is version-specific,
