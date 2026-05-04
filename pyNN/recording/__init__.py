@@ -351,6 +351,8 @@ class Recorder(object):
                 if signal_array.size > 0:
                     # may be empty if none of the recorded cells are on this MPI node
                     units = self.population.find_units(variable)
+                    if units == "unknown":
+                        units = "dimensionless"
                     channel_ids = np.fromiter(ids, dtype=int)
                     if len(ids) == signal_array.shape[1]:  # one channel per neuron
                         channel_index = np.array([self.population.id_to_index(id) for id in ids])

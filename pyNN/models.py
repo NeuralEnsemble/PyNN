@@ -116,6 +116,9 @@ class BaseSynapseType(BaseModelType):
     # override for synapses that include an active presynaptic components
     has_presynaptic_components = False
 
+    delay_variable = 'delay'
+    weight_variable = 'weight'
+
     def __init__(self, **parameters):
         """
         `parameters` should be a mapping object, e.g. a dict
@@ -124,12 +127,12 @@ class BaseSynapseType(BaseModelType):
         if parameters:
             all_parameters.update(**parameters)
         try:
-            if all_parameters['delay'] is None:
-                all_parameters['delay'] = self._get_minimum_delay()
-            if all_parameters['weight'] is None:
-                all_parameters['weight'] = 0.
+            if all_parameters[self.delay_variable] is None:
+                all_parameters[self.delay_variable] = self._get_minimum_delay()
+            if all_parameters[self.weight_variable] is None:
+                all_parameters[self.weight_variable] = 0.
         except KeyError as e:
-            if e.args[0] != 'delay':  # ElectricalSynapses don't have delays
+            if e.args[0] != self.delay_variable:  # ElectricalSynapses don't have delays
                 raise e
         self.parameter_space = ParameterSpace(all_parameters,
                                               self.get_schema(),
