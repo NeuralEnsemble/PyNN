@@ -16,7 +16,7 @@ from .. import common, errors
 from ..space import Space
 from ..parameters import simplify
 from . import simulator
-from .standardmodels.synapses import StaticSynapse
+from .standardmodels.synapses import StaticSynapse, TsodyksMarkramSynapse
 from .conversion import make_sli_compatible
 
 logger = logging.getLogger("PyNN")
@@ -123,7 +123,7 @@ class Projection(common.Projection):
         Create connections by calling nest. Connect on the presynaptic and postsynaptic population
         with the parameters provided by params.
         """
-        if 'tsodyks' in self.nest_synapse_model:
+        if isinstance(self.synapse_type, TsodyksMarkramSynapse):
             translations = self.post.local_cells[0].celltype.translations
             if self.receptor_type == 'inhibitory':
                 param_name = translations['tau_syn_I']['translated_name']
@@ -131,8 +131,8 @@ class Projection(common.Projection):
                 param_name = translations['tau_syn_E']['translated_name']
             else:
                 raise NotImplementedError()
-            syn_params.update(
-                {'tau_psc': nest.GetStatus([self.nest_connections[0, 1]], param_name)})
+            tau_psc = nest.GetStatus(self.post.node_collection, param_name)
+            syn_params.update({'tau_psc': tau_psc[0] if len(set(tau_psc)) == 1 else list(tau_psc)})
 
         syn_params.update({'synapse_label': self.nest_synapse_label})
         nest.Connect(self.pre.node_collection,
@@ -272,9 +272,16 @@ class Projection(common.Projection):
                     syn_dict.update({'weight': weights, 'delay': delays})
 
                 if postsynaptic_cell.celltype.standard_receptor_type:
+<<<<<<< issue810
+                    # For the standard TsodyksMarkramSynapse, copy "tau_psc" from the
+                    # post-synaptic neuron's tau_syn so they stay consistent. For
+                    # native_synapse_type, the user-supplied tau_psc is left untouched.
+                    if isinstance(self.synapse_type, TsodyksMarkramSynapse):
+=======
                     # For Tsodyks-Markram synapses models we set the "tau_psc" parameter to match
                     # the relevant "tau_syn" parameter from the post-synaptic neuron.
                     if 'tsodyks' in self.nest_synapse_model and hasattr(postsynaptic_cell.celltype, 'translations'):
+>>>>>>> master
                         translations = postsynaptic_cell.celltype.translations
                         if self.receptor_type == 'inhibitory':
                             param_name = translations['tau_syn_I']['translated_name']

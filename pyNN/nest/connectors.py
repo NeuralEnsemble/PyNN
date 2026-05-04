@@ -116,7 +116,7 @@ class NESTConnectorMixin(object):
                 if (
                     name == "weight"
                     and projection.receptor_type == 'inhibitory'
-                    and self.post.conductance_based
+                    and projection.post.conductance_based
                 ):
                     # NEST wants negative values for inhibitory weights,
                     # even if these are conductances
