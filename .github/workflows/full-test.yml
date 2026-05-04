@@ -21,6 +21,11 @@ jobs:
     steps:
     - uses: actions/checkout@v6
     - uses: mpi4py/setup-mpi@v1
+      if: startsWith(matrix.os, 'ubuntu')
+      with:
+        mpi: openmpi
+    - uses: mpi4py/setup-mpi@v1
+      if: startsWith(matrix.os, 'windows')
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v6
       with:
