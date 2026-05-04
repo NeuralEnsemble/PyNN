@@ -19,7 +19,15 @@ NESTML_MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "examples
 
 @pytest.fixture(autouse=True)
 def reset_nestml_state():
-    """Reset NESTML module-level state between tests so registrations don't bleed across."""
+    """Reset NESTML module-level state before and after each test.
+
+    Resets both before (so state left by non-NESTML tests in the same worker doesn't bleed
+    in) and after (so state left by this test doesn't bleed into subsequent tests).
+    """
+    if have_nest:
+        from pyNN.nest import nestml
+        nestml._compiled = False
+        nestml._pending.clear()
     yield
     if have_nest:
         from pyNN.nest import nestml
