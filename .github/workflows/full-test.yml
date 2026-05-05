@@ -33,7 +33,7 @@ jobs:
     - name: Install Linux system dependencies
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        sudo apt-get install libltdl-dev libgsl0-dev python3-all-dev openmpi-bin libopenmpi-dev
+        sudo apt-get install libltdl-dev libgsl0-dev python3-all-dev openmpi-bin libopenmpi-dev libboost-dev
     - name: Install basic Python dependencies
       run: |
         python -m pip install --upgrade pip
