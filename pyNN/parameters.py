@@ -350,14 +350,14 @@ class ParameterSpace(object):
                         valid_parameter_names=self.schema.keys())
             if issubclass(expected_dtype, ArrayParameter) and isinstance(value, Sized):
                 if len(value) == 0:
-                    value = ArrayParameter([])
+                    value = expected_dtype([])
                 elif not isinstance(value[0], ArrayParameter):
                     # may be a more generic way to do it, but for now this special-casing
                     # seems like the most robust approach
                     if isinstance(value[0], Sized):  # e.g. list of tuples
-                        value = type(value)([ArrayParameter(x) for x in value])
+                        value = type(value)([expected_dtype(x) for x in value])
                     else:
-                        value = ArrayParameter(value)
+                        value = expected_dtype(value)
             try:
                 self._parameters[name] = LazyArray(value, shape=self._shape,
                                                    dtype=expected_dtype)
