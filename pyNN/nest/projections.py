@@ -495,11 +495,17 @@ class Projection(common.Projection):
             value_arr = np.nan * np.ones((self.pre.size, self.post.size))
             connection_attributes = nest.GetStatus(self.nest_connections,
                                                    ('source', 'target', attribute_name))
-            # NEST 3.10 returns a dict {key: [values]}; earlier versions return a list of tuples
+            # GetStatus return format varies by NEST version:
+            #   dict {key: [values]}  — seen in some NEST 3.x builds
+            #   list of dicts         — NEST 3.10rc1
+            #   list of tuples        — older NEST
             if isinstance(connection_attributes, dict):
                 conn_iter = zip(connection_attributes['source'],
                                 connection_attributes['target'],
                                 connection_attributes[attribute_name])
+            elif connection_attributes and isinstance(connection_attributes[0], dict):
+                conn_iter = ((c['source'], c['target'], c[attribute_name])
+                             for c in connection_attributes)
             else:
                 conn_iter = connection_attributes
             for conn in conn_iter:
