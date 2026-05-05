@@ -49,7 +49,7 @@ class Connection(common.Connection):
             1,), schema=self.projection.synapse_type.get_schema())
         native_ps = self.projection.synapse_type.translate(ps)
         native_ps.evaluate()
-        getattr(self._syn_obj, attr_name)[self.index] = native_ps[attr_name]
+        getattr(self._syn_obj, attr_name)[self.index] = native_ps[attr_name][0]
 
     def _set_weight(self, w):
         self._set("weight", w)

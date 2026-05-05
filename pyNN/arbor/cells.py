@@ -6,7 +6,6 @@ from neuroml import Point3DWithDiam
 from ..morphology import Morphology, NeuroMLMorphology, MorphIOMorphology, IonChannelDistribution
 from ..models import BaseCellType
 from ..parameters import ParameterSpace
-from morphio import SectionType
 
 
 def convert_point(p3d: Point3DWithDiam) -> arbor.mpoint:

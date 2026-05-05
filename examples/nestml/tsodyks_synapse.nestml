@@ -1,0 +1,42 @@
+model tsodyks_synapse_nestml:
+    parameters:
+        w real = 1          # Synaptic weight
+        d ms = 1 ms         # Dendritic delay (required by PyNESTML; NEST applies transmission delay at connection level)
+        tau_psc ms = 3 ms   # Time constant of postsynaptic current
+        tau_fac ms = 0 ms   # Time constant for facilitation (0 = no facilitation)
+        tau_rec ms = 800 ms # Time constant for recovery from depression
+        U real = 0.5        # Utilisation of synaptic efficacy
+
+    state:
+        x real = 1          # Fraction of synaptic resources available
+        y real = 0          # Fraction of resources in use
+        u real = 0.5        # Running value of utilisation
+        t_last_update ms = 0 ms
+
+    input:
+        pre_spikes <- spike
+
+    output:
+        spike(weight real, delay ms)
+
+    onReceive(pre_spikes):
+        dt ms = t - t_last_update
+        t_last_update = t
+
+        Puu real = tau_fac == 0 ms ? 0 : exp(-dt / tau_fac)
+        Pyy real = exp(-dt / tau_psc)
+        Pzz real = exp(-dt / tau_rec)
+        Pxy real = ((Pzz - 1) * tau_rec - (Pyy - 1) * tau_psc) / (tau_psc - tau_rec)
+        Pxz real = 1 - Pzz
+        z real = 1 - x - y
+
+        u *= Puu
+        x += Pxy * y + Pxz * z
+        y *= Pyy
+        u += U * (1 - u)
+
+        delta_y_tsp real = u * x
+        x -= delta_y_tsp
+        y += delta_y_tsp
+
+        emit_spike(delta_y_tsp * w, d)

@@ -1,0 +1,13 @@
+services:
+  pynn:
+    image: pynn-test:nest${NEST_VERSION:-3.9}
+    build:
+      context: ..
+      dockerfile: test/Dockerfile
+      args:
+        NEST_VERSION: ${NEST_VERSION:-3.9}
+    volumes:
+      - ..:/workspace
+    environment:
+      PYTHONPATH: /workspace
+    working_dir: /workspace

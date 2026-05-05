@@ -18,6 +18,11 @@ except ImportError:
     have_neuron = False
 import pytest
 
+try:
+    import morphio
+    have_morphio = True
+except ImportError:
+    have_morphio = False
 
 try:
     from neuroml import Morphology, Segment, Point3DWithDiam as P
@@ -242,8 +247,8 @@ def test_artificial_cells():
 
 
 def test_2_compartment():
-    if not (have_neuron and have_neuroml):
-        pytest.skip("Need neuron and neuroml")
+    if not (have_neuron and have_neuroml and have_morphio):
+        pytest.skip("Need neuron, neuroml, and morphio")
     sim = pyNN.neuron
 
     sim.setup(timestep=0.025)

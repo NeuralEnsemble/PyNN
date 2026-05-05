@@ -482,6 +482,38 @@ class ParameterSpaceTest(unittest.TestCase):
         assert_array_equal(ps['a'], np.array(
             [Sequence([1, 2, 3]), Sequence([4, 5, 6])], dtype=Sequence))
 
+    def test_create_with_plain_list_produces_sequence(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [1, 2, 3]}, schema, shape=(2,))
+        ps.evaluate()
+        result = ps['a']
+        assert type(result[0]) == Sequence
+        assert_array_equal(result, np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+
+    def test_create_with_numpy_array_produces_sequence(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': np.array([1, 2, 3])}, schema, shape=(2,))
+        ps.evaluate()
+        result = ps['a']
+        assert type(result[0]) == Sequence
+        assert_array_equal(result, np.array([Sequence([1, 2, 3]), Sequence([1, 2, 3])], dtype=Sequence))
+
+    def test_create_with_list_of_numpy_arrays_produces_sequences(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': [np.array([1, 2]), np.array([3, 4])]}, schema, shape=(2,))
+        ps.evaluate()
+        result = ps['a']
+        assert type(result[0]) == Sequence
+        assert type(result[1]) == Sequence
+        assert_array_equal(result, np.array([Sequence([1, 2]), Sequence([3, 4])], dtype=Sequence))
+
+    def test_create_with_empty_list_produces_sequence(self):
+        schema = {'a': Sequence}
+        ps = ParameterSpace({'a': []}, schema, shape=(2,))
+        ps.evaluate()
+        result = ps['a']
+        assert type(result[0]) == Sequence
+
     def test_keys(self):
         ps = ParameterSpace({'a': [2, 3, 5, 8, 13], 'b': 7, 'c': lambda i: 3 * i + 2}, shape=(5,))
         assert list(ps.keys()) == ["a", "b", "c"]

@@ -14,7 +14,6 @@ from functools import reduce
 import numpy as np
 from neuron import h, nrn, hclass
 import numpy.random
-from morphio import SectionType
 
 from .. import errors
 from ..models import BaseCellType

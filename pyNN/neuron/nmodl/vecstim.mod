@@ -113,10 +113,12 @@ NET_RECEIVE (w) {
 
 
 VERBATIM
-extern double* vector_vec();
-extern int vector_capacity();
-extern void* vector_arg();
-ENDVERBATIM     
+#ifndef NRN_VERSION_GTEQ_8_2_0
+extern double* vector_vec(void *);
+extern int vector_capacity(void *);
+extern void* vector_arg(int);
+#endif
+ENDVERBATIM
 
 PROCEDURE element() {
 VERBATIM

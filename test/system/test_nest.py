@@ -3,9 +3,17 @@ from numpy.testing import assert_array_equal
 
 try:
     import pyNN.nest
+    import nest as _nest
     have_nest = True
+    try:
+        _nest.SetKernelStatus({'local_num_threads': 2})
+        _nest.ResetKernel()
+        have_nest_threads = True
+    except Exception:
+        have_nest_threads = False
 except ImportError:
     have_nest = False
+    have_nest_threads = False
 
 from pyNN.utility import init_logging
 from pyNN.random import RandomDistribution
@@ -84,6 +92,8 @@ def test_native_stdp_model():
 def test_ticket240():
     if not have_nest:
         pytest.skip("nest not available")
+    if not have_nest_threads:
+        pytest.skip("NEST built without threading support")
     nest = pyNN.nest
     nest.setup(threads=4)
     parameters = {'tau_m': 17.0}
@@ -100,6 +110,8 @@ def test_ticket240():
 def test_ticket244():
     if not have_nest:
         pytest.skip("nest not available")
+    if not have_nest_threads:
+        pytest.skip("NEST built without threading support")
     nest = pyNN.nest
     nest.setup(threads=4)
     p1 = nest.Population(4, nest.IF_curr_exp())
@@ -179,6 +191,77 @@ def test_tsodyks_markram_synapse():
                                       synapse_model=prj.nest_synapse_model)
     tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
     assert_array_equal(tau_psc, np.arange(0.2, 0.7, 0.1))
+
+
+def test_native_tsodyks_synapse_convergent_connect():
+    """native_synapse_type tsodyks_synapse via _convergent_connect preserves user tau_psc (issue #810)."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    import nest
+    sim = pyNN.nest
+    sim.setup()
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
+    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=np.arange(0.2, 0.7, 0.1)))
+    synapse_type = sim.native_synapse_type('tsodyks_synapse')(
+        U=0.04, tau_rec=100.0, tau_fac=1000.0, weight=10.0, delay=0.5, tau_psc=5.0)
+    connector = sim.AllToAllConnector()
+    prj = sim.Projection(spike_source, neurons, connector,
+                         receptor_type='inhibitory',
+                         synapse_type=synapse_type)
+    connections = nest.GetConnections(
+        nest.NodeCollection(list(prj._sources)),
+        synapse_model=prj.nest_synapse_model)
+    tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
+    assert_array_equal(tau_psc, [5.0] * 5)
+    sim.end()
+
+
+def test_native_tsodyks_synapse_native_connect():
+    """native_synapse_type tsodyks_synapse via _connect (NativeRNG) preserves user tau_psc (issue #810)."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    import nest
+    sim = pyNN.nest
+    sim.setup()
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
+    neurons = sim.Population(5, sim.IF_cond_exp(e_rev_I=-75, tau_syn_I=3.0))
+    synapse_type = sim.native_synapse_type('tsodyks_synapse')(
+        U=0.04, tau_rec=100.0, tau_fac=1000.0, weight=10.0, delay=0.5, tau_psc=5.0)
+    rng = sim.NativeRNG(seed=1234)
+    connector = sim.FixedProbabilityConnector(p_connect=1.0, rng=rng)
+    prj = sim.Projection(spike_source, neurons, connector,
+                         receptor_type='inhibitory',
+                         synapse_type=synapse_type)
+    connections = nest.GetConnections(
+        nest.NodeCollection(list(prj._sources)),
+        synapse_model=prj.nest_synapse_model)
+    tau_psc = np.array(nest.GetStatus(connections, 'tau_psc'))
+    assert_array_equal(tau_psc, [5.0] * 5)
+    sim.end()
+
+
+def test_native_tsodyks2_synapse():
+    """native_synapse_type tsodyks2_synapse creates projection without error (issue #810)."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    import nest
+    sim = pyNN.nest
+    sim.setup()
+    spike_source = sim.Population(1, sim.SpikeSourceArray(spike_times=np.arange(10, 100, 10)))
+    neurons = sim.Population(5, sim.IF_cond_exp())
+    synapse_type = sim.native_synapse_type('tsodyks2_synapse')(
+        U=0.04, tau_rec=100.0, tau_fac=1000.0, weight=10.0, delay=0.5)
+    connector = sim.AllToAllConnector()
+    prj = sim.Projection(spike_source, neurons, connector,
+                         receptor_type='excitatory',
+                         synapse_type=synapse_type)
+    connections = nest.GetConnections(
+        nest.NodeCollection(list(prj._sources)),
+        synapse_model=prj.nest_synapse_model)
+    assert len(connections) == 5
+    U_vals = np.array(nest.GetStatus(connections, 'U'))
+    assert_array_equal(U_vals, [0.04] * 5)
+    sim.end()
 
 
 def test_native_electrode_types():

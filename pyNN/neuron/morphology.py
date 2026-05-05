@@ -4,7 +4,6 @@
 
 """
 
-from morphio import SectionType
 import numpy as np
 from .. import morphology as base_morphology
 
@@ -38,6 +37,8 @@ class dendrites(base_morphology.dendrites):
     def __call__(self, morphology, filter_by_section=False):
         """Return an index (integer NumPy array) that can be used
         to retrieve the sections corresponding to the filter. """
+        from morphio import SectionType
+
         section_index = np.array([], dtype=int)
         for label in (SectionType.apical_dendrite, SectionType.basal_dendrite):
             if label in morphology.section_groups:
@@ -53,6 +54,8 @@ class dendrites(base_morphology.dendrites):
 class apical_dendrites(base_morphology.apical_dendrites):
 
     def __call__(self, morphology, filter_by_section=False):
+        from morphio import SectionType
+
         if SectionType.apical_dendrite in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.apical_dendrite]
             if filter_by_section:
@@ -66,6 +69,8 @@ class apical_dendrites(base_morphology.apical_dendrites):
 class basal_dendrites(base_morphology.basal_dendrites):
 
     def __call__(self, morphology, filter_by_section=False):
+        from morphio import SectionType
+
         if SectionType.basal_dendrite in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.basal_dendrite]
             if filter_by_section:
@@ -79,6 +84,8 @@ class basal_dendrites(base_morphology.basal_dendrites):
 class axon(base_morphology.axon):
 
     def __call__(self, morphology, filter_by_section=False):
+        from morphio import SectionType
+
         if SectionType.axon in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.axon]
             if filter_by_section:
@@ -92,6 +99,8 @@ class axon(base_morphology.axon):
 class soma(base_morphology.axon):
 
     def __call__(self, morphology, filter_by_section=False):
+        from morphio import SectionType
+
         if SectionType.soma in morphology.section_groups:
             section_index = morphology.section_groups[SectionType.soma]
             if filter_by_section:

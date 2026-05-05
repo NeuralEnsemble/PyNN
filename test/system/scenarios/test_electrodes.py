@@ -659,6 +659,36 @@ def test_issue631(sim):
     assert (np.all(i_step.magnitude[:int(200.0 / sim_dt) - 1:] == 0))
 
 
+@run_with_simulators("nest")
+def test_issue759(sim):
+    """
+    Test that StepCurrentSource.set_parameters() correctly handles times set at the current
+    simulation time after a run. Previously, times at t=state.t would be sent to NEST as
+    t - min_delay, which is in the past, causing no current injection.
+    """
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+
+    cells = sim.Population(1, sim.IF_curr_exp(v_rest=-65.0, v_thresh=-55.0, tau_refrac=5.0))
+    cells.initialize(v=-65.0)
+    cells.record('spikes')
+
+    cs = sim.StepCurrentSource(times=[0.0], amplitudes=[0.0])
+    cs.inject_into(cells)
+
+    sim.run(50.0)  # no current, no spikes expected
+
+    cs.set_parameters(times=[50.0], amplitudes=[1.0])  # 1.0 nA drives V above threshold
+
+    sim.run(50.0)  # current active, spikes expected
+
+    spikes = cells.get_data().segments[0].spiketrains[0]
+    sim.end()
+
+    assert len(spikes) > 0, "Expected spikes in second run interval; current injection may have failed"
+    assert all(t >= 50.0 for t in spikes.magnitude), "Spikes occurred before current injection started"
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()

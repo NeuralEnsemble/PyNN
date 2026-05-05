@@ -4,6 +4,7 @@
 
 from collections import defaultdict
 import logging
+import os
 import os.path
 import subprocess
 import numpy as np
@@ -26,10 +27,13 @@ def build_mechanisms():
         cat_builder = find("arbor-build-catalogue")
         if not cat_builder:
             raise Exception("Unable to find arbor-build-catalogue. Please ensure Arbor is correctly installed.")
-        proc = subprocess.run([cat_builder, "PyNN", mech_path], cwd=mech_path)
+        env = os.environ.copy()
+        # Newer Xcode/Clang requires an explicit include for NULL; pass it via CXXFLAGS
+        # so cmake picks it up when arbor-build-catalogue compiles the generated C++.
+        env["CXXFLAGS"] = env.get("CXXFLAGS", "") + " -include cstddef"
+        proc = subprocess.run([cat_builder, "PyNN", mech_path], cwd=mech_path, env=env)
         if proc.returncode != 0:
-            err_msg = "\n  ".join(proc.stdout)
-            raise Exception(f"Unable to compile Arbor mechanisms. Output was:\n  {err_msg}")
+            raise Exception("Unable to compile Arbor mechanisms (arbor-build-catalogue returned non-zero exit status).")
         else:
             logger.info("Successfully compiled Arbor mechanisms.")
         return mech_path

@@ -165,4 +165,137 @@ implications for their usage in PyNN:
   However, they will only deviate from the default when changed manually.
 
 
+Using models defined in NESTML
+==============================
+
+`NESTML`_ is a domain-specific language for defining neuron and synapse models that can be
+compiled to efficient C++ code for use in NEST. PyNN wraps PyNESTML to compile and install
+NESTML models automatically at ``sim.setup()`` time.
+
+Installation
+------------
+
+NESTML support requires the ``nestml`` package (imported as ``pynestml``), which is not
+installed by default:
+
+.. code-block:: bash
+
+    pip install PyNN[nestml]   # installs PyNN together with nestml
+    # or
+    pip install nestml         # installs nestml into an existing PyNN environment
+
+Important: register models before ``sim.setup()``
+--------------------------------------------------
+
+All NESTML models registered for a simulation are compiled together in a single PyNESTML
+pass when ``sim.setup()`` is called. Both :func:`nestml_cell_type` and
+:func:`nestml_synapse_type` must therefore be called *before* ``sim.setup()``. Calling
+them afterwards raises a ``RuntimeError``.
+
+The required call order is:
+
+.. code-block:: python
+
+    import pyNN.nest as sim
+    from pyNN.nest import nestml
+
+    # 1. Register NESTML models — no compilation yet
+    MyNeuron = nestml.nestml_cell_type("my_neuron", "my_neuron.nestml")
+
+    # 2. setup() triggers the single compile + install pass
+    sim.setup(timestep=0.1, min_delay=1.0)
+
+    # 3. MyNeuron now behaves identically to native_cell_type() results
+    pop = sim.Population(100, MyNeuron(param=value))
+
+
+NESTML neuron models
+--------------------
+
+Use :func:`~pyNN.nest.nestml.nestml_cell_type` with the model name and either a path to a
+``.nestml`` file or a string containing NESTML source code inline:
+
+.. code-block:: python
+
+    # From a file
+    MyNeuron = nestml.nestml_cell_type("my_neuron", "/path/to/my_neuron.nestml")
+
+    # Inline NESTML source
+    nestml_source = """
+    model my_neuron:
+        ...
+    """
+    MyNeuron = nestml.nestml_cell_type("my_neuron", nestml_source)
+
+After ``sim.setup()`` the returned class behaves identically to one returned by
+:func:`native_cell_type`: parameters can be set, state variables initialised, and
+variables recorded in the usual way.
+
+See ``examples/nestml/wang_buzsaki_synaptic_input.py`` for a file-based example and
+``examples/nestml/wang_buzsaki_current_injection.py`` for the inline variant.
+
+
+NESTML synapse models
+---------------------
+
+Use :func:`~pyNN.nest.nestml.nestml_synapse_type` to register a synapse model. The
+``weight_variable`` and ``delay_variable`` arguments identify which variables in the NESTML
+model correspond to the connection weight and dendritic delay respectively:
+
+.. code-block:: python
+
+    TsodyksSyn = nestml.nestml_synapse_type(
+        "tsodyks_synapse_nestml",
+        "/path/to/tsodyks_synapse.nestml",
+        weight_variable="w",
+        delay_variable="d",
+    )
+    sim.setup(timestep=0.1, min_delay=1.0)
+
+    prj = sim.Projection(
+        source, target,
+        sim.AllToAllConnector(),
+        TsodyksSyn(weight=1.0, delay=1.0),
+        receptor_type="excitatory",
+    )
+
+
+Plastic synapses requiring co-generation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some NESTML plasticity models (such as STDP) must be co-generated with a specific
+postsynaptic neuron model so that PyNESTML can wire up the pre/post spike communication.
+Pass the neuron description via ``postsynaptic_neuron_nestml_description``; the
+co-generated neuron class is then accessible as an attribute of the synapse class before
+and after ``sim.setup()``:
+
+.. code-block:: python
+
+    stdp = nestml.nestml_synapse_type(
+        "stdp_synapse",
+        "stdp_synapse.nestml",
+        postsynaptic_neuron_nestml_description="iaf_psc_exp_neuron.nestml",
+    )
+    PostNeuron = stdp.postsynaptic_cell_type  # available immediately, before setup()
+
+    sim.setup(timestep=0.1, min_delay=1.0)
+
+    source = sim.Population(10, sim.SpikeSourcePoisson(rate=50.0))
+    target = sim.Population(10, PostNeuron())
+    prj = sim.Projection(source, target, sim.AllToAllConnector(),
+                         stdp(weight=1.0, delay=1.0), receptor_type="excitatory")
+
+See ``examples/nestml/stdp.py`` for a complete working example.
+
+
+Future backends
+---------------
+
+NESTML support is currently specific to the NEST backend. The SpiNNaker backend
+(developed separately as `sPyNNaker`_) also has partial NESTML support, and it is hoped
+that other backends may gain NESTML support in future.
+
+
+.. _`NESTML`: https://nestml.readthedocs.io/
+.. _`sPyNNaker`: https://github.com/SpiNNakerManchester/sPyNNaker
 .. _`NEST random number generator`: https://nest-simulator.readthedocs.io/en/stable/guides/random_numbers.html#select-the-type-of-random-number-generator
