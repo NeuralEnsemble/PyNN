@@ -63,7 +63,6 @@ model stdp_synapse:
         post_trace real = 0.
 
     parameters:
-        d ms = 1 ms    # Synaptic transmission delay
         lambda real =  0.01         # (dimensionless) learning rate for causal updates
         alpha real = 1              # relative learning rate for acausal firing
         tau_tr_pre ms = 20 ms       # time constant of presynaptic trace
@@ -83,7 +82,7 @@ model stdp_synapse:
         post_spikes <- spike
 
     output:
-        spike(weight real, delay ms)
+        spike
 
     onReceive(post_spikes):
         post_trace += 1
@@ -102,7 +101,7 @@ model stdp_synapse:
         w = max(Wmin, w_)
 
         # deliver spike to postsynaptic partner
-        emit_spike(w, d)
+        emit_spike(w)
 
     update:
         integrate_odes()

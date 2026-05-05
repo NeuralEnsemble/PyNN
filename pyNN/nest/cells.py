@@ -39,7 +39,7 @@ def get_defaults(model_name):
     for name, value in defaults.items():
         if name in variables:
             default_initial_values[name] = value
-        elif name not in ignore:
+        elif name not in ignore and not name.startswith('__'):
             if isinstance(value, valid_types):
                 default_params[name] = conversion.make_pynn_compatible(value)
             else:

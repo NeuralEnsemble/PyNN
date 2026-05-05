@@ -268,8 +268,10 @@ class Projection(common.Projection):
                     weights = np.array([weights])
                 if delays is not None and not np.isscalar(delays):
                     delays = np.array([delays])
-                if weights is not None or delays is not None:
-                    syn_dict.update({'weight': weights, 'delay': delays})
+                if weights is not None:
+                    syn_dict['weight'] = weights
+                if delays is not None:
+                    syn_dict['delay'] = delays
 
                 if postsynaptic_cell.celltype.standard_receptor_type:
                     # For the standard TsodyksMarkramSynapse, copy "tau_psc" from the

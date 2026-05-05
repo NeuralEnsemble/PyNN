@@ -116,7 +116,6 @@ def test_nestml_tsodyks_synapse_vm_trace():
     TsodyksSyn = pynn_nestml.nestml_synapse_type(
         "tsodyks_synapse_nestml", tsodyks_path,
         weight_variable="w",
-        delay_variable="d",
     )
 
     sim.setup(timestep=0.1, min_delay=1.0)

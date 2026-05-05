@@ -109,7 +109,7 @@ def nestml_synapse_type(
         nestml_description,
         postsynaptic_neuron_nestml_description=None,
         weight_variable="w",
-        delay_variable="d"
+        delay_variable=None
 ):
     """
     Register a NESTML synapse description and return a synapse type class.
