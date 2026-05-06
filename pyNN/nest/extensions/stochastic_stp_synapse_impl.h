@@ -16,8 +16,8 @@
 #include "connector_model.h"
 #include "nest_names.h"
 
-// Includes from sli:
-#include "dictutils.h"
+// Includes from nestkernel:
+#include "dictionary.h"
 
 namespace pynn
 {
@@ -55,30 +55,29 @@ stochastic_stp_synapse< targetidentifierT >::stochastic_stp_synapse(
 template < typename targetidentifierT >
 void
 stochastic_stp_synapse< targetidentifierT >::get_status(
-  DictionaryDatum& d ) const
+  Dictionary& d ) const
 {
   ConnectionBase::get_status( d );
-  def< double >( d, nest::names::weight, weight_ );
-  def< double >( d, nest::names::dU, U_ );
-  def< double >( d, nest::names::u, u_ );
-  def< double >( d, nest::names::tau_rec, tau_rec_ );
-  def< double >( d, nest::names::tau_fac, tau_fac_ );
+  d[ nest::names::weight ] = weight_;
+  d[ nest::names::dU ] = U_;
+  d[ nest::names::u ] = u_;
+  d[ nest::names::tau_rec ] = tau_rec_;
+  d[ nest::names::tau_fac ] = tau_fac_;
 }
 
 
 template < typename targetidentifierT >
 void
 stochastic_stp_synapse< targetidentifierT >::set_status(
-  const DictionaryDatum& d,
+  const Dictionary& d,
   nest::ConnectorModel& cm )
 {
   ConnectionBase::set_status( d, cm );
-  updateValue< double >( d, nest::names::weight, weight_ );
-
-  updateValue< double >( d, nest::names::dU, U_ );
-  updateValue< double >( d, nest::names::u, u_ );
-  updateValue< double >( d, nest::names::tau_rec, tau_rec_ );
-  updateValue< double >( d, nest::names::tau_fac, tau_fac_ );
+  d.update_value( nest::names::weight, weight_ );
+  d.update_value( nest::names::dU, U_ );
+  d.update_value( nest::names::u, u_ );
+  d.update_value( nest::names::tau_rec, tau_rec_ );
+  d.update_value( nest::names::tau_fac, tau_fac_ );
 }
 
 } // of namespace pynn

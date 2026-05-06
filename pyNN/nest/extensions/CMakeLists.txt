@@ -192,6 +192,15 @@ add_custom_target( dist
     )
 
 
+# On macOS, loadable modules need -undefined dynamic_lookup so that NEST
+# kernel symbols (provided by nestkernel_api.so at Python import time) are
+# resolved at dlopen time rather than requiring a libnest.so at link time.
+if ( APPLE )
+  set( MACOS_LINK_FLAGS "-undefined dynamic_lookup" )
+else ()
+  set( MACOS_LINK_FLAGS "" )
+endif ()
+
 # Create a module for loading at runtime
 # with the `Install` command.
 add_library( ${MODULE_NAME}_module MODULE ${MODULE_SOURCES} )
@@ -199,7 +208,7 @@ target_link_libraries(${MODULE_NAME}_module ${USER_LINK_LIBRARIES})
 set_target_properties( ${MODULE_NAME}_module
     PROPERTIES
     COMPILE_FLAGS "${NEST_CXXFLAGS} -DLTX_MODULE"
-    LINK_FLAGS "${NEST_LIBS}"
+    LINK_FLAGS "${NEST_LIBS} ${MACOS_LINK_FLAGS}"
     PREFIX ""
     OUTPUT_NAME ${MODULE_NAME} )
 install( TARGETS ${MODULE_NAME}_module

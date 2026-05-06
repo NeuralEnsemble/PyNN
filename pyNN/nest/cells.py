@@ -39,7 +39,7 @@ def get_defaults(model_name):
     for name, value in defaults.items():
         if name in variables:
             default_initial_values[name] = value
-        elif name not in ignore:
+        elif name not in ignore and not name.startswith('__'):
             if isinstance(value, valid_types):
                 default_params[name] = conversion.make_pynn_compatible(value)
             else:
@@ -53,10 +53,7 @@ def get_receptor_types(model_name):
 
 
 def get_recordables(model_name):
-    try:
-        return [name for name in nest.GetDefaults(model_name, "recordables")]
-    except nest.NESTError:
-        return []
+    return list(nest.GetDefaults(model_name).get("recordables", []))
 
 
 def native_cell_type(model_name):

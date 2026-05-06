@@ -268,8 +268,10 @@ class Projection(common.Projection):
                     weights = np.array([weights])
                 if delays is not None and not np.isscalar(delays):
                     delays = np.array([delays])
-                if weights is not None or delays is not None:
-                    syn_dict.update({'weight': weights, 'delay': delays})
+                if weights is not None:
+                    syn_dict['weight'] = weights
+                if delays is not None:
+                    syn_dict['delay'] = delays
 
                 if postsynaptic_cell.celltype.standard_receptor_type:
                     # For the standard TsodyksMarkramSynapse, copy "tau_psc" from the
@@ -463,7 +465,10 @@ class Projection(common.Projection):
             else:
                 nest_names.append(name)
         values = nest.GetStatus(self.nest_connections, nest_names)
-        values = np.array(values)  # ought to preserve int type for source, target
+        if isinstance(values, dict):  # NEST 3.10_rc1
+            values = np.array([values[key] for key in nest_names]).T
+        else:
+            values = np.array(values)  # ought to preserve int type for source, target
         if 'weight' in names:
             # other attributes could also have scale factors - need to use translation mechanisms
             scale_factors = np.ones(len(names))
@@ -492,7 +497,20 @@ class Projection(common.Projection):
             value_arr = np.nan * np.ones((self.pre.size, self.post.size))
             connection_attributes = nest.GetStatus(self.nest_connections,
                                                    ('source', 'target', attribute_name))
-            for conn in connection_attributes:
+            # GetStatus return format varies by NEST version:
+            #   dict {key: [values]}  — seen in some NEST 3.x builds
+            #   list of dicts         — NEST 3.10rc1
+            #   list of tuples        — older NEST
+            if isinstance(connection_attributes, dict):
+                conn_iter = zip(connection_attributes['source'],
+                                connection_attributes['target'],
+                                connection_attributes[attribute_name])
+            elif connection_attributes and isinstance(connection_attributes[0], dict):
+                conn_iter = ((c['source'], c['target'], c[attribute_name])
+                             for c in connection_attributes)
+            else:
+                conn_iter = connection_attributes
+            for conn in conn_iter:
                 # (offset is always 0,0 for connections created with connect())
                 src, tgt, value = conn
                 addr = self.pre.id_to_index(src), self.post.id_to_index(tgt)

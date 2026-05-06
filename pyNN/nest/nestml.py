@@ -109,7 +109,7 @@ def nestml_synapse_type(
         nestml_description,
         postsynaptic_neuron_nestml_description=None,
         weight_variable="w",
-        delay_variable="d"
+        delay_variable=None
 ):
     """
     Register a NESTML synapse description and return a synapse type class.
@@ -270,6 +270,24 @@ def _compile_and_resolve():
             codegen_opts=codegen_opts,
         )
         nest.Install(module_name)
+    except nest.NESTErrors.DynamicModuleManagementError as e:
+        missing_delay = [
+            entry["name"] for entry in _pending
+            if entry["type"] == "synapse" and entry["delay_variable"] is None
+        ]
+        hint = ""
+        if missing_delay:
+            hint = (
+                f"Synapse model(s) {missing_delay} have no delay_variable set. "
+                "If your NESTML model uses an explicit delay variable, "
+                "pass delay_variable='<name>' to nestml_synapse_type() "
+                "to match the delay parameter in your model."
+            )
+        raise RuntimeError(
+            f"Failed to install NESTML module '{module_name}'. "
+            "NESTML model compilation failed silently. "
+            f"{hint}"
+        ) from e
     finally:
         for tmpdir in tmpdirs:
             shutil.rmtree(tmpdir, ignore_errors=True)
