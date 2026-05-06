@@ -9,6 +9,7 @@
 
 // Includes from nestkernel:
 #include "connection.h"
+#include "dictionary.h"
 #include "kernel_manager.h"
 
 
@@ -156,7 +157,7 @@ public:
   // data member holding the weight.
 
   //! Store connection status information in dictionary
-  void get_status( DictionaryDatum& d ) const;
+  void get_status( Dictionary& d ) const;
 
   /**
    * Set connection status.
@@ -164,7 +165,7 @@ public:
    * @param d Dictionary with new parameter values
    * @param cm ConnectorModel is passed along to validate new delay values
    */
-  void set_status( const DictionaryDatum& d, nest::ConnectorModel& cm );
+  void set_status( const Dictionary& d, nest::ConnectorModel& cm );
 
   //! Allows efficient initialization on construction
   void
@@ -203,23 +204,23 @@ simple_stochastic_synapse< targetidentifierT >::send( nest::Event& e,
 template < typename targetidentifierT >
 void
 simple_stochastic_synapse< targetidentifierT >::get_status(
-  DictionaryDatum& d ) const
+  Dictionary& d ) const
 {
   ConnectionBase::get_status( d );
-  def< double >( d, nest::names::weight, weight_ );
-  def< double >( d, nest::names::p, p_ );
-  def< long >( d, nest::names::size_of, sizeof( *this ) );
+  d[ nest::names::weight ] = weight_;
+  d[ nest::names::p ] = p_;
+  d[ nest::names::size_of ] = static_cast< long >( sizeof( *this ) );
 }
 
 template < typename targetidentifierT >
 void
 simple_stochastic_synapse< targetidentifierT >::set_status(
-  const DictionaryDatum& d,
+  const Dictionary& d,
   nest::ConnectorModel& cm )
 {
   ConnectionBase::set_status( d, cm );
-  updateValue< double >( d, nest::names::weight, weight_ );
-  updateValue< double >( d, nest::names::p, p_ );
+  d.update_value( nest::names::weight, weight_ );
+  d.update_value( nest::names::p, p_ );
 }
 
 } // namespace

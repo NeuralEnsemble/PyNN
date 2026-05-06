@@ -73,11 +73,12 @@ class NestStandardCurrentSource(NestCurrentSource, StandardCurrentSource):
             raise ValueError("Step current timestamps should be monotonically increasing.")
         # NEST specific: subtract min_delay from times (set to 0.0, if result is negative)
         times = self._delay_correction(times)
-        # find the last element <= dt (we find >dt and then go one element back)
+        # find the last element <= biological_time + dt (we find >biological_time+dt and go one back)
         # this corresponds to the first timestamp that can be used by NEST for current injection
-        ctr = np.searchsorted(times, resolution, side="right") - 1
+        min_time = state.t_kernel + resolution
+        ctr = np.searchsorted(times, min_time, side="right") - 1
         if ctr >= 0:
-            times[ctr] = resolution
+            times[ctr] = min_time
             times = times[ctr:]
             amplitudes = amplitudes[ctr:]
         # map timestamps to actual simulation time instants based on specified dt

@@ -282,7 +282,7 @@ class Population(common.Population, PopulationMixin):
                 simulator.state.set_status(self.node_collection[self._mask_local],
                                            variable, local_values)
         except nest.NESTError as e:
-            if "Unused dictionary items" in e.args[0]:
+            if "Unused dictionary items" in e.args[0] or "Unaccessed" in e.args[0]:
                 logger.warning("NEST does not allow setting an initial value for %s" % variable)
                 # should perhaps check whether value-to-be-set is the same as current value,
                 # and raise an Exception if not, rather than just emit a warning.
