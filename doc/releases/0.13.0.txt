@@ -34,8 +34,11 @@ This release includes several fixes for compatibility with NEURON_ 9:
 - Applied a compatibility patch for random number handling provided by
   Goran Jelic-Cizmek.
 
+
 NEST 3.10 compatibility
 -----------------------
+
+PyNN now supports NEST_ v3.10.
 
 
 morphio is now optional
@@ -64,6 +67,16 @@ Bug fixes
   a time such as 12.7 ms (where floating-point arithmetic leaves the
   internal time fractionally above the target).
 - Fixed building of Arbor NMODL mechanisms.
+- Fix handling of native Tsodyks synapse types with the NEST backend (issue #810):
+  ``tau_psc`` is now only auto-copied from the post-synaptic neuron for the PyNN
+  standard ``TsodyksMarkramSynapse``, not for ``native_synapse_type``; fixes also
+  applied to ``tau_psc`` reading and inhibitory projection attribute access.
+- Fix :meth:`StepCurrentSource.set_parameters()` when called after :func:`sim.run()`
+  with the NEST backend (issue #759): amplitude times were not adjusted relative to
+  the current biological time, causing NEST to silently ignore the current injection.
+- Fix :class:`ParameterSpace` coercion of lists and arrays to the correct
+  ``ArrayParameter`` subtype (e.g. ``Sequence``), fixing ``SpikeSourceArray``
+  population parameter assignment (issue #709).
 
 
 .. _NESTML: https://nestml.readthedocs.io
