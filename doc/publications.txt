@@ -2,6 +2,36 @@
 Publications about, relating to or using PyNN
 =============================================
 
+* Balaji, Adarsha, Adiraju, Prathyusha, Kashyap, Hirak J., Das, Anup, Krichmar, Jeffrey L., Dutt, Nikil and
+  Catthoor, Francky (2020) **PyCARL: A PyNN Interface for Hardware-Software Co-Simulation of Spiking Neural
+  Network.** In: 2020 International Joint Conference on Neural Networks (IJCNN). Glasgow, United Kingdom (virtual).
+  IEEE. doi: 10.1109/IJCNN48605.2020.9207142
+  `[link] <https://doi.org/10.1109/IJCNN48605.2020.9207142>`_
+
+* Martone M, Das S, Goscinski W, Hellgren-Kotaleski J, Ho ETW, Kennedy D, Leergaard T, Wachtler T,
+  Yamaguchi Y and Abrams M (2019) **Call for community review of PyNN, a simulator-independent language
+  for building neuronal network models** [version 1; not peer reviewed]. F1000Research 8:74 (document).
+  doi: 10.7490/f1000research.1116399.1
+  `[link] <https://doi.org/10.7490/f1000research.1116399.1>`_
+
+* Rhodes O, Bogdan PA, Brenninkmeijer C, Davidson S, Fellows D, Gait A, Lester DR, Mikaitis M, Plana LA,
+  Rowley AGD, Stokes AB and Furber SB (2018) **sPyNNaker: a Software Package for Running PyNN Simulations on
+  SpiNNaker.** Frontiers in Neuroscience 12:816. doi: 10.3389/fnins.2018.00816
+  `[link] <https://doi.org/10.3389/fnins.2018.00816>`_
+
+* Kardamakis AA (2018) **Flowing from sense to action. Are neural integrators necessary?**
+  The Journal of Physiology 596(24):6131. doi: 10.1113/JP276927
+  `[link] <https://doi.org/10.1113/JP276927>`_
+
+* Tingley D and Buzsáki G (2018) **Transformation of a Spatial Map across the Hippocampal-Lateral Septal Circuit.**
+  Neuron 98(6):1229-1242.e5. doi: 10.1016/j.neuron.2018.04.028
+  `[link] <https://doi.org/10.1016/j.neuron.2018.04.028>`_
+
+* Sen-Bhattacharya B, Serrano-Gotarredona T, Balassa L, Bhattacharya A, Stokes AB, Rowley A, Sugiarto I and
+  Furber SB (2017) **A Spiking Neural Network Model of the Lateral Geniculate Nucleus on the SpiNNaker Machine.**
+  Frontiers in Neuroscience 11:454. doi: 10.3389/fnins.2017.00454
+  `[link] <https://doi.org/10.3389/fnins.2017.00454>`_
+
 * Schmuker, Michael, Pfeil, Thomas and Nawrot, Martin Paul (2014) **A neuromorphic network for generic multivariate
   data classification**
   Proceedings of the National Academy of Sciences 111: 2081-2086. doi: 10.1073/pnas.1303053111
