@@ -1,6 +1,12 @@
 from pyNN.standardmodels import build_translations, StandardModelType, \
     STDPWeightDependence, STDPTimingDependence
 from pyNN.standardmodels.synapses import StaticSynapse, STDPMechanism
+from pyNN.standardmodels.receptors import (
+    CurrExpPostSynapticResponse,
+    CondExpPostSynapticResponse,
+    CondAlphaPostSynapticResponse,
+    CondBetaPostSynapticResponse,
+)
 from pyNN import errors
 from pyNN.parameters import ParameterSpace
 from unittest.mock import Mock
@@ -216,3 +222,39 @@ def test_STDPMechanism_create_invalid_types():
 # test STDPWeightDependence
 
 # test STDPTimingDependence
+
+
+# post-synaptic response models: the validation schema must track each model's
+# default_parameters (see issue #837)
+
+@pytest.mark.parametrize("cls", [
+    CurrExpPostSynapticResponse,
+    CondExpPostSynapticResponse,
+    CondAlphaPostSynapticResponse,
+    CondBetaPostSynapticResponse,
+])
+def test_psr_schema_matches_default_parameters(cls):
+    """The schema used for validation must expose exactly the model's parameters."""
+    assert set(cls().get_schema()) == set(cls.default_parameters)
+
+
+def test_CondBetaPostSynapticResponse_accepts_tau_rise_tau_decay():
+    """Regression test for issue #837: beta receptor must accept its own parameters."""
+    psr = CondBetaPostSynapticResponse(e_syn=0.0, tau_rise=0.2, tau_decay=1.5)
+    assert set(psr.get_schema()) == {"locations", "e_syn", "tau_rise", "tau_decay"}
+
+
+def test_CondBetaPostSynapticResponse_rejects_tau_syn():
+    """The beta receptor has no tau_syn parameter, so it must be rejected."""
+    with pytest.raises(errors.NonExistentParameterError):
+        CondBetaPostSynapticResponse(tau_syn=5.0)
+
+
+def test_CurrExpPostSynapticResponse_rejects_e_syn():
+    """Current-based response has no reversal potential, so e_syn must be rejected."""
+    with pytest.raises(errors.NonExistentParameterError):
+        CurrExpPostSynapticResponse(e_syn=0.0)
+
+
+def test_CurrExpPostSynapticResponse_accepts_tau_syn():
+    CurrExpPostSynapticResponse(tau_syn=5.0)
