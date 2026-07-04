@@ -188,10 +188,12 @@ class StandardPostSynapticResponse(StandardModelType, models.BasePostSynapticRes
     """Base class for standardized post-synaptic receptor models."""
 
     def get_schema(self):
+        # Derive the validation schema from default_parameters so that it always
+        # matches the actual parameters of each subclass. All post-synaptic
+        # response parameters are floats except "locations".
         return {
-            "locations": SynapseDistribution,
-            "e_syn": float,
-            "tau_syn": float  # should be a tuple, if multiple time constants
+            name: (SynapseDistribution if name == "locations" else float)
+            for name in self.default_parameters
         }
 
     def set_parent(self, parent):
