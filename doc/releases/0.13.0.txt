@@ -2,7 +2,7 @@
 PyNN 0.13.0 release notes
 =========================
 
-[release date]
+July 6th 2026
 
 Welcome to PyNN 0.13.0!
 
@@ -77,6 +77,10 @@ Bug fixes
 - Fix :class:`ParameterSpace` coercion of lists and arrays to the correct
   ``ArrayParameter`` subtype (e.g. ``Sequence``), fixing ``SpikeSourceArray``
   population parameter assignment (issue #709).
+- Fix the validation schema for standard post-synaptic response models (issue #837):
+  the schema is now derived from each model's ``default_parameters`` so that it
+  always matches the actual parameters of the subclass, instead of a hard-coded
+  set of ``e_syn`` and ``tau_syn``.
 
 
 .. _NESTML: https://nestml.readthedocs.io
