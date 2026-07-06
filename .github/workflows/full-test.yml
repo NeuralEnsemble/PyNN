@@ -50,9 +50,9 @@ jobs:
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         python -m pip install "cython<3.1.0"
-        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.10_rc2.tar.gz -O nest-simulator-3.10.tar.gz
+        wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.10.tar.gz -O nest-simulator-3.10.tar.gz
         tar xzf nest-simulator-3.10.tar.gz
-        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.10_rc2
+        cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.10
         make
         make install
     - name: Install Arbor
@@ -62,7 +62,7 @@ jobs:
     - name: Install NESTML
       if: startsWith(matrix.os, 'ubuntu')
       run: |
-        python -m pip install https://github.com/nest/nestml/archive/refs/tags/v8.3.0-rc2.tar.gz
+        python -m pip install https://github.com/nest/nestml/archive/refs/tags/v8.3.0.tar.gz
     - name: Install PyNN itself
       run: |
         python -m pip install -e ".[test,nestml]"
