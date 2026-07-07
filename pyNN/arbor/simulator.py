@@ -13,6 +13,7 @@ try:
 except ImportError:
     pass
 import arbor
+from arbor import units as U
 from .. import common
 from ..core import find
 
@@ -196,7 +197,7 @@ class State(common.control.BaseState):
             for recorder in self.recorders:
                 recorder._set_arbor_sim(self.arbor_sim)
         self.t += simtime
-        self.arbor_sim.run(self.t, self.dt)
+        self.arbor_sim.run(self.t * U.ms, self.dt * U.ms)
         self.running = True
 
     def run_until(self, tstop):

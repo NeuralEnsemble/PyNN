@@ -2,10 +2,19 @@
 from collections import defaultdict
 from lazyarray import larray
 import arbor
+from arbor import units as U
 from neuroml import Point3DWithDiam
 from ..morphology import Morphology, NeuroMLMorphology, MorphIOMorphology, IonChannelDistribution
 from ..models import BaseCellType
 from ..parameters import ParameterSpace
+
+
+# Units for the parameters of current-source mechanisms (e.g. iclamp).
+ELECTRODE_PARAM_UNITS = {
+    "tstart": U.ms,
+    "duration": U.ms,
+    "current": U.nA,
+}
 
 
 def convert_point(p3d: Point3DWithDiam) -> arbor.mpoint:
@@ -64,7 +73,7 @@ class CellDescriptionBuilder:
                 if segment.name not in self.labels:
                     self.labels[segment.name] = f"(segment {i})"
         elif isinstance(std_morphology, MorphIOMorphology):
-            tree = arbor.load_swc_neuron(std_morphology.morphology_file, raw=True)
+            tree = arbor.load_swc_neuron(std_morphology.morphology_file).segment_tree
         else:
             raise ValueError("{} not supported as a neuron morphology".format(type(std_morphology)))
 
@@ -89,18 +98,22 @@ class CellDescriptionBuilder:
         decor = arbor.decor()
         # Set the default properties of the cell (this overrides the model defaults).
         decor.set_property(
-            cm=self.parameters["cm"][i] * 0.01,  # µF/cm² -> F/m²
-            rL=self.parameters["Ra"][i] * 1,     # Ω·cm
-            Vm=self.initial_values["v"][i]
+            cm=self.parameters["cm"][i] * U.uF / U.cm2,
+            rL=self.parameters["Ra"][i] * U.Ohm * U.cm,
+            Vm=self.initial_values["v"][i] * U.mV
         )
         if not self.parameters["ionic_species"]._evaluated:
             self.parameters["ionic_species"].evaluate(simplify=True)
         for ion_name, ionic_species in self.parameters["ionic_species"].items():
             assert ion_name == ionic_species.ion_name
-            decor.set_ion(ion_name,
-                          int_con=ionic_species.internal_concentration,
-                          ext_con=ionic_species.external_concentration,
-                          rev_pot=ionic_species.reversal_potential)  # method="nernst/na")
+            ion_kwargs = {}
+            if ionic_species.internal_concentration is not None:
+                ion_kwargs["int_con"] = ionic_species.internal_concentration * U.mM
+            if ionic_species.external_concentration is not None:
+                ion_kwargs["ext_con"] = ionic_species.external_concentration * U.mM
+            if ionic_species.reversal_potential is not None:
+                ion_kwargs["rev_pot"] = ionic_species.reversal_potential * U.mV
+            decor.set_ion(ion_name, **ion_kwargs)  # method="nernst/na")
         for native_name, region_params in mechanism_parameters.items():
             for region, params in region_params.items():
                 if native_name == "hh":
@@ -124,12 +137,16 @@ class CellDescriptionBuilder:
             location_generator = current_source["location_generator"]
             mechanism = getattr(arbor, current_source["model_name"])
             for locset, label in location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
-                params = current_source["parameters"].evaluate(simplify=True)
+                params = current_source["parameters"].evaluate(simplify=True).as_dict()
+                params = {
+                    name: value * ELECTRODE_PARAM_UNITS[name] if name in ELECTRODE_PARAM_UNITS else value
+                    for name, value in params.items()
+                }
                 mech = mechanism(**params)
                 decor.place(locset, mech, label)
 
         # add spike source
-        decor.place('"root"', arbor.threshold_detector(-10), "detector")
+        decor.place('"root"', arbor.threshold_detector(-10 * U.mV), "detector")
         # todo: allow user to choose location and threshold value
 
         policy = arbor.cv_policy_max_extent(10.0)
