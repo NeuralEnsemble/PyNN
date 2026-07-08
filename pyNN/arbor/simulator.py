@@ -21,10 +21,20 @@ logger = logging.getLogger("PyNN")
 name = "Arbor"
 
 
+def catalogue_path():
+    # The compiled catalogue is ABI-specific to the Arbor version, so it is keyed
+    # on arbor.__version__ to allow switching Arbor versions in the same install
+    # without loading a stale, incompatible .so.
+    return os.path.join(
+        os.path.dirname(__file__), "nmodl", f"PyNN-catalogue-{arbor.__version__}.so"
+    )
+
+
 def build_mechanisms():
     # run `arbor-build-catalogue <name> <path/to/nmodl>`
     mech_path = os.path.join(os.path.dirname(__file__), "nmodl")
-    if not os.path.exists(os.path.join(mech_path, "PyNN-catalogue.so")):
+    target = catalogue_path()
+    if not os.path.exists(target):
         cat_builder = find("arbor-build-catalogue")
         if not cat_builder:
             raise Exception("Unable to find arbor-build-catalogue. Please ensure Arbor is correctly installed.")
@@ -35,9 +45,10 @@ def build_mechanisms():
         proc = subprocess.run([cat_builder, "PyNN", mech_path], cwd=mech_path, env=env)
         if proc.returncode != 0:
             raise Exception("Unable to compile Arbor mechanisms (arbor-build-catalogue returned non-zero exit status).")
-        else:
-            logger.info("Successfully compiled Arbor mechanisms.")
-        return mech_path
+        # arbor-build-catalogue writes PyNN-catalogue.so; move it to the versioned name.
+        os.replace(os.path.join(mech_path, "PyNN-catalogue.so"), target)
+        logger.info("Successfully compiled Arbor mechanisms.")
+    return mech_path
 
 
 class Cell(int, common.IDMixin):
@@ -149,10 +160,7 @@ class NetworkRecipe(arbor.recipe):
         """
         if kind == arbor.cell_kind.cable:
             props = arbor.neuron_cable_properties()
-            catalogue_path = os.path.join(
-                os.path.dirname(__file__), "nmodl", "PyNN-catalogue.so"
-            )
-            props.catalogue = arbor.load_catalogue(catalogue_path)
+            props.catalogue = arbor.load_catalogue(catalogue_path())
             return props
         # Spike source cells have nothing to report.
         return None
@@ -173,10 +181,6 @@ class State(common.control.BaseState):
         else:
             comm = None
         self.arbor_context = arbor.context(alloc, mpi=comm)
-        # unclear if we can create the recipe now, or if we have to
-        # construct it only when we've assembled the whole network
-        self.network = NetworkRecipe()
-        self.arbor_sim = None  # for debugging
 
     @property
     def mpi_rank(self):
@@ -192,7 +196,9 @@ class State(common.control.BaseState):
             hints = {}
             decomp = arbor.partition_load_balance(recipe, self.arbor_context, hints)
             self.arbor_sim = arbor.simulation(recipe, self.arbor_context, decomp, self.rng_seed)
-            self.arbor_sim.record(arbor.spike_recording.all)
+            # Use local (per-rank) spike recording rather than the global mode,
+            # which matches PyNN's rank-aware recorders.
+            self.arbor_sim.record(arbor.spike_recording.local)
             # todo: for now record all, but should be controlled by population.record()
             for recorder in self.recorders:
                 recorder._set_arbor_sim(self.arbor_sim)
@@ -207,6 +213,11 @@ class State(common.control.BaseState):
         self.recorders = set([])
         self.id_counter = 0
         self.segment_counter = -1
+        # Start each simulation with a fresh recipe, otherwise populations from a
+        # previous setup()/run() leak into the network and gid lookups break when
+        # several simulations run in one process.
+        self.network = NetworkRecipe()
+        self.arbor_sim = None
         self.reset()
 
     def reset(self):

@@ -10,6 +10,7 @@ from .. import common, errors
 from ..standardmodels import StandardCellType
 from ..parameters import ParameterSpace, simplify, Sequence
 from . import simulator
+from . import _compat
 from .recording import Recorder
 
 
@@ -101,7 +102,8 @@ class Population(common.Population):
             return arbor.spike_source_cell("spike-source", schedule)
         else:
             args = self._arbor_cell_description[index]
-            return arbor.cable_cell(args["tree"], args["decor"], args["labels"])
+            return _compat.make_cable_cell(
+                args["tree"], args["decor"], args["labels"], args["discretization"])
 
     def _create_cells(self):
         # for now, we create all cells and store them in memory,

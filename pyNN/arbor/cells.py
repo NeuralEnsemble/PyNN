@@ -4,6 +4,7 @@ from lazyarray import larray
 import arbor
 from arbor import units as U
 from neuroml import Point3DWithDiam
+from . import _compat
 from ..morphology import Morphology, NeuroMLMorphology, MorphIOMorphology, IonChannelDistribution
 from ..models import BaseCellType
 from ..parameters import ParameterSpace
@@ -135,7 +136,7 @@ class CellDescriptionBuilder:
         # insert current sources
         for current_source in self.current_sources[i]:
             location_generator = current_source["location_generator"]
-            mechanism = getattr(arbor, current_source["model_name"])
+            mechanism = _compat.get_electrode_mechanism(current_source["model_name"])
             for locset, label in location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
                 params = current_source["parameters"].evaluate(simplify=True).as_dict()
                 params = {
@@ -143,15 +144,11 @@ class CellDescriptionBuilder:
                     for name, value in params.items()
                 }
                 mech = mechanism(**params)
-                decor.place(locset, mech, label)
+                _compat.place_current_source(decor, locset, mech, label)
 
         # add spike source
         decor.place('"root"', arbor.threshold_detector(-10 * U.mV), "detector")
         # todo: allow user to choose location and threshold value
-
-        policy = arbor.cv_policy_max_extent(10.0)
-        # to do: allow user to specify this value and/or the policy more generally
-        decor.discretization(policy)
 
         return decor
 
@@ -175,10 +172,14 @@ class CellDescriptionBuilder:
             pse.parameter_space.shape = value
 
     def __call__(self, i):
+        # The discretisation cv_policy is applied by _compat.make_cable_cell at
+        # cell-construction time (on the decor in Arbor 0.10, or as a cable_cell
+        # argument in 0.11+). to do: allow the user to specify this value/policy.
         return {
             "tree": self._build_tree(i),
             "decor": self._build_decor(i),
-            "labels": arbor.label_dict(self.labels)
+            "labels": arbor.label_dict(self.labels),
+            "discretization": _compat.max_extent_policy(10.0)
         }
 
 
