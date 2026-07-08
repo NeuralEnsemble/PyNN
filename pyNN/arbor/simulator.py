@@ -10,8 +10,12 @@ import subprocess
 import numpy as np
 try:
     from mpi4py import MPI
-except ImportError:
-    pass
+except (ImportError, RuntimeError):
+    # ImportError: mpi4py not installed.
+    # RuntimeError: mpi4py is installed but no MPI runtime is available (recent
+    # mpi4py loads the MPI library at import time), e.g. `pip install pyNN[arbor]`
+    # without MPI. Fall back to non-MPI operation in both cases.
+    MPI = None
 import arbor
 from arbor import units as U
 from .. import common
@@ -176,7 +180,7 @@ class State(common.control.BaseState):
         self.dt = 0.1
         alloc = arbor.proc_allocation(threads=self.num_threads)
         config = arbor.config()
-        if config["mpi4py"]:
+        if config["mpi4py"] and MPI is not None:
             comm = arbor.mpi_comm(MPI.COMM_WORLD)
         else:
             comm = None
