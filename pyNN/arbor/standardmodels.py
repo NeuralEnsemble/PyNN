@@ -48,6 +48,35 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     arbor_schedule_units = {"times": U.ms}
 
 
+class IF_curr_delta(cells.IF_curr_delta):
+    __doc__ = cells.IF_curr_delta.__doc__
+
+    # Maps onto Arbor's native leaky integrate-and-fire cell (arbor.lif_cell,
+    # cell_kind.lif). Its synapses are delta, but an incoming event adds
+    # weight/C_m to V_m (the event weight is a charge, not a voltage), so
+    # IF_curr_delta's mV voltage-step weight is recovered by scaling the
+    # connection weight by C_m (see Projection._lif_post_cm_pF).
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        # A native lif_cell has no way to inject a constant current, so i_offset
+        # is carried through untranslated and rejected at cell-build time if
+        # non-zero (see Population.arbor_cell_description).
+        ('i_offset',   'i_offset'),
+    )
+    arbor_cell_kind = arbor.cell_kind.lif
+    # Units for the native lif_cell attributes (Arbor requires unit-typed values,
+    # and handles the conversion to its internal units itself).
+    lif_param_units = {
+        'E_L': U.mV, 'E_R': U.mV, 'V_th': U.mV,
+        't_ref': U.ms, 'tau_m': U.ms, 'C_m': U.nF,
+    }
+
+
 class BaseCurrentSource(object):
     pass
 
@@ -62,6 +91,18 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
     )
 
     def inject_into(self, cells, location=None):  # rename to `locations` ?
+        # Native lif cells (IF_curr_delta) have no decor and cannot take an
+        # i_clamp, so current injection is impossible for them.
+        if hasattr(cells, "parent"):
+            target_pop = cells.parent
+        elif hasattr(cells, "_arbor_cell_description"):
+            target_pop = cells
+        else:
+            target_pop = cells[0].parent
+        if target_pop.celltype.arbor_cell_kind == arbor.cell_kind.lif:
+            raise NotImplementedError(
+                "Current injection into Arbor's native lif_cell (IF_curr_delta) "
+                "is not supported; use the cable-cell IF models instead.")
         if hasattr(cells, "parent"):
             cell_descr = cells.parent._arbor_cell_description.base_value
             index = cells.parent.id_to_index(cells.all_cells.astype(int))

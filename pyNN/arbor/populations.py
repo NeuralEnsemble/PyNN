@@ -5,6 +5,7 @@
 from warnings import warn
 import numpy as np
 import arbor
+from arbor import units as U
 
 from .. import common, errors
 from ..standardmodels import StandardCellType
@@ -100,6 +101,25 @@ class Population(common.Population):
                     schedule_params[key] = value * unit
             schedule = self.celltype.arbor_schedule(**schedule_params)
             return arbor.spike_source_cell("spike-source", schedule)
+        elif self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
+            cell_descr = self._arbor_cell_description
+            if not cell_descr._evaluated:
+                cell_descr.evaluate()
+            params = list(cell_descr)[index]
+            if params.get("i_offset", 0.0) != 0.0:
+                raise NotImplementedError(
+                    "Arbor's native lif_cell (IF_curr_delta) cannot inject a "
+                    "constant current, so i_offset must be 0. Use the cable-cell "
+                    "IF models for current injection.")
+            # The source label ("detector") matches what projections.py uses for
+            # injectable presynaptic cells; "syn" is the single delta-synapse target.
+            cell = arbor.lif_cell("detector", "syn")
+            for name, unit in self.celltype.lif_param_units.items():
+                setattr(cell, name, float(params[name]) * unit)
+            initial_v = getattr(self, "_lif_initial_v", None)
+            if initial_v is not None:
+                cell.V_m = float(initial_v._partially_evaluate(index, simplify=True)) * U.mV
+            return cell
         else:
             args = self._arbor_cell_description[index]
             return _compat.make_cable_cell(
@@ -117,7 +137,8 @@ class Population(common.Population):
 
         parameter_space.shape = (self.size,)
 
-        if self.celltype.arbor_cell_kind == arbor.cell_kind.spike_source:
+        if self.celltype.arbor_cell_kind in (arbor.cell_kind.spike_source,
+                                             arbor.cell_kind.lif):
             self._arbor_cell_description = parameter_space
         else:
             self._arbor_cell_description = parameter_space["cell_description"]
@@ -147,6 +168,12 @@ class Population(common.Population):
         self._mask_local = np.ones_like(id_range, dtype=bool)
 
     def _set_initial_value_array(self, variable, initial_values):
+        if self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
+            # Native lif cells have no decor; the initial v is applied as V_m when
+            # the cell is built in arbor_cell_description.
+            if variable == "v":
+                self._lif_initial_v = initial_values
+            return
         if variable != "v":
             warn("todo: handle initial values for ion channel states")
             # may have to handle this at the same time as setting parameters

@@ -93,6 +93,15 @@ class TestUnitMaps(unittest.TestCase):
         self.assertIs(units["duration"], U.ms)
         self.assertIs(units["current"], U.nA)
 
+    def test_if_curr_delta_lif_param_units(self):
+        units = arbor_standardmodels.IF_curr_delta.lif_param_units
+        self.assertIs(units["E_L"], U.mV)
+        self.assertIs(units["E_R"], U.mV)
+        self.assertIs(units["V_th"], U.mV)
+        self.assertIs(units["t_ref"], U.ms)
+        self.assertIs(units["tau_m"], U.ms)
+        self.assertIs(units["C_m"], U.nF)
+
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")
 class TestTranslations(unittest.TestCase):
@@ -124,6 +133,26 @@ class TestTranslations(unittest.TestCase):
         schema = arbor_standardmodels.MultiCompartmentNeuron().get_schema()
         for key in ("morphology", "cm", "Ra", "ionic_species"):
             self.assertIn(key, schema)
+
+    def test_if_curr_delta_is_native_lif(self):
+        self.assertIs(arbor_standardmodels.IF_curr_delta.arbor_cell_kind,
+                      arbor.cell_kind.lif)
+
+    def test_if_curr_delta_translation(self):
+        m = arbor_standardmodels.IF_curr_delta(
+            v_rest=-65.0, cm=1.0, tau_m=20.0, tau_refrac=2.0,
+            v_reset=-70.0, v_thresh=-50.0, i_offset=0.0)
+        native = m.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["E_L"], -65.0)
+        self.assertAlmostEqual(d["E_R"], -70.0)
+        self.assertAlmostEqual(d["V_th"], -50.0)
+        self.assertAlmostEqual(d["t_ref"], 2.0)
+        self.assertAlmostEqual(d["tau_m"], 20.0)
+        self.assertAlmostEqual(d["C_m"], 1.0)  # cm passes through in nF
+        self.assertAlmostEqual(d["i_offset"], 0.0)
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")
