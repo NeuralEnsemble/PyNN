@@ -74,6 +74,8 @@ class IF_curr_delta(cells.IF_curr_delta):
         ('v_thresh',   'V_th'),
         ('i_offset',   'I_e',      1000.0),  # I_e is in pA, i_offset in nA
     )
+    variable_map = {'v': 'V_m'}
+    scale_factors = {'v': 1}
     # extra parameters in the NEST model
     # V_min            mV      Absolute lower value for the membrane potenial
     # refractory_input boolean If true, do not discard input during
