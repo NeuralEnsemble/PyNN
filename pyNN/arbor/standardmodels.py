@@ -10,6 +10,7 @@ from copy import deepcopy
 
 import numpy as np
 import arbor
+from arbor import units as U
 
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
 from ..parameters import ParameterSpace, IonicSpecies
@@ -32,6 +33,7 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
     # todo: manage "seed"
     arbor_cell_kind = arbor.cell_kind.spike_source
     arbor_schedule = arbor.poisson_schedule
+    arbor_schedule_units = {"tstart": U.ms, "freq": U.Hz, "tstop": U.ms}
 
 
 class SpikeSourceArray(cells.SpikeSourceArray):
@@ -42,6 +44,8 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     )
     arbor_cell_kind = arbor.cell_kind.spike_source
     arbor_schedule = arbor.explicit_schedule
+    # Since Arbor 0.10.0, schedule parameters must be unit-typed.
+    arbor_schedule_units = {"times": U.ms}
 
 
 class BaseCurrentSource(object):
@@ -225,12 +229,20 @@ class MultiCompartmentNeuron(cells.MultiCompartmentNeuron):
     variable_map = {"v": "Vm"}
 
     def __init__(self, **parameters):
-        # replace ion channel classes with instantiated ion channel objects
-        for name, ion_channel in self.ion_channels.items():
-            self.ion_channels[name] = ion_channel(**parameters.pop(name, {}))
-        # ditto for post synaptic responses
-        for name, pse in self.post_synaptic_entities.items():
-            self.post_synaptic_entities[name] = pse(**parameters.pop(name, {}))
+        # Instantiate the ion-channel and post-synaptic classes into new,
+        # instance-level dicts. These are declared as class attributes holding
+        # the classes; building fresh dicts here (rather than assigning into the
+        # class-level dict) avoids mutating that shared state -- otherwise a
+        # second instantiation would try to call an already-instantiated object
+        # ("'PassiveLeak' object is not callable").
+        self.ion_channels = {
+            name: ion_channel(**parameters.pop(name, {}))
+            for name, ion_channel in self.ion_channels.items()
+        }
+        self.post_synaptic_entities = {
+            name: pse(**parameters.pop(name, {}))
+            for name, pse in self.post_synaptic_entities.items()
+        }
         super(MultiCompartmentNeuron, self).__init__(**parameters)
         for name, ion_channel in self.ion_channels.items():
             self.parameter_space[name] = ion_channel.parameter_space

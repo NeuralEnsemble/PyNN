@@ -5,6 +5,7 @@
 from collections import defaultdict
 import numpy as np
 import arbor
+from arbor import units as U
 
 from .. import recording
 from . import simulator
@@ -58,18 +59,24 @@ class Recorder(recording.Recorder):
         return resolved_variables
 
     def _set_arbor_sim(self, arbor_sim):
+        # Since Arbor 0.10.0, probes are addressed by (gid, tag) rather than by
+        # a positional cell_member index. The tag assigned here (a per-gid probe
+        # counter, in the same iteration order as _get_arbor_probes) must match
+        # the tag given to the corresponding probe there.
         self.handles = defaultdict(list)
         probe_indices = defaultdict(int)
         for variable in self.recorded:
             if variable.name != "spikes":
                 for cell in self.recorded[variable]:
-                    probeset_id = arbor.cell_member(cell.gid, probe_indices[cell.gid])
+                    tag = str(probe_indices[cell.gid])
                     probe_indices[cell.gid] += 1
-                    handle = arbor_sim.sample(probeset_id, arbor.regular_schedule(self.sampling_interval))
+                    handle = arbor_sim.sample(
+                        cell.gid, tag, arbor.regular_schedule(self.sampling_interval * U.ms))
                     self.handles[variable].append(handle)
 
     def _get_arbor_probes(self, gid):
         probes = []
+        probe_index = 0
         for variable in self.recorded:
             if variable.location is None:
                 pass
@@ -79,12 +86,15 @@ class Recorder(recording.Recorder):
             if gid in [cell.gid for cell in self.recorded[variable]]:
                 if variable.name == "spikes":
                     continue
-                elif variable.name == "v":
-                    probe = arbor.cable_probe_membrane_voltage(locset)
+                # Tag must match the one assigned in _set_arbor_sim (per-gid index).
+                tag = str(probe_index)
+                probe_index += 1
+                if variable.name == "v":
+                    probe = arbor.cable_probe_membrane_voltage(locset, tag)
                 else:
                     mech_name, state_name = variable.name.split(".")
                     arbor_model = mech_name  # to do: find_arbor_model(mech_name)
-                    probe = arbor.cable_probe_density_state(locset, arbor_model, state_name)
+                    probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
                 probes.append(probe)
         return probes
 

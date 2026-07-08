@@ -6,6 +6,7 @@ from collections import defaultdict
 from itertools import repeat
 
 import arbor
+from arbor import units as U
 
 from .. import common
 from ..core import ezip
@@ -89,7 +90,7 @@ class Projection(common.Projection):
                                 (self.pre[cg.presynaptic_index], source),
                                 target,
                                 cg.weight,
-                                cg.delay
+                                cg.delay * U.ms
                             )
                         )
                 else:

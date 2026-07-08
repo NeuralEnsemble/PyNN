@@ -89,9 +89,12 @@ class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
         for location in self.labels:
             if location == "soma":
                 # todo: proper location mapping
-                locsets.append(('"root"', f"{label}-{location}"))
+                # Use the resolved locset expression rather than a label reference
+                # ('"root"'): Arbor 0.12's label resolution does not resolve label
+                # references in probe locsets against the cell's label_dict.
+                locsets.append(('(root)', f"{label}-{location}"))
             elif location == "dendrite":
-                locsets.append(('"mid-dend"', f"{label}-{location}"))
+                locsets.append(('(location 0 0.5)', f"{label}-{location}"))
             elif isinstance(location, str):
                 locsets.append((
                     f'(on-components 0.5 (region "{location}"))',

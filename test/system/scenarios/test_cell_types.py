@@ -5,7 +5,7 @@ try:
     have_scipy = True
 except ImportError:
     have_scipy = False
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
 import quantities as pq
 from pyNN.parameters import Sequence
 from pyNN.errors import InvalidParameterValueError
@@ -103,7 +103,7 @@ def issue367(sim, plot_figure=False):
         return data
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_SpikeSourcePoisson(sim, plot_figure=False):
     try:
         from scipy.stats import kstest
@@ -295,6 +295,21 @@ def test_update_SpikeSourceArray(sim, plot_figure=False):
     sim.run(10.0)
     data = sources.get_data().segments[0].spiketrains
     assert_array_equal(data[0].magnitude, np.array([12, 15, 18, 22, 25]))
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_SpikeSourceArray_delivers_spike_times(sim):
+    """A SpikeSourceArray emits exactly its specified spike times."""
+    sim.setup(timestep=0.1)
+    spike_times = [10.0, 25.0, 40.0, 55.0]
+    sources = sim.Population(2, sim.SpikeSourceArray(spike_times=spike_times))
+    sources.record('spikes')
+    sim.run(70.0)
+    spiketrains = sources.get_data().segments[0].spiketrains
+    assert len(spiketrains) == 2
+    for st in spiketrains:
+        assert_allclose(np.array(st.magnitude), spike_times, atol=0.2)
+    sim.end()
 
 
 @run_with_simulators("nest", "brian2")

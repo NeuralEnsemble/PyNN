@@ -10,6 +10,7 @@ from .. import common, errors
 from ..standardmodels import StandardCellType
 from ..parameters import ParameterSpace, simplify, Sequence
 from . import simulator
+from . import _compat
 from .recording import Recorder
 
 
@@ -87,11 +88,22 @@ class Population(common.Population):
             for key, value in params.items():
                 if isinstance(value, Sequence):
                     params[key] = value.value
-            schedule = self.celltype.arbor_schedule(**params)
+            schedule_units = getattr(self.celltype, "arbor_schedule_units", {})
+            schedule_params = {}
+            for key, value in params.items():
+                unit = schedule_units.get(key)
+                if unit is None or value is None:
+                    schedule_params[key] = value
+                elif isinstance(value, (list, tuple, np.ndarray)):
+                    schedule_params[key] = [float(v) * unit for v in value]
+                else:
+                    schedule_params[key] = value * unit
+            schedule = self.celltype.arbor_schedule(**schedule_params)
             return arbor.spike_source_cell("spike-source", schedule)
         else:
             args = self._arbor_cell_description[index]
-            return arbor.cable_cell(args["tree"], args["decor"], args["labels"])
+            return _compat.make_cable_cell(
+                args["tree"], args["decor"], args["labels"], args["discretization"])
 
     def _create_cells(self):
         # for now, we create all cells and store them in memory,
