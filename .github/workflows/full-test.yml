@@ -46,14 +46,21 @@ jobs:
       run: |
         python -m pip install "neuron>=9.0.0" morphio
         python -m pip install "nrnutils>0.2.0"
-    - name: Install NEST
+    - name: Cache NEST build
+      id: cache-nest
       if: startsWith(matrix.os, 'ubuntu')
+      uses: actions/cache@v4
+      with:
+        path: ~/.local
+        key: nest-3.10-mpi-${{ matrix.os }}-py${{ matrix.python-version }}
+    - name: Install NEST
+      if: startsWith(matrix.os, 'ubuntu') && steps.cache-nest.outputs.cache-hit != 'true'
       run: |
         python -m pip install "cython<3.1.0"
         wget https://github.com/nest/nest-simulator/archive/refs/tags/v3.10.tar.gz -O nest-simulator-3.10.tar.gz
         tar xzf nest-simulator-3.10.tar.gz
         cmake -DCMAKE_INSTALL_PREFIX=$HOME/.local -Dwith-mpi=ON ./nest-simulator-3.10
-        make
+        make -j$(nproc)
         make install
     - name: Install Arbor
       if: startsWith(matrix.os, 'ubuntu')

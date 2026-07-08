@@ -312,6 +312,32 @@ def test_SpikeSourceArray_delivers_spike_times(sim):
     sim.end()
 
 
+@run_with_simulators("nest", "brian2")
+def test_IF_curr_delta_voltage_step(sim):
+    """A single delta-synapse input steps V by the weight (mV).
+
+    Guards the Arbor weight scaling: a lif_cell delta event adds weight/C_m to
+    V_m, so the connection weight is scaled by C_m to recover PyNN's mV step.
+    """
+    sim.setup(timestep=0.1)
+    v_rest = -65.0
+    weight = 5.0  # mV voltage step
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+    cell = sim.Population(1, sim.IF_curr_delta(
+        v_rest=v_rest, v_reset=v_rest, v_thresh=-40.0,
+        tau_m=20.0, cm=1.0, tau_refrac=0.1),
+        initial_values={'v': v_rest})
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=weight, delay=1.0),
+                   receptor_type="excitatory")
+    cell.record('v')
+    sim.run(60.0)
+    v = cell.get_data().segments[0].filter(name='v')[0].magnitude[:, 0]
+    step = v.max() - v_rest
+    assert abs(step - weight) < 1e-12, step
+    sim.end()
+
+
 @run_with_simulators("nest", "neuron", "brian2")
 def test_composed_neuron_model_homogeneous_receptors(sim, plot_figure=False):
     sim.setup()
