@@ -311,6 +311,44 @@ class LIFDynamics(PointNeuronDynamics):
         return self.neuron_parameters["V_th"][i]
 
 
+class AdExpDynamics(PointNeuronDynamics):
+    """Adaptive-exponential (Brette-Gerstner) dynamics: a ``pas`` leak (as for LIF)
+    plus the ``adexp`` point process (nmodl/adexp.mod), which adds the exponential
+    spike current and the adaptation current w and does the reset via POST_EVENT.
+    The detector fires at the spike-detection threshold ``V_spike`` (not the softer
+    exponential threshold ``V_th``)."""
+
+    native_names = ("E_L", "E_R", "V_spike", "V_th", "delta", "t_ref",
+                    "tau_m", "C_m", "a", "b", "tau_w", "i_offset")
+
+    def specific_cm(self, i):
+        c_spec, _ = self._specific_properties(
+            self.neuron_parameters["C_m"][i], self.neuron_parameters["tau_m"][i])
+        return c_spec
+
+    def paint(self, decor, i):
+        p = self.neuron_parameters
+        _c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
+        decor.paint("(all)", arbor.density(f"pas/e={p['E_L'][i]}", {"g": g_spec}))
+
+    def place_reset(self, decor, i):
+        p = self.neuron_parameters
+        g_leak = p["C_m"][i] / p["tau_m"][i]  # whole-cell leak conductance [uS]
+        decor.place(
+            "(root)",
+            arbor.synapse("adexp", {
+                "v_reset": p["E_R"][i], "t_ref": p["t_ref"][i],
+                "g_reset": LIF_RESET_CONDUCTANCE, "GL": g_leak,
+                "delta": p["delta"][i], "vthresh": p["V_th"][i],
+                "a": p["a"][i], "b": p["b"][i], "tau_w": p["tau_w"][i],
+                "EL": p["E_L"][i]}),
+            "adexp_reset",
+        )
+
+    def detector_threshold(self, i):
+        return self.neuron_parameters["V_spike"][i]
+
+
 class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
     """Builds an Arbor cable cell that behaves as a PyNN point neuron.
 

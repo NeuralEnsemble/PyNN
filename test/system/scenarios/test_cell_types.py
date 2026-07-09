@@ -416,6 +416,111 @@ def test_IF_curr_exp_EPSP(sim):
     sim.end()
 
 
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
+def test_EIF_cond_alpha_isfa_ista_spike_times(sim):
+    """The AdExp dynamics of EIF_cond_alpha_isfa_ista driven by a constant current
+    reproduce the reference spike times (from the NEURON backend) to <1% on every
+    backend. (Same setup as test_EIF_cond_alpha_isfa_ista but recording only
+    spikes, so it can also run on Arbor, which does not yet record `w`.)"""
+    sim.setup(timestep=0.01, min_delay=0.1, max_delay=4.0)
+    ifcell = sim.Population(1, sim.EIF_cond_alpha_isfa_ista(
+        i_offset=1.0, tau_refrac=2.0, v_spike=-40))
+    ifcell.initialize(v=-65, w=0)
+    ifcell.record('spikes')
+    sim.run(200.0)
+    spike_times = ifcell.get_data().segments[0].spiketrains[0].rescale(pq.ms).magnitude
+    sim.end()
+    expected_spike_times = np.array(
+        [10.015, 25.515, 43.168, 63.41, 86.649, 113.112, 142.663, 174.76])
+    assert len(spike_times) == len(expected_spike_times), (spike_times, expected_spike_times)
+    diff = (spike_times - expected_spike_times) / expected_spike_times
+    assert abs(diff).max() < 0.01, abs(diff).max()
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_EIF_cond_exp_isfa_ista_adaptation(sim):
+    """A constant supra-threshold current into EIF_cond_exp_isfa_ista produces a
+    regular spike train with spike-frequency adaptation (monotonically increasing
+    ISIs), matching the NEURON backend (cross-checked to <0.2% on mean ISI)."""
+    sim.setup(timestep=0.01, min_delay=0.1)
+    cell = sim.Population(1, sim.EIF_cond_exp_isfa_ista(
+        i_offset=1.0, tau_refrac=2.0, v_spike=-40.0))
+    cell.initialize(v=-70.6, w=0.0)
+    cell.record('spikes')
+    sim.run(200.0)
+    st = cell.get_data().segments[0].spiketrains[0].magnitude
+    sim.end()
+    assert len(st) >= 6, len(st)
+    isis = np.diff(st)
+    # spike-frequency adaptation: each ISI is longer than the previous one
+    assert np.all(np.diff(isis) > 0), isis
+    # adaptation is substantial (last ISI at least 1.5x the first)
+    assert isis[-1] > 1.5 * isis[0], isis
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_curr_alpha_EPSP(sim):
+    """A single presynaptic spike into IF_curr_alpha produces an alpha-shaped EPSP
+    whose peak matches the analytic current-based-alpha-synapse prediction on every
+    backend (Arbor realises the alpha with an implicit solver; cross-checked to
+    <0.2% of the NEURON/analytic value at this timestep)."""
+    v_rest, cm, tau_m, tau_syn, weight = -65.0, 1.0, 20.0, 2.0, 0.2
+    sim.setup(timestep=0.025)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+    cell = sim.Population(1, sim.IF_curr_alpha(
+        v_rest=v_rest, v_reset=v_rest, v_thresh=-50.0, tau_m=tau_m, cm=cm,
+        tau_refrac=5.0, tau_syn_E=tau_syn, i_offset=0.0),
+        initial_values={'v': v_rest})
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=weight, delay=1.0),
+                   receptor_type="excitatory")
+    cell.record('v')
+    sim.run(120.0)
+    v = cell.get_data().segments[0].filter(name='v')[0].magnitude[:, 0]
+    epsp = v.max() - v_rest
+    # analytic peak of a current-based alpha synapse into an RC membrane:
+    # u(t) = (w*e)/(C*tau_syn) * exp(-t/tau_m) * (exp(k t)(k t - 1) + 1)/k^2
+    t = np.arange(0, 300, 0.001)
+    k = 1 / tau_m - 1 / tau_syn
+    u = ((weight * np.e) / (cm * tau_syn) * np.exp(-t / tau_m)
+         * (np.exp(k * t) * (k * t - 1) + 1) / k ** 2)
+    epsp_theory = u.max()
+    assert abs(epsp - epsp_theory) < 0.01 * epsp_theory, (epsp, epsp_theory)
+    sim.end()
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_cond_alpha_EPSP(sim):
+    """A single presynaptic spike into IF_cond_alpha produces an alpha-shaped
+    (rise-then-decay) depolarising EPSP peaking a few ms after the input."""
+    v_rest, tau_syn, weight = -65.0, 2.0, 0.05
+    onset, delay = 20.0, 1.0
+    sim.setup(timestep=0.025)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[onset]))
+    cell = sim.Population(1, sim.IF_cond_alpha(
+        v_rest=v_rest, v_reset=v_rest, v_thresh=-50.0, tau_m=20.0, cm=1.0,
+        tau_refrac=5.0, tau_syn_E=tau_syn, e_rev_E=0.0),
+        initial_values={'v': v_rest})
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=weight, delay=delay),
+                   receptor_type="excitatory")
+    cell.record('v')
+    sim.run(120.0)
+    signal = cell.get_data().segments[0].filter(name='v')[0]
+    v = signal.magnitude[:, 0]
+    t = signal.times.magnitude
+    # depolarising and alpha-shaped: quiescent before the input, single peak after
+    assert np.allclose(v[t < onset], v_rest, atol=1e-6)
+    i_peak = int(np.argmax(v))
+    assert v[i_peak] - v_rest > 0.5
+    # peak occurs after the synaptic peak (onset + delay + tau_syn) and before the
+    # membrane time constant washes it out
+    assert onset + delay + tau_syn < t[i_peak] < onset + delay + 20.0
+    # decays monotonically back towards rest after the peak
+    assert v[-1] < v[i_peak]
+    sim.end()
+
+
 @run_with_simulators("arbor", "neuron", "nest", "brian2")
 def test_IF_point_neuron_heterogeneous_current(sim):
     """Per-cell i_offset values give per-cell firing rates (guards Arbor's

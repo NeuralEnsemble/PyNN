@@ -15,7 +15,8 @@ from arbor import units as U
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
 from ..parameters import ParameterSpace, IonicSpecies, Sequence
 from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
-from .cells import CellDescriptionBuilder, PointCellDescriptionBuilder, LIFDynamics
+from .cells import (CellDescriptionBuilder, PointCellDescriptionBuilder,
+                    LIFDynamics, AdExpDynamics)
 from .simulator import state
 from .morphology import LabelledLocations
 
@@ -467,6 +468,18 @@ class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
     variable_map = {"isyn": "isyn"}
 
 
+class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
+
+    translations = build_translations(
+        ('locations', 'locations'),
+        ('e_syn', 'e'),
+        ('tau_syn', 'tau')
+    )
+    model = "alphasyn"
+    recordable = ["gsyn"]
+    variable_map = {"gsyn": "g"}
+
+
 class LIF(cells.LIF):
     __doc__ = cells.LIF.__doc__
 
@@ -482,6 +495,31 @@ class LIF(cells.LIF):
     variable_map = {"v": "v"}
     # the PointNeuronDynamics that realises this neuron component as a cable cell
     dynamics_class = LIFDynamics
+
+
+# translations shared by the AdExp neuron component and the flat EIF_* cell types
+_ADEXP_TRANSLATIONS = build_translations(
+    ('v_rest',     'E_L'),
+    ('v_reset',    'E_R'),
+    ('v_spike',    'V_spike'),
+    ('v_thresh',   'V_th'),      # the (soft) exponential threshold V_T
+    ('delta_T',    'delta'),
+    ('tau_refrac', 't_ref'),
+    ('tau_m',      'tau_m'),
+    ('cm',         'C_m'),
+    ('a',          'a', "a*0.001", "a*1000"),   # subthreshold adaptation, nS -> uS
+    ('b',          'b'),
+    ('tau_w',      'tau_w'),
+    ('i_offset',   'i_offset'),
+)
+
+
+class AdExp(cells.AdExp):
+    __doc__ = cells.AdExp.__doc__
+
+    translations = _ADEXP_TRANSLATIONS
+    variable_map = {"v": "v", "w": "w"}
+    dynamics_class = AdExpDynamics
 
 
 class PointNeuron(cells.PointNeuron):
@@ -588,3 +626,90 @@ class IF_cond_exp(cells.IF_cond_exp):
             "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
             "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
         }, parameters.shape)
+
+
+class IF_curr_alpha(cells.IF_curr_alpha):
+    __doc__ = cells.IF_curr_alpha.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn_curr", {"tau": "tau_syn_E"}),
+            "inhibitory": ("alphasyn_curr", {"tau": "tau_syn_I"}),
+        }, parameters.shape)
+
+
+class IF_cond_alpha(cells.IF_cond_alpha):
+    __doc__ = cells.IF_cond_alpha.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("alphasyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape)
+
+
+# conductance-synapse translations shared by the EIF_cond_* cell types
+_EIF_SYNAPSE_TRANSLATIONS = build_translations(
+    ('tau_syn_E',  'tau_syn_E'),
+    ('tau_syn_I',  'tau_syn_I'),
+    ('e_rev_E',    'e_rev_E'),
+    ('e_rev_I',    'e_rev_I'),
+)
+
+
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
+    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
+
+    translations = {**_ADEXP_TRANSLATIONS, **_EIF_SYNAPSE_TRANSLATIONS}
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=AdExpDynamics)
+
+
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
+
+    translations = {**_ADEXP_TRANSLATIONS, **_EIF_SYNAPSE_TRANSLATIONS}
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("alphasyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=AdExpDynamics)

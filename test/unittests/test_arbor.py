@@ -230,11 +230,57 @@ class TestPointNeurons(unittest.TestCase):
         self.assertAlmostEqual(exc_params["tau"][0], 1.5)
         self.assertAlmostEqual(builder.dynamics.neuron_parameters["C_m"][0], 0.5)
 
+    def test_if_curr_alpha_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_curr_alpha(tau_syn_E=1.5)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertFalse(ct.conductance_based)
+
+    def test_if_curr_alpha_translation(self):
+        ct = arbor_standardmodels.IF_curr_alpha(tau_syn_E=1.5, tau_syn_I=2.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "alphasyn_curr")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+
+    def test_if_cond_alpha_translation(self):
+        ct = arbor_standardmodels.IF_cond_alpha(tau_syn_E=1.5, e_rev_E=0.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "alphasyn")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+        self.assertAlmostEqual(exc_params["e"][0], 0.0)
+
+    def test_eif_cond_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.EIF_cond_exp_isfa_ista()
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+
+    def test_eif_cond_exp_translation(self):
+        # a (subthreshold adaptation) is translated nS -> uS; the dynamics is AdExp
+        ct = arbor_standardmodels.EIF_cond_exp_isfa_ista(a=4.0, tau_syn_E=1.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.AdExpDynamics)
+        self.assertAlmostEqual(builder.dynamics.neuron_parameters["a"][0], 0.004)  # 4 nS -> uS
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+
+    def test_adexp_component_uses_adexp_dynamics(self):
+        self.assertIs(arbor_standardmodels.AdExp.dynamics_class, arbor_cells.AdExpDynamics)
+
     def test_reset_and_current_synapse_mechanisms_in_catalogue(self):
         cat = arbor.load_catalogue(arbor_simulator.catalogue_path())
         mechs = list(cat)
         self.assertIn("lif", mechs)
         self.assertIn("expsyn_curr", mechs)
+        self.assertIn("alphasyn", mechs)
+        self.assertIn("alphasyn_curr", mechs)
+        self.assertIn("adexp", mechs)
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")
