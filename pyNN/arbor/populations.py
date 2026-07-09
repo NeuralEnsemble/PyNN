@@ -175,11 +175,16 @@ class Population(common.Population):
                 self._lif_initial_v = initial_values
             return
         if variable != "v":
-            warn("todo: handle initial values for ion channel states")
-            # may have to handle this at the same time as setting parameters
-            # it is not clear to me if Arbor supports updating decors
-            # after their creation, other than by set_property
-            # maybe keep a reference to the return values of arbor.paint?
+            # Receptor/synapse state variables (e.g. "excitatory.gsyn") and ion
+            # channel states are initialised to zero by the mechanism's INITIAL
+            # block; only a non-default request needs handling, which is not yet
+            # supported.
+            if "." not in variable:
+                warn("todo: handle initial values for ion channel states")
+                # may have to handle this at the same time as setting parameters
+                # it is not clear to me if Arbor supports updating decors
+                # after their creation, other than by set_property
+                # maybe keep a reference to the return values of arbor.paint?
             return
         self._arbor_cell_description.base_value.set_initial_values(variable, initial_values)
 

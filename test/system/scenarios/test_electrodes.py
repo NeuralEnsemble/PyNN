@@ -64,7 +64,7 @@ def test_ticket226(sim):
     assert v_10p1 > -59.99, v_10p1
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_issue165(sim):
     """Ensure that anonymous current sources are not lost."""
     sim.setup(timestep=0.1)

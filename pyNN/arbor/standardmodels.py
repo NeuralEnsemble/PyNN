@@ -15,7 +15,7 @@ from arbor import units as U
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
 from ..parameters import ParameterSpace, IonicSpecies
 from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
-from .cells import CellDescriptionBuilder
+from .cells import CellDescriptionBuilder, PointCellDescriptionBuilder
 from .simulator import state
 from .morphology import LabelledLocations
 
@@ -117,7 +117,8 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
 
         self.parameter_space.shape = (1,)
         if location is None:
-            raise NotImplementedError
+            # Point neurons (and, by default, any cell) inject at the soma.
+            location = LabelledLocations("soma")
         elif isinstance(location, str):
             location = LabelledLocations(location)
         elif isinstance(location, LocationGenerator):
@@ -361,3 +362,138 @@ class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
     model = "expsyn"
     recordable = ["gsyn"]
     variable_map = {"gsyn": "g"}
+
+
+class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
+
+    translations = build_translations(
+        ('locations', 'locations'),
+        ('tau_syn', 'tau')
+    )
+    model = "expsyn_curr"
+    recordable = ["isyn"]
+    variable_map = {"isyn": "isyn"}
+
+
+class LIF(cells.LIF):
+    __doc__ = cells.LIF.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+    )
+    variable_map = {"v": "v"}
+
+
+class PointNeuron(cells.PointNeuron):
+    """Composable point neuron, realised as a single-compartment Arbor cable cell.
+
+    Combines a leaky integrate-and-fire ``neuron`` (an :class:`LIF` instance) with
+    one or more post-synaptic receptors (:class:`CondExpPostSynapticResponse` or
+    :class:`CurrExpPostSynapticResponse`). See :class:`PointCellDescriptionBuilder`
+    for how the cable cell is assembled.
+    """
+
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        """Build the Arbor cable-cell description for this point neuron.
+
+        ``parameters`` (the composable parameter space) is not consumed directly:
+        the neuron and receptor components carry their own (translatable) parameter
+        spaces, which are assembled into the form the builder expects.
+        """
+        neuron_parameters = self.neuron.native_parameters
+        post_synaptic_receptors = {
+            name: (psr.model, psr.native_parameters)
+            for name, psr in self.post_synaptic_receptors.items()
+        }
+        builder = PointCellDescriptionBuilder(neuron_parameters, post_synaptic_receptors)
+        return ParameterSpace({"cell_description": builder}, schema=None, shape=parameters.shape)
+
+    def reverse_translate(self, native_parameters):
+        raise NotImplementedError
+
+    def can_record(self, variable, location=None):
+        return True  # todo: implement this properly
+
+
+# The native (LIF) parameter names carried through to PointCellDescriptionBuilder;
+# the remaining native names produced by the classic IF models below describe their
+# synapses.
+_LIF_NATIVE_NAMES = ("E_L", "E_R", "V_th", "t_ref", "tau_m", "C_m", "i_offset")
+
+
+def _point_cell_description(native, receptor_specs, shape):
+    """Wrap a flat native parameter space (from a classic IF model's base
+    ``translate()``) into a point-neuron ``cell_description`` ParameterSpace.
+
+    ``receptor_specs`` maps each receptor label to
+    ``(arbor_synapse_model, {arbor_synapse_param: native_name})``.
+    """
+    neuron_parameters = ParameterSpace(
+        {name: native[name] for name in _LIF_NATIVE_NAMES}, shape=shape)
+    post_synaptic_receptors = {
+        label: (model,
+                ParameterSpace({arbor_param: native[native_name]
+                                for arbor_param, native_name in param_map.items()},
+                               shape=shape))
+        for label, (model, param_map) in receptor_specs.items()
+    }
+    builder = PointCellDescriptionBuilder(neuron_parameters, post_synaptic_receptors)
+    return ParameterSpace({"cell_description": builder}, schema=None, shape=shape)
+
+
+class IF_curr_exp(cells.IF_curr_exp):
+    __doc__ = cells.IF_curr_exp.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn_curr", {"tau": "tau_syn_E"}),
+            "inhibitory": ("expsyn_curr", {"tau": "tau_syn_I"}),
+        }, parameters.shape)
+
+
+class IF_cond_exp(cells.IF_cond_exp):
+    __doc__ = cells.IF_cond_exp.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape)

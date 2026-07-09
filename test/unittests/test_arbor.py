@@ -156,6 +156,94 @@ class TestTranslations(unittest.TestCase):
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")
+class TestPointNeurons(unittest.TestCase):
+    """Point neurons realised as single-compartment cable cells (Phase 2)."""
+
+    def test_lif_translation(self):
+        m = arbor_standardmodels.LIF(
+            v_rest=-65.0, cm=1.0, tau_m=20.0, tau_refrac=2.0,
+            v_reset=-70.0, v_thresh=-50.0, i_offset=0.1)
+        native = m.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["E_L"], -65.0)
+        self.assertAlmostEqual(d["E_R"], -70.0)
+        self.assertAlmostEqual(d["V_th"], -50.0)
+        self.assertAlmostEqual(d["t_ref"], 2.0)
+        self.assertAlmostEqual(d["tau_m"], 20.0)
+        self.assertAlmostEqual(d["C_m"], 1.0)  # cm passes through in nF
+        self.assertAlmostEqual(d["i_offset"], 0.1)
+
+    def test_curr_exp_psr(self):
+        psr = arbor_standardmodels.CurrExpPostSynapticResponse(tau_syn=3.0)
+        self.assertEqual(psr.model, "expsyn_curr")
+        self.assertFalse(psr.conductance_based)
+        native = psr.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        self.assertAlmostEqual(native.as_dict()["tau"], 3.0)
+
+    def test_cond_exp_psr(self):
+        psr = arbor_standardmodels.CondExpPostSynapticResponse(tau_syn=3.0, e_syn=-10.0)
+        self.assertEqual(psr.model, "expsyn")
+        self.assertTrue(psr.conductance_based)
+        native = psr.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["tau"], 3.0)
+        self.assertAlmostEqual(d["e"], -10.0)
+
+    def test_point_neuron_is_cable_cell(self):
+        ct = arbor_standardmodels.PointNeuron(
+            arbor_standardmodels.LIF(),
+            excitatory=arbor_standardmodels.CondExpPostSynapticResponse(),
+            inhibitory=arbor_standardmodels.CondExpPostSynapticResponse(e_syn=-70.0),
+        )
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertEqual(ct.receptor_types, ["excitatory", "inhibitory"])
+        self.assertTrue(ct.conductance_based)
+
+    def test_point_neuron_mixed_receptor_kinds_rejected(self):
+        ct = arbor_standardmodels.PointNeuron(
+            arbor_standardmodels.LIF(),
+            excitatory=arbor_standardmodels.CondExpPostSynapticResponse(),
+            inhibitory=arbor_standardmodels.CurrExpPostSynapticResponse(),
+        )
+        with self.assertRaises(Exception):
+            ct.conductance_based
+
+    def test_if_cond_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_cond_exp(tau_syn_E=1.5, e_rev_E=0.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        self.assertEqual(tuple(ct.receptor_types), ("excitatory", "inhibitory"))
+
+    def test_if_curr_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_curr_exp(tau_syn_E=1.5)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertFalse(ct.conductance_based)
+
+    def test_if_curr_exp_translation(self):
+        # the classic model uses the standard flat translate(); check a couple of
+        # translated native names appear in the resulting synapse parameters
+        ct = arbor_standardmodels.IF_curr_exp(tau_syn_E=1.5, tau_syn_I=2.5, cm=0.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn_curr")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+        self.assertAlmostEqual(builder.neuron_parameters["C_m"][0], 0.5)
+
+    def test_reset_and_current_synapse_mechanisms_in_catalogue(self):
+        cat = arbor.load_catalogue(arbor_simulator.catalogue_path())
+        mechs = list(cat)
+        self.assertIn("lif", mechs)
+        self.assertIn("expsyn_curr", mechs)
+
+
+@unittest.skipUnless(have_arbor, "Requires Arbor")
 class TestMorphologyLocsets(unittest.TestCase):
     """Locset generation for recording/placement locations."""
 

@@ -361,6 +361,78 @@ def test_IF_curr_delta_fires_and_resets(sim):
     sim.end()
 
 
+def _lif_isi_theory(v_rest, v_reset, v_thresh, tau_m, cm, tau_refrac, i_offset):
+    """Analytic steady-state ISI of a leaky integrate-and-fire neuron driven by a
+    constant current i_offset (independent of simulator backend)."""
+    v_inf = v_rest + i_offset * tau_m / cm
+    return tau_refrac + tau_m * np.log((v_inf - v_reset) / (v_inf - v_thresh))
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_exp_point_neuron_fI(sim):
+    """IF_cond_exp / IF_curr_exp fire regularly under a constant current, with the
+    inter-spike interval matching the analytic LIF prediction on every backend.
+    """
+    params = dict(v_rest=-65.0, v_reset=-65.0, v_thresh=-50.0,
+                  tau_m=20.0, cm=1.0, tau_refrac=5.0)
+    isi_theory = _lif_isi_theory(i_offset=1.0, **params)
+    for cell_class in (sim.IF_curr_exp, sim.IF_cond_exp):
+        sim.setup(timestep=0.025)
+        cell = sim.Population(1, cell_class(i_offset=1.0, tau_syn_E=5.0, tau_syn_I=5.0,
+                                            **params),
+                              initial_values={'v': -65.0})
+        cell.record('spikes')
+        sim.run(500.0)
+        spikes = np.array(cell.get_data().segments[0].spiketrains[0])
+        assert len(spikes) >= 10, (cell_class.__name__, len(spikes))
+        isi = np.diff(spikes)[1:].mean()  # skip the first (from-rest) interval
+        assert abs(isi - isi_theory) < 1.0, (cell_class.__name__, isi, isi_theory)
+        sim.end()
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_curr_exp_EPSP(sim):
+    """A single presynaptic spike into IF_curr_exp produces an EPSP whose peak
+    matches the analytic current-based-synapse prediction on every backend."""
+    v_rest, cm, tau_m, tau_syn, weight = -65.0, 1.0, 20.0, 5.0, 0.5
+    sim.setup(timestep=0.025)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+    cell = sim.Population(1, sim.IF_curr_exp(
+        v_rest=v_rest, v_reset=v_rest, v_thresh=-50.0, tau_m=tau_m, cm=cm,
+        tau_refrac=5.0, tau_syn_E=tau_syn, i_offset=0.0),
+        initial_values={'v': v_rest})
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=weight, delay=1.0),
+                   receptor_type="excitatory")
+    cell.record('v')
+    sim.run(100.0)
+    v = cell.get_data().segments[0].filter(name='v')[0].magnitude[:, 0]
+    epsp = v.max() - v_rest
+    # analytic peak of a current-based exponential synapse
+    t_peak = np.log(tau_m / tau_syn) / (1 / tau_syn - 1 / tau_m)
+    prefactor = (weight / cm) * (tau_m * tau_syn / (tau_m - tau_syn))
+    epsp_theory = prefactor * (np.exp(-t_peak / tau_m) - np.exp(-t_peak / tau_syn))
+    assert abs(epsp - epsp_theory) < 0.05, (epsp, epsp_theory)
+    sim.end()
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_point_neuron_heterogeneous_current(sim):
+    """Per-cell i_offset values give per-cell firing rates (guards Arbor's
+    per-cell cable-cell construction / scalar coercion)."""
+    sim.setup(timestep=0.025)
+    cells = sim.Population(3, sim.IF_cond_exp(
+        v_rest=-65.0, v_reset=-65.0, v_thresh=-50.0, tau_m=20.0, cm=1.0,
+        tau_refrac=5.0, i_offset=[0.5, 1.0, 1.5]),
+        initial_values={'v': -65.0})
+    cells.record('spikes')
+    sim.run(500.0)
+    counts = [len(st) for st in cells.get_data().segments[0].spiketrains]
+    assert counts[0] == 0, counts  # 0.5 nA is sub-threshold
+    assert 0 < counts[1] < counts[2], counts  # firing rate rises with current
+    sim.end()
+
+
 @run_with_simulators("nest", "neuron", "brian2")
 def test_composed_neuron_model_homogeneous_receptors(sim, plot_figure=False):
     sim.setup()

@@ -79,7 +79,9 @@ class Recorder(recording.Recorder):
         probe_index = 0
         for variable in self.recorded:
             if variable.location is None:
-                pass
+                # Point neurons (single-compartment cable cells) are recorded
+                # without an explicit location; default to the soma.
+                locset = "(root)"
             else:
                 locset = variable.location
 
