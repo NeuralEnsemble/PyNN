@@ -273,6 +273,49 @@ class TestPointNeurons(unittest.TestCase):
     def test_adexp_component_uses_adexp_dynamics(self):
         self.assertIs(arbor_standardmodels.AdExp.dynamics_class, arbor_cells.AdExpDynamics)
 
+    def test_hh_cond_exp_translation(self):
+        ct = arbor_standardmodels.HH_cond_exp(gbar_Na=20.0, e_rev_Na=50.0, tau_syn_E=0.2)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        self.assertEqual(tuple(ct.receptor_types), ("excitatory", "inhibitory"))
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.HHDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["gnabar"][0], 20.0)  # whole-cell uS; -> S/cm2 at build
+        self.assertAlmostEqual(p["ena"][0], 50.0)
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn")
+
+    def test_hh_specific_conductance_conversion(self):
+        # 20 uS whole-cell over the 1e-3 cm2 point-cell area -> 0.02 S/cm2
+        dyn = arbor_cells.HHDynamics(None)
+        self.assertAlmostEqual(dyn._specific_g(20.0), 0.02)
+
+    def test_izhikevich_translation(self):
+        ct = arbor_standardmodels.Izhikevich(a=0.02, b=0.2, c=-65.0, d=8.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertEqual(tuple(ct.receptor_types), ())  # voltage-step synapses unsupported
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.IzhikevichDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["a"][0], 0.02)
+        self.assertAlmostEqual(p["d"][0], 8.0)
+        self.assertEqual(builder.post_synaptic_receptors, {})
+
+    def test_if_cond_exp_gsfa_grr_translation(self):
+        ct = arbor_standardmodels.IF_cond_exp_gsfa_grr(
+            tau_sfa=120.0, q_sfa=12.0, e_rev_sfa=-70.0, tau_rr=3.0)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.GsfaGrrDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["tau_s"][0], 120.0)
+        self.assertAlmostEqual(p["q_s"][0], 12.0)
+        self.assertAlmostEqual(p["E_s"][0], -70.0)
+        self.assertAlmostEqual(p["tau_r"][0], 3.0)
+
     def test_reset_and_current_synapse_mechanisms_in_catalogue(self):
         cat = arbor.load_catalogue(arbor_simulator.catalogue_path())
         mechs = list(cat)
@@ -281,6 +324,9 @@ class TestPointNeurons(unittest.TestCase):
         self.assertIn("alphasyn", mechs)
         self.assertIn("alphasyn_curr", mechs)
         self.assertIn("adexp", mechs)
+        self.assertIn("lif_gsfa_grr", mechs)
+        self.assertIn("izhikevich", mechs)
+        self.assertIn("hh_traub", mechs)
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")

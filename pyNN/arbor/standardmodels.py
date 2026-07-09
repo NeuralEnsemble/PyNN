@@ -16,7 +16,8 @@ from ..standardmodels import cells, ion_channels, synapses, electrodes, receptor
 from ..parameters import ParameterSpace, IonicSpecies, Sequence
 from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
 from .cells import (CellDescriptionBuilder, PointCellDescriptionBuilder,
-                    LIFDynamics, AdExpDynamics)
+                    LIFDynamics, AdExpDynamics, GsfaGrrDynamics, IzhikevichDynamics,
+                    HHDynamics)
 from .simulator import state
 from .morphology import LabelledLocations
 
@@ -713,3 +714,88 @@ class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
             "excitatory": ("alphasyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
             "inhibitory": ("alphasyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
         }, parameters.shape, dynamics_class=AdExpDynamics)
+
+
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
+    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+        ('tau_sfa',    'tau_s'),
+        ('e_rev_sfa',  'E_s'),
+        ('q_sfa',      'q_s'),
+        ('tau_rr',     'tau_r'),
+        ('e_rev_rr',   'E_r'),
+        ('q_rr',       'q_r'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=GsfaGrrDynamics)
+
+
+class Izhikevich(cells.Izhikevich):
+    __doc__ = cells.Izhikevich.__doc__
+
+    translations = build_translations(
+        ('a',        'a'),
+        ('b',        'b'),
+        ('c',        'c'),
+        ('d',        'd'),
+        ('i_offset', 'i_offset'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+    # Izhikevich uses voltage-step (delta) synapses, which an Arbor cable cell
+    # cannot express (a mechanism cannot write v); synaptic input is not yet
+    # supported, so no receptors are placed. Current injection (i_offset, DCSource)
+    # drives the cell.
+    receptor_types = ()
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(
+            native, {}, parameters.shape, dynamics_class=IzhikevichDynamics)
+
+
+class HH_cond_exp(cells.HH_cond_exp):
+    __doc__ = cells.HH_cond_exp.__doc__
+
+    translations = build_translations(
+        ('gbar_Na',    'gnabar'),
+        ('gbar_K',     'gkbar'),
+        ('g_leak',     'gl'),
+        ('e_rev_Na',   'ena'),
+        ('e_rev_K',    'ek'),
+        ('e_rev_leak', 'el'),
+        ('v_offset',   'vT'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+    # the standard model also lists a gap-junction receptor, not supported here
+    receptor_types = ('excitatory', 'inhibitory')
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=HHDynamics)

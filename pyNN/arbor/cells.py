@@ -349,6 +349,91 @@ class AdExpDynamics(PointNeuronDynamics):
         return self.neuron_parameters["V_spike"][i]
 
 
+class GsfaGrrDynamics(LIFDynamics):
+    """LIF dynamics plus conductance-based spike-frequency adaptation and a
+    relative-refractory mechanism (Muller 2007), via the ``lif_gsfa_grr`` point
+    process (nmodl/lif_gsfa_grr.mod). Everything else (pas leak, detector at V_th)
+    is inherited from :class:`LIFDynamics`."""
+
+    native_names = LIFDynamics.native_names + (
+        "E_s", "E_r", "tau_s", "tau_r", "q_s", "q_r")
+
+    def place_reset(self, decor, i):
+        p = self.neuron_parameters
+        decor.place(
+            "(root)",
+            arbor.synapse("lif_gsfa_grr", {
+                "v_reset": p["E_R"][i], "t_ref": p["t_ref"][i],
+                "g_reset": LIF_RESET_CONDUCTANCE,
+                "E_s": p["E_s"][i], "E_r": p["E_r"][i],
+                "tau_s": p["tau_s"][i], "tau_r": p["tau_r"][i],
+                "q_s": p["q_s"][i], "q_r": p["q_r"][i]}),
+            "gsfa_grr_reset",
+        )
+
+
+class HHDynamics(PointNeuronDynamics):
+    """Hodgkin-Huxley (Traub) dynamics: the ``hh_traub`` density mechanism
+    (nmodl/hh_traub.mod) with whole-cell Na/K/leak conductances converted to
+    specific S/cm2, and the Na/K reversal potentials set on the cell's ions. HH is
+    a genuine spiking model, so there is no reset process; the network-spike
+    detector fires at 10 mV (matching the NEURON backend's HH threshold)."""
+
+    native_names = ("gnabar", "gkbar", "gl", "ena", "ek", "el", "vT",
+                    "C_m", "i_offset")
+
+    def specific_cm(self, i):
+        return self.neuron_parameters["C_m"][i] * 1e-3 / _POINT_CELL_AREA_CM2
+
+    def _specific_g(self, g_uS):
+        """Whole-cell conductance [uS] -> specific conductance [S/cm2]."""
+        return g_uS * 1e-6 / _POINT_CELL_AREA_CM2
+
+    def paint(self, decor, i):
+        p = self.neuron_parameters
+        decor.paint("(all)", arbor.density("hh_traub", {
+            "gnabar": self._specific_g(p["gnabar"][i]),
+            "gkbar": self._specific_g(p["gkbar"][i]),
+            "gl": self._specific_g(p["gl"][i]),
+            "el": p["el"][i], "vT": p["vT"][i]}))
+        decor.set_ion("na", rev_pot=p["ena"][i] * U.mV)
+        decor.set_ion("k", rev_pot=p["ek"][i] * U.mV)
+
+    def detector_threshold(self, i):
+        return 10.0
+
+
+IZHIKEVICH_CM_NF = 0.001  # fixed membrane capacitance of the Izhikevich model [nF]
+IZHIKEVICH_VTHRESH_MV = 30.0  # spike / reset threshold [mV]
+
+
+class IzhikevichDynamics(PointNeuronDynamics):
+    """Izhikevich quadratic-integrate-and-fire dynamics (nmodl/izhikevich.mod): no
+    leak, a fixed capacitance Cm, and the reset (v -> c, u += d) done via the
+    detector + POST_EVENT one-step clamp. The membrane current is entirely supplied
+    by the izhikevich point process; the injected/offset current enters as an
+    iclamp (contributing I/Cm to dv/dt)."""
+
+    native_names = ("a", "b", "c", "d", "i_offset")
+
+    def specific_cm(self, i):
+        return IZHIKEVICH_CM_NF * 1e-3 / _POINT_CELL_AREA_CM2
+
+    def place_reset(self, decor, i):
+        p = self.neuron_parameters
+        decor.place(
+            "(root)",
+            arbor.synapse("izhikevich", {
+                "a": p["a"][i], "b": p["b"][i], "c": p["c"][i], "d": p["d"][i],
+                "Cm": IZHIKEVICH_CM_NF, "vthresh": IZHIKEVICH_VTHRESH_MV,
+                "g_reset": LIF_RESET_CONDUCTANCE}),
+            "izhikevich",
+        )
+
+    def detector_threshold(self, i):
+        return IZHIKEVICH_VTHRESH_MV
+
+
 class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
     """Builds an Arbor cable cell that behaves as a PyNN point neuron.
 

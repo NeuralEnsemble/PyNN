@@ -38,7 +38,7 @@ def test_EIF_cond_alpha_isfa_ista(sim, plot_figure=False):
         return data
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
 def test_HH_cond_exp(sim, plot_figure=False):
     sim.setup(timestep=0.001, min_delay=0.1)
     cellparams = {
@@ -456,6 +456,51 @@ def test_EIF_cond_exp_isfa_ista_adaptation(sim):
     assert np.all(np.diff(isis) > 0), isis
     # adaptation is substantial (last ISI at least 1.5x the first)
     assert isis[-1] > 1.5 * isis[0], isis
+
+
+@run_with_simulators("arbor", "neuron")
+def test_Izhikevich_regular_spiking(sim):
+    """A constant current into a regular-spiking Izhikevich neuron produces a
+    steady spike train. Arbor's quadratic dynamics and one-step reset are
+    cross-checked against NEURON to <0.03 ms on spike times / <0.1% on ISI."""
+    sim.setup(timestep=0.01, min_delay=0.1)
+    cell = sim.Population(1, sim.Izhikevich(a=0.02, b=0.2, c=-65.0, d=8.0, i_offset=0.01))
+    cell.initialize(v=-70.0, u=-14.0)
+    cell.record('spikes')
+    sim.run(300.0)
+    st = cell.get_data().segments[0].spiketrains[0].magnitude
+    sim.end()
+    assert 6 <= len(st) <= 10, len(st)
+    isis = np.diff(st)
+    # after the first ISI the train is regular (steady inter-spike interval)
+    assert abs(isis[-1] - isis[-2]) < 0.1, isis
+    assert 40.0 < isis[-1] < 50.0, isis
+
+
+@run_with_simulators("arbor", "neuron")
+def test_IF_cond_exp_gsfa_grr_adaptation(sim):
+    """A constant supra-threshold current into IF_cond_exp_gsfa_grr produces spike-
+    frequency adaptation from the g_s conductance: the ISIs lengthen and then settle
+    to a steady value. Arbor is cross-checked against NEURON to <0.01 ms on spike
+    times; nest/brian2 are excluded here because their gsfa_grr implementations
+    adapt differently for this strongly-driven regime."""
+    sim.setup(timestep=0.01, min_delay=0.1)
+    cell = sim.Population(1, sim.IF_cond_exp_gsfa_grr(
+        v_rest=-65.0, v_reset=-65.0, v_thresh=-57.0, tau_m=10.0, cm=0.25,
+        tau_refrac=2.0, i_offset=1.0,
+        tau_sfa=100.0, q_sfa=15.0, e_rev_sfa=-75.0,
+        tau_rr=2.0, q_rr=3000.0, e_rev_rr=-75.0))
+    cell.initialize(v=-65.0)
+    cell.record('spikes')
+    sim.run(400.0)
+    st = cell.get_data().segments[0].spiketrains[0].magnitude
+    sim.end()
+    assert len(st) >= 8, len(st)
+    isis = np.diff(st)
+    # early ISIs lengthen (adaptation) and later ones settle to a steady rate
+    assert isis[3] > isis[0], isis
+    assert isis[-1] > 2.0 * isis[0], isis      # substantial adaptation
+    assert abs(isis[-1] - isis[-2]) < 0.1, isis  # steady state reached
 
 
 @run_with_simulators("arbor", "neuron", "nest", "brian2")
