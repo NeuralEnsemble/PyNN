@@ -11,14 +11,6 @@ from ..models import BaseCellType
 from ..parameters import ParameterSpace
 
 
-# Units for the parameters of current-source mechanisms (e.g. iclamp).
-ELECTRODE_PARAM_UNITS = {
-    "tstart": U.ms,
-    "duration": U.ms,
-    "current": U.nA,
-}
-
-
 def convert_point(p3d: Point3DWithDiam) -> arbor.mpoint:
     return arbor.mpoint(p3d.x, p3d.y, p3d.z, p3d.diameter/2)
 
@@ -54,13 +46,41 @@ class BaseCellDescriptionBuilder:
         assert isinstance(initial_values, larray)
         self.initial_values[variable] = initial_values
 
-    def add_current_source(self, model_name, location_generator, index, parameters):
+    def add_current_source(self, components, location_generator, index):
+        # ``components`` is a list of (envelope, frequency_Hz, phase_deg) tuples,
+        # where ``envelope`` is a list of (time_ms, amplitude_nA) points. Each
+        # standard current source (DC/Step/AC/Noisy) produces its own components;
+        # see standardmodels.BaseCurrentSource.
         for i in index:
             self.current_sources[i].append({
-                "model_name": model_name,
-                "parameters": parameters,
+                "components": components,
                 "location_generator": location_generator
             })
+
+    def _make_iclamp(self, component):
+        """Build an Arbor iclamp mechanism from one (envelope, frequency_Hz,
+        phase_deg) component. A zero frequency gives a plain (non-sinusoidal)
+        clamp; a non-zero frequency amplitude-modulates a sine of that envelope."""
+        envelope, frequency, phase = component
+        env = [(t * U.ms, a * U.nA) for (t, a) in envelope]
+        kwargs = {}
+        if frequency:
+            kwargs["frequency"] = frequency * U.Hz
+            kwargs["phase"] = phase * U.deg
+        return _compat.get_electrode_mechanism("iclamp")(env, **kwargs)
+
+    def _place_current_sources(self, decor, i, morph):
+        """Place every current source registered for cell ``i`` onto ``decor``.
+        ``morph`` is the (evaluated) morphology for locating the injection site,
+        or ``None`` for point neurons (which inject at the single soma location)."""
+        for source in self.current_sources[i]:
+            location_generator = source["location_generator"]
+            for locset, label in location_generator.generate_locations(morph, label="current_source"):
+                components = source["components"]
+                for k, component in enumerate(components):
+                    place_label = label if len(components) == 1 else f"{label}_{k}"
+                    _compat.place_current_source(
+                        decor, locset, self._make_iclamp(component), place_label)
 
 
 class CellDescriptionBuilder(BaseCellDescriptionBuilder):
@@ -163,17 +183,7 @@ class CellDescriptionBuilder(BaseCellDescriptionBuilder):
                     decor.place(locset, arbor.synapse(pse.model, pse_parameters.as_dict()), label)
 
         # insert current sources
-        for current_source in self.current_sources[i]:
-            location_generator = current_source["location_generator"]
-            mechanism = _compat.get_electrode_mechanism(current_source["model_name"])
-            for locset, label in location_generator.generate_locations(morph, label=f"{current_source['model_name']}_label"):
-                params = current_source["parameters"].evaluate(simplify=True).as_dict()
-                params = {
-                    name: value * ELECTRODE_PARAM_UNITS[name] if name in ELECTRODE_PARAM_UNITS else value
-                    for name, value in params.items()
-                }
-                mech = mechanism(**params)
-                _compat.place_current_source(decor, locset, mech, label)
+        self._place_current_sources(decor, i, morph)
 
         # add spike source
         decor.place('"root"', arbor.threshold_detector(-10 * U.mV), "detector")
@@ -312,15 +322,9 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
             self._place_iclamp(decor, "(root)",
                                tstart=0.0, duration=1e12, current=i_offset,
                                label="i_offset")
-        # injected current sources (e.g. DCSource)
-        for source in self.current_sources[i]:
-            location_generator = source["location_generator"]
-            params = source["parameters"].evaluate(simplify=True).as_dict()
-            for locset, label in location_generator.generate_locations(None, label=source["model_name"]):
-                self._place_iclamp(
-                    decor, locset,
-                    tstart=params["tstart"], duration=params["duration"],
-                    current=params["current"], label=label)
+        # injected current sources (DCSource, StepCurrentSource, ACSource,
+        # NoisyCurrentSource); a point neuron injects at its single soma location.
+        self._place_current_sources(decor, i, morph=None)
 
         return decor, arbor.label_dict(labels)
 

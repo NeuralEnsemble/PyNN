@@ -87,12 +87,6 @@ class TestUnitMaps(unittest.TestCase):
         self.assertEqual(list(units.keys()), ["times"])
         self.assertIs(units["times"], U.ms)
 
-    def test_electrode_param_units(self):
-        units = arbor_cells.ELECTRODE_PARAM_UNITS
-        self.assertIs(units["tstart"], U.ms)
-        self.assertIs(units["duration"], U.ms)
-        self.assertIs(units["current"], U.nA)
-
     def test_if_curr_delta_lif_param_units(self):
         units = arbor_standardmodels.IF_curr_delta.lif_param_units
         self.assertIs(units["E_L"], U.mV)
@@ -241,6 +235,83 @@ class TestPointNeurons(unittest.TestCase):
         mechs = list(cat)
         self.assertIn("lif", mechs)
         self.assertIn("expsyn_curr", mechs)
+
+
+@unittest.skipUnless(have_arbor, "Requires Arbor")
+class TestCurrentSources(unittest.TestCase):
+    """Each standard current source is realised as one or more Arbor iclamp
+    (envelope, frequency_Hz, phase_deg) components; check they are built correctly."""
+
+    @staticmethod
+    def _components(source):
+        source.parameter_space.shape = (1,)
+        return source._iclamp_components()
+
+    def test_dcsource_is_a_box(self):
+        components = self._components(
+            arbor_standardmodels.DCSource(amplitude=0.5, start=10.0, stop=20.0))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, phase = components[0]
+        self.assertEqual(frequency, 0.0)
+        # rectangular pulse: on at start, off at stop
+        self.assertEqual(envelope, [(10.0, 0.5), (20.0, 0.5), (20.0, 0.0)])
+
+    def test_stepcurrentsource_is_a_staircase(self):
+        components = self._components(arbor_standardmodels.StepCurrentSource(
+            times=[10.0, 15.0, 20.0], amplitudes=[0.1, 0.2, 0.3]))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, _ = components[0]
+        self.assertEqual(frequency, 0.0)
+        # piecewise-constant with duplicated breakpoints; holds the last value
+        self.assertEqual(
+            [(round(t, 6), round(a, 6)) for (t, a) in envelope],
+            [(10.0, 0.1), (15.0, 0.1), (15.0, 0.2), (20.0, 0.2), (20.0, 0.3)])
+
+    def test_stepcurrentsource_rejects_bad_times(self):
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.StepCurrentSource(
+                times=[10.0, -5.0], amplitudes=[0.1, 0.2]))
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.StepCurrentSource(
+                times=[10.0, 5.0], amplitudes=[0.1, 0.2]))
+
+    def test_acsource_sine_plus_offset(self):
+        components = self._components(arbor_standardmodels.ACSource(
+            start=10.0, stop=20.0, amplitude=0.5, offset=0.1,
+            frequency=100.0, phase=30.0))
+        self.assertEqual(len(components), 2)
+        (sine_env, freq, phase), (offset_env, offset_freq, _) = components
+        self.assertEqual(freq, 100.0)
+        # phase shifted so PyNN's 30 deg holds at start=10 (f=100 Hz -> 360 deg/10 ms)
+        self.assertAlmostEqual(phase, 30.0 - 360.0 * 100.0 * 10.0 / 1000.0)
+        self.assertEqual(sine_env, [(10.0, 0.5), (20.0, 0.5), (20.0, 0.0)])
+        self.assertEqual(offset_freq, 0.0)
+        self.assertEqual(offset_env, [(10.0, 0.1), (20.0, 0.1), (20.0, 0.0)])
+
+    def test_acsource_omits_zero_offset(self):
+        components = self._components(arbor_standardmodels.ACSource(
+            start=10.0, stop=20.0, amplitude=0.5, offset=0.0,
+            frequency=100.0, phase=0.0))
+        self.assertEqual(len(components), 1)
+
+    def test_noisycurrentsource_samples_and_zeroes_at_stop(self):
+        import pyNN.arbor as sim
+        sim.setup(timestep=0.1, min_delay=0.1)
+        components = self._components(arbor_standardmodels.NoisyCurrentSource(
+            mean=0.5, stdev=0.05, start=10.0, stop=12.0, dt=0.5))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, _ = components[0]
+        self.assertEqual(frequency, 0.0)
+        self.assertAlmostEqual(envelope[0][0], 10.0)   # starts at `start`
+        self.assertAlmostEqual(envelope[-1][0], 12.0)  # ends at `stop`
+        self.assertEqual(envelope[-1][1], 0.0)         # current off at `stop`
+
+    def test_noisycurrentsource_requires_finite_stop(self):
+        import pyNN.arbor as sim
+        sim.setup(timestep=0.1, min_delay=0.1)
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.NoisyCurrentSource(
+                mean=0.5, stdev=0.05, start=10.0))
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")

@@ -78,6 +78,84 @@ def test_issue165(sim):
     assert data[150, 0] > -65.0
 
 
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
+def test_step_current_source(sim):
+    """A subthreshold StepCurrentSource drives IF_curr_exp: v is flat before the
+    first step, depolarises while the step is on, and decays once it returns to 0."""
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+    v_rest = -60.0
+    cell = sim.Population(1, sim.IF_curr_exp(v_rest=v_rest, v_thresh=-50.0,
+                                             tau_refrac=5.0, tau_m=20.0, cm=1.0))
+    cell.initialize(v=v_rest)
+    cell.inject(sim.StepCurrentSource(times=[20.0, 50.0], amplitudes=[0.2, 0.0]))
+    cell.record('v')
+    sim.run(80.0)
+    v = cell.get_data().segments[0].filter(name="v")[0]
+    sim.end()
+    t = v.times.magnitude
+    vm = v.magnitude[:, 0]
+    # no current well before the first step time -> v stays at rest
+    assert np.allclose(vm[t < 19.0], v_rest, atol=1e-6)
+    # while the 0.2 nA step is on, v depolarises clearly above rest
+    assert vm[int(45.0 / dt)] > v_rest + 0.5
+    # after the step returns to zero, v decays back towards rest
+    assert vm[int(75.0 / dt)] < vm[int(50.0 / dt)]
+
+
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
+def test_ac_current_source(sim):
+    """A subthreshold ACSource drives IF_curr_exp: v is flat before start, is
+    perturbed during injection, and decays monotonically after stop."""
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+    v_rest = -60.0
+    cell = sim.Population(1, sim.IF_curr_exp(v_rest=v_rest, v_thresh=-50.0,
+                                             tau_refrac=5.0, tau_m=20.0, cm=1.0))
+    cell.initialize(v=v_rest)
+    cell.inject(sim.ACSource(start=20.0, stop=60.0, amplitude=0.5, offset=0.2,
+                             frequency=50.0, phase=0.0))
+    cell.record('v')
+    sim.run(90.0)
+    v = cell.get_data().segments[0].filter(name="v")[0]
+    sim.end()
+    t = v.times.magnitude
+    vm = v.magnitude[:, 0]
+    # no current well before start -> v stays at rest
+    assert np.allclose(vm[t < 19.0], v_rest, atol=1e-6)
+    # during injection v is perturbed away from rest
+    assert abs(vm[int(40.0 / dt)] - v_rest) > 0.5
+    # after stop, v decays monotonically back towards rest
+    post = vm[int(60.0 / dt):]
+    assert all(a >= b - 1e-9 for a, b in zip(post, post[1:]))
+
+
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
+def test_noisy_current_source(sim):
+    """A NoisyCurrentSource drives IF_curr_exp: v is flat before start, is
+    perturbed during injection, and decays monotonically after stop."""
+    dt = 0.1
+    sim.setup(timestep=dt, min_delay=dt)
+    v_rest = -60.0
+    cell = sim.Population(1, sim.IF_curr_exp(v_rest=v_rest, v_thresh=-50.0,
+                                             tau_refrac=5.0, tau_m=20.0, cm=1.0))
+    cell.initialize(v=v_rest)
+    cell.inject(sim.NoisyCurrentSource(mean=0.5, stdev=0.1, start=20.0, stop=60.0, dt=dt))
+    cell.record('v')
+    sim.run(90.0)
+    v = cell.get_data().segments[0].filter(name="v")[0]
+    sim.end()
+    t = v.times.magnitude
+    vm = v.magnitude[:, 0]
+    # no current well before start -> v stays at rest
+    assert np.allclose(vm[t < 19.0], v_rest, atol=1e-6)
+    # during injection v is perturbed away from rest
+    assert abs(vm[int(50.0 / dt)] - v_rest) > 0.5
+    # after stop, v decays monotonically back towards rest
+    post = vm[int(60.0 / dt):]
+    assert all(a >= b - 1e-9 for a, b in zip(post, post[1:]))
+
+
 @run_with_simulators("nest", "neuron", "brian2")
 def test_issue321(sim):
     """Check that non-zero currents at t=0 are taken into account."""
@@ -695,6 +773,9 @@ if __name__ == '__main__':
     test_changing_electrode(sim)
     test_ticket226(sim)
     test_issue165(sim)
+    test_step_current_source(sim)
+    test_ac_current_source(sim)
+    test_noisy_current_source(sim)
     test_issue321(sim)
     test_issue437(sim)
     test_issue442(sim)
