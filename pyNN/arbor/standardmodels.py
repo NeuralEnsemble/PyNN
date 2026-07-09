@@ -15,7 +15,7 @@ from arbor import units as U
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
 from ..parameters import ParameterSpace, IonicSpecies, Sequence
 from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
-from .cells import CellDescriptionBuilder, PointCellDescriptionBuilder
+from .cells import CellDescriptionBuilder, PointCellDescriptionBuilder, LIFDynamics
 from .simulator import state
 from .morphology import LabelledLocations
 
@@ -480,6 +480,8 @@ class LIF(cells.LIF):
         ('i_offset',   'i_offset'),
     )
     variable_map = {"v": "v"}
+    # the PointNeuronDynamics that realises this neuron component as a cable cell
+    dynamics_class = LIFDynamics
 
 
 class PointNeuron(cells.PointNeuron):
@@ -500,12 +502,12 @@ class PointNeuron(cells.PointNeuron):
         the neuron and receptor components carry their own (translatable) parameter
         spaces, which are assembled into the form the builder expects.
         """
-        neuron_parameters = self.neuron.native_parameters
+        dynamics = self.neuron.dynamics_class(self.neuron.native_parameters)
         post_synaptic_receptors = {
             name: (psr.model, psr.native_parameters)
             for name, psr in self.post_synaptic_receptors.items()
         }
-        builder = PointCellDescriptionBuilder(neuron_parameters, post_synaptic_receptors)
+        builder = PointCellDescriptionBuilder(dynamics, post_synaptic_receptors)
         return ParameterSpace({"cell_description": builder}, schema=None, shape=parameters.shape)
 
     def reverse_translate(self, native_parameters):
@@ -515,21 +517,18 @@ class PointNeuron(cells.PointNeuron):
         return True  # todo: implement this properly
 
 
-# The native (LIF) parameter names carried through to PointCellDescriptionBuilder;
-# the remaining native names produced by the classic IF models below describe their
-# synapses.
-_LIF_NATIVE_NAMES = ("E_L", "E_R", "V_th", "t_ref", "tau_m", "C_m", "i_offset")
-
-
-def _point_cell_description(native, receptor_specs, shape):
+def _point_cell_description(native, receptor_specs, shape, dynamics_class=LIFDynamics):
     """Wrap a flat native parameter space (from a classic IF model's base
     ``translate()``) into a point-neuron ``cell_description`` ParameterSpace.
 
-    ``receptor_specs`` maps each receptor label to
+    ``dynamics_class`` is the :class:`~pyNN.arbor.cells.PointNeuronDynamics` for the
+    neuron; the neuron parameters it needs are taken from ``native`` by name (its
+    ``native_names``). ``receptor_specs`` maps each receptor label to
     ``(arbor_synapse_model, {arbor_synapse_param: native_name})``.
     """
     neuron_parameters = ParameterSpace(
-        {name: native[name] for name in _LIF_NATIVE_NAMES}, shape=shape)
+        {name: native[name] for name in dynamics_class.native_names}, shape=shape)
+    dynamics = dynamics_class(neuron_parameters)
     post_synaptic_receptors = {
         label: (model,
                 ParameterSpace({arbor_param: native[native_name]
@@ -537,7 +536,7 @@ def _point_cell_description(native, receptor_specs, shape):
                                shape=shape))
         for label, (model, param_map) in receptor_specs.items()
     }
-    builder = PointCellDescriptionBuilder(neuron_parameters, post_synaptic_receptors)
+    builder = PointCellDescriptionBuilder(dynamics, post_synaptic_receptors)
     return ParameterSpace({"cell_description": builder}, schema=None, shape=shape)
 
 

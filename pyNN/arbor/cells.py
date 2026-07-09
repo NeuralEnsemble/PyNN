@@ -227,6 +227,90 @@ _POINT_CELL_AREA_CM2 = np.pi * POINT_CELL_DIAMETER_UM * POINT_CELL_LENGTH_UM * 1
 LIF_RESET_CONDUCTANCE = 1000.0  # uS
 
 
+class PointNeuronDynamics:
+    """Neuron-specific decoration of the single-compartment cable cell that
+    :class:`PointCellDescriptionBuilder` uses to realise a PyNN point neuron.
+
+    A dynamics object is built from the neuron component's native
+    :class:`ParameterSpace` and knows how to decorate a ``decor`` with the membrane
+    properties, the leak / channel densities, and the reset-or-dynamics point
+    process, plus the voltage at which the cell's ``threshold_detector`` fires.
+    This lets one builder serve every point-neuron kind (LIF, AdExp, Izhikevich,
+    HH, ...): the kind-specific slots live here, the geometry, receptor placement
+    and current-source handling stay in the builder.
+
+    ``native_names`` lists the keys a subclass reads from a flat native parameter
+    space (used by the flat IF_* models via ``_point_cell_description``).
+    """
+
+    native_names = ()
+
+    def __init__(self, neuron_parameters):
+        self.neuron_parameters = neuron_parameters
+
+    def set_shape(self, value):
+        self.neuron_parameters.shape = value
+
+    def _specific_properties(self, cm_nF, tau_m_ms):
+        """Specific membrane capacitance [uF/cm2] and leak conductance [S/cm2]
+        reproducing the whole-cell C_m [nF] and g_leak = C_m/tau_m [uS]."""
+        c_spec = cm_nF * 1e-3 / _POINT_CELL_AREA_CM2
+        g_spec = (cm_nF / tau_m_ms) * 1e-6 / _POINT_CELL_AREA_CM2
+        return c_spec, g_spec
+
+    def specific_cm(self, i):
+        """Specific membrane capacitance [uF/cm2] for cell ``i``."""
+        raise NotImplementedError
+
+    def set_property(self, decor, i, initial_v):
+        decor.set_property(Vm=initial_v * U.mV, cm=self.specific_cm(i) * U.uF / U.cm2)
+
+    def paint(self, decor, i):
+        """Paint density mechanisms (leak / ion channels). May be a no-op."""
+
+    def place_reset(self, decor, i):
+        """Place the reset / dynamics point process at ``(root)``. May be a no-op."""
+
+    def detector_threshold(self, i):
+        """Membrane voltage [mV] at which the network-spike detector fires."""
+        raise NotImplementedError
+
+    def i_offset(self, i):
+        p = self.neuron_parameters
+        return p["i_offset"][i] if "i_offset" in p.keys() else 0.0
+
+
+class LIFDynamics(PointNeuronDynamics):
+    """Leaky integrate-and-fire dynamics: a ``pas`` leak whose specific cm/g
+    reproduce the whole-cell C_m/tau_m, and the ``lif`` reset point process
+    (nmodl/lif.mod) driven by the threshold_detector via POST_EVENT."""
+
+    native_names = ("E_L", "E_R", "V_th", "t_ref", "tau_m", "C_m", "i_offset")
+
+    def specific_cm(self, i):
+        c_spec, _ = self._specific_properties(
+            self.neuron_parameters["C_m"][i], self.neuron_parameters["tau_m"][i])
+        return c_spec
+
+    def paint(self, decor, i):
+        p = self.neuron_parameters
+        _c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
+        # e is a GLOBAL parameter of pas, set via the mechanism name
+        decor.paint("(all)", arbor.density(f"pas/e={p['E_L'][i]}", {"g": g_spec}))
+
+    def place_reset(self, decor, i):
+        p = self.neuron_parameters
+        decor.place(
+            "(root)",
+            arbor.synapse("lif", {"v_reset": p["E_R"][i], "t_ref": p["t_ref"][i],
+                                  "g_reset": LIF_RESET_CONDUCTANCE}),
+            "lif_reset",
+        )
+
+    def detector_threshold(self, i):
+        return self.neuron_parameters["V_th"][i]
+
+
 class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
     """Builds an Arbor cable cell that behaves as a PyNN point neuron.
 
@@ -248,32 +332,26 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
     ``add_current_source`` interface mirrors :class:`CellDescriptionBuilder`, so a
     point-neuron Population reuses the backend's existing cable-cell machinery.
 
-    ``neuron_parameters`` is a native :class:`ParameterSpace` with the LIF keys
-    (E_L, E_R, V_th, t_ref, tau_m, C_m, i_offset). ``post_synaptic_receptors`` maps
-    each receptor label to an ``(arbor_synapse_model, native_synapse_parameters)``
-    pair. This is the form produced both by the composable
+    ``dynamics`` is a :class:`PointNeuronDynamics` supplying the neuron-specific
+    decoration (membrane properties, leak/channels, reset process, detector
+    threshold). ``post_synaptic_receptors`` maps each receptor label to an
+    ``(arbor_synapse_model, native_synapse_parameters)`` pair. This is the form
+    produced both by the composable
     :class:`~pyNN.arbor.standardmodels.PointNeuron` (from its components) and by the
-    flat IF_cond_exp/IF_curr_exp standard models (from their translations).
+    flat IF_* standard models (from their translations).
     """
 
-    def __init__(self, neuron_parameters, post_synaptic_receptors):
+    def __init__(self, dynamics, post_synaptic_receptors):
         super().__init__()
-        self.neuron_parameters = neuron_parameters
+        self.dynamics = dynamics
         self.post_synaptic_receptors = post_synaptic_receptors
         self.shape = None
 
     def set_shape(self, value):
         self.shape = value
-        self.neuron_parameters.shape = value
+        self.dynamics.set_shape(value)
         for (_model, synapse_parameters) in self.post_synaptic_receptors.values():
             synapse_parameters.shape = value
-
-    def _specific_properties(self, cm_nF, tau_m_ms):
-        """Specific membrane capacitance [uF/cm2] and leak conductance [S/cm2]
-        reproducing the whole-cell C_m [nF] and g_leak = C_m/tau_m [uS]."""
-        c_spec = cm_nF * 1e-3 / _POINT_CELL_AREA_CM2
-        g_spec = (cm_nF / tau_m_ms) * 1e-6 / _POINT_CELL_AREA_CM2
-        return c_spec, g_spec
 
     def _build_tree(self, i):
         d = POINT_CELL_DIAMETER_UM
@@ -283,29 +361,18 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
         return tree
 
     def _build_decor(self, i):
-        p = self.neuron_parameters
-
-        E_L = p["E_L"][i]
-        c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
         labels = {
             "all": "(all)", "soma": "(tag 1)", "root": "(root)",
         }
         decor = arbor.decor()
-        decor.set_property(
-            Vm=self.initial_values["v"][i] * U.mV,
-            cm=c_spec * U.uF / U.cm2,
-        )
-        # sub-threshold leak (e is a GLOBAL parameter of pas, set via the mechanism name)
-        decor.paint("(all)", arbor.density(f"pas/e={E_L}", {"g": g_spec}))
-        # integrate-and-fire reset + refractory clamp
-        decor.place(
-            "(root)",
-            arbor.synapse("lif", {"v_reset": p["E_R"][i], "t_ref": p["t_ref"][i],
-                                  "g_reset": LIF_RESET_CONDUCTANCE}),
-            "lif_reset",
-        )
+        # neuron-specific decoration (membrane properties, leak/channels, reset)
+        self.dynamics.set_property(decor, i, self.initial_values["v"][i])
+        self.dynamics.paint(decor, i)
+        self.dynamics.place_reset(decor, i)
         # network spike source
-        decor.place("(root)", arbor.threshold_detector(p["V_th"][i] * U.mV), "detector")
+        decor.place("(root)",
+                    arbor.threshold_detector(self.dynamics.detector_threshold(i) * U.mV),
+                    "detector")
 
         # one synapse per receptor, labelled by receptor name so that
         # Projection.arbor_connections can match it by receptor_type prefix
@@ -317,7 +384,7 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
             labels[label] = "(root)"
 
         # constant offset current
-        i_offset = p["i_offset"][i] if "i_offset" in p.keys() else 0.0
+        i_offset = self.dynamics.i_offset(i)
         if i_offset != 0.0:
             self._place_iclamp(decor, "(root)",
                                tstart=0.0, duration=1e12, current=i_offset,

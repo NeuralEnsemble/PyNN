@@ -228,7 +228,7 @@ class TestPointNeurons(unittest.TestCase):
         exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
         self.assertEqual(exc_model, "expsyn_curr")
         self.assertAlmostEqual(exc_params["tau"][0], 1.5)
-        self.assertAlmostEqual(builder.neuron_parameters["C_m"][0], 0.5)
+        self.assertAlmostEqual(builder.dynamics.neuron_parameters["C_m"][0], 0.5)
 
     def test_reset_and_current_synapse_mechanisms_in_catalogue(self):
         cat = arbor.load_catalogue(arbor_simulator.catalogue_path())
