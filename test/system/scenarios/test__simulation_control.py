@@ -4,7 +4,7 @@ from .fixtures import run_with_simulators
 import pytest
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_reset(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -28,7 +28,7 @@ def test_reset(sim):
                                   data.segments[0].analogsignals[0], 10)
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_reset_with_clear(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -54,7 +54,7 @@ def test_reset_with_clear(sim):
                         data[0].segments[0].analogsignals[0].magnitude, 1e-11)
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_reset_with_spikes(sim):
     """
     Run the same simulation n times without recreating the network,
@@ -84,7 +84,7 @@ def test_reset_with_spikes(sim):
                                   data.segments[0].analogsignals[0], 10)
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_setup(sim):
     """
     Run the same simulation n times, recreating the network each time,
@@ -111,7 +111,7 @@ def test_setup(sim):
         assert_array_equal(signals[0], data[0].segments[0].analogsignals[0])
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_run_until(sim):
 
     sim.setup(timestep=0.1)
