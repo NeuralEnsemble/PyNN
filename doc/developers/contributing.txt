@@ -162,8 +162,7 @@ Making a release
 ================
 
 To make a release of PyNN requires you to have permissions to upload PyNN
-packages to the `Python Package Index`_, and to
-upload documentation to the neuralensemble.org server. If you are interested
+packages to the `Python Package Index`_. If you are interested
 in becoming release manager for PyNN, please contact us via the `mailing list`_.
 
 When you think a release is ready, run through the following checklist one
@@ -180,8 +179,8 @@ last time:
       you should do this on at least two Linux systems and one Mac OS X system.
 * does the documentation build without errors? You should then at least skim
       the generated HTML pages to check for obvious problems.
-* have you updated the version numbers in :file:`pyproject.toml`, :file:`pyNN/__init__.py`,
-      :file:`doc/conf.py` and :file:`doc/installation.txt`?
+* have you updated the version numbers in :file:`pyproject.toml`,
+      :file:`pyNN/__init__.py` and :file:`doc/installation.txt`?
 * have you updated the changelog?
 
 Once you've confirmed all the above, create source and wheel packages using::
@@ -195,9 +194,9 @@ Now you should commit any changes, then tag with the release number as follows::
 
     $ git tag x.y.z
 
-where ``x.y.z`` is the release number. You should now upload the documentation
-to http://neuralensemble.org/docs/PyNN/ by updating the `neuralensemble.github.io`
-repository (in the :file:`docs/PyNN` directory).
+where ``x.y.z`` is the release number. The documentation at
+http://neuralensemble.org/docs/PyNN/ is rebuilt automatically by Read the Docs, so
+there is nothing to upload.
 
 If this is a final release, there are a few more steps:
 
@@ -235,4 +234,3 @@ If this is a final release, there are a few more steps:
 .. _fork: https://github.com/NeuralEnsemble/PyNN/fork
 .. _`PyNN repository`: https://github.com/NeuralEnsemble/PyNN/
 .. _contents: http://software.incf.org/software/pynn/pynn/folder_contents
-.. _`neuralensemble.github.io`: https://github.com/NeuralEnsemble/neuralensemble.github.io
