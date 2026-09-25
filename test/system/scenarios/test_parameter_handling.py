@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 from .fixtures import run_with_simulators
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_issue241(sim):
     # "Nest SpikeSourcePoisson populations require all parameters to be passed to constructor"
     sim.setup()

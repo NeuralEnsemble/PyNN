@@ -134,7 +134,7 @@ def test_sampling_interval(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_mix_procedural_and_oo(sim):
     # cf Issues #217, #234
     fn_proc = "test_write_procedural.pkl"

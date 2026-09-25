@@ -13,9 +13,11 @@ import arbor
 from arbor import units as U
 
 from ..standardmodels import cells, ion_channels, synapses, electrodes, receptors, build_translations
-from ..parameters import ParameterSpace, IonicSpecies
+from ..parameters import ParameterSpace, IonicSpecies, Sequence
 from ..morphology import Morphology, NeuriteDistribution, LocationGenerator
-from .cells import CellDescriptionBuilder
+from .cells import (CellDescriptionBuilder, PointCellDescriptionBuilder,
+                    LIFDynamics, AdExpDynamics, GsfaGrrDynamics, IzhikevichDynamics,
+                    HHDynamics)
 from .simulator import state
 from .morphology import LabelledLocations
 
@@ -48,8 +50,136 @@ class SpikeSourceArray(cells.SpikeSourceArray):
     arbor_schedule_units = {"times": U.ms}
 
 
+class IF_curr_delta(cells.IF_curr_delta):
+    __doc__ = cells.IF_curr_delta.__doc__
+
+    # Maps onto Arbor's native leaky integrate-and-fire cell (arbor.lif_cell,
+    # cell_kind.lif). Its synapses are delta, but an incoming event adds
+    # weight/C_m to V_m (the event weight is a charge, not a voltage), so
+    # IF_curr_delta's mV voltage-step weight is recovered by scaling the
+    # connection weight by C_m (see Projection._lif_post_cm_pF).
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        # A native lif_cell has no way to inject a constant current, so i_offset
+        # is carried through untranslated and rejected at cell-build time if
+        # non-zero (see Population.arbor_cell_description).
+        ('i_offset',   'i_offset'),
+    )
+    arbor_cell_kind = arbor.cell_kind.lif
+    # Units for the native lif_cell attributes (Arbor requires unit-typed values,
+    # and handles the conversion to its internal units itself).
+    lif_param_units = {
+        'E_L': U.mV, 'E_R': U.mV, 'V_th': U.mV,
+        't_ref': U.ms, 'tau_m': U.ms, 'C_m': U.nF,
+    }
+
+
+# --- current sources ---------------------------------------------------------
+#
+# Every standard current source is realised as one or more Arbor iclamp
+# "components", each a (envelope, frequency_Hz, phase_deg) tuple where ``envelope``
+# is a list of (time_ms, amplitude_nA) points (see cells.BaseCellDescriptionBuilder).
+# Arbor iclamp envelope semantics: the current is 0 before the first point, held at
+# the last amplitude after the last point, linearly interpolated between points, and
+# steps discontinuously where two points share a time. With a non-zero frequency the
+# envelope amplitude-modulates a sine, sin(2*pi*f*t + phase), referenced to t=0.
+
+_CURRENT_STOP_SENTINEL = 1e11  # PyNN's "run to the end" stop default is 1e12
+
+
+def _as_array(value):
+    """Coerce a (possibly Sequence-wrapped) parameter to a float ndarray."""
+    return np.asarray(value.value if isinstance(value, Sequence) else value, dtype=float)
+
+
+def _box_envelope(start, stop, amplitude):
+    """A rectangular pulse of ``amplitude`` over [start, stop], zero outside."""
+    return [(start, amplitude), (stop, amplitude), (stop, 0.0)]
+
+
+def _staircase_envelope(times, amplitudes):
+    """A piecewise-constant staircase: ``amplitudes[k]`` is held from ``times[k]``
+    until ``times[k+1]`` (and the last value until the end of the run). The current
+    is zero before ``times[0]``. Duplicated timestamps make the steps discontinuous."""
+    envelope = []
+    for k in range(len(times)):
+        if k > 0:
+            envelope.append((times[k], amplitudes[k - 1]))
+        envelope.append((times[k], amplitudes[k]))
+    return envelope
+
+
+def _check_step_times(times):
+    """Validate StepCurrentSource times (mirrors the checks in the NEURON backend)."""
+    if not (times >= 0.0).all():
+        raise ValueError("Step current cannot accept negative timestamps.")
+    if not (np.diff(times) > 0.0).all():
+        raise ValueError("Step current timestamps should be monotonically increasing.")
+
+
 class BaseCurrentSource(object):
-    pass
+    """Base class for the Arbor current sources.
+
+    Subclasses implement :meth:`_iclamp_components`, returning the list of
+    (envelope, frequency_Hz, phase_deg) components for the injected current; this
+    base handles resolving the injection target and registering the components on
+    the target cells' description builder.
+    """
+
+    def inject_into(self, cells, location=None):  # rename to `locations` ?
+        if hasattr(cells, "parent"):
+            target_pop = cells.parent
+            cell_descr = target_pop._arbor_cell_description.base_value
+            index = target_pop.id_to_index(cells.all_cells.astype(int))
+        elif hasattr(cells, "_arbor_cell_description"):
+            target_pop = cells
+            cell_descr = cells._arbor_cell_description.base_value
+            index = cells.id_to_index(cells.all_cells.astype(int))
+        else:
+            assert isinstance(cells, (list, tuple))
+            # we're assuming all cells have the same parent here
+            target_pop = cells[0].parent
+            cell_descr = target_pop._arbor_cell_description.base_value
+            index = np.array(cells, dtype=int)
+
+        # Native lif cells (IF_curr_delta) have no decor and cannot take an
+        # i_clamp, so current injection is impossible for them.
+        if target_pop.celltype.arbor_cell_kind == arbor.cell_kind.lif:
+            raise NotImplementedError(
+                "Current injection into Arbor's native lif_cell (IF_curr_delta) "
+                "is not supported; use the cable-cell IF models instead.")
+
+        self.parameter_space.shape = (1,)
+        if location is None:
+            # Point neurons (and, by default, any cell) inject at the soma.
+            location = LabelledLocations("soma")
+        elif isinstance(location, str):
+            location = LabelledLocations(location)
+        elif isinstance(location, LocationGenerator):
+            pass
+        else:
+            raise TypeError("location must be a string or a LocationGenerator")
+
+        cell_descr.add_current_source(
+            components=self._iclamp_components(),
+            location_generator=location,
+            index=index,
+        )
+
+    def _native_parameters(self):
+        """The source's native parameters as a plain {name: scalar} dict."""
+        native = self.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        return native.as_dict()
+
+    def _iclamp_components(self):
+        raise NotImplementedError("Should be redefined in the individual current sources")
 
 
 class DCSource(BaseCurrentSource, electrodes.DCSource):
@@ -61,38 +191,10 @@ class DCSource(BaseCurrentSource, electrodes.DCSource):
         ('stop',       'duration', "stop - start", "tstart + duration")
     )
 
-    def inject_into(self, cells, location=None):  # rename to `locations` ?
-        if hasattr(cells, "parent"):
-            cell_descr = cells.parent._arbor_cell_description.base_value
-            index = cells.parent.id_to_index(cells.all_cells.astype(int))
-        elif hasattr(cells, "_arbor_cell_description"):
-            cell_descr = cells._arbor_cell_description.base_value
-            index = cells.id_to_index(cells.all_cells.astype(int))
-        else:
-            assert isinstance(cells, (list, tuple))
-            # we're assuming all cells have the same parent here
-            cell_descr = cells[0].parent._arbor_cell_description.base_value
-            index = np.array(cells, dtype=int)
-
-        self.parameter_space.shape = (1,)
-        if location is None:
-            raise NotImplementedError
-        elif isinstance(location, str):
-            location = LabelledLocations(location)
-        elif isinstance(location, LocationGenerator):
-            # morphology = cells._arbor_cell_description.base_value.parameters["morphology"].base_value  # todo: evaluate lazyarray
-            # locations = location.generate_locations(morphology, label="dc_current_source")
-            # assert len(locations) == 1
-            # locset = locations[0]
-            pass
-        else:
-            raise TypeError("location must be a string or a LocationGenerator")
-        cell_descr.add_current_source(
-            model_name="iclamp",
-            location_generator=location,
-            index=index,
-            parameters=self.native_parameters
-        )
+    def _iclamp_components(self):
+        p = self._native_parameters()
+        start = p["tstart"]
+        return [(_box_envelope(start, start + p["duration"], p["current"]), 0.0, 0.0)]
 
 
 class StepCurrentSource(BaseCurrentSource, electrodes.StepCurrentSource):
@@ -102,6 +204,13 @@ class StepCurrentSource(BaseCurrentSource, electrodes.StepCurrentSource):
         ('amplitudes',  'amplitudes'),
         ('times',       'times')
     )
+
+    def _iclamp_components(self):
+        p = self._native_parameters()
+        times = _as_array(p["times"])
+        amplitudes = _as_array(p["amplitudes"])
+        _check_step_times(times)
+        return [(_staircase_envelope(times, amplitudes), 0.0, 0.0)]
 
 
 class ACSource(BaseCurrentSource, electrodes.ACSource):
@@ -116,8 +225,21 @@ class ACSource(BaseCurrentSource, electrodes.ACSource):
         ('phase',      'phase')
     )
 
+    def _iclamp_components(self):
+        p = self._native_parameters()
+        start, stop = p["start"], p["stop"]
+        # Arbor references the sine to t=0, so shift the phase to make PyNN's
+        # ``phase`` hold at ``start`` instead.
+        phase = p["phase"] - 360.0 * p["frequency"] * start / 1000.0
+        components = [(_box_envelope(start, stop, p["amplitude"]), p["frequency"], phase)]
+        if p["offset"] != 0.0:
+            # Arbor sums co-located clamps, so the DC offset is a separate clamp.
+            components.append((_box_envelope(start, stop, p["offset"]), 0.0, 0.0))
+        return components
+
 
 class NoisyCurrentSource(BaseCurrentSource, electrodes.NoisyCurrentSource):
+    __doc__ = electrodes.NoisyCurrentSource.__doc__
 
     translations = build_translations(
         ('mean',  'mean'),
@@ -126,6 +248,20 @@ class NoisyCurrentSource(BaseCurrentSource, electrodes.NoisyCurrentSource):
         ('stdev', 'stdev'),
         ('dt',    'dt')
     )
+
+    def _iclamp_components(self):
+        p = self._native_parameters()
+        start, stop = p["start"], p["stop"]
+        if stop >= _CURRENT_STOP_SENTINEL:
+            raise ValueError(
+                "NoisyCurrentSource on the Arbor backend must be given a finite `stop` "
+                "(the noise is precomputed as a per-sample current envelope).")
+        dt = max(p["dt"], state.dt)
+        n = int(round((stop - start) / dt))
+        times = np.append(start + dt * np.arange(n), stop)
+        amplitudes = p["mean"] + p["stdev"] * np.random.randn(len(times))
+        amplitudes[-1] = 0.0  # switch the current off at `stop`
+        return [(_staircase_envelope(times, amplitudes), 0.0, 0.0)]
 
 
 class StaticSynapse(synapses.StaticSynapse):
@@ -320,3 +456,346 @@ class CondExpPostSynapticResponse(receptors.CondExpPostSynapticResponse):
     model = "expsyn"
     recordable = ["gsyn"]
     variable_map = {"gsyn": "g"}
+
+
+class CurrExpPostSynapticResponse(receptors.CurrExpPostSynapticResponse):
+
+    translations = build_translations(
+        ('locations', 'locations'),
+        ('tau_syn', 'tau')
+    )
+    model = "expsyn_curr"
+    recordable = ["isyn"]
+    variable_map = {"isyn": "isyn"}
+
+
+class CondAlphaPostSynapticResponse(receptors.CondAlphaPostSynapticResponse):
+
+    translations = build_translations(
+        ('locations', 'locations'),
+        ('e_syn', 'e'),
+        ('tau_syn', 'tau')
+    )
+    model = "alphasyn"
+    recordable = ["gsyn"]
+    variable_map = {"gsyn": "g"}
+
+
+class LIF(cells.LIF):
+    __doc__ = cells.LIF.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+    )
+    variable_map = {"v": "v"}
+    # the PointNeuronDynamics that realises this neuron component as a cable cell
+    dynamics_class = LIFDynamics
+
+
+# translations shared by the AdExp neuron component and the flat EIF_* cell types
+_ADEXP_TRANSLATIONS = build_translations(
+    ('v_rest',     'E_L'),
+    ('v_reset',    'E_R'),
+    ('v_spike',    'V_spike'),
+    ('v_thresh',   'V_th'),      # the (soft) exponential threshold V_T
+    ('delta_T',    'delta'),
+    ('tau_refrac', 't_ref'),
+    ('tau_m',      'tau_m'),
+    ('cm',         'C_m'),
+    ('a',          'a', "a*0.001", "a*1000"),   # subthreshold adaptation, nS -> uS
+    ('b',          'b'),
+    ('tau_w',      'tau_w'),
+    ('i_offset',   'i_offset'),
+)
+
+
+class AdExp(cells.AdExp):
+    __doc__ = cells.AdExp.__doc__
+
+    translations = _ADEXP_TRANSLATIONS
+    variable_map = {"v": "v", "w": "w"}
+    dynamics_class = AdExpDynamics
+
+
+class PointNeuron(cells.PointNeuron):
+    """Composable point neuron, realised as a single-compartment Arbor cable cell.
+
+    Combines a leaky integrate-and-fire ``neuron`` (an :class:`LIF` instance) with
+    one or more post-synaptic receptors (:class:`CondExpPostSynapticResponse` or
+    :class:`CurrExpPostSynapticResponse`). See :class:`PointCellDescriptionBuilder`
+    for how the cable cell is assembled.
+    """
+
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        """Build the Arbor cable-cell description for this point neuron.
+
+        ``parameters`` (the composable parameter space) is not consumed directly:
+        the neuron and receptor components carry their own (translatable) parameter
+        spaces, which are assembled into the form the builder expects.
+        """
+        dynamics = self.neuron.dynamics_class(self.neuron.native_parameters)
+        post_synaptic_receptors = {
+            name: (psr.model, psr.native_parameters)
+            for name, psr in self.post_synaptic_receptors.items()
+        }
+        builder = PointCellDescriptionBuilder(dynamics, post_synaptic_receptors)
+        return ParameterSpace({"cell_description": builder}, schema=None, shape=parameters.shape)
+
+    def reverse_translate(self, native_parameters):
+        raise NotImplementedError
+
+    def can_record(self, variable, location=None):
+        return True  # todo: implement this properly
+
+
+def _point_cell_description(native, receptor_specs, shape, dynamics_class=LIFDynamics):
+    """Wrap a flat native parameter space (from a classic IF model's base
+    ``translate()``) into a point-neuron ``cell_description`` ParameterSpace.
+
+    ``dynamics_class`` is the :class:`~pyNN.arbor.cells.PointNeuronDynamics` for the
+    neuron; the neuron parameters it needs are taken from ``native`` by name (its
+    ``native_names``). ``receptor_specs`` maps each receptor label to
+    ``(arbor_synapse_model, {arbor_synapse_param: native_name})``.
+    """
+    neuron_parameters = ParameterSpace(
+        {name: native[name] for name in dynamics_class.native_names}, shape=shape)
+    dynamics = dynamics_class(neuron_parameters)
+    post_synaptic_receptors = {
+        label: (model,
+                ParameterSpace({arbor_param: native[native_name]
+                                for arbor_param, native_name in param_map.items()},
+                               shape=shape))
+        for label, (model, param_map) in receptor_specs.items()
+    }
+    builder = PointCellDescriptionBuilder(dynamics, post_synaptic_receptors)
+    return ParameterSpace({"cell_description": builder}, schema=None, shape=shape)
+
+
+class IF_curr_exp(cells.IF_curr_exp):
+    __doc__ = cells.IF_curr_exp.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn_curr", {"tau": "tau_syn_E"}),
+            "inhibitory": ("expsyn_curr", {"tau": "tau_syn_I"}),
+        }, parameters.shape)
+
+
+class IF_cond_exp(cells.IF_cond_exp):
+    __doc__ = cells.IF_cond_exp.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape)
+
+
+class IF_curr_alpha(cells.IF_curr_alpha):
+    __doc__ = cells.IF_curr_alpha.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn_curr", {"tau": "tau_syn_E"}),
+            "inhibitory": ("alphasyn_curr", {"tau": "tau_syn_I"}),
+        }, parameters.shape)
+
+
+class IF_cond_alpha(cells.IF_cond_alpha):
+    __doc__ = cells.IF_cond_alpha.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("alphasyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape)
+
+
+# conductance-synapse translations shared by the EIF_cond_* cell types
+_EIF_SYNAPSE_TRANSLATIONS = build_translations(
+    ('tau_syn_E',  'tau_syn_E'),
+    ('tau_syn_I',  'tau_syn_I'),
+    ('e_rev_E',    'e_rev_E'),
+    ('e_rev_I',    'e_rev_I'),
+)
+
+
+class EIF_cond_exp_isfa_ista(cells.EIF_cond_exp_isfa_ista):
+    __doc__ = cells.EIF_cond_exp_isfa_ista.__doc__
+
+    translations = {**_ADEXP_TRANSLATIONS, **_EIF_SYNAPSE_TRANSLATIONS}
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=AdExpDynamics)
+
+
+class EIF_cond_alpha_isfa_ista(cells.EIF_cond_alpha_isfa_ista):
+    __doc__ = cells.EIF_cond_alpha_isfa_ista.__doc__
+
+    translations = {**_ADEXP_TRANSLATIONS, **_EIF_SYNAPSE_TRANSLATIONS}
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("alphasyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("alphasyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=AdExpDynamics)
+
+
+class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
+    __doc__ = cells.IF_cond_exp_gsfa_grr.__doc__
+
+    translations = build_translations(
+        ('v_rest',     'E_L'),
+        ('v_reset',    'E_R'),
+        ('v_thresh',   'V_th'),
+        ('tau_refrac', 't_ref'),
+        ('tau_m',      'tau_m'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+        ('tau_sfa',    'tau_s'),
+        ('e_rev_sfa',  'E_s'),
+        ('q_sfa',      'q_s'),
+        ('tau_rr',     'tau_r'),
+        ('e_rev_rr',   'E_r'),
+        ('q_rr',       'q_r'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=GsfaGrrDynamics)
+
+
+class Izhikevich(cells.Izhikevich):
+    __doc__ = cells.Izhikevich.__doc__
+
+    translations = build_translations(
+        ('a',        'a'),
+        ('b',        'b'),
+        ('c',        'c'),
+        ('d',        'd'),
+        ('i_offset', 'i_offset'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+    # Izhikevich uses voltage-step (delta) synapses, which an Arbor cable cell
+    # cannot express (a mechanism cannot write v); synaptic input is not yet
+    # supported, so no receptors are placed. Current injection (i_offset, DCSource)
+    # drives the cell.
+    receptor_types = ()
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(
+            native, {}, parameters.shape, dynamics_class=IzhikevichDynamics)
+
+
+class HH_cond_exp(cells.HH_cond_exp):
+    __doc__ = cells.HH_cond_exp.__doc__
+
+    translations = build_translations(
+        ('gbar_Na',    'gnabar'),
+        ('gbar_K',     'gkbar'),
+        ('g_leak',     'gl'),
+        ('e_rev_Na',   'ena'),
+        ('e_rev_K',    'ek'),
+        ('e_rev_leak', 'el'),
+        ('v_offset',   'vT'),
+        ('cm',         'C_m'),
+        ('i_offset',   'i_offset'),
+        ('tau_syn_E',  'tau_syn_E'),
+        ('tau_syn_I',  'tau_syn_I'),
+        ('e_rev_E',    'e_rev_E'),
+        ('e_rev_I',    'e_rev_I'),
+    )
+    arbor_cell_kind = arbor.cell_kind.cable
+    # the standard model also lists a gap-junction receptor, not supported here
+    receptor_types = ('excitatory', 'inhibitory')
+
+    def translate(self, parameters, copy=True):
+        native = super().translate(parameters, copy)
+        return _point_cell_description(native, {
+            "excitatory": ("expsyn", {"tau": "tau_syn_E", "e": "e_rev_E"}),
+            "inhibitory": ("expsyn", {"tau": "tau_syn_I", "e": "e_rev_I"}),
+        }, parameters.shape, dynamics_class=HHDynamics)
