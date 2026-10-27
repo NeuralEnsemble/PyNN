@@ -1,0 +1,36 @@
+name: Sync "latest" branch
+
+# The Read the Docs project builds its "latest" version from a branch of that name,
+# rather than from "master". This works around a stale version record on the Read the
+# Docs side, which makes the build try to fetch "refs/heads/latest" regardless of the
+# configured default branch (compare readthedocs/readthedocs.org#10787).
+#
+# This workflow keeps "latest" identical to "master". It can be deleted once Read the
+# Docs have fixed the "latest" version to track "master" again, after which the
+# "latest" branch itself should also be deleted.
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+# If several pushes land in quick succession, only the most recent one matters.
+concurrency:
+  group: sync-latest
+  cancel-in-progress: true
+
+jobs:
+  sync_latest:
+    name: Point "latest" at the tip of "master"
+    runs-on: ubuntu-latest
+    if: github.repository == 'NeuralEnsemble/PyNN'
+    permissions:
+      contents: write
+    steps:
+      # Updating the ref through the API avoids checking out the repository.
+      - name: Update refs/heads/latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X PATCH "repos/${{ github.repository }}/git/refs/heads/latest" \
+            -f sha="${{ github.sha }}" -F force=true
