@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+message: If you use this software, please cite the accompanying publication (preferred-citation below).
+type: software
+title: 'PyNN: A Common Interface for Neuronal Network Simulators'
+authors:
+- family-names: Davison
+  given-names: Andrew P
+- family-names: Bruderle
+  given-names: Daniel
+- family-names: Eppler
+  given-names: Jochen
+- family-names: Kremkow
+  given-names: Jens
+- family-names: Muller
+  given-names: Eilif
+- family-names: Pecevski
+  given-names: Dejan
+- family-names: Perrinet
+  given-names: Laurent U
+  orcid: https://orcid.org/0000-0002-9536-010X
+- family-names: Yger
+  given-names: Pierre
+repository-code: https://github.com/NeuralEnsemble/PyNN
+url: https://laurentperrinet.github.io/publication/davison-08/
+keywords:
+- neural-simulation
+- neuromorphic-computing
+- pynn
+- spiking-neural-networks
+preferred-citation:
+  type: article
+  title: 'PyNN: A Common Interface for Neuronal Network Simulators'
+  authors:
+  - family-names: Davison
+    given-names: Andrew P
+  - family-names: Bruderle
+    given-names: Daniel
+  - family-names: Eppler
+    given-names: Jochen
+  - family-names: Kremkow
+    given-names: Jens
+  - family-names: Muller
+    given-names: Eilif
+  - family-names: Pecevski
+    given-names: Dejan
+  - family-names: Perrinet
+    given-names: Laurent U
+    orcid: https://orcid.org/0000-0002-9536-010X
+  - family-names: Yger
+    given-names: Pierre
+  journal: Frontiers in Neuroinformatics
+  volume: 2
+  start: '11'
+  doi: 10.3389/neuro.11.011.2008
+  year: 2008
+  url: https://laurentperrinet.github.io/publication/davison-08/
