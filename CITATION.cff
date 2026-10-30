@@ -21,7 +21,6 @@ authors:
 - family-names: Yger
   given-names: Pierre
 repository-code: https://github.com/NeuralEnsemble/PyNN
-url: https://laurentperrinet.github.io/publication/davison-08/
 keywords:
 - neural-simulation
 - neuromorphic-computing
