@@ -49,6 +49,16 @@ class TestOneToOneConnector(unittest.TestCase):
                           (3, 3, 5.0, 0.5),
                           (4, 4, 5.0, 0.5)])
 
+    def test_connect_single_neuron(self, sim=sim):
+        source = sim.Population(1, sim.IF_curr_exp())
+        target = sim.Population(1, sim.IF_curr_exp())
+        synapse = sim.StaticSynapse(weight=0.5, delay=0.5)
+
+        projection = sim.Projection(source, target, connectors.OneToOneConnector(), synapse)
+
+        self.assertEqual(projection.get(["weight", "delay"], format="list"),
+                         [(0, 0, 0.5, 0.5)])
+
     def test_connect_with_random_weights(self, sim=sim):
         rd = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(delta=1.0))
         syn = sim.StaticSynapse(weight=rd, delay=0.5)

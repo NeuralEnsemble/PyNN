@@ -15,6 +15,17 @@ import pytest
 
 
 @run_with_simulators("nest", "neuron", "brian2")
+def test_one_to_one_single_neuron(sim):
+    sim.setup()
+    source = sim.Population(1, sim.IF_curr_exp())
+    target = sim.Population(1, sim.IF_curr_exp())
+    synapse = sim.StaticSynapse(weight=0.5, delay=0.5)
+    projection = sim.Projection(source, target, sim.OneToOneConnector(), synapse)
+    assert projection.size() == 1
+    sim.end()
+
+
+@run_with_simulators("nest", "neuron", "brian2")
 def test_all_to_all_static_no_self(sim):
     sim.setup()
     p = sim.Population(5, sim.IF_cond_exp())
