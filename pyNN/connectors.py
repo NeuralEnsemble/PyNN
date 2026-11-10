@@ -192,6 +192,15 @@ class MapConnector(Connector):
             #                should be connected to, or a single boolean, meaning connect to
             #                all/none of the pre-synaptic neurons.
             #                It can also be an array of addresses.
+            # A scalar boolean means all/none, regardless of its NumPy representation.
+            if isinstance(source_mask, np.bool_) or (
+                isinstance(source_mask, np.ndarray)
+                and source_mask.ndim == 0
+                and source_mask.dtype == bool
+            ):
+                source_mask = bool(source_mask)
+            if source_mask is False:
+                continue
             _proceed = False
             if source_mask is True or source_mask.any():
                 _proceed = True

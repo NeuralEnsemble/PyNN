@@ -1,6 +1,7 @@
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
+from pyNN import connectors
 from pyNN.random import NumpyRNG, RandomDistribution
 from pyNN.utility.plotting import connection_plot
 from pyNN.utility.script_tools import init_logging
@@ -12,6 +13,38 @@ import pytest
 
 
 # TODO: add some tests with projections between Assemblies and PopulationViews
+
+
+class ScalarMaskConnector(connectors.MapConnector):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+
+    def connect(self, projection):
+        def source_masks(mask=None):
+            count = projection.post.size if mask is None else np.count_nonzero(mask)
+            for _ in range(count):
+                yield self.value
+
+        self._standard_connect(projection, source_masks)
+
+
+@run_with_simulators("nest", "neuron", "brian2")
+def test_scalar_boolean_mask_selects_all_or_none(sim):
+    sim.setup()
+    try:
+        source = sim.Population(3, sim.IF_curr_exp())
+        target = sim.Population(1, sim.IF_curr_exp())
+        synapse = sim.StaticSynapse(weight=0.5, delay=0.5)
+        for value, size in [(True, 3), (False, 0),
+                            (np.bool_(True), 3), (np.bool_(False), 0),
+                            (np.array(True), 3), (np.array(False), 0),
+                            (np.array([True, False, True]), 2),
+                            (np.array([0], dtype=int), 1)]:
+            projection = sim.Projection(source, target, ScalarMaskConnector(value), synapse)
+            assert projection.size() == size
+    finally:
+        sim.end()
 
 
 @run_with_simulators("nest", "neuron", "brian2")

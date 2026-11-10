@@ -20,6 +20,20 @@ import pyNN.mock as sim
 orig_mpi_get_config = random.get_mpi_config
 
 
+class ScalarMaskConnector(connectors.MapConnector):
+    def __init__(self, value):
+        super().__init__()
+        self.value = value
+
+    def connect(self, projection):
+        def source_masks(mask=None):
+            count = projection.post.size if mask is None else np.count_nonzero(mask)
+            for _ in range(count):
+                yield self.value
+
+        self._standard_connect(projection, source_masks)
+
+
 def setUp():
     random.get_mpi_config = lambda: (0, 2)
 
@@ -58,6 +72,32 @@ class TestOneToOneConnector(unittest.TestCase):
 
         self.assertEqual(projection.get(["weight", "delay"], format="list"),
                          [(0, 0, 0.5, 0.5)])
+
+    def test_scalar_boolean_mask_selects_all_or_none(self, sim=sim):
+        source = sim.Population(3, sim.IF_curr_exp())
+        target = sim.Population(1, sim.IF_curr_exp())
+        synapse = sim.StaticSynapse(weight=0.5, delay=0.5)
+        cases = [
+            (True, [0, 1, 2]), (False, []),
+            (np.bool_(True), [0, 1, 2]), (np.bool_(False), []),
+            (np.array(True), [0, 1, 2]), (np.array(False), []),
+            (np.array([True, False, True]), [0, 2]),
+            (np.array([0], dtype=int), [0]),
+            (np.array([], dtype=int), []),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value, value_type=type(value)):
+                projection = sim.Projection(source, target, ScalarMaskConnector(value), synapse)
+                self.assertEqual([int(row[0]) for row in projection.get("weight", format="list")],
+                                 expected)
+
+    def test_scalar_boolean_mask_multiple_targets(self, sim=sim):
+        source = sim.Population(3, sim.IF_curr_exp())
+        target = sim.Population(2, sim.IF_curr_exp())
+        synapse = sim.StaticSynapse(weight=0.5, delay=0.5)
+        projection = sim.Projection(source, target, ScalarMaskConnector(np.bool_(True)), synapse)
+        actual = [(int(row[0]), int(row[1])) for row in projection.get("weight", format="list")]
+        self.assertEqual(actual, [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)])
 
     def test_connect_with_random_weights(self, sim=sim):
         rd = random.RandomDistribution('uniform', (0, 1), rng=MockRNG(delta=1.0))
