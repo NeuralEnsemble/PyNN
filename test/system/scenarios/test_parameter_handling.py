@@ -246,6 +246,16 @@ def test_issue505(sim):
     assert delay == [0.05, 0.05, 0.05, 0.05]
 
 
+@run_with_simulators("nest", "neuron", "brian2")
+def test_population_view_cell_id_lookup(sim):
+    sim.setup()
+    population = sim.Population(9, sim.IF_cond_exp())
+    view = population[1::2]
+
+    assert view.id_to_index(population[7]) == 3
+    assert_array_equal(view.id_to_index([population[7], population[1]]), [3, 0])
+    sim.end()
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()

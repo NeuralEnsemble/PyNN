@@ -112,6 +112,18 @@ class PopulationViewTest(unittest.TestCase):
         pv = p[2, 5, 7, 8, 19, 37, 49, 82, 83, 99]
         assert_array_equal(pv.id_to_index(pv.all_cells[3:9:2]), np.arange(3, 9, 2))
 
+    def test_id_to_index_does_not_read_cell_parameters(self, sim=sim):
+        p = sim.Population(9, sim.IF_cond_exp())
+        for pv in (p[1::2], p[7::-2]):
+            with self.subTest(mask=pv.mask):
+                with patch.object(
+                    sim.simulator.ID, "get_parameters", autospec=True,
+                    side_effect=sim.simulator.ID.get_parameters,
+                ) as get_params:
+                    assert_array_equal(pv.id_to_index(pv[1]), 1)
+                    assert_array_equal(pv.id_to_index([pv[3], pv[0]]), [3, 0])
+                get_params.assert_not_called()
+
     def test_id_to_index_with_invalid_id(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
         pv = p[2, 5, 7, 8]
