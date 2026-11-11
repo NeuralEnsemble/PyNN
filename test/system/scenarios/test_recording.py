@@ -114,6 +114,58 @@ def test_issue259(sim):
     assert spiketrains2[0].size == 0
 
 
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_spike_source_array_sparse_recording(sim):
+    """Gather a sparse recorded view without losing source indices."""
+    sim.setup(timestep=0.1, min_delay=0.1, max_delay=5.0)
+    sources = sim.Population(4, sim.SpikeSourceArray(spike_times=[0.5]))
+    sources.record("spikes")
+    indices = [0, 1, 3]
+    view = sources[indices]
+    local_indices = [index for index in indices if sources[index].local]
+    gathered_indices = indices if sim.rank() == 0 else local_indices
+
+    sim.run(1.0)
+    local = view.get_data("spikes", gather=False).segments[0].spiketrains
+    gathered = view.get_data("spikes").segments[0].spiketrains
+    sim.end()
+
+    for trains, expected_indices in (
+        (local, local_indices),
+        (gathered, gathered_indices),
+    ):
+        assert_array_equal(
+            [train.annotations["source_index"] for train in trains], expected_indices
+        )
+        for train in trains:
+            assert_allclose(train.magnitude, [0.5], atol=1e-12)
+
+
+@run_with_simulators("nest", "neuron", "brian2")
+def test_spike_source_array_clear_sparse_recording(sim):
+    """Clear a gathered sparse view before reading a later recording window."""
+    sim.setup(timestep=0.1, min_delay=0.1, max_delay=5.0)
+    sources = sim.Population(4, sim.SpikeSourceArray(spike_times=[0.5]))
+    sources.record("spikes")
+    indices = [0, 1, 3]
+    view = sources[indices]
+    local_indices = [index for index in indices if sources[index].local]
+    gathered_indices = indices if sim.rank() == 0 else local_indices
+
+    sim.run(1.0)
+    gathered = view.get_data("spikes", clear=True).segments[0].spiketrains
+    sim.run(1.0)
+    cleared = view.get_data("spikes", clear=True).segments[0].spiketrains
+    sim.end()
+
+    for trains, expected_times in ((gathered, [0.5]), (cleared, [])):
+        assert_array_equal(
+            [train.annotations["source_index"] for train in trains], gathered_indices
+        )
+        for train in trains:
+            assert_allclose(train.magnitude, expected_times, atol=1e-12)
+
+
 @run_with_simulators("nest", "neuron", "brian2")
 def test_sampling_interval(sim):
     """
