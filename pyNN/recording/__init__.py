@@ -176,9 +176,7 @@ def remove_duplicate_spiketrains(data):
         for spiketrain in segment.spiketrains:
             index = spiketrain.annotations["source_index"]
             spiketrains[index] = spiketrain
-        min_index = min(spiketrains.keys())
-        max_index = max(spiketrains.keys())
-        segment.spiketrains = [spiketrains[i] for i in range(min_index, max_index + 1)]
+        segment.spiketrains = [spiketrains[i] for i in sorted(spiketrains)]
     return data
 
 

@@ -32,6 +32,26 @@ from pyNN.recording import Variable
 # def test_mpi_sum():
 
 
+@pytest.mark.parametrize(
+    "source_indices, retained_positions",
+    [([4, 0, 4, 2], [1, 3, 2]), ([], [])],
+)
+def test_remove_duplicate_spiketrains(source_indices, retained_positions):
+    block = neo.Block()
+    segment = neo.Segment()
+    block.segments.append(segment)
+    spike_trains = [
+        neo.SpikeTrain([], t_stop=1, units="ms", source_index=index)
+        for index in source_indices
+    ]
+    segment.spiketrains = spike_trains
+
+    assert recording.remove_duplicate_spiketrains(block) is block
+    assert len(segment.spiketrains) == len(retained_positions)
+    for train, position in zip(segment.spiketrains, retained_positions):
+        assert train is spike_trains[position]
+
+
 class MockState(object):
 
     def __init__(self, mpi_rank):
