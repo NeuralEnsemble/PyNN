@@ -64,12 +64,16 @@ jobs:
         make install
     - name: Install Arbor
       if: startsWith(matrix.os, 'ubuntu')
+      # Arbor 0.10.0 has no wheels for Python 3.14, and its source build fails with
+      # current CMake; 0.12.2 has no wheels for Python 3.10.
       run: |
-        python -m pip install arbor==0.10.0 libNeuroML morphio
+        python -m pip install --only-binary arbor "arbor==${{ matrix.python-version == '3.14' && '0.12.2' || '0.10.0' }}" libNeuroML morphio
     - name: Install NESTML
       if: startsWith(matrix.os, 'ubuntu')
+      # NESTML 8.3.0 requires odetoolbox >= 2.5.9 with no upper bound, but is not
+      # compatible with odetoolbox 3.x
       run: |
-        python -m pip install https://github.com/nest/nestml/archive/refs/tags/v8.3.0.tar.gz
+        python -m pip install https://github.com/nest/nestml/archive/refs/tags/v8.3.0.tar.gz "odetoolbox<3"
     - name: Install PyNN itself
       run: |
         python -m pip install -e ".[test,nestml]"
