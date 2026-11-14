@@ -9,7 +9,7 @@ from .fixtures import run_with_simulators
 import pytest
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_connections_attribute(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
@@ -22,7 +22,7 @@ def test_connections_attribute(sim):
     assert isinstance(connections[0], common.Connection)
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_connection_access_weight_and_delay(sim):
     sim.setup()
     p1 = sim.Population(4, sim.SpikeSourceArray())
@@ -44,7 +44,7 @@ def test_connection_access_weight_and_delay(sim):
                        target)
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_issue672(sim):
     """
     Check that creating new Projections does not mess up existing ones.
@@ -67,7 +67,7 @@ def test_issue672(sim):
     assert_array_equal(wA, wB)
 
 
-# @run_with_simulators("nest", "neuron", "brian2")
+# @run_with_simulators("nest", "neuron", "brian2", "arbor")
 # def test_update_synaptic_plasticity_parameters(sim):
 # #     sim.setup()
 #     p1 = sim.Population(3, sim.IF_cond_exp(), label="presynaptic")

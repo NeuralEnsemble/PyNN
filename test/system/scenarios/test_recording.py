@@ -122,6 +122,59 @@ def test_initialize_from_random_distribution(sim):
     assert_allclose(v[-1], expected, atol=1e-3)
 
 
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_record_synaptic_conductances(sim):
+    """gsyn_exc peaks at the weight and decays with tau_syn_E; gsyn_inh stays at zero."""
+    sim.setup(timestep=0.1, min_delay=0.1)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[5.0]))
+    cell = sim.Population(1, sim.IF_cond_exp(tau_syn_E=5.0))
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=0.01, delay=1.0), receptor_type="excitatory")
+    cell.record(["gsyn_exc", "gsyn_inh"])
+    sim.run(30.0)
+    data = cell.get_data().segments[0]
+    sim.end()
+    gsyn_exc = data.filter(name="gsyn_exc")[0].rescale(pq.uS).magnitude[:, 0]
+    gsyn_inh = data.filter(name="gsyn_inh")[0].rescale(pq.uS).magnitude[:, 0]
+    i_peak = np.argmax(gsyn_exc)
+    assert_allclose(gsyn_exc[i_peak], 0.01, rtol=0.02)
+    assert_allclose(gsyn_exc[i_peak + 50], 0.01 * np.exp(-1), rtol=0.05)  # 5 ms later
+    assert_array_equal(gsyn_inh, 0.0)
+
+
+@run_with_simulators("nest", "brian2", "arbor")  # pyNN.neuron records isyn with the opposite sign
+def test_record_composed_receptor_current(sim):
+    """A current-based receptor's isyn can be recorded by receptor name."""
+    sim.setup(timestep=0.1, min_delay=0.1)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[5.0]))
+    cell = sim.Population(1, sim.PointNeuron(
+        sim.LIF(), excitatory=sim.CurrExpPostSynapticResponse(tau_syn=2.0)))
+    sim.Projection(source, cell, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=0.5, delay=1.0), receptor_type="excitatory")
+    cell.record("excitatory.isyn")
+    sim.run(20.0)
+    isyn = cell.get_data().segments[0].filter(name="excitatory.isyn")[0].rescale(pq.nA).magnitude[:, 0]
+    sim.end()
+    assert_allclose(isyn.max(), 0.5, rtol=0.02)
+    assert_allclose(isyn[0], 0.0)
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_record_adaptation_current(sim):
+    """With a = 0 and a very slow tau_w, w increases by b at each spike and does not decay."""
+    sim.setup(timestep=0.01)
+    b = 0.05
+    cell = sim.Population(1, sim.EIF_cond_exp_isfa_ista(i_offset=1.0, a=0.0, b=b, tau_w=1e9))
+    cell.record(["spikes", "w"])
+    sim.run(100.0)
+    data = cell.get_data().segments[0]
+    sim.end()
+    n_spikes = data.spiketrains[0].size
+    w = data.filter(name="w")[0].rescale(pq.nA).magnitude[:, 0]
+    assert n_spikes > 1
+    assert_allclose(w[-1], n_spikes * b, rtol=0.01)
+
+
 @run_with_simulators("nest", "neuron")
 def test_issue259(sim):
     """

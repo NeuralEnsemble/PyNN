@@ -48,6 +48,32 @@ def place_current_source(decor, locset, mechanism, label):
         decor.place(locset, mechanism)
 
 
+# --- point-mechanism state probes take a target label from Arbor 0.12 --------
+
+def _point_state_probe_takes_label():
+    try:
+        arbor.cable_probe_point_state("_probe", "expsyn", "g", "_probe")
+        return True
+    except TypeError:
+        return False
+
+
+_POINT_PROBE_TAKES_LABEL = _point_state_probe_takes_label()
+
+
+def point_state_probe(get_decor, target_label, mechanism, state, tag):
+    """Probe a state variable of the point mechanism placed with ``target_label``.
+
+    Arbor 0.12 addresses the target by its label; Arbor 0.10 by its index among
+    the cell's synapse placements, in placement order, which is found from the
+    decor returned by ``get_decor()`` (only called for Arbor 0.10)."""
+    if _POINT_PROBE_TAKES_LABEL:
+        return arbor.cable_probe_point_state(target_label, mechanism, state, tag)
+    synapse_labels = [label for _, item, label in get_decor().placements()
+                      if isinstance(item, arbor.synapse)]
+    return arbor.cable_probe_point_state(synapse_labels.index(target_label), mechanism, state, tag)
+
+
 # --- cv_policy_max_extent gained units in Arbor 0.12 -------------------------
 
 def _cv_policy_wants_units():

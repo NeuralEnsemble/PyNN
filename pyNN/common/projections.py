@@ -111,7 +111,13 @@ class Projection(object):
             self._guess_receptor_type()
         if self.receptor_type not in postsynaptic_neurons.receptor_types:
             valid_types = postsynaptic_neurons.receptor_types
-            assert len(valid_types) > 0
+            if len(valid_types) == 0:
+                celltype = getattr(postsynaptic_neurons, "celltype", None)
+                target = (f"Cell type {celltype.__class__.__name__}" if celltype is not None
+                          else f"'{postsynaptic_neurons.label}'")
+                raise errors.ConnectionError(
+                    f"{target} has no receptor types in "
+                    f"{self._simulator.__name__.rsplit('.', 1)[0]}, so cannot receive synaptic input")
             err_msg = "User gave receptor_types=%s, receptor_types must be one of: '%s'"
             raise errors.ConnectionError(err_msg % (self.receptor_type, "', '".join(valid_types)))
 
@@ -128,6 +134,8 @@ class Projection(object):
         in the list of available post-synaptic receptor types is the default for excitatory
         synapses and the second element is the default for inhibitory synapses.
         """
+        if len(self.post.receptor_types) == 0:
+            return  # leave receptor_type unset; the caller raises a ConnectionError
         if len(self.post.receptor_types) > 1:
             ps = deepcopy(self.synapse_type.parameter_space)
             ps = self._handle_distance_expressions(ps)

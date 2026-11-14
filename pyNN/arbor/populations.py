@@ -50,12 +50,16 @@ class PopulationView(common.PopulationView):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
+        self.parent._check_parameters_can_change()
+        if self.parent._point_cell_builder() is not None:
+            parameter_space.pop("cell_description")
         for name, value in parameter_space.items():
             try:
                 self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
             except ValueError:
                 raise errors.InvalidParameterValueError(
                     f"{name} should not be of type {type(value)}")
+        self.parent._rebuild_point_cell_description()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -224,6 +228,41 @@ class Population(common.Population):
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
+        self._check_parameters_can_change()
+        if self._point_cell_builder() is not None:
+            # a full translation also yields a new description, without the
+            # population's initial values and current sources: rebuild it below instead
+            parameter_space.pop("cell_description")
         parameter_space.evaluate(simplify=False, mask=self._mask_local)
         for name, value in parameter_space.items():
             self._parameters[name] = value
+        self._rebuild_point_cell_description()
+
+    def _check_parameters_can_change(self):
+        # Arbor builds its cells when the simulation is created, at the first run()
+        if simulator.state.running:
+            raise NotImplementedError(
+                "pyNN.arbor does not support changing cell parameters once the "
+                "simulation has started (call reset() first)")
+
+    def _point_cell_builder(self):
+        """The cell-description builder of a point neuron (a cable cell built from a
+        flat standard model), or None for other cell kinds."""
+        builder = getattr(self._arbor_cell_description, "base_value", None)
+        return builder if hasattr(builder, "rebuild") else None
+
+    def _rebuild_point_cell_description(self):
+        """Rebuild a point neuron's cell description from its flat native
+        parameters, after they have been changed by set()."""
+        old = self._point_cell_builder()
+        if old is None:
+            return
+        native = ParameterSpace(
+            {name: value for name, value in self._parameters.items() if name != "cell_description"},
+            schema=None, shape=self._parameters.shape)
+        new = old.rebuild(native)
+        new.set_shape(self._parameters.shape)
+        new.initial_values = old.initial_values
+        new.current_sources = old.current_sources
+        self._parameters["cell_description"] = new
+        self._arbor_cell_description = self._parameters["cell_description"]

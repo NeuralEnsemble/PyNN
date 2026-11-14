@@ -8,7 +8,7 @@ import arbor
 from arbor import units as U
 
 from .. import recording
-from . import simulator
+from . import simulator, _compat
 from ..morphology import LocationGenerator
 from .morphology import LabelledLocations
 
@@ -98,11 +98,50 @@ class Recorder(recording.Recorder):
                     else:
                         probe = arbor.cable_probe_membrane_voltage(locset, tag)
                 else:
-                    mech_name, state_name = variable.name.split(".")
-                    arbor_model = mech_name  # to do: find_arbor_model(mech_name)
-                    probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
+                    probe = self._point_mechanism_probe(gid, variable.name, tag)
+                    if probe is None:
+                        mech_name, state_name = variable.name.split(".")
+                        arbor_model = mech_name  # to do: find_arbor_model(mech_name)
+                        probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
                 probes.append(probe)
         return probes
+
+    # standard-model names for post-synaptic receptor variables
+    _receptor_variables = {
+        "gsyn_exc": ("excitatory", "gsyn"),
+        "gsyn_inh": ("inhibitory", "gsyn"),
+        "isyn_exc": ("excitatory", "isyn"),
+        "isyn_inh": ("inhibitory", "isyn"),
+    }
+    # state variable of the synapse mechanism holding each quantity
+    _synaptic_states = {"gsyn": "g", "isyn": "isyn"}
+
+    def _point_mechanism_probe(self, gid, variable_name, tag):
+        """
+        Return a probe for a point-neuron state variable held by a point mechanism,
+        or None if ``variable_name`` is not one of these. This covers state variables
+        of the neuron's reset/dynamics process (e.g. "w", "u") and synaptic
+        conductances or currents, given either as a standard name (e.g. "gsyn_exc")
+        or as "<receptor>.<gsyn|isyn>".
+        """
+        builder = getattr(self.population._arbor_cell_description, "base_value", None)
+        receptors = getattr(builder, "post_synaptic_receptors", None)
+        if receptors is None:
+            return None
+        if variable_name in builder.dynamics.point_states:
+            target, model, state = builder.dynamics.point_states[variable_name]
+        else:
+            if variable_name in self._receptor_variables:
+                target, quantity = self._receptor_variables[variable_name]
+            elif variable_name.count(".") == 1:
+                target, quantity = variable_name.split(".")
+            else:
+                return None
+            if target not in receptors or quantity not in self._synaptic_states:
+                return None
+            model, state = receptors[target][0], self._synaptic_states[quantity]
+        index = self.population.id_to_index(gid)
+        return _compat.point_state_probe(lambda: builder(index)["decor"], target, model, state, tag)
 
     def _get_spiketimes(self, id, clear=False):
         spikes = self._simulator.state.arbor_sim.spikes()
@@ -122,7 +161,14 @@ class Recorder(recording.Recorder):
             for d, m in self._simulator.state.arbor_sim.samples(handle):
                 data.append(d[:, 1])
                 meta.append(m)
+            if not data:
+                # Arbor returns no samples when a probe matches nothing on the cell
+                raise NotImplementedError(
+                    f"pyNN.arbor cannot record '{variable.name}' from cell type "
+                    f"{self.population.celltype.__class__.__name__}")
             all_data.extend(data)
+        if not all_data:
+            return np.zeros((0, 0)), None
         signal_array = np.stack(all_data, axis=1)
         times_array = None
         return signal_array, times_array

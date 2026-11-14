@@ -5,6 +5,8 @@
 from collections import defaultdict
 from itertools import repeat
 
+import numpy as np
+
 import arbor
 from arbor import units as U
 
@@ -14,7 +16,7 @@ from ..space import Space
 from . import simulator
 
 
-class ConnectionGroup:
+class ConnectionGroup(common.Connection):
     """
 
     """
@@ -43,14 +45,20 @@ class Projection(common.Projection):
                                    connector, synapse_type, source, receptor_type,
                                    space, label)
 
-        #  Create connections
-        self.connections = defaultdict(list)
+        #  Create connections, grouped by postsynaptic index
+        self._connections_by_target = defaultdict(list)
         connector.connect(self)
         self._simulator.state.network.add_projection(self)
 
+    @property
+    def connections(self):
+        """
+        Returns an iterator over local connections in this projection, as `Connection` objects.
+        """
+        return (c for conns in self._connections_by_target.values() for c in conns)
+
     def __len__(self):
-        # self.connections maps each postsynaptic index to a list of connections
-        return sum(len(conns) for conns in self.connections.values())
+        return sum(len(conns) for conns in self._connections_by_target.values())
 
     def set(self, **attributes):
         raise NotImplementedError
@@ -59,12 +67,12 @@ class Projection(common.Projection):
                             location_selector=None,
                             **connection_parameters):
         for name, value in connection_parameters.items():
-            if isinstance(value, float):
+            if np.isscalar(value):
                 connection_parameters[name] = repeat(value)
         for pre_idx, other in ezip(presynaptic_indices, *connection_parameters.values()):
             other_attributes = dict(zip(connection_parameters.keys(), other))
 
-            self.connections[postsynaptic_index].append(
+            self._connections_by_target[postsynaptic_index].append(
                 ConnectionGroup(pre_idx, postsynaptic_index, self.receptor_type, location_selector, **other_attributes)
             )
 
@@ -103,7 +111,7 @@ class Projection(common.Projection):
             else:
                 weight_scale = 1.0
                 all_labels = list(self.post._arbor_cell_description[postsynaptic_index]["labels"])
-            for cg in self.connections[postsynaptic_index]:
+            for cg in self._connections_by_target[postsynaptic_index]:
                 if cg.location_selector in (None, "all"):
                     if is_lif_post:
                         # A native lif_cell has a single built-in delta synapse;

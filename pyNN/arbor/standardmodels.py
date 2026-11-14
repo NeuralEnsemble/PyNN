@@ -565,7 +565,18 @@ def _point_cell_description(native, receptor_specs, shape, dynamics_class=LIFDyn
     neuron; the neuron parameters it needs are taken from ``native`` by name (its
     ``native_names``). ``receptor_specs`` maps each receptor label to
     ``(arbor_synapse_model, {arbor_synapse_param: native_name})``.
+
+    The flat native parameters are kept alongside ``cell_description``, so that
+    they can be queried with ``Population.get()``. If ``native`` holds only some of
+    the parameters (as when translating the arguments of ``Population.set()``), only
+    the flat parameters are returned; the description is then rebuilt from the
+    updated full set with the builder's ``rebuild()``.
     """
+    flat = {name: native[name] for name in native.keys()}
+    needed = set(dynamics_class.native_names).union(
+        native_name for _, param_map in receptor_specs.values() for native_name in param_map.values())
+    if not needed.issubset(flat):
+        return ParameterSpace(flat, schema=None, shape=shape)
     neuron_parameters = ParameterSpace(
         {name: native[name] for name in dynamics_class.native_names}, shape=shape)
     dynamics = dynamics_class(neuron_parameters)
@@ -577,7 +588,9 @@ def _point_cell_description(native, receptor_specs, shape, dynamics_class=LIFDyn
         for label, (model, param_map) in receptor_specs.items()
     }
     builder = PointCellDescriptionBuilder(dynamics, post_synaptic_receptors)
-    return ParameterSpace({"cell_description": builder}, schema=None, shape=shape)
+    builder.rebuild = lambda native: _point_cell_description(
+        native, receptor_specs, native.shape, dynamics_class)["cell_description"].base_value
+    return ParameterSpace(dict(flat, cell_description=builder), schema=None, shape=shape)
 
 
 class IF_curr_exp(cells.IF_curr_exp):
