@@ -1,0 +1,181 @@
+=====
+Arbor
+=====
+
+The :mod:`pyNN.arbor` backend runs simulations with Arbor_.
+It supports both point neurons and the experimental multi-compartment neuron
+models (see :doc:`../neurons`), although not all of the standard models are
+available yet (see `Supported models`_ below).
+
+
+Installation
+============
+
+Arbor can be installed together with PyNN using::
+
+    $ pip install "PyNN[arbor]"
+
+which also installs libNeuroML and MorphIO, used for reading morphologies.
+For other ways of installing Arbor, see `<https://docs.arbor-sim.org/en/latest/install>`_.
+
+The first time :mod:`pyNN.arbor` is imported, PyNN compiles its own membrane and
+synapse mechanisms (in :file:`pyNN/arbor/nmodl`) into an Arbor mechanism catalogue,
+using the :command:`arbor-build-catalogue` program that is installed with Arbor.
+This program must be on your :envvar:`PATH`: if you installed Arbor into a virtual
+environment, activate the environment (or add its :file:`bin` directory to the
+:envvar:`PATH`) before the first import.
+
+The compiled catalogue is saved as :file:`pyNN/arbor/nmodl/PyNN-catalogue-{version}.so`,
+where *version* is the Arbor version, so each installed Arbor version gets its own
+catalogue. A catalogue is only compiled if this file does not exist; if you change the
+mechanism files, for example when working from a development version of PyNN, delete
+the file so that it is compiled again.
+
+
+Configuration options
+=====================
+
+In addition to the standard *timestep*, *min_delay* and *max_delay* arguments,
+:func:`setup` accepts the following options:
+
+*threads*
+    the number of threads Arbor uses (default 1).
+
+*rng_seed*
+    the seed for Arbor's random number generator, which is used, for example, by
+    :class:`SpikeSourcePoisson` (default 42). Simulations with the same seed give
+    identical results.
+
+For example:
+
+.. code-block:: python
+
+    import pyNN.arbor as sim
+
+    sim.setup(timestep=0.1, threads=4, rng_seed=12345)
+
+Arbor requires every synaptic delay to be at least twice the time step. The default
+synaptic delay is therefore the larger of *min_delay* and twice the time step, and
+any delay you specify explicitly must also be at least twice the time step.
+
+Distributed simulations
+-----------------------
+
+Simulations can be distributed over several processes with MPI, e.g.::
+
+    $ mpiexec -n 4 python my_model.py
+
+As with the other backends, cells are distributed round-robin over the MPI
+processes, and the results should be identical to those of a single process.
+
+This requires an Arbor that was built with MPI support and with :mod:`mpi4py`
+available at build time: check that ``arbor.config()["mpi"]`` and
+``arbor.config()["mpi4py"]`` are both ``True``. If they are not, each process
+runs a separate, complete simulation.
+
+The Arbor packages on PyPI are built without MPI, so Arbor has to be built from
+source, for example::
+
+    $ CC=mpicc CXX=mpicxx pip install --no-build-isolation \
+          -C cmake.define.ARB_WITH_MPI=ON <path to Arbor source>
+
+with :mod:`mpi4py`, ``scikit-build-core``, ``cmake`` (version 4 or later) and
+``ninja`` already installed in the same environment. The ``setup`` target of the
+:file:`Makefile` in the PyNN source repository does this.
+
+
+Supported models
+================
+
+Cell types
+----------
+
+* :class:`IF_curr_delta`, implemented with Arbor's native leaky integrate-and-fire cell;
+* :class:`IF_curr_exp`, :class:`IF_curr_alpha`, :class:`IF_cond_exp`,
+  :class:`IF_cond_alpha`, :class:`EIF_cond_exp_isfa_ista`,
+  :class:`EIF_cond_alpha_isfa_ista`, :class:`IF_cond_exp_gsfa_grr`,
+  :class:`HH_cond_exp` and :class:`Izhikevich`;
+* :class:`PointNeuron`, composed from a :class:`LIF` or :class:`AdExp` neuron and
+  :class:`CondExpPostSynapticResponse`, :class:`CondAlphaPostSynapticResponse` or
+  :class:`CurrExpPostSynapticResponse` receptors;
+* :class:`MultiCompartmentNeuron` (experimental);
+* :class:`SpikeSourcePoisson` and :class:`SpikeSourceArray`.
+
+Not yet available: :class:`GIF_cond_exp`, :class:`IF_facets_hardware1`,
+:class:`SpikeSourceGamma`, :class:`SpikeSourceInhGamma` and
+:class:`SpikeSourcePoissonRefractory`.
+
+Synapse types
+-------------
+
+Only :class:`StaticSynapse` is available: short-term plasticity
+(:class:`TsodyksMarkramSynapse`) and spike-timing-dependent plasticity
+(:class:`STDPMechanism`) are not yet supported.
+
+Current sources
+---------------
+
+:class:`DCSource`, :class:`StepCurrentSource`, :class:`ACSource` and
+:class:`NoisyCurrentSource`.
+
+
+How point neurons are implemented
+=================================
+
+Apart from :class:`IF_curr_delta`, point neurons are implemented as single-compartment
+Arbor cable cells, with a membrane area and specific membrane properties chosen to
+reproduce the whole-cell capacitance and leak conductance of the PyNN model:
+
+* the network spike is emitted by a threshold detector on the cell;
+* the post-spike reset and refractory period are implemented by a point mechanism
+  that, when the cell spikes, clamps the membrane at the reset potential for the
+  refractory period. The adaptation (:class:`EIF_cond_exp_isfa_ista`,
+  :class:`IF_cond_exp_gsfa_grr`) and Izhikevich dynamics are also implemented by
+  point mechanisms;
+* each receptor type is a synapse mechanism placed on the cell.
+
+This has some consequences:
+
+* the alpha-function synapses (:class:`IF_curr_alpha`, :class:`IF_cond_alpha`,
+  :class:`CondAlphaPostSynapticResponse`) are integrated with a first-order implicit
+  method, which slightly under-estimates the peak of the synaptic response when the
+  synaptic time constant is only a few time steps long. Use a time step of 0.05 ms or
+  less with short synaptic time constants;
+* the synapses of the :class:`Izhikevich` model produce a step change in the
+  membrane potential, which an Arbor cable-cell mechanism cannot express, so at present
+  the :class:`Izhikevich` model has no receptor types: it can be driven by
+  injected current (including *i_offset*) but cannot receive synaptic input.
+
+
+Recording
+=========
+
+All cell types can record ``"spikes"`` and the membrane potential ``"v"``. In
+addition, point neurons can record:
+
+* the synaptic conductances ``"gsyn_exc"`` and ``"gsyn_inh"`` of the
+  conductance-based models;
+* the conductance or current of each receptor of a :class:`PointNeuron`, using the
+  receptor name, e.g. ``"AMPA.gsyn"`` or ``"excitatory.isyn"``;
+* the adaptation current ``"w"`` (:class:`EIF_cond_exp_isfa_ista`,
+  :class:`EIF_cond_alpha_isfa_ista`), the recovery variable ``"u"``
+  (:class:`Izhikevich`), and the adaptation and refractory conductances ``"g_s"`` and
+  ``"g_r"`` (:class:`IF_cond_exp_gsfa_grr`).
+
+
+Current limitations
+===================
+
+* Arbor builds its cells when the simulation is created, at the first call to
+  :func:`run`. Cell parameters can be changed with :meth:`Population.set` before
+  that, but changing them afterwards raises :class:`NotImplementedError`; call
+  :func:`reset` first. This also applies to changing the spike times of a
+  :class:`SpikeSourceArray` or the rate of a :class:`SpikeSourcePoisson` between runs.
+* The postsynaptic side of a :class:`Projection` must be a :class:`Population`, not a
+  :class:`PopulationView`.
+* Synaptic weights and delays cannot be changed after a :class:`Projection` has been
+  created.
+* Native (non-standard) cell and synapse models are not yet supported.
+
+
+.. _Arbor: https://arbor-sim.org

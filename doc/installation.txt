@@ -141,12 +141,14 @@ Note that this version of PyNN works with Brian 2. If you need to use Brian 1, t
 Installing Arbor
 ================
 
-Instructions for installing Arbor_ are available from `<https://docs.arbor-sim.org/en/latest/install>`_.
+This version of PyNN works with Arbor 0.10 to 0.12, which can be installed together with PyNN::
 
-.. warning::
+    $ pip install "PyNN[arbor]"
 
-    At present, Arbor only works with the experimental multi-compartment neuron models;
-    support for point neuron models is planned for the next release.
+Instructions for other ways of installing Arbor_ are available from `<https://docs.arbor-sim.org/en/latest/install>`_.
+The first time you import :mod:`pyNN.arbor`, PyNN compiles some PyNN-specific mechanisms,
+using the :command:`arbor-build-catalogue` program, which must be on your PATH.
+See :doc:`backends/Arbor` for details, and for the models that are currently supported.
 
 
 .. _PyNN: http://neuralensemble.org/PyNN
