@@ -56,7 +56,6 @@ def build_mechanisms():
 
 
 class Cell(int, common.IDMixin):
-    local = True
 
     def __init__(self, n):
         """Create an ID object with numerical value `n`."""
@@ -206,8 +205,7 @@ class State(common.control.BaseState):
     def run(self, simtime):
         recipe = self.network
         if not self.running:
-            hints = {}
-            decomp = arbor.partition_load_balance(recipe, self.arbor_context, hints)
+            decomp = arbor.partition_by_group(recipe, self.arbor_context, self._local_groups())
             self.arbor_sim = arbor.simulation(recipe, self.arbor_context, decomp, self.rng_seed)
             # Use local (per-rank) spike recording rather than the global mode,
             # which matches PyNN's rank-aware recorders.
@@ -218,6 +216,18 @@ class State(common.control.BaseState):
         self.t += simtime
         self.arbor_sim.run(self.t * U.ms, self.dt * U.ms)
         self.running = True
+
+    def _local_groups(self):
+        """
+        Arbor cell groups for the cells local to this MPI rank, with the same
+        round-robin distribution as Population._mask_local, one cell per group.
+        """
+        groups = []
+        for population in self.network._populations:
+            kind = population.arbor_cell_kind
+            for cell in population.all_cells[population._mask_local]:
+                groups.append(arbor.group_description(kind, [int(cell)], arbor.backend.multicore))
+        return groups
 
     def run_until(self, tstop):
         return self.run(tstop - self.t)

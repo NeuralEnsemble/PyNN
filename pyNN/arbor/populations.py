@@ -19,6 +19,20 @@ class Assembly(common.Assembly):
     _simulator = simulator
 
 
+def _local_values(value, size, indices):
+    """
+    Select the values for the cells with the given (local) indices from a parameter
+    value stored for all ``size`` cells of a population, which may be lazy.
+    """
+    if isinstance(value, LazyArray):
+        if value.is_homogeneous:
+            return value.evaluate(simplify=True)
+        value = value.evaluate(simplify=False)
+    if isinstance(value, np.ndarray) and value.shape[:1] == (size,):
+        value = value[indices]
+    return simplify(value)
+
+
 class PopulationView(common.PopulationView):
     _assembly_class = Assembly
     _simulator = simulator
@@ -40,13 +54,13 @@ class PopulationView(common.PopulationView):
         """
         return a ParameterSpace containing native parameters
         """
-        parameter_dict = {}
-        for name in names:
-            value = self.parent._parameters[name]
-            if isinstance(value, np.ndarray):
-                value = value[self.mask]
-            parameter_dict[name] = simplify(value)
-        return ParameterSpace(parameter_dict, shape=(self.size,))  # or local size?
+        indices = np.arange(self.parent.size)[self.mask]
+        indices = indices[self.parent._mask_local[indices]]
+        parameter_dict = {
+            name: _local_values(self.parent._parameters[name], self.parent.size, indices)
+            for name in names
+        }
+        return ParameterSpace(parameter_dict, shape=(indices.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
@@ -173,7 +187,9 @@ class Population(common.Population):
         self._parameters = parameter_space  # used for querying parameters before/after running simulation
 
         simulator.state.id_counter += self.size
-        self._mask_local = np.ones_like(id_range, dtype=bool)
+        # cells are distributed round-robin over MPI ranks; State.run() gives
+        # Arbor the same decomposition
+        self._mask_local = id_range % simulator.state.num_processes == simulator.state.mpi_rank
 
     def _set_initial_value_array(self, variable, initial_values):
         # Evaluate now: the values are otherwise only read element by element when
@@ -221,9 +237,11 @@ class Population(common.Population):
         """
         return a ParameterSpace containing native parameters
         """
-        parameter_dict = {}
-        for name in names:
-            parameter_dict[name] = simplify(self._parameters[name])
+        indices = np.flatnonzero(self._mask_local)
+        parameter_dict = {
+            name: _local_values(self._parameters[name], self.size, indices)
+            for name in names
+        }
         return ParameterSpace(parameter_dict, shape=(self.local_size,))
 
     def _set_parameters(self, parameter_space):
@@ -233,7 +251,9 @@ class Population(common.Population):
             # a full translation also yields a new description, without the
             # population's initial values and current sources: rebuild it below instead
             parameter_space.pop("cell_description")
-        parameter_space.evaluate(simplify=False, mask=self._mask_local)
+        # values are kept for all cells, since cells are built by their index in the
+        # population (only the local ones are built on each MPI rank)
+        parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
             self._parameters[name] = value
         self._rebuild_point_cell_description()
