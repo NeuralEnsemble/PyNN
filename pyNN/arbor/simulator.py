@@ -178,6 +178,9 @@ class State(common.control.BaseState):
         self.rng_seed = 42
         self.clear()
         self.dt = 0.1
+        self._create_context()
+
+    def _create_context(self):
         alloc = arbor.proc_allocation(threads=self.num_threads)
         config = arbor.config()
         if config["mpi4py"] and MPI is not None:
@@ -185,6 +188,12 @@ class State(common.control.BaseState):
         else:
             comm = None
         self.arbor_context = arbor.context(alloc, mpi=comm)
+
+    def set_num_threads(self, num_threads):
+        """Set the number of threads Arbor uses, creating a new context if it changes."""
+        if num_threads != self.num_threads:
+            self.num_threads = num_threads
+            self._create_context()
 
     @property
     def mpi_rank(self):

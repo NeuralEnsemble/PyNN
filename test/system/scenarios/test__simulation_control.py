@@ -127,6 +127,51 @@ def test_run_until(sim):
     sim.end()
 
 
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_default_delay(sim):
+    """A projection created without an explicit delay can be simulated."""
+    sim.setup(timestep=0.1)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[1.0]))
+    cells = sim.Population(1, sim.IF_cond_exp())
+    sim.Projection(source, cells, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.01))
+    sim.run(5.0)
+    sim.end()
+
+
+@run_with_simulators("nest", "arbor")
+def test_rng_seed(sim):
+    """The rng_seed argument of setup() makes Poisson spike trains reproducible."""
+    def poisson_spikes(seed):
+        sim.setup(rng_seed=seed)
+        sources = sim.Population(3, sim.SpikeSourcePoisson(rate=100.0))
+        sources.record("spikes")
+        sim.run(200.0)
+        spiketrains = sources.get_data().segments[0].spiketrains
+        sim.end()
+        return [st.magnitude for st in spiketrains]
+
+    first, again, other = poisson_spikes(12345), poisson_spikes(12345), poisson_spikes(54321)
+    for st1, st2 in zip(first, again):
+        assert_array_equal(st1, st2)
+    assert any(st1.size != st3.size or (st1 != st3).any() for st1, st3 in zip(first, other))
+
+
+@run_with_simulators("arbor")  # NEST may be built without thread support
+def test_threads(sim):
+    """Results do not depend on the number of threads."""
+    def run(threads):
+        sim.setup(timestep=0.1, threads=threads)
+        cells = sim.Population(4, sim.IF_cond_exp(i_offset=[0.5, 1.0, 1.5, 2.0]))
+        cells.record("spikes")
+        sim.run(100.0)
+        spiketrains = cells.get_data().segments[0].spiketrains
+        sim.end()
+        return [st.magnitude for st in spiketrains]
+
+    for st1, st2 in zip(run(1), run(2)):
+        assert_array_almost_equal(st1, st2)
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()

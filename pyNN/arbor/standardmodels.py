@@ -273,9 +273,10 @@ class StaticSynapse(synapses.StaticSynapse):
     )
 
     def _get_minimum_delay(self):
-        d = state.min_delay
-        if d == 'auto':
-            d = state.dt
+        # Arbor requires delays of at least twice the time step
+        d = 2 * state.dt
+        if state.min_delay != 'auto':
+            d = max(d, state.min_delay)
         return d
 
 
