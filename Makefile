@@ -5,6 +5,7 @@
 # Option C (conda):   uses micromamba + conda-forge (no compilation)
 #
 # All targets accept NEST_VERSION=<version> to switch NEST versions.
+# Option A also builds Arbor from source with MPI support (ARBOR_VERSION=<version>).
 #
 # Version string format differs between Options A/B and C for pre-releases:
 #   stable:         NEST_VERSION=3.9    (same for all options)
@@ -13,6 +14,7 @@
 #   Check https://github.com/nest/nest-simulator/releases for GitHub tag names.
 
 NEST_VERSION ?= 3.9
+ARBOR_VERSION ?= 0.12.2
 
 # ── Option A: paths and variables ─────────────────────────────────────────────
 NEST_PREFIX       = $(CURDIR)/.local-nest$(NEST_VERSION)
@@ -28,6 +30,14 @@ NEST_SRC_UNPACKED = $(NEST_SRC_DIR)/nest-simulator-$(NEST_VERSION)
 NPROC             = $(shell sysctl -n hw.logicalcpu 2>/dev/null || echo 4)
 # cmake will search /usr/local by default; override if your C deps are elsewhere
 EXTRA_CMAKE_ARGS  ?=
+# MPI installation used for mpi4py and Arbor; defaults to the one providing mpicc on PATH
+MPI_ROOT         ?= $(patsubst %/bin/mpicc,%,$(shell command -v mpicc))
+# Run venv executables with the venv's bin on PATH, so that pyNN.arbor finds
+# arbor-build-catalogue when it compiles its mechanisms
+NEST_ENV          = PATH=$(NEST_PREFIX)/bin:$$PATH
+ARBOR_STAMP       = $(NEST_PREFIX)/.arbor-installed
+ARBOR_SRC_DIR     = $(CURDIR)/.arbor-src/arbor-$(ARBOR_VERSION)
+ARBOR_BUILD_DIR   = $(CURDIR)/.arbor-build/arbor-$(ARBOR_VERSION)
 
 # ── Option B: variables ────────────────────────────────────────────────────────
 DOCKER_IMAGE = pynn-test:nest$(NEST_VERSION)
@@ -44,7 +54,7 @@ CONDA_ENV_FILE   = test/environment-nest$(NEST_VERSION).yml
 # ══════════════════════════════════════════════════════════════════════════════
 
 .PHONY: setup
-setup: $(NEST_STAMP)  ## [A] Build NEST $(NEST_VERSION) from source + create venv
+setup: $(NEST_STAMP) $(ARBOR_STAMP)  ## [A] Build NEST $(NEST_VERSION) and Arbor $(ARBOR_VERSION) from source + create venv
 	@echo ""
 	@echo "Setup complete. Run 'make test NEST_VERSION=$(NEST_VERSION)'"
 
@@ -97,7 +107,7 @@ $(NEST_STAMP): $(NEST_VENV_STAMP) $(NEST_SRC_UNPACKED)
 	    $(CURDIR)/pyNN/nest/extensions
 	cd $(NEST_BUILD_DIR)/pynn_extensions && make install
 	$(NEST_PIP) install \
-	    "neuron>=9.0.0" nrnutils "arbor==0.10.0" \
+	    "neuron>=9.0.0" nrnutils \
 	    brian2 libNeuroML scipy matplotlib Cheetah3 h5py Jinja2 \
 	    pytest pytest-xdist pytest-cov flake8 morphio nestml
 	$(NEST_PIP) install -e .
@@ -107,42 +117,77 @@ $(NEST_STAMP): $(NEST_VENV_STAMP) $(NEST_SRC_UNPACKED)
 	cd $(CURDIR)/pyNN/neuron/nmodl && $(NEST_PREFIX)/bin/nrnivmodl .
 	touch $@
 
+# 5. Arbor, built from source with MPI support (the PyPI wheels have none).
+# Built without build isolation so that cmake finds the venv's mpi4py; the
+# generated mechanism code needs <cstddef> on recent macOS. Then compile
+# PyNN's Arbor mechanisms, replacing any catalogue left from an earlier build.
+$(ARBOR_SRC_DIR):
+	git clone --depth 1 --branch v$(ARBOR_VERSION) \
+	    https://github.com/arbor-sim/arbor.git $@
+
+$(ARBOR_STAMP): $(NEST_STAMP) $(ARBOR_SRC_DIR)
+	$(NEST_PIP) install scikit-build-core "cmake>=4" ninja
+	$(NEST_ENV) CC=$(MPI_ROOT)/bin/mpicc CXX=$(MPI_ROOT)/bin/mpicxx \
+	    CXXFLAGS=-includecstddef CMAKE_BUILD_PARALLEL_LEVEL=$(NPROC) \
+	    $(NEST_PIP) install --no-build-isolation --force-reinstall --no-deps \
+	    -C cmake.define.ARB_WITH_MPI=ON \
+	    -C cmake.define.ARB_BUILD_PYTHON_STUBS=OFF \
+	    -C cmake.build-type=Release \
+	    -C build-dir=$(ARBOR_BUILD_DIR) \
+	    $(ARBOR_SRC_DIR)
+	$(NEST_PY) -c "import arbor; c = arbor.config(); assert c['mpi'] and c['mpi4py'], c"
+	rm -f $(CURDIR)/pyNN/arbor/nmodl/PyNN-catalogue-$(ARBOR_VERSION).so
+	$(NEST_ENV) $(NEST_PY) -c "import pyNN.arbor"
+	touch $@
+
 .PHONY: test
-test: $(NEST_STAMP)  ## [A] Run full test suite (NEST_VERSION=$(NEST_VERSION))
-	$(NEST_PYTEST) -v -n auto test/
+test: $(NEST_STAMP) $(ARBOR_STAMP)  ## [A] Run full test suite (NEST_VERSION=$(NEST_VERSION))
+	$(NEST_ENV) $(NEST_PYTEST) -v -n auto test/
 
 .PHONY: test-unit
 test-unit: $(NEST_STAMP)  ## [A] Unit tests only (no simulator needed)
-	$(NEST_PYTEST) -n auto test/unittests/
+	$(NEST_ENV) $(NEST_PYTEST) -n auto test/unittests/
 
 .PHONY: test-nest
 test-nest: $(NEST_STAMP)  ## [A] NEST system + scenario tests
-	$(NEST_PYTEST) -n auto test/system/test_nest.py test/system/scenarios/
+	$(NEST_ENV) $(NEST_PYTEST) -n auto test/system/test_nest.py test/system/scenarios/
 
 .PHONY: test-neuron
 test-neuron: $(NEST_STAMP)  ## [A] NEURON system + scenario tests
-	$(NEST_PYTEST) -n auto test/system/test_neuron.py test/system/scenarios/
+	$(NEST_ENV) $(NEST_PYTEST) -n auto test/system/test_neuron.py test/system/scenarios/
 
 .PHONY: test-brian2
 test-brian2: $(NEST_STAMP)  ## [A] Brian2 system tests
-	$(NEST_PYTEST) -n auto test/system/test_brian2.py
+	$(NEST_ENV) $(NEST_PYTEST) -n auto test/system/test_brian2.py
+
+.PHONY: test-arbor
+test-arbor: $(ARBOR_STAMP)  ## [A] Arbor unit + scenario tests
+	$(NEST_ENV) $(NEST_PYTEST) -n auto test/unittests/test_arbor.py test/system/scenarios/ -k arbor
+
+.PHONY: test-arbor-mpi
+test-arbor-mpi: $(ARBOR_STAMP)  ## [A] Arbor scenario tests with 2 MPI processes
+	$(NEST_ENV) $(MPI_ROOT)/bin/mpiexec -n 2 $(NEST_PYTEST) test/system/scenarios/ -k arbor
 
 .PHONY: clean-nmodl
 clean-nmodl:  ## [A] Remove compiled NEURON mechanisms (required before switching NEURON versions)
 	rm -rf $(CURDIR)/pyNN/neuron/nmodl/arm64 \
 	       $(CURDIR)/pyNN/neuron/nmodl/x86_64
 
+.PHONY: clean-arbor-catalogue
+clean-arbor-catalogue:  ## [A] Remove compiled Arbor mechanisms (required after changing pyNN/arbor/nmodl)
+	rm -f $(CURDIR)/pyNN/arbor/nmodl/PyNN-catalogue-*.so
+
 .PHONY: clean
 clean:  ## [A] Remove .local-nest$(NEST_VERSION)/ (triggers full rebuild)
 	rm -rf $(NEST_PREFIX)
 
 .PHONY: clean-build
-clean-build:  ## [A] Remove cmake build dir only (retry after cmake failure)
-	rm -rf $(NEST_BUILD_DIR)
+clean-build:  ## [A] Remove cmake build dirs only (retry after cmake failure)
+	rm -rf $(NEST_BUILD_DIR) $(ARBOR_BUILD_DIR)
 
 .PHONY: clean-all
-clean-all:  ## [A] Remove all .local-nest*/, .nest-build/, .nest-src/
-	rm -rf .local-nest*/ .nest-build/ .nest-src/
+clean-all:  ## [A] Remove all .local-nest*/, .nest-build/, .nest-src/, .arbor-build/, .arbor-src/
+	rm -rf .local-nest*/ .nest-build/ .nest-src/ .arbor-build/ .arbor-src/
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Option B: Docker with bind-mounted source
@@ -227,11 +272,12 @@ conda-clean:  ## [C] Remove .condaenv-nest$(NEST_VERSION)/
 
 .PHONY: help
 help:  ## Show available targets
-	@echo "Usage: make <target> [NEST_VERSION=3.9]"
+	@echo "Usage: make <target> [NEST_VERSION=3.9] [ARBOR_VERSION=0.12.2]"
 	@echo ""
 	@grep -E '^[a-zA-Z0-9_-]+:.*##' $(MAKEFILE_LIST) | \
 	    awk 'BEGIN {FS = ":.*##"}; {printf "  %-26s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Current NEST_VERSION: $(NEST_VERSION)"
+	@echo "Current ARBOR_VERSION: $(ARBOR_VERSION)"
 
 .DEFAULT_GOAL := help
