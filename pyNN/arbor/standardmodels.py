@@ -32,9 +32,10 @@ class SpikeSourcePoisson(cells.SpikeSourcePoisson):
         ('rate',     'freq'),
         ('duration', 'tstop', "start + duration", "tstop - tstart"),
     )
-    # todo: manage "seed"
     arbor_cell_kind = arbor.cell_kind.spike_source
     arbor_schedule = arbor.poisson_schedule
+    # seeded per cell from simulator.state.rng_seed and the gid (see Population)
+    arbor_schedule_seeded = True
     arbor_schedule_units = {"tstart": U.ms, "freq": U.Hz, "tstop": U.ms}
 
 

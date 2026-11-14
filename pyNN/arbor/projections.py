@@ -49,7 +49,8 @@ class Projection(common.Projection):
         self._simulator.state.network.add_projection(self)
 
     def __len__(self):
-        return len(self.connections)
+        # self.connections maps each postsynaptic index to a list of connections
+        return sum(len(conns) for conns in self.connections.values())
 
     def set(self, **attributes):
         raise NotImplementedError

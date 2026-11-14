@@ -63,7 +63,7 @@ class Recorder(recording.Recorder):
         # a positional cell_member index. The tag assigned here (a per-gid probe
         # counter, in the same iteration order as _get_arbor_probes) must match
         # the tag given to the corresponding probe there.
-        self.handles = defaultdict(list)
+        self.handles = defaultdict(dict)  # variable -> {gid: handle}
         probe_indices = defaultdict(int)
         for variable in self.recorded:
             if variable.name != "spikes":
@@ -72,7 +72,7 @@ class Recorder(recording.Recorder):
                     probe_indices[cell.gid] += 1
                     handle = arbor_sim.sample(
                         cell.gid, tag, arbor.regular_schedule(self.sampling_interval * U.ms))
-                    self.handles[variable].append(handle)
+                    self.handles[variable][cell.gid] = handle
 
     def _get_arbor_probes(self, gid):
         probes = []
@@ -113,7 +113,10 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         all_data = []
-        for handle in self.handles[variable]:
+        # signals must be returned in the order of ``ids``, which the caller has
+        # already restricted to the requested (e.g. PopulationView) cells
+        for id in ids:
+            handle = self.handles[variable][int(id)]
             data = []
             meta = []
             for d, m in self._simulator.state.arbor_sim.samples(handle):
@@ -125,7 +128,14 @@ class Recorder(recording.Recorder):
         return signal_array, times_array
 
     def _local_count(self, variable, filter_ids=None):
-        raise NotImplementedError()
+        if variable.name != "spikes":
+            raise Exception("Only implemented for spikes")
+        gids = self._simulator.state.arbor_sim.spikes()["source"]["gid"].ravel()
+        counts = np.bincount(gids.astype(int)) if gids.size else np.zeros(0, dtype=int)
+        return {
+            int(id): int(counts[id]) if id < counts.size else 0
+            for id in self.filter_recorded(variable, filter_ids)
+        }
 
     def _clear_simulator(self):
         pass

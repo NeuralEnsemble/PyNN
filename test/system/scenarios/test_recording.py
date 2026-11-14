@@ -6,6 +6,7 @@ import quantities as pq
 from numpy.testing import assert_array_equal, assert_allclose
 from neo.io import get_io
 from pyNN.utility import normalized_filename
+from pyNN.random import NumpyRNG, RandomDistribution
 from .fixtures import run_with_simulators
 
 
@@ -88,6 +89,37 @@ def test_record_vm_and_gsyn_from_assembly(sim):
     #assert_array_equal(gsyn_all.array_annotations["channel_index"], np.arange(2, 9))
 
     sim.end()
+
+
+@run_with_simulators("nest", "neuron", "arbor")
+def test_get_data_from_view(sim):
+    """A view returns the signals of its own cells only, matched to the right cells."""
+    sim.setup(timestep=0.1, min_delay=0.1)
+    cells = sim.Population(5, sim.IF_cond_exp(tau_m=1e6, v_thresh=0.0))
+    v_init = np.array([-70.0, -69.0, -68.0, -67.0, -66.0])
+    cells.initialize(v=v_init)
+    cells.record("v")
+    sim.run(1.0)
+    v_all = cells.get_data().segments[0].analogsignals[0]
+    v_view = cells[[1, 3]].get_data().segments[0].analogsignals[0]
+    sim.end()
+    assert_allclose(v_all.magnitude[0], v_init, atol=1e-6)
+    assert v_view.shape[1] == 2
+    assert_allclose(v_view.magnitude[0], v_init[[1, 3]], atol=1e-6)
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_initialize_from_random_distribution(sim):
+    """Random initial values are drawn once, in cell-index order."""
+    sim.setup(timestep=0.1, min_delay=0.1)
+    cells = sim.Population(5, sim.IF_cond_exp(tau_m=1e6, v_thresh=0.0))
+    cells.initialize(v=RandomDistribution("uniform", low=-70.0, high=-60.0, rng=NumpyRNG(seed=1)))
+    cells.record("v")
+    sim.run(1.0)
+    v = cells.get_data().segments[0].analogsignals[0].magnitude
+    sim.end()
+    expected = NumpyRNG(seed=1).next(5, "uniform", {"low": -70.0, "high": -60.0})
+    assert_allclose(v[-1], expected, atol=1e-3)
 
 
 @run_with_simulators("nest", "neuron")

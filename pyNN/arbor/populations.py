@@ -9,7 +9,7 @@ from arbor import units as U
 
 from .. import common, errors
 from ..standardmodels import StandardCellType
-from ..parameters import ParameterSpace, simplify, Sequence
+from ..parameters import LazyArray, ParameterSpace, simplify, Sequence
 from . import simulator
 from . import _compat
 from .recording import Recorder
@@ -99,6 +99,10 @@ class Population(common.Population):
                     schedule_params[key] = [float(v) * unit for v in value]
                 else:
                     schedule_params[key] = value * unit
+            if getattr(self.celltype, "arbor_schedule_seeded", False):
+                # Each source needs its own random stream; with the default seed
+                # all sources would emit identical spike trains.
+                schedule_params["seed"] = simulator.state.rng_seed * 2**32 + int(gid)
             schedule = self.celltype.arbor_schedule(**schedule_params)
             return arbor.spike_source_cell("spike-source", schedule)
         elif self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
@@ -168,6 +172,11 @@ class Population(common.Population):
         self._mask_local = np.ones_like(id_range, dtype=bool)
 
     def _set_initial_value_array(self, variable, initial_values):
+        # Evaluate now: the values are otherwise only read element by element when
+        # Arbor builds each cell, which for random distributions draws fresh numbers
+        # per cell, in Arbor's cell-construction order rather than index order.
+        initial_values = LazyArray(initial_values.evaluate(simplify=False),
+                                   shape=initial_values.shape, dtype=float)
         if self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
             # Native lif cells have no decor; the initial v is applied as V_m when
             # the cell is built in arbor_cell_description.

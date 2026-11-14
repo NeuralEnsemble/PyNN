@@ -14,6 +14,17 @@ import pytest
 # TODO: add some tests with projections between Assemblies and PopulationViews
 
 
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_projection_size(sim):
+    """Projection.size() counts connections, not postsynaptic cells."""
+    sim.setup()
+    p1 = sim.Population(4, sim.IF_cond_exp())
+    p2 = sim.Population(3, sim.IF_cond_exp())
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.01))
+    assert prj.size() == 12
+    sim.end()
+
+
 @run_with_simulators("nest", "neuron", "brian2")
 def test_all_to_all_static_no_self(sim):
     sim.setup()
