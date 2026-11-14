@@ -3,7 +3,7 @@ import numpy as np
 from .fixtures import run_with_simulators
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_scenario2(sim):
     """
     Array of neurons, each injected with a different current.

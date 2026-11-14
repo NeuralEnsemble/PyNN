@@ -87,11 +87,14 @@ class TestUnitMaps(unittest.TestCase):
         self.assertEqual(list(units.keys()), ["times"])
         self.assertIs(units["times"], U.ms)
 
-    def test_electrode_param_units(self):
-        units = arbor_cells.ELECTRODE_PARAM_UNITS
-        self.assertIs(units["tstart"], U.ms)
-        self.assertIs(units["duration"], U.ms)
-        self.assertIs(units["current"], U.nA)
+    def test_if_curr_delta_lif_param_units(self):
+        units = arbor_standardmodels.IF_curr_delta.lif_param_units
+        self.assertIs(units["E_L"], U.mV)
+        self.assertIs(units["E_R"], U.mV)
+        self.assertIs(units["V_th"], U.mV)
+        self.assertIs(units["t_ref"], U.ms)
+        self.assertIs(units["tau_m"], U.ms)
+        self.assertIs(units["C_m"], U.nF)
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")
@@ -124,6 +127,283 @@ class TestTranslations(unittest.TestCase):
         schema = arbor_standardmodels.MultiCompartmentNeuron().get_schema()
         for key in ("morphology", "cm", "Ra", "ionic_species"):
             self.assertIn(key, schema)
+
+    def test_if_curr_delta_is_native_lif(self):
+        self.assertIs(arbor_standardmodels.IF_curr_delta.arbor_cell_kind,
+                      arbor.cell_kind.lif)
+
+    def test_if_curr_delta_translation(self):
+        m = arbor_standardmodels.IF_curr_delta(
+            v_rest=-65.0, cm=1.0, tau_m=20.0, tau_refrac=2.0,
+            v_reset=-70.0, v_thresh=-50.0, i_offset=0.0)
+        native = m.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["E_L"], -65.0)
+        self.assertAlmostEqual(d["E_R"], -70.0)
+        self.assertAlmostEqual(d["V_th"], -50.0)
+        self.assertAlmostEqual(d["t_ref"], 2.0)
+        self.assertAlmostEqual(d["tau_m"], 20.0)
+        self.assertAlmostEqual(d["C_m"], 1.0)  # cm passes through in nF
+        self.assertAlmostEqual(d["i_offset"], 0.0)
+
+
+@unittest.skipUnless(have_arbor, "Requires Arbor")
+class TestPointNeurons(unittest.TestCase):
+    """Point neurons realised as single-compartment cable cells (Phase 2)."""
+
+    def test_lif_translation(self):
+        m = arbor_standardmodels.LIF(
+            v_rest=-65.0, cm=1.0, tau_m=20.0, tau_refrac=2.0,
+            v_reset=-70.0, v_thresh=-50.0, i_offset=0.1)
+        native = m.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["E_L"], -65.0)
+        self.assertAlmostEqual(d["E_R"], -70.0)
+        self.assertAlmostEqual(d["V_th"], -50.0)
+        self.assertAlmostEqual(d["t_ref"], 2.0)
+        self.assertAlmostEqual(d["tau_m"], 20.0)
+        self.assertAlmostEqual(d["C_m"], 1.0)  # cm passes through in nF
+        self.assertAlmostEqual(d["i_offset"], 0.1)
+
+    def test_curr_exp_psr(self):
+        psr = arbor_standardmodels.CurrExpPostSynapticResponse(tau_syn=3.0)
+        self.assertEqual(psr.model, "expsyn_curr")
+        self.assertFalse(psr.conductance_based)
+        native = psr.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        self.assertAlmostEqual(native.as_dict()["tau"], 3.0)
+
+    def test_cond_exp_psr(self):
+        psr = arbor_standardmodels.CondExpPostSynapticResponse(tau_syn=3.0, e_syn=-10.0)
+        self.assertEqual(psr.model, "expsyn")
+        self.assertTrue(psr.conductance_based)
+        native = psr.native_parameters
+        native.shape = (1,)
+        native.evaluate(simplify=True)
+        d = native.as_dict()
+        self.assertAlmostEqual(d["tau"], 3.0)
+        self.assertAlmostEqual(d["e"], -10.0)
+
+    def test_point_neuron_is_cable_cell(self):
+        ct = arbor_standardmodels.PointNeuron(
+            arbor_standardmodels.LIF(),
+            excitatory=arbor_standardmodels.CondExpPostSynapticResponse(),
+            inhibitory=arbor_standardmodels.CondExpPostSynapticResponse(e_syn=-70.0),
+        )
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertEqual(ct.receptor_types, ["excitatory", "inhibitory"])
+        self.assertTrue(ct.conductance_based)
+
+    def test_point_neuron_mixed_receptor_kinds_rejected(self):
+        ct = arbor_standardmodels.PointNeuron(
+            arbor_standardmodels.LIF(),
+            excitatory=arbor_standardmodels.CondExpPostSynapticResponse(),
+            inhibitory=arbor_standardmodels.CurrExpPostSynapticResponse(),
+        )
+        with self.assertRaises(Exception):
+            ct.conductance_based
+
+    def test_if_cond_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_cond_exp(tau_syn_E=1.5, e_rev_E=0.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        self.assertEqual(tuple(ct.receptor_types), ("excitatory", "inhibitory"))
+
+    def test_if_curr_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_curr_exp(tau_syn_E=1.5)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertFalse(ct.conductance_based)
+
+    def test_if_curr_exp_translation(self):
+        # the classic model uses the standard flat translate(); check a couple of
+        # translated native names appear in the resulting synapse parameters
+        ct = arbor_standardmodels.IF_curr_exp(tau_syn_E=1.5, tau_syn_I=2.5, cm=0.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn_curr")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+        self.assertAlmostEqual(builder.dynamics.neuron_parameters["C_m"][0], 0.5)
+
+    def test_if_curr_alpha_is_cable_cell(self):
+        ct = arbor_standardmodels.IF_curr_alpha(tau_syn_E=1.5)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertFalse(ct.conductance_based)
+
+    def test_if_curr_alpha_translation(self):
+        ct = arbor_standardmodels.IF_curr_alpha(tau_syn_E=1.5, tau_syn_I=2.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "alphasyn_curr")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+
+    def test_if_cond_alpha_translation(self):
+        ct = arbor_standardmodels.IF_cond_alpha(tau_syn_E=1.5, e_rev_E=0.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "alphasyn")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+        self.assertAlmostEqual(exc_params["e"][0], 0.0)
+
+    def test_eif_cond_exp_is_cable_cell(self):
+        ct = arbor_standardmodels.EIF_cond_exp_isfa_ista()
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+
+    def test_eif_cond_exp_translation(self):
+        # a (subthreshold adaptation) is translated nS -> uS; the dynamics is AdExp
+        ct = arbor_standardmodels.EIF_cond_exp_isfa_ista(a=4.0, tau_syn_E=1.5)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.AdExpDynamics)
+        self.assertAlmostEqual(builder.dynamics.neuron_parameters["a"][0], 0.004)  # 4 nS -> uS
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn")
+        self.assertAlmostEqual(exc_params["tau"][0], 1.5)
+
+    def test_adexp_component_uses_adexp_dynamics(self):
+        self.assertIs(arbor_standardmodels.AdExp.dynamics_class, arbor_cells.AdExpDynamics)
+
+    def test_hh_cond_exp_translation(self):
+        ct = arbor_standardmodels.HH_cond_exp(gbar_Na=20.0, e_rev_Na=50.0, tau_syn_E=0.2)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertTrue(ct.conductance_based)
+        self.assertEqual(tuple(ct.receptor_types), ("excitatory", "inhibitory"))
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.HHDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["gnabar"][0], 20.0)  # whole-cell uS; -> S/cm2 at build
+        self.assertAlmostEqual(p["ena"][0], 50.0)
+        exc_model, exc_params = builder.post_synaptic_receptors["excitatory"]
+        self.assertEqual(exc_model, "expsyn")
+
+    def test_hh_specific_conductance_conversion(self):
+        # 20 uS whole-cell over the 1e-3 cm2 point-cell area -> 0.02 S/cm2
+        dyn = arbor_cells.HHDynamics(None)
+        self.assertAlmostEqual(dyn._specific_g(20.0), 0.02)
+
+    def test_izhikevich_translation(self):
+        ct = arbor_standardmodels.Izhikevich(a=0.02, b=0.2, c=-65.0, d=8.0)
+        self.assertIs(ct.arbor_cell_kind, arbor.cell_kind.cable)
+        self.assertEqual(tuple(ct.receptor_types), ())  # voltage-step synapses unsupported
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.IzhikevichDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["a"][0], 0.02)
+        self.assertAlmostEqual(p["d"][0], 8.0)
+        self.assertEqual(builder.post_synaptic_receptors, {})
+
+    def test_if_cond_exp_gsfa_grr_translation(self):
+        ct = arbor_standardmodels.IF_cond_exp_gsfa_grr(
+            tau_sfa=120.0, q_sfa=12.0, e_rev_sfa=-70.0, tau_rr=3.0)
+        builder = ct.native_parameters["cell_description"].base_value
+        builder.set_shape((1,))
+        self.assertIsInstance(builder.dynamics, arbor_cells.GsfaGrrDynamics)
+        p = builder.dynamics.neuron_parameters
+        self.assertAlmostEqual(p["tau_s"][0], 120.0)
+        self.assertAlmostEqual(p["q_s"][0], 12.0)
+        self.assertAlmostEqual(p["E_s"][0], -70.0)
+        self.assertAlmostEqual(p["tau_r"][0], 3.0)
+
+    def test_reset_and_current_synapse_mechanisms_in_catalogue(self):
+        cat = arbor.load_catalogue(arbor_simulator.catalogue_path())
+        mechs = list(cat)
+        self.assertIn("lif", mechs)
+        self.assertIn("expsyn_curr", mechs)
+        self.assertIn("alphasyn", mechs)
+        self.assertIn("alphasyn_curr", mechs)
+        self.assertIn("adexp", mechs)
+        self.assertIn("lif_gsfa_grr", mechs)
+        self.assertIn("izhikevich", mechs)
+        self.assertIn("hh_traub", mechs)
+
+
+@unittest.skipUnless(have_arbor, "Requires Arbor")
+class TestCurrentSources(unittest.TestCase):
+    """Each standard current source is realised as one or more Arbor iclamp
+    (envelope, frequency_Hz, phase_deg) components; check they are built correctly."""
+
+    @staticmethod
+    def _components(source):
+        source.parameter_space.shape = (1,)
+        return source._iclamp_components()
+
+    def test_dcsource_is_a_box(self):
+        components = self._components(
+            arbor_standardmodels.DCSource(amplitude=0.5, start=10.0, stop=20.0))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, phase = components[0]
+        self.assertEqual(frequency, 0.0)
+        # rectangular pulse: on at start, off at stop
+        self.assertEqual(envelope, [(10.0, 0.5), (20.0, 0.5), (20.0, 0.0)])
+
+    def test_stepcurrentsource_is_a_staircase(self):
+        components = self._components(arbor_standardmodels.StepCurrentSource(
+            times=[10.0, 15.0, 20.0], amplitudes=[0.1, 0.2, 0.3]))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, _ = components[0]
+        self.assertEqual(frequency, 0.0)
+        # piecewise-constant with duplicated breakpoints; holds the last value
+        self.assertEqual(
+            [(round(t, 6), round(a, 6)) for (t, a) in envelope],
+            [(10.0, 0.1), (15.0, 0.1), (15.0, 0.2), (20.0, 0.2), (20.0, 0.3)])
+
+    def test_stepcurrentsource_rejects_bad_times(self):
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.StepCurrentSource(
+                times=[10.0, -5.0], amplitudes=[0.1, 0.2]))
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.StepCurrentSource(
+                times=[10.0, 5.0], amplitudes=[0.1, 0.2]))
+
+    def test_acsource_sine_plus_offset(self):
+        components = self._components(arbor_standardmodels.ACSource(
+            start=10.0, stop=20.0, amplitude=0.5, offset=0.1,
+            frequency=100.0, phase=30.0))
+        self.assertEqual(len(components), 2)
+        (sine_env, freq, phase), (offset_env, offset_freq, _) = components
+        self.assertEqual(freq, 100.0)
+        # phase shifted so PyNN's 30 deg holds at start=10 (f=100 Hz -> 360 deg/10 ms)
+        self.assertAlmostEqual(phase, 30.0 - 360.0 * 100.0 * 10.0 / 1000.0)
+        self.assertEqual(sine_env, [(10.0, 0.5), (20.0, 0.5), (20.0, 0.0)])
+        self.assertEqual(offset_freq, 0.0)
+        self.assertEqual(offset_env, [(10.0, 0.1), (20.0, 0.1), (20.0, 0.0)])
+
+    def test_acsource_omits_zero_offset(self):
+        components = self._components(arbor_standardmodels.ACSource(
+            start=10.0, stop=20.0, amplitude=0.5, offset=0.0,
+            frequency=100.0, phase=0.0))
+        self.assertEqual(len(components), 1)
+
+    def test_noisycurrentsource_samples_and_zeroes_at_stop(self):
+        import pyNN.arbor as sim
+        sim.setup(timestep=0.1, min_delay=0.1)
+        components = self._components(arbor_standardmodels.NoisyCurrentSource(
+            mean=0.5, stdev=0.05, start=10.0, stop=12.0, dt=0.5))
+        self.assertEqual(len(components), 1)
+        envelope, frequency, _ = components[0]
+        self.assertEqual(frequency, 0.0)
+        self.assertAlmostEqual(envelope[0][0], 10.0)   # starts at `start`
+        self.assertAlmostEqual(envelope[-1][0], 12.0)  # ends at `stop`
+        self.assertEqual(envelope[-1][1], 0.0)         # current off at `stop`
+
+    def test_noisycurrentsource_requires_finite_stop(self):
+        import pyNN.arbor as sim
+        sim.setup(timestep=0.1, min_delay=0.1)
+        with self.assertRaises(ValueError):
+            self._components(arbor_standardmodels.NoisyCurrentSource(
+                mean=0.5, stdev=0.05, start=10.0))
 
 
 @unittest.skipUnless(have_arbor, "Requires Arbor")

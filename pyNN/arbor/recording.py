@@ -79,7 +79,9 @@ class Recorder(recording.Recorder):
         probe_index = 0
         for variable in self.recorded:
             if variable.location is None:
-                pass
+                # Point neurons (single-compartment cable cells) are recorded
+                # without an explicit location; default to the soma.
+                locset = "(root)"
             else:
                 locset = variable.location
 
@@ -90,7 +92,11 @@ class Recorder(recording.Recorder):
                 tag = str(probe_index)
                 probe_index += 1
                 if variable.name == "v":
-                    probe = arbor.cable_probe_membrane_voltage(locset, tag)
+                    if self.population.celltype.arbor_cell_kind == arbor.cell_kind.lif:
+                        # Native lif cells have no morphology/locset.
+                        probe = arbor.lif_probe_voltage(tag)
+                    else:
+                        probe = arbor.cable_probe_membrane_voltage(locset, tag)
                 else:
                     mech_name, state_name = variable.name.split(".")
                     arbor_model = mech_name  # to do: find_arbor_model(mech_name)
