@@ -174,6 +174,9 @@ Current limitations
 * Synaptic weights and delays cannot be changed after a :class:`Projection` has been
   created.
 * Native (non-standard) cell and synapse models are not yet supported.
+* For multi-compartment neurons, :class:`random_placement`, :class:`random_section`,
+  :class:`by_distance` and :class:`by_diameter` are not yet supported
+  (see :doc:`../mc_api`).
 
 
 .. _Arbor: https://arbor-sim.org

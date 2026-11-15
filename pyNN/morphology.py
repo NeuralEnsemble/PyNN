@@ -310,7 +310,8 @@ class LabelledLocations(LocationGenerator):
 class at_distances(LocationGenerator):
     """
     Locations at given path distances (in µm) from the root of the morphology
-    (the proximal end of the soma), within the region given by `selector`.
+    (the proximal end of the soma, or the centre of a three-point soma),
+    within the region given by `selector`.
 
     There is a location on every branch of the region at each distance, so a
     distance may give more than one location (or none, if the region does not

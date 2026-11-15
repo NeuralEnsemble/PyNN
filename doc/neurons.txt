@@ -101,7 +101,7 @@ from which multi-compartment models can be composed by writing a simple class:
 The morphology is provided as a parameter when creating a population (see next section),
 along with the distribution and parameters of ion channels and synapses.
 
-For more details on using multi-compartment neurons, see :doc:`mc`.
+For more details on using multi-compartment neurons, see :doc:`mc_api`.
 
 Populations
 ===========
