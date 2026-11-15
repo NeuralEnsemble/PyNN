@@ -76,13 +76,19 @@ class Projection(common.Projection):
                 ConnectionGroup(pre_idx, postsynaptic_index, self.receptor_type, location_selector, **other_attributes)
             )
 
+    @property
+    def _post_population(self):
+        """The postsynaptic Population (for a PopulationView, the Population at the
+        root of the tree of views), which holds the Arbor cell descriptions."""
+        return getattr(self.post, "grandparent", self.post)
+
     def _lif_post_cm_pF(self, gid):
         """The C_m (in pF) of the postsynaptic native lif cell with the given gid.
 
         The native C_m is stored in nF (its PyNN unit); the delta-weight charge
         relation ΔV[mV] = weight / C_m[pF] needs it in pF.
         """
-        post_pop = self.post.parent if hasattr(self.post, "parent") else self.post
+        post_pop = self._post_population
         native = post_pop._arbor_cell_description
         if not native._evaluated:
             native.evaluate()
@@ -110,7 +116,9 @@ class Projection(common.Projection):
                 weight_scale = self._lif_post_cm_pF(gid)
             else:
                 weight_scale = 1.0
-                all_labels = list(self.post._arbor_cell_description[postsynaptic_index]["labels"])
+                post_pop = self._post_population
+                cell_description = post_pop._arbor_cell_description[post_pop.id_to_index(gid)]
+                all_labels = list(cell_description["labels"])
             for cg in self._connections_by_target[postsynaptic_index]:
                 if cg.location_selector in (None, "all"):
                     if is_lif_post:
