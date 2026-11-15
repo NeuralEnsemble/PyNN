@@ -167,8 +167,9 @@ we specify a "location generator":
 
     locations = at_distances(apical_dendrites(), [50, 100, 150, 200, 250])  # distances in µm
 
+The distances are measured along the path from the root of the morphology (the proximal end of the soma).
 Note that this may specify more than five points, due to branching
-(i.e. there will be a point on each branch at 100 µm from the soma);
+(i.e. there will be a point on each branch at 100 µm from the root);
 equally, some branches may be shorter than 250 µm and so no point will be generated for that branch.
 
 In addition to :class:`at_distances`, PyNN currently provides :class:`centre` and :class:`random_placement`;

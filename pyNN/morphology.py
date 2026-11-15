@@ -181,7 +181,6 @@ class NeuriteDistribution(object):
         self.absence = absence
 
 
-
 class IonChannelDistribution(NeuriteDistribution):
     pass
 
@@ -224,7 +223,11 @@ class any(IonChannelDistribution, SynapseDistribution):
 
 
 class MorphologyFilter(object):
-    pass
+
+    @property
+    def name(self):
+        """Name used in the labels of locations generated within this region."""
+        return self.__class__.__name__
 
 
 class dendrites(MorphologyFilter):
@@ -281,6 +284,10 @@ class with_label(MorphologyFilter):
     def __init__(self, *labels):
         self.labels = labels
 
+    @property
+    def name(self):
+        return "+".join(self.labels)
+
 
 class LocationGenerator:
 
@@ -297,7 +304,18 @@ class LabelledLocations(LocationGenerator):
 
 
 class at_distances(LocationGenerator):
-    # fractional distances, 0-1
+    """
+    Locations at given path distances (in µm) from the root of the morphology
+    (the proximal end of the soma), within the region given by `selector`.
+
+    There is a location on every branch of the region at each distance, so a
+    distance may give more than one location (or none, if the region does not
+    extend that far).
+
+    Example:
+
+    at_distances(apical_dendrites(), [50, 100, 150])
+    """
 
     def __init__(self, selector, distances):
         if isinstance(selector, MorphologyFilter):
@@ -307,6 +325,9 @@ class at_distances(LocationGenerator):
         else:
             raise TypeError("'selector' should be either a MorphologyFilter or a string")
         self.distances = distances
+
+    def location_label(self, distance):
+        return f"{self.selector.name}.{distance:g}um"
 
 
 class random_placement(LocationGenerator):
