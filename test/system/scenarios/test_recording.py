@@ -1,5 +1,4 @@
 
-import os
 import pickle
 import numpy as np
 import quantities as pq
@@ -272,10 +271,11 @@ def test_sampling_interval(sim):
 
 
 @run_with_simulators("nest", "neuron", "brian2", "arbor")
-def test_mix_procedural_and_oo(sim):
+def test_mix_procedural_and_oo(sim, tmp_path):
     # cf Issues #217, #234
-    fn_proc = "test_write_procedural.pkl"
-    fn_oo = "test_write_oo.pkl"
+    # a separate directory for each simulator, since tests may run in parallel
+    fn_proc = str(tmp_path / "test_write_procedural.pkl")
+    fn_oo = str(tmp_path / "test_write_oo.pkl")
     sim.setup(timestep=0.1, min_delay=0.1)
     cells = sim.Population(5, sim.IF_cond_exp(i_offset=0.2))
     sim.record('v', cells, fn_proc)
@@ -287,9 +287,6 @@ def test_mix_procedural_and_oo(sim):
     data_oo = get_io(fn_oo).read()[0]
     assert_array_equal(data_proc.segments[0].analogsignals[0],
                        data_oo.segments[0].analogsignals[0])
-
-    os.remove(fn_proc)
-    os.remove(fn_oo)
 
 
 @run_with_simulators("nest", "neuron")

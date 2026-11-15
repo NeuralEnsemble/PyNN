@@ -116,13 +116,20 @@ class TestSimulationControl(unittest.TestCase):
 
         sim.end()
 
+    # setup() is needed so as not to depend on the state left by other tests,
+    # e.g. those that fake MPI with setup(num_processes=2, rank=1)
+
     @unittest.skipUnless(MPI, "test requires mpi4py")
     def test_num_processes(self, sim=sim):
+        sim.setup(**self.extra)
         self.assertEqual(sim.num_processes(), mpi_comm.size)
+        sim.end()
 
     @unittest.skipUnless(MPI, "test requires mpi4py")
     def test_rank(self, sim=sim):
+        sim.setup(**self.extra)
         self.assertEqual(sim.rank(), mpi_comm.rank)
+        sim.end()
 
 
 if __name__ == '__main__':
