@@ -270,9 +270,10 @@ class HH_cond_exp(cells.HH_cond_exp):
         ('v', 'v', mV),
         ('gsyn_exc', 'ge', uS),
         ('gsyn_inh', 'gi', uS),
-        ('h', 'h'),
-        ('m', 'm'),
-        ('n', 'n'))
+        # a scale factor of 1 (rather than none) gives transform functions, as the recorder expects
+        ('h', 'h', 1),
+        ('m', 'm', 1),
+        ('n', 'n', 1))
     brian2_model = BiophysicalNeuronGroup
 
 

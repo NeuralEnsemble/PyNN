@@ -100,8 +100,13 @@ class Recorder(recording.Recorder):
                 else:
                     probe = self._point_mechanism_probe(gid, variable.name, tag)
                     if probe is None:
-                        mech_name, state_name = variable.name.split(".")
-                        arbor_model = mech_name  # to do: find_arbor_model(mech_name)
+                        builder = getattr(self.population._arbor_cell_description, "base_value", None)
+                        density_states = getattr(getattr(builder, "dynamics", None), "density_states", {})
+                        if variable.name in density_states:  # e.g. "m" for HH_cond_exp
+                            arbor_model, state_name = density_states[variable.name]
+                        else:
+                            mech_name, state_name = variable.name.split(".")
+                            arbor_model = mech_name  # to do: find_arbor_model(mech_name)
                         probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
                 probes.append(probe)
         return probes

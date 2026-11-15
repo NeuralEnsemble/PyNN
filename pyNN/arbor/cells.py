@@ -249,6 +249,8 @@ class PointNeuronDynamics:
 
     native_names = ()
     point_states = {}
+    density_states = {}  # as point_states, for density mechanisms: name -> (mechanism, state)
+    initial_states = ()  # state variables whose initial values are passed to paint()
 
     def __init__(self, neuron_parameters):
         self.neuron_parameters = neuron_parameters
@@ -270,8 +272,11 @@ class PointNeuronDynamics:
     def set_property(self, decor, i, initial_v):
         decor.set_property(Vm=initial_v * U.mV, cm=self.specific_cm(i) * U.uF / U.cm2)
 
-    def paint(self, decor, i):
-        """Paint density mechanisms (leak / ion channels). May be a no-op."""
+    def paint(self, decor, i, initial_values):
+        """Paint density mechanisms (leak / ion channels). May be a no-op.
+
+        ``initial_values`` maps the names of the cell's state variables to their
+        initial values, as lazy arrays over the population."""
 
     def place_reset(self, decor, i):
         """Place the reset / dynamics point process at ``(root)``. May be a no-op."""
@@ -297,7 +302,7 @@ class LIFDynamics(PointNeuronDynamics):
             self.neuron_parameters["C_m"][i], self.neuron_parameters["tau_m"][i])
         return c_spec
 
-    def paint(self, decor, i):
+    def paint(self, decor, i, initial_values):
         p = self.neuron_parameters
         _c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
         # e is a GLOBAL parameter of pas, set via the mechanism name
@@ -333,7 +338,7 @@ class AdExpDynamics(PointNeuronDynamics):
             self.neuron_parameters["C_m"][i], self.neuron_parameters["tau_m"][i])
         return c_spec
 
-    def paint(self, decor, i):
+    def paint(self, decor, i, initial_values):
         p = self.neuron_parameters
         _c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
         decor.paint("(all)", arbor.density(f"pas/e={p['E_L'][i]}", {"g": g_spec}))
@@ -391,6 +396,8 @@ class HHDynamics(PointNeuronDynamics):
 
     native_names = ("gnabar", "gkbar", "gl", "ena", "ek", "el", "vT",
                     "C_m", "i_offset")
+    initial_states = ("m", "h", "n")
+    density_states = {"m": ("hh_traub", "m"), "h": ("hh_traub", "h"), "n": ("hh_traub", "n")}
 
     def specific_cm(self, i):
         return self.neuron_parameters["C_m"][i] * 1e-3 / _POINT_CELL_AREA_CM2
@@ -399,13 +406,18 @@ class HHDynamics(PointNeuronDynamics):
         """Whole-cell conductance [uS] -> specific conductance [S/cm2]."""
         return g_uS * 1e-6 / _POINT_CELL_AREA_CM2
 
-    def paint(self, decor, i):
+    def paint(self, decor, i, initial_values):
         p = self.neuron_parameters
-        decor.paint("(all)", arbor.density("hh_traub", {
+        mechanism_parameters = {
             "gnabar": self._specific_g(p["gnabar"][i]),
             "gkbar": self._specific_g(p["gkbar"][i]),
             "gl": self._specific_g(p["gl"][i]),
-            "el": p["el"][i], "vT": p["vT"][i]}))
+            "el": p["el"][i], "vT": p["vT"][i]}
+        # initial values of the gating variables, set in the mechanism's INITIAL block
+        for name in self.initial_states:
+            if name in initial_values:
+                mechanism_parameters[f"{name}init"] = initial_values[name][i]
+        decor.paint("(all)", arbor.density("hh_traub", mechanism_parameters))
         decor.set_ion("na", rev_pot=p["ena"][i] * U.mV)
         decor.set_ion("k", rev_pot=p["ek"][i] * U.mV)
 
@@ -502,7 +514,7 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
         decor = arbor.decor()
         # neuron-specific decoration (membrane properties, leak/channels, reset)
         self.dynamics.set_property(decor, i, self.initial_values["v"][i])
-        self.dynamics.paint(decor, i)
+        self.dynamics.paint(decor, i, self.initial_values)
         self.dynamics.place_reset(decor, i)
         # network spike source
         decor.place("(root)",

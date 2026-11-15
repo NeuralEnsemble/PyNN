@@ -14,7 +14,7 @@ NEURON {
         USEION na READ ena WRITE ina
         USEION k READ ek WRITE ik
         NONSPECIFIC_CURRENT il
-        RANGE gnabar, gkbar, gl, el, gna, gk, vT
+        RANGE gnabar, gkbar, gl, el, gna, gk, vT, minit, hinit, ninit
         GLOBAL minf, hinf, ninf, mtau, htau, ntau
 	THREADSAFE : assigned GLOBALs will be per thread
 }
@@ -25,6 +25,10 @@ PARAMETER {
         gl = 0.00001 (S/cm2)	<0,1e9>
         el = -60.0 (mV)
         vT = -63.0 (mV)
+        : initial values of the gating variables (the defaults are those of PyNN's HH_cond_exp)
+        minit = 0
+        hinit = 1
+        ninit = 0
 }
  
 STATE {
@@ -61,10 +65,10 @@ INITIAL {
 	:m = minf
 	:h = hinf
 	:n = ninf
-        : but for compatibility with NEST, we use the following
-        m = 0
-        h = 0
-        n = 0
+        : but for consistency with other simulators, we use the values set by PyNN
+        m = minit
+        h = hinit
+        n = ninit
 }
 
 DERIVATIVE states {  

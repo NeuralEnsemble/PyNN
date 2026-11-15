@@ -105,7 +105,9 @@ class Recorder(recording.Recorder):
             elif variable.name == 'gsyn_inh':
                 hoc_var = cell.isyn._ref_g
             else:
-                source, var_name = self._resolve_variable(cell, variable.name)
+                # a cell may give the path to a standard state variable within a mechanism
+                var_path = getattr(cell, "state_variable_paths", {}).get(variable.name, variable.name)
+                source, var_name = self._resolve_variable(cell, var_path)
                 if hasattr(self.population.celltype, "variable_map"):
                     var_name = self.population.celltype.variable_map[variable.name]
                 hoc_var = getattr(source, "_ref_%s" % var_name)
