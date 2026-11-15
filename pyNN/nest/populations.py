@@ -18,6 +18,7 @@ from ..parameters import ArrayParameter, Sequence, ParameterSpace, simplify, Laz
 from ..random import RandomDistribution
 from ..standardmodels import StandardCellType
 from . import simulator
+from .conversion import make_sli_compatible
 from .recording import Recorder
 
 logger = logging.getLogger("PyNN")
@@ -168,6 +169,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
         for name, val in cell_parameters.items():
             if isinstance(val, ArrayParameter):
                 cell_parameters[name] = val.value.tolist()
+        cell_parameters = make_sli_compatible(cell_parameters)
     else:
         parameter_space.evaluate(mask=mask_local)
         cell_parameters = list(parameter_space)  # may not be the most efficient way.
@@ -179,6 +181,7 @@ def _build_params(parameter_space, mask_local, size=None, extra_parameters=None)
                     D[name] = val.value.tolist()
             if extra_parameters:
                 D.update(extra_parameters)
+        cell_parameters = [make_sli_compatible(D) for D in cell_parameters]
     return cell_parameters
 
 
@@ -265,12 +268,18 @@ class Population(common.Population, PopulationMixin):
                     self._simulator.set_status(self.node_collection, name, value)
 
     def _set_initial_value_array(self, variable, value):
+        default = self.celltype.default_initial_values.get(variable)
         if hasattr(self.celltype, "variable_map"):
             variable = self.celltype.variable_map[variable]
         if isinstance(value.base_value, RandomDistribution) and value.base_value.rng.parallel_safe:
             local_values = value.evaluate()[self._mask_local]
         else:
             local_values = value._partially_evaluate(self._mask_local, simplify=True)
+        if isinstance(default, (int, np.integer)) and not isinstance(default, bool):
+            # e.g. integer state variables in NESTML models; NEST will not cast float to int
+            local_values = np.asarray(local_values).round().astype(int)
+            if local_values.ndim == 0:
+                local_values = local_values.item()
         try:
             if (
                 self._mask_local.dtype == bool

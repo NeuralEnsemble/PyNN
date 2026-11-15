@@ -45,7 +45,7 @@ brian2 = ["brian2"]
 arbor = ["arbor>=0.10.0,<0.13", "libNeuroML>=0.2.45", "morphio"]
 spiNNaker = ["spyNNaker"]
 neuroml = ["libNeuroML>=0.2.45", "pyNeuroML"]
-nestml = ["nestml"]
+nestml = ["nestml>=9"]
 
 [project.urls]
 homepage = "http://neuralensemble.org/PyNN/"

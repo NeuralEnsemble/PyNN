@@ -44,6 +44,24 @@ def _check_not_compiled():
         )
 
 
+def _settable_parameters(nest_model, parameters):
+    """
+    Remove read-only entries from ``parameters``.
+
+    From NESTML 9, the values in a model's ``internals`` block appear in
+    nest.GetDefaults() but cannot be set.
+    """
+    import nest
+    settable = {}
+    for name, value in parameters.items():
+        try:
+            nest.SetDefaults(nest_model, {name: nest.GetDefaults(nest_model, name)})
+        except nest.NESTError:
+            continue
+        settable[name] = value
+    return settable
+
+
 def _make_pending_cell_type_class(name):
     """Return a stub cell type class that will be resolved at setup() time."""
 
@@ -66,6 +84,7 @@ def _make_pending_cell_type_class(name):
         @classmethod
         def _resolve(cls, nest_name=None):
             real = native_cell_type(nest_name or cls._nestml_name)
+            real.default_parameters = _settable_parameters(real.nest_model, real.default_parameters)
             for attr in ("nest_name", "nest_model", "default_parameters", "default_initial_values",
                          "recordable", "injectable", "uses_parrot", "receptor_types",
                          "standard_receptor_type", "conductance_based", "always_local", "units"):
@@ -205,6 +224,19 @@ def _ensure_file(description, tmpdirs):
     return filepath
 
 
+MIN_NESTML_VERSION = (9, 0)
+
+
+def _check_nestml_version():
+    from importlib.metadata import version
+    installed = version("nestml")
+    if tuple(int(x) for x in re.findall(r"\d+", installed)[:2]) < MIN_NESTML_VERSION:
+        raise ImportError(
+            f"PyNN requires NESTML {'.'.join(map(str, MIN_NESTML_VERSION))} or later, "
+            f"but version {installed} is installed"
+        )
+
+
 def _compile_and_resolve():
     """
     Compile all pending NESTML models together and resolve their stub classes.
@@ -218,6 +250,7 @@ def _compile_and_resolve():
         _compiled = True
         return
 
+    _check_nestml_version()
     from pynestml.frontend.pynestml_frontend import generate_nest_target
     import nest
 
@@ -251,7 +284,7 @@ def _compile_and_resolve():
 
     if synapse_pairs:
         codegen_opts["neuron_synapse_pairs"] = [
-            {"neuron": p["neuron"], "synapse": p["synapse"], "post_ports": p["post_ports"]}
+            {"neuron": p["neuron"], "synapses": {p["synapse"]: {"post_ports": p["post_ports"]}}}
             for p in synapse_pairs
         ]
 

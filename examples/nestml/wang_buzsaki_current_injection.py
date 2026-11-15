@@ -59,8 +59,8 @@ model wb_cond_exp:
         kernel g_inh = exp(-t / tau_syn_inh)
         kernel g_exc = exp(-t / tau_syn_exc)
 
-        recordable inline I_syn_exc pA = convolve(g_exc, exc_spikes) * nS * ( V_m - E_exc )
-        recordable inline I_syn_inh pA = convolve(g_inh, inh_spikes) * nS * ( V_m - E_inh )
+        recordable inline I_syn_exc pA = convolve(g_exc, exc_spikes) * 1 nS * ( V_m - E_exc )
+        recordable inline I_syn_inh pA = convolve(g_inh, inh_spikes) * 1 nS * ( V_m - E_inh )
 
         inline I_Na  pA = g_Na * _subexpr(V_m) * Inact_h * ( V_m - E_Na )
         inline I_K   pA = g_K * Act_n**4 * ( V_m - E_K )
@@ -91,10 +91,10 @@ model wb_cond_exp:
     internals:
         RefractoryCounts integer = steps(t_ref) # refractory time in steps
 
-        alpha_n_init 1/ms = -0.05/(ms*mV) * (E_L + 34.0 mV) / (exp(-0.1 * (E_L + 34.0 mV)) - 1.0)
-        beta_n_init  1/ms = 0.625/ms * exp(-(E_L + 44.0 mV) / 80.0 mV)
-        alpha_h_init 1/ms = 0.35/ms * exp(-(E_L + 58.0 mV) / 20.0 mV)
-        beta_h_init  1/ms = 5.0 / (exp(-0.1 / mV * (E_L + 28.0 mV)) + 1.0) /ms
+        alpha_n_init 1/ms = -0.05/(1 ms * 1 mV) * (E_L + 34.0 mV) / (exp(-0.1 * (E_L + 34.0 mV)) - 1.0)
+        beta_n_init  1/ms = 0.625/(1 ms) * exp(-(E_L + 44.0 mV) / 80.0 mV)
+        alpha_h_init 1/ms = 0.35/(1 ms) * exp(-(E_L + 58.0 mV) / 20.0 mV)
+        beta_h_init  1/ms = 5.0 / (exp(-0.1 / (1 mV) * (E_L + 28.0 mV)) + 1.0) / (1 ms)
 
     input:
         inh_spikes <- inhibitory spike
@@ -118,22 +118,22 @@ model wb_cond_exp:
         return alpha_m(V_m)**3 / ( alpha_m(V_m) + beta_m(V_m) )**3
 
     function alpha_m(V_m mV) 1/ms:
-        return 0.1/(ms*mV) * (V_m + 35.0 mV) / (1.0 - exp(-0.1 mV * (V_m + 35.0 mV)))
+        return 0.1/(1 ms * 1 mV) * (V_m + 35.0 mV) / (1.0 - exp(-0.1 mV * (V_m + 35.0 mV)))
 
     function beta_m(V_m mV) 1/ms:
-        return 4.0/(ms) * exp(-(V_m + 60.0 mV) / 18.0 mV)
+        return 4.0/(1 ms) * exp(-(V_m + 60.0 mV) / 18.0 mV)
 
     function alpha_n(V_m mV) 1/ms:
-        return -0.05/(ms*mV) * (V_m + 34.0 mV) / (exp(-0.1 * (V_m + 34.0 mV)) - 1.0)
+        return -0.05/(1 ms * 1 mV) * (V_m + 34.0 mV) / (exp(-0.1 * (V_m + 34.0 mV)) - 1.0)
 
     function beta_n(V_m mV) 1/ms:
-        return 0.625/ms * exp(-(V_m + 44.0 mV) / 80.0 mV)
+        return 0.625/(1 ms) * exp(-(V_m + 44.0 mV) / 80.0 mV)
 
     function alpha_h(V_m mV) 1/ms:
-        return 0.35/ms * exp(-(V_m + 58.0 mV) / 20.0 mV)
+        return 0.35/(1 ms) * exp(-(V_m + 58.0 mV) / 20.0 mV)
 
     function beta_h(V_m mV) 1/ms:
-        return 5.0 / (exp(-0.1 / mV * (V_m + 28.0 mV)) + 1.0) /ms
+        return 5.0 / (exp(-0.1 / (1 mV) * (V_m + 28.0 mV)) + 1.0) / (1 ms)
 """
 
 celltype_cls = sim.nestml.nestml_cell_type("wb_cond_exp", nestml_description)
