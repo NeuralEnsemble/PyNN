@@ -8,6 +8,17 @@ from .. import morphology as base_morphology
 
 # --- MorphologyFilters ---
 
+def _region_expression(region):
+    """Convert the output of `get_region()` to a region expression.
+
+    `with_label.get_region()` returns a quoted label (which `decor.paint()` accepts),
+    the other filters return a region expression.
+    """
+    if region.startswith('"'):
+        return f"(region {region})"
+    return region
+
+
 class with_label(base_morphology.with_label):
 
     def get_region(self):
@@ -115,7 +126,7 @@ class at_distances(base_morphology.at_distances, HasSelector):
 
         region = self.selector.get_region()
         locations = [
-            (f'(on-components {d} (region {region}))', f"{label}-{region}-{d}")
+            (f'(on-components {d} {_region_expression(region)})', f"{label}-{region}-{d}")
             for d in self.distances
         ]
         return locations
@@ -131,4 +142,5 @@ class centre(base_morphology.centre, HasSelector):
 
     def generate_locations(self, morphology, label):
         region = self.selector.get_region()
-        return [(f'(on-components 0.5 (region {region}))', f"{label}-{region}-centre")]
+        return [(f'(on-components 0.5 {_region_expression(region)})',
+                 f"{label}-{self.selector.__class__.__name__}.centre")]
