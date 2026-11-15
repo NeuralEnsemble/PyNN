@@ -116,6 +116,9 @@ jobs:
         arbor-version: ["0.10.0", "0.12.2"]
     steps:
     - uses: actions/checkout@v6
+    - uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: openmpi
     - name: Set up Python 3.12
       uses: actions/setup-python@v6
       with:
