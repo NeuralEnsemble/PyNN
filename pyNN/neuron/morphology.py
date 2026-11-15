@@ -260,7 +260,7 @@ class random_placement(base_morphology.random_placement, HasSelector):
 
     def generate_locations(self, morphology, label_prefix, cell):
         locations = []
-        for index, section_id in enumerate(cell.sections):
+        for section_id, index in cell._morphology_indices.items():
             density = self.density_function.value_in(morphology, index)
             section = cell.sections[section_id]
             n_synapses = density * section.L

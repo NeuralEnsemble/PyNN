@@ -301,3 +301,46 @@ def test_mc_three_point_soma_swc(sim, tmp_path):
     soma_v = data.filter(name="soma.v")[0].magnitude[:, 0]
     assert soma_v.max() > 20.0
     assert len(data.spiketrains[0]) >= 1
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_random_synapse_placement(sim):
+    """Synapses placed with random_placement(), and connections to a random_section().
+
+    The dendrite is 500 µm long, so a density of 0.1 synapses per µm gives 50 synapses.
+    Not yet supported by the Arbor backend, which should say so.
+    """
+    if not have_neuroml:
+        pytest.skip("libNeuroML not available")
+    m = sim.morphology
+
+    def build_and_run():
+        sim.setup(timestep=0.025)
+        cell_type = _build_mc_cell_type(
+            sim, synapse_locations=m.random_placement(m.uniform('dendrite', 0.1)))
+        cells = sim.Population(1, cell_type, initial_values={'v': -60.0})
+        source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+        prj = sim.Projection(source, cells,
+                             sim.AllToAllConnector(location_selector=m.random_section(m.with_label("dendrite"))),
+                             sim.StaticSynapse(weight=0.005, delay=1.0), receptor_type="AMPA")
+        cells.record('v', locations="soma")
+        sim.run(50.0)
+        return cells, prj
+
+    if sim.__name__ == "pyNN.arbor":
+        with pytest.raises(NotImplementedError, match="not yet supported by the Arbor backend"):
+            build_and_run()
+        sim.end()
+        return
+
+    cells, prj = build_and_run()
+    data = cells.get_data().segments[0]
+    synapses = cells[0]._cell.synaptic_receptors["AMPA"]
+    sim.end()
+
+    # all 50 synapses are on the dendrite (segment 1)
+    assert {section_id: len(syns) for section_id, syns in synapses.items()} == {1: 50}
+    # the connection goes to one of them, and gives an EPSP at the soma
+    assert len(prj) == 1
+    v = data.filter(name="soma.v")[0].magnitude[:, 0]
+    assert v.max() - v[800] > 0.1  # relative to v at 20 ms

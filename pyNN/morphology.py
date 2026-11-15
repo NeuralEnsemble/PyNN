@@ -166,6 +166,10 @@ class MorphIOMorphology(Morphology):
         self._morphology = morphio.Morphology(morphology_file)
         for neurite_type in (SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
             self.section_groups[neurite_type] = (self._morphology.section_types == neurite_type).nonzero()[0]
+        # MorphIO numbers the neurite sections from 0, and does not treat the soma as a section,
+        # so we give the soma index -1
+        self.section_groups[SectionType.soma] = np.array([-1])
+        self._soma_index = -1
 
 
 class NeuriteDistribution(object):

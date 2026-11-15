@@ -25,7 +25,7 @@ class with_label(base_morphology.with_label):
 
     def get_region(self, morphology=None):
         if len(self.labels) > 1:
-            raise NotImplementedError
+            raise NotImplementedError("with_label() with more than one label is not yet supported by the Arbor backend")
         assert len(self.labels) != 0
         label = self.labels[0]
         segments = getattr(morphology, "segments", None)  # NeuroML morphologies only
@@ -72,7 +72,7 @@ class soma(base_morphology.soma):
 class random_section(base_morphology.random_section):
 
     def get_region(self, morphology=None):
-        raise NotImplementedError
+        raise NotImplementedError("random_section() is not yet supported by the Arbor backend")
 
 
 # --- IonChannelDistributions ---
@@ -98,13 +98,13 @@ class uniform(base_morphology.uniform, HasSelector):
 class by_distance(base_morphology.by_distance, HasSelector):
 
     def resolve(self):
-        raise NotImplementedError
+        raise NotImplementedError("by_distance() is not yet supported by the Arbor backend")
 
 
 class by_diameter(base_morphology.by_diameter, HasSelector):
 
     def resolve(self):
-        raise NotImplementedError
+        raise NotImplementedError("by_diameter() is not yet supported by the Arbor backend")
 
 
 # --- LocationGenerators ---
@@ -180,7 +180,7 @@ class at_distances(base_morphology.at_distances, HasSelector):
 class random_placement(base_morphology.random_placement, HasSelector):
 
     def generate_locations(self, morphology, label):
-        raise NotImplementedError
+        raise NotImplementedError("random_placement() is not yet supported by the Arbor backend")
 
 
 class centre(base_morphology.centre, HasSelector):

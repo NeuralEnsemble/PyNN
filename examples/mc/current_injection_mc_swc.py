@@ -49,14 +49,15 @@ cell_type = cell_class(morphology=morph,
 
 cells = sim.Population(2, cell_type, initial_values={'v': [-50.0, -65.0]})  #*mV})
 
-# === Inject current into the soma of cell #0 and the dendrite of cell #1 ===
+# === Inject current into the soma of cell #0 and the dendrites of cell #1 ==
 
 step_current_soma = sim.DCSource(amplitude=1.0, start=50.0, stop=150.0)
 step_current_soma.inject_into(cells[0:1], location="soma")
 
-step_current_dend = sim.DCSource(amplitude=5.0, start=100.0, stop=120.0)
+# 32 points on the dendrites of cell #1, 50 µm from the centre of the soma: the full amplitude is injected at each
+step_current_dend = sim.DCSource(amplitude=0.05, start=100.0, stop=120.0)
+step_current_dend.inject_into(cells[1:2], location=m.at_distances(m.dendrites(), [50]))
 dendrite_location = m.at_distances(m.apical_dendrites(), [400])
-step_current_dend.inject_into(cells[1:2], location=dendrite_location)
 
 
 # cells[0] --> ID - 1 cell

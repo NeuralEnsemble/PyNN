@@ -2,6 +2,9 @@
 """
 Some ideas for syntax for multicompartmental modelling in PyNN
 
+Currently runs only with NEURON: the Arbor backend does not yet support
+random_placement() or random_section().
+
 Andrew Davison, May 2012
 """
 
@@ -26,7 +29,8 @@ morph = sim.morphology
 sim.setup(timestep=0.025) #*ms)
 
 
-pyr_morph = load_morphology("oi15rpy4-1.CNG.swc", replace_axon=None)
+pyr_morph = load_morphology("http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
+                            use_library="morphio")
 
 # # support ion channel models defined in NineML, LEMS, or from built-in library
 # na_channel = XMLReader.read("na.xml")
