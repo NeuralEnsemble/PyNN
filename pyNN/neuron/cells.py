@@ -952,6 +952,11 @@ class NeuronTemplate(object):
             self.source_section = self.sections[morphology.soma_index]
         self.source = self.source_section(0.5)._ref_v
         self.rec = h.NetCon(self.source, None, sec=self.source_section)
+        self.rec.threshold = self.get_threshold()
+
+    def get_threshold(self):
+        # the same as the threshold detector in the Arbor backend
+        return -10.0
 
     def memb_init(self):
         # initialize membrane potential

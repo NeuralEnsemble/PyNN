@@ -83,10 +83,10 @@ def test_scenario5(sim):
     # expected values taken from the average of simulations with NEURON and Arbor
     expected_spike_times = [
         np.array([]),
-        np.array([52.41]),
-        np.array([52.15, 68.45, 84.73, 101.02, 117.31, 133.61, 149.9]),
-        np.array([51.96, 67.14, 82.13, 97.11, 112.08, 127.06, 142.04]),
-        np.array([51.75, 65.86, 79.7, 93.51, 107.33, 121.14, 134.96, 148.77])
+        np.array([52.37]),
+        np.array([52.11, 68.36, 84.6, 100.86, 117.12, 133.38, 149.63]),
+        np.array([51.92, 67.06, 82.03, 96.99, 111.95, 126.91, 141.88]),
+        np.array([51.7, 65.78, 79.6, 93.41, 107.21, 121.02, 134.83, 148.63])
     ]
     spike_times = [np.array(st) for st in spiketrains[1:]]
     max_error = 0
