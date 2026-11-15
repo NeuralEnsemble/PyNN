@@ -21,8 +21,8 @@ sim.setup(timestep=0.025) #*ms)
 
 # === Create neuron model template ===========================================
 
-#morph = load_morphology("http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc")  # todo: smart inference of morphology file format
-morph = load_morphology("oi15rpy4-1.CNG_alt.swc", use_library="morphio")
+morph = load_morphology("http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
+                        use_library="morphio")  # todo: smart inference of morphology file format
 
 # need to specify nseg for dendrite
 
@@ -55,10 +55,8 @@ step_current_soma = sim.DCSource(amplitude=1.0, start=50.0, stop=150.0)
 step_current_soma.inject_into(cells[0:1], location="soma")
 
 step_current_dend = sim.DCSource(amplitude=5.0, start=100.0, stop=120.0)
-#step_current.inject_into(cells[1:2], location=apical_dendrites(fraction_along=0.9))
-#step_current.inject_into(cells[1:2], location=random(after_branch_point(3)(apical_dendrites))
-random_location = m.random_placement(m.uniform(m.apical_dendrites()))
-step_current_dend.inject_into(cells[1:2], location=random_location)
+dendrite_location = m.at_distances(m.apical_dendrites(), [400])
+step_current_dend.inject_into(cells[1:2], location=dendrite_location)
 
 
 # cells[0] --> ID - 1 cell
@@ -68,7 +66,7 @@ step_current_dend.inject_into(cells[1:2], location=random_location)
 
 cells.record('spikes')
 cells.record(['na.m', 'na.h', 'kdr.n'], locations="soma")
-cells.record('v', locations=["soma", random_location])
+cells.record('v', locations=["soma", dendrite_location])
 
 # === Run the simulation =====================================================
 
@@ -85,14 +83,14 @@ data = cells.get_data().segments[0]  # this is a Neo Segment
 # and one SpikeTrain per neuron
 
 print("Spike times: {}".format(data.spiketrains))
-filename = f"current_injection_mc_swc_alt_{options.simulator}.png"
+filename = f"current_injection_mc_swc_{options.simulator}.png"
 
 Figure(
         Panel(data.filter(name='soma.v')[0],
               ylabel="Membrane potential, soma (mV)",
               yticks=True, ylim=(-80, 40)),
-        Panel(data.filter(name='dendrite.v')[0],
-              ylabel="Membrane potential, dendrite (mV)",
+        Panel(data.filter(name='apical_dendrites.400um.v')[0],
+              ylabel="Membrane potential, apical dendrite (mV)",
               yticks=True, ylim=(-80, 40)),
         Panel(data.filter(name='soma.na.m')[0],
               ylabel="m, soma",
