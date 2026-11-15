@@ -8,7 +8,7 @@ import arbor
 from arbor import units as U
 
 from .. import recording
-from . import simulator
+from . import simulator, _compat
 from ..morphology import LocationGenerator
 from .morphology import LabelledLocations
 
@@ -63,7 +63,7 @@ class Recorder(recording.Recorder):
         # a positional cell_member index. The tag assigned here (a per-gid probe
         # counter, in the same iteration order as _get_arbor_probes) must match
         # the tag given to the corresponding probe there.
-        self.handles = defaultdict(list)
+        self.handles = defaultdict(dict)  # variable -> {gid: handle}
         probe_indices = defaultdict(int)
         for variable in self.recorded:
             if variable.name != "spikes":
@@ -72,7 +72,7 @@ class Recorder(recording.Recorder):
                     probe_indices[cell.gid] += 1
                     handle = arbor_sim.sample(
                         cell.gid, tag, arbor.regular_schedule(self.sampling_interval * U.ms))
-                    self.handles[variable].append(handle)
+                    self.handles[variable][cell.gid] = handle
 
     def _get_arbor_probes(self, gid):
         probes = []
@@ -98,11 +98,50 @@ class Recorder(recording.Recorder):
                     else:
                         probe = arbor.cable_probe_membrane_voltage(locset, tag)
                 else:
-                    mech_name, state_name = variable.name.split(".")
-                    arbor_model = mech_name  # to do: find_arbor_model(mech_name)
-                    probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
+                    probe = self._point_mechanism_probe(gid, variable.name, tag)
+                    if probe is None:
+                        mech_name, state_name = variable.name.split(".")
+                        arbor_model = mech_name  # to do: find_arbor_model(mech_name)
+                        probe = arbor.cable_probe_density_state(locset, arbor_model, state_name, tag)
                 probes.append(probe)
         return probes
+
+    # standard-model names for post-synaptic receptor variables
+    _receptor_variables = {
+        "gsyn_exc": ("excitatory", "gsyn"),
+        "gsyn_inh": ("inhibitory", "gsyn"),
+        "isyn_exc": ("excitatory", "isyn"),
+        "isyn_inh": ("inhibitory", "isyn"),
+    }
+    # state variable of the synapse mechanism holding each quantity
+    _synaptic_states = {"gsyn": "g", "isyn": "isyn"}
+
+    def _point_mechanism_probe(self, gid, variable_name, tag):
+        """
+        Return a probe for a point-neuron state variable held by a point mechanism,
+        or None if ``variable_name`` is not one of these. This covers state variables
+        of the neuron's reset/dynamics process (e.g. "w", "u") and synaptic
+        conductances or currents, given either as a standard name (e.g. "gsyn_exc")
+        or as "<receptor>.<gsyn|isyn>".
+        """
+        builder = getattr(self.population._arbor_cell_description, "base_value", None)
+        receptors = getattr(builder, "post_synaptic_receptors", None)
+        if receptors is None:
+            return None
+        if variable_name in builder.dynamics.point_states:
+            target, model, state = builder.dynamics.point_states[variable_name]
+        else:
+            if variable_name in self._receptor_variables:
+                target, quantity = self._receptor_variables[variable_name]
+            elif variable_name.count(".") == 1:
+                target, quantity = variable_name.split(".")
+            else:
+                return None
+            if target not in receptors or quantity not in self._synaptic_states:
+                return None
+            model, state = receptors[target][0], self._synaptic_states[quantity]
+        index = self.population.id_to_index(gid)
+        return _compat.point_state_probe(lambda: builder(index)["decor"], target, model, state, tag)
 
     def _get_spiketimes(self, id, clear=False):
         spikes = self._simulator.state.arbor_sim.spikes()
@@ -113,19 +152,36 @@ class Recorder(recording.Recorder):
 
     def _get_all_signals(self, variable, ids, clear=False):
         all_data = []
-        for handle in self.handles[variable]:
+        # signals must be returned in the order of ``ids``, which the caller has
+        # already restricted to the requested (e.g. PopulationView) cells
+        for id in ids:
+            handle = self.handles[variable][int(id)]
             data = []
             meta = []
             for d, m in self._simulator.state.arbor_sim.samples(handle):
                 data.append(d[:, 1])
                 meta.append(m)
+            if not data:
+                # Arbor returns no samples when a probe matches nothing on the cell
+                raise NotImplementedError(
+                    f"pyNN.arbor cannot record '{variable.name}' from cell type "
+                    f"{self.population.celltype.__class__.__name__}")
             all_data.extend(data)
+        if not all_data:
+            return np.zeros((0, 0)), None
         signal_array = np.stack(all_data, axis=1)
         times_array = None
         return signal_array, times_array
 
     def _local_count(self, variable, filter_ids=None):
-        raise NotImplementedError()
+        if variable.name != "spikes":
+            raise Exception("Only implemented for spikes")
+        gids = self._simulator.state.arbor_sim.spikes()["source"]["gid"].ravel()
+        counts = np.bincount(gids.astype(int)) if gids.size else np.zeros(0, dtype=int)
+        return {
+            int(id): int(counts[id]) if id < counts.size else 0
+            for id in self.filter_recorded(variable, filter_ids)
+        }
 
     def _clear_simulator(self):
         pass

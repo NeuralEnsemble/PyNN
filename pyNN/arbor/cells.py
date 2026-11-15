@@ -241,9 +241,14 @@ class PointNeuronDynamics:
 
     ``native_names`` lists the keys a subclass reads from a flat native parameter
     space (used by the flat IF_* models via ``_point_cell_description``).
+
+    ``point_states`` maps each recordable PyNN state variable held by the
+    reset/dynamics point process to ``(placement_label, mechanism, state)``; the
+    NMODL state is in PyNN units.
     """
 
     native_names = ()
+    point_states = {}
 
     def __init__(self, neuron_parameters):
         self.neuron_parameters = neuron_parameters
@@ -318,6 +323,8 @@ class AdExpDynamics(PointNeuronDynamics):
     The detector fires at the spike-detection threshold ``V_spike`` (not the softer
     exponential threshold ``V_th``)."""
 
+    point_states = {"w": ("adexp_reset", "adexp", "w")}
+
     native_names = ("E_L", "E_R", "V_spike", "V_th", "delta", "t_ref",
                     "tau_m", "C_m", "a", "b", "tau_w", "i_offset")
 
@@ -354,6 +361,9 @@ class GsfaGrrDynamics(LIFDynamics):
     relative-refractory mechanism (Muller 2007), via the ``lif_gsfa_grr`` point
     process (nmodl/lif_gsfa_grr.mod). Everything else (pas leak, detector at V_th)
     is inherited from :class:`LIFDynamics`."""
+
+    point_states = {"g_s": ("gsfa_grr_reset", "lif_gsfa_grr", "g_s"),
+                    "g_r": ("gsfa_grr_reset", "lif_gsfa_grr", "g_r")}
 
     native_names = LIFDynamics.native_names + (
         "E_s", "E_r", "tau_s", "tau_r", "q_s", "q_r")
@@ -413,6 +423,8 @@ class IzhikevichDynamics(PointNeuronDynamics):
     detector + POST_EVENT one-step clamp. The membrane current is entirely supplied
     by the izhikevich point process; the injected/offset current enters as an
     iclamp (contributing I/Cm to dv/dt)."""
+
+    point_states = {"u": ("izhikevich", "izhikevich", "u")}
 
     native_names = ("a", "b", "c", "d", "i_offset")
 

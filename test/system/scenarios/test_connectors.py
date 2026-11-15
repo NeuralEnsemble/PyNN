@@ -14,7 +14,30 @@ import pytest
 # TODO: add some tests with projections between Assemblies and PopulationViews
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("arbor")
+def test_projection_to_cell_type_without_receptors(sim):
+    """Arbor's Izhikevich model cannot receive synaptic input, and says so."""
+    from pyNN.errors import ConnectionError
+    sim.setup()
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[1.0]))
+    cells = sim.Population(1, sim.Izhikevich())
+    with pytest.raises(ConnectionError, match="no receptor types"):
+        sim.Projection(source, cells, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.01))
+    sim.end()
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_projection_size(sim):
+    """Projection.size() counts connections, not postsynaptic cells."""
+    sim.setup()
+    p1 = sim.Population(4, sim.IF_cond_exp())
+    p2 = sim.Population(3, sim.IF_cond_exp())
+    prj = sim.Projection(p1, p2, sim.AllToAllConnector(), sim.StaticSynapse(weight=0.01))
+    assert prj.size() == 12
+    sim.end()
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_all_to_all_static_no_self(sim):
     sim.setup()
     p = sim.Population(5, sim.IF_cond_exp())
@@ -47,7 +70,7 @@ def test_all_to_all_tsodyksmarkram(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_fixed_number_pre_no_replacement(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
@@ -78,7 +101,7 @@ def test_fixed_number_pre_no_replacement(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_fixed_number_pre_with_replacement(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
@@ -115,7 +138,7 @@ def test_fixed_number_pre_with_replacement_heterogeneous_parameters(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_fixed_number_post_no_replacement(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
@@ -145,7 +168,7 @@ def test_fixed_number_post_no_replacement(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_fixed_number_post_with_replacement(sim):
     sim.setup()
     p1 = sim.Population(5, sim.IF_cond_exp())
@@ -188,7 +211,7 @@ def test_fixed_number_post_with_replacement_heterogeneous_parameters(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron", "brian2")
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
 def test_issue309(sim):
     # check that FixedProbability(1) gives the same results as AllToAll
     sim.setup()
@@ -204,7 +227,7 @@ def test_issue309(sim):
     sim.end()
 
 
-@run_with_simulators("nest", "neuron")
+@run_with_simulators("nest", "neuron", "arbor")
 def test_issue622(sim):
     sim.setup()
     pop = sim.Population(10, sim.IF_cond_exp, {}, label="pop")

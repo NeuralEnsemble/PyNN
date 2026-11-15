@@ -9,7 +9,7 @@ from arbor import units as U
 
 from .. import common, errors
 from ..standardmodels import StandardCellType
-from ..parameters import ParameterSpace, simplify, Sequence
+from ..parameters import LazyArray, ParameterSpace, simplify, Sequence
 from . import simulator
 from . import _compat
 from .recording import Recorder
@@ -17,6 +17,20 @@ from .recording import Recorder
 
 class Assembly(common.Assembly):
     _simulator = simulator
+
+
+def _local_values(value, size, indices):
+    """
+    Select the values for the cells with the given (local) indices from a parameter
+    value stored for all ``size`` cells of a population, which may be lazy.
+    """
+    if isinstance(value, LazyArray):
+        if value.is_homogeneous:
+            return value.evaluate(simplify=True)
+        value = value.evaluate(simplify=False)
+    if isinstance(value, np.ndarray) and value.shape[:1] == (size,):
+        value = value[indices]
+    return simplify(value)
 
 
 class PopulationView(common.PopulationView):
@@ -40,22 +54,26 @@ class PopulationView(common.PopulationView):
         """
         return a ParameterSpace containing native parameters
         """
-        parameter_dict = {}
-        for name in names:
-            value = self.parent._parameters[name]
-            if isinstance(value, np.ndarray):
-                value = value[self.mask]
-            parameter_dict[name] = simplify(value)
-        return ParameterSpace(parameter_dict, shape=(self.size,))  # or local size?
+        indices = np.arange(self.parent.size)[self.mask]
+        indices = indices[self.parent._mask_local[indices]]
+        parameter_dict = {
+            name: _local_values(self.parent._parameters[name], self.parent.size, indices)
+            for name in names
+        }
+        return ParameterSpace(parameter_dict, shape=(indices.size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
+        self.parent._check_parameters_can_change()
+        if self.parent._point_cell_builder() is not None:
+            parameter_space.pop("cell_description")
         for name, value in parameter_space.items():
             try:
                 self.parent._parameters[name][self.mask] = value.evaluate(simplify=True)
             except ValueError:
                 raise errors.InvalidParameterValueError(
                     f"{name} should not be of type {type(value)}")
+        self.parent._rebuild_point_cell_description()
 
     def _set_initial_value_array(self, variable, initial_values):
         pass
@@ -99,6 +117,10 @@ class Population(common.Population):
                     schedule_params[key] = [float(v) * unit for v in value]
                 else:
                     schedule_params[key] = value * unit
+            if getattr(self.celltype, "arbor_schedule_seeded", False):
+                # Each source needs its own random stream; with the default seed
+                # all sources would emit identical spike trains.
+                schedule_params["seed"] = simulator.state.rng_seed * 2**32 + int(gid)
             schedule = self.celltype.arbor_schedule(**schedule_params)
             return arbor.spike_source_cell("spike-source", schedule)
         elif self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
@@ -165,9 +187,16 @@ class Population(common.Population):
         self._parameters = parameter_space  # used for querying parameters before/after running simulation
 
         simulator.state.id_counter += self.size
-        self._mask_local = np.ones_like(id_range, dtype=bool)
+        # cells are distributed round-robin over MPI ranks; State.run() gives
+        # Arbor the same decomposition
+        self._mask_local = id_range % simulator.state.num_processes == simulator.state.mpi_rank
 
     def _set_initial_value_array(self, variable, initial_values):
+        # Evaluate now: the values are otherwise only read element by element when
+        # Arbor builds each cell, which for random distributions draws fresh numbers
+        # per cell, in Arbor's cell-construction order rather than index order.
+        initial_values = LazyArray(initial_values.evaluate(simplify=False),
+                                   shape=initial_values.shape, dtype=float)
         if self.celltype.arbor_cell_kind == arbor.cell_kind.lif:
             # Native lif cells have no decor; the initial v is applied as V_m when
             # the cell is built in arbor_cell_description.
@@ -208,13 +237,52 @@ class Population(common.Population):
         """
         return a ParameterSpace containing native parameters
         """
-        parameter_dict = {}
-        for name in names:
-            parameter_dict[name] = simplify(self._parameters[name])
+        indices = np.flatnonzero(self._mask_local)
+        parameter_dict = {
+            name: _local_values(self._parameters[name], self.size, indices)
+            for name in names
+        }
         return ParameterSpace(parameter_dict, shape=(self.local_size,))
 
     def _set_parameters(self, parameter_space):
         """parameter_space should contain native parameters"""
-        parameter_space.evaluate(simplify=False, mask=self._mask_local)
+        self._check_parameters_can_change()
+        if self._point_cell_builder() is not None:
+            # a full translation also yields a new description, without the
+            # population's initial values and current sources: rebuild it below instead
+            parameter_space.pop("cell_description")
+        # values are kept for all cells, since cells are built by their index in the
+        # population (only the local ones are built on each MPI rank)
+        parameter_space.evaluate(simplify=False)
         for name, value in parameter_space.items():
             self._parameters[name] = value
+        self._rebuild_point_cell_description()
+
+    def _check_parameters_can_change(self):
+        # Arbor builds its cells when the simulation is created, at the first run()
+        if simulator.state.running:
+            raise NotImplementedError(
+                "pyNN.arbor does not support changing cell parameters once the "
+                "simulation has started (call reset() first)")
+
+    def _point_cell_builder(self):
+        """The cell-description builder of a point neuron (a cable cell built from a
+        flat standard model), or None for other cell kinds."""
+        builder = getattr(self._arbor_cell_description, "base_value", None)
+        return builder if hasattr(builder, "rebuild") else None
+
+    def _rebuild_point_cell_description(self):
+        """Rebuild a point neuron's cell description from its flat native
+        parameters, after they have been changed by set()."""
+        old = self._point_cell_builder()
+        if old is None:
+            return
+        native = ParameterSpace(
+            {name: value for name, value in self._parameters.items() if name != "cell_description"},
+            schema=None, shape=self._parameters.shape)
+        new = old.rebuild(native)
+        new.set_shape(self._parameters.shape)
+        new.initial_values = old.initial_values
+        new.current_sources = old.current_sources
+        self._parameters["cell_description"] = new
+        self._arbor_cell_description = self._parameters["cell_description"]

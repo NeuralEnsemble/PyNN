@@ -209,6 +209,22 @@ def test_SpikeSourceGamma(sim, plot_figure=False):
         return data
 
 
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_SpikeSourcePoisson_sources_are_independent(sim):
+    """Sources with identical parameters must not emit identical spike trains."""
+    sim.setup()
+    sources = sim.Population(5, sim.SpikeSourcePoisson(rate=100.0, duration=1000.0))
+    sources.record('spikes')
+    sim.run(1000.0)
+    spiketrains = sources.get_data().segments[0].spiketrains
+    spike_counts = sources.get_spike_counts()
+    sim.end()
+    assert [spike_counts[id] for id in sources] == [st.size for st in spiketrains]
+    for st in spiketrains:
+        assert 50 < st.size < 150  # expect 100
+    assert len({tuple(st.magnitude) for st in spiketrains}) == len(spiketrains)
+
+
 @run_with_simulators("nest", "neuron")
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:

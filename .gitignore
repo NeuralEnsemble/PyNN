@@ -82,6 +82,8 @@ examples/*.svg
 .local-nest*/
 .nest-src/
 .nest-build/
+.arbor-src/
+.arbor-build/
 .condaenv-*/
 
 # Other

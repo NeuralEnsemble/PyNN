@@ -2,6 +2,7 @@
 import numpy as np
 from numpy import nan
 from numpy.testing import assert_array_equal, assert_allclose
+import pytest
 from .fixtures import run_with_simulators
 
 
@@ -16,6 +17,37 @@ def test_issue241(sim):
     spike_train5 = sim.Population(2, sim.SpikeSourcePoisson, {'rate': [5, 6], 'start': [1000, 1001]})
     assert_array_equal(spike_train2.get('duration'), np.array([1234, 2345]))
     assert spike_train3.get(['rate', 'start', 'duration']) == [5, 1000, 1234]
+    sim.end()
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_get_and_set_point_neuron_parameters(sim):
+    """Parameters set on a population or a view before the run are queried and simulated."""
+    sim.setup(timestep=0.1)
+    cells = sim.Population(3, sim.IF_curr_exp(tau_m=12.0))
+    assert cells.get("tau_m") == pytest.approx(12.0)
+    cells.set(i_offset=[0.0, 0.5, 1.0])
+    cells[0:1].set(tau_m=15.0)
+    assert_allclose(cells.get("i_offset"), [0.0, 0.5, 1.0])
+    assert_allclose(cells.get("tau_m"), [15.0, 12.0, 12.0])
+    cells.initialize(v=-65.0)
+    cells.record("v")
+    sim.run(100.0)
+    v = cells.get_data().segments[0].analogsignals[0].magnitude[-1]
+    sim.end()
+    # steady state is v_rest + i_offset * tau_m / cm, with v_rest = -65 mV, cm = 1 nF
+    assert_allclose(v, [-65.0, -59.0, -53.0], atol=0.1)
+
+
+@run_with_simulators("arbor")
+def test_set_after_run_not_supported(sim):
+    sim.setup(timestep=0.1)
+    cells = sim.Population(1, sim.IF_curr_exp())
+    sim.run(1.0)
+    with pytest.raises(NotImplementedError):
+        cells.set(i_offset=0.5)
+    sim.reset()
+    cells.set(i_offset=0.5)
     sim.end()
 
 
