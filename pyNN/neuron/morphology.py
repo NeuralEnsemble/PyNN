@@ -12,11 +12,15 @@ from neuron import h
 from .. import morphology as base_morphology
 
 
-def _root_section(cell):
-    """Return the section at the root of the cell's section tree."""
+def _root_location(cell):
+    """Return the root of the morphology, from which path distances are measured, as a NEURON
+    segment: the proximal end of the root section, unless the cell specifies otherwise."""
+    if getattr(cell, "root_location", None) is not None:
+        section, x = cell.root_location
+        return section(x)
     for section in cell.sections.values():
         if section.parentseg() is None:
-            return section
+            return section(0)
     raise ValueError("Cell has no root section")
 
 
@@ -221,7 +225,7 @@ class at_distances(base_morphology.at_distances, HasSelector):
 
     def generate_locations(self, morphology, label_prefix, cell):
         tolerance = 1e-4  # µm; NEURON stores 3D points in single precision
-        root = _root_section(cell)
+        root = _root_location(cell)
         selected = set(self.selector(morphology))
         points = defaultdict(list)
         for section_id in sorted(selected):
@@ -230,7 +234,7 @@ class at_distances(base_morphology.at_distances, HasSelector):
             parent_selected = parent is not None and any(
                 cell.sections[sid] == parent.sec for sid in selected)
             # child sections are connected by their proximal end (x=0)
-            start = h.distance(root(0), section(0))
+            start = h.distance(root, section(0))
             for d in self.distances:
                 offset = d - start
                 if abs(offset) <= tolerance:

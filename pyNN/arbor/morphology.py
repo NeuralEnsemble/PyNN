@@ -143,11 +143,22 @@ class at_distances(base_morphology.at_distances, HasSelector):
 
         tree, segment_labels = build_segment_tree(morphology)
         labels = arbor.label_dict({name: expr for name, expr in segment_labels.items() if name})
-        cell = arbor.cable_cell(arbor.morphology(tree), arbor.decor(), labels)
+        arbor_morphology = arbor.morphology(tree)
+        cell = arbor.cable_cell(arbor_morphology, arbor.decor(), labels)
         region = _region_expression(self.selector, morphology)
+        # `(distal-translate (root) d)` only follows the first branch, so when several
+        # branches start at the root (e.g. a soma given as two cylinders from its centre,
+        # with the neurites attached there), we translate from the start of each of them
+        root_branches = [
+            f"(location {b} 0)" for b in range(arbor_morphology.num_branches)
+            if arbor_morphology.branch_parent(b) == arbor.mnpos]
+        if len(root_branches) == 1:
+            start = root_branches[0]
+        else:
+            start = "(sum {})".format(" ".join(root_branches))
 
         def points_at(d):
-            locset = f"(restrict-to (distal-translate (root) {d!r}) {region})"
+            locset = f"(restrict-to (distal-translate {start} {d!r}) {region})"
             return {(loc.branch, loc.pos) for loc in cell.locations(locset)}
 
         locations = []

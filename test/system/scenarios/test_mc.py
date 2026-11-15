@@ -240,3 +240,64 @@ def test_mc_at_distances_on_branches(sim):
 
     assert set(sig.name for sig in data.analogsignals) == {
         "dendrite.100um.v", "dendrite.300um#0.v", "dendrite.300um#1.v", "dendrite.400um.v"}
+
+
+# a NeuroMorpho-style three-point soma (centre first, then the two ends), with an apical
+# dendrite and a basal dendrite attached to the soma, each 300 µm long
+THREE_POINT_SOMA_SWC = """\
+1 1 0.0 0.0 0.0 10.0 -1
+2 1 0.0 10.0 0.0 10.0 1
+3 1 0.0 -10.0 0.0 10.0 1
+4 4 0.0 10.0 0.0 1.0 1
+5 4 0.0 160.0 0.0 1.0 4
+6 4 0.0 310.0 0.0 1.0 5
+7 3 0.0 -10.0 0.0 1.0 1
+8 3 0.0 -310.0 0.0 1.0 7
+"""
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_three_point_soma_swc(sim, tmp_path):
+    """A morphology with a three-point soma, loaded with MorphIO.
+
+    Guards: NEURON built such a soma as a path that doubled back on itself, and put the
+    spike detector on the first neurite rather than the soma; with more than one branch
+    at the root, Arbor's `at_distances` only followed the first.
+    """
+    if not have_morphio:
+        pytest.skip("morphio not available")
+    from pyNN.morphology import load_morphology
+
+    swc_file = tmp_path / "three_point_soma.swc"
+    swc_file.write_text(THREE_POINT_SOMA_SWC)
+
+    sim.setup(timestep=0.025)
+    cell_class = type("ThreePointSomaNeuron", (sim.MultiCompartmentNeuron,), {
+        "label": "ThreePointSomaNeuron",
+        "ion_channels": {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel},
+        "post_synaptic_entities": {},
+    })
+    cell_type = cell_class(
+        morphology=load_morphology(str(swc_file), use_library="morphio"),
+        cm=1.0, Ra=100.0,
+        ionic_species={"na": IonicSpecies("na", reversal_potential=50.0),
+                       "k": IonicSpecies("k", reversal_potential=-77.0)},
+        pas={"conductance_density": sim.morphology.uniform('all', 0.0003), "e_rev": -54.3},
+        na={"conductance_density": sim.morphology.uniform('soma', 0.120)},
+        kdr={"conductance_density": sim.morphology.uniform('soma', 0.036)})
+    cells = sim.Population(1, cell_type, initial_values={'v': -65.0})
+    step = sim.DCSource(amplitude=1.0, start=10.0, stop=40.0)
+    step.inject_into(cells, location="soma")
+    cells.record('spikes')
+    cells.record('v', locations=["soma",
+                                 sim.morphology.at_distances(sim.morphology.apical_dendrites(), [100, 400])])
+
+    sim.run(50.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+
+    # there is no apical dendrite 400 µm from the soma centre
+    assert set(sig.name for sig in data.analogsignals) == {"soma.v", "apical_dendrites.100um.v"}
+    soma_v = data.filter(name="soma.v")[0].magnitude[:, 0]
+    assert soma_v.max() > 20.0
+    assert len(data.spiketrains[0]) >= 1

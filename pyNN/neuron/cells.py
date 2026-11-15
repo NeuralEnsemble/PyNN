@@ -765,11 +765,16 @@ class NeuronTemplate(object):
         self.morphology = morphology
         self.ionic_species = ionic_species
         self.sections = {}
+        # the index used by the morphology (e.g. in filters and distributions) for each section
+        self._morphology_indices = {}
         self.section_labels = defaultdict(set)
         self.synaptic_receptors = {}
         for receptor_name in self.post_synaptic_entities:
             self.synaptic_receptors[receptor_name] = defaultdict(list)
         self.locations = {}  # to store recording and current injection locations
+        # the root of the morphology, from which path distances are measured, as (section, x);
+        # None means the proximal end (x=0) of the root section
+        self.root_location = None
 
         d_lambda = 0.1
 
@@ -793,6 +798,7 @@ class NeuronTemplate(object):
                 if i > 1:
                     section.connect(self.sections[parent_index], DISTAL, PROXIMAL)
                 self.sections[i] = section
+                self._morphology_indices[i] = i
             self.morphology._soma_index = 0  # fragile temporary hack - should be index of the vertex with no parent
         elif isinstance(morphology._morphology, neuroml.Morphology):
             unresolved_connections = []
@@ -816,6 +822,7 @@ class NeuronTemplate(object):
                     else:
                         unresolved_connections.append((segment_id, parent_id))
                 self.sections[segment_id] = section
+                self._morphology_indices[segment_id] = index
                 if segment.name == "soma":
                     self.morphology._soma_index = segment_id
                 if segment.name is not None:
@@ -826,15 +833,26 @@ class NeuronTemplate(object):
         elif isinstance(morphology._morphology, MorphIOMorphology):
             m = morphology._morphology
             soma = nrn.Section(name="soma")
+            # MorphIO numbers the neurite sections from 0, so we use -1 for the soma
             self.sections[-1] = soma
+            self._morphology_indices[-1] = -1
             self.section_labels["soma"].add(-1)
-            self.morphology._soma_index = 0
+            self.morphology._soma_index = -1
             if isinstance(cm, NeuriteDistribution):
-                soma.cm = cm.value_in(self.morphology, "soma")
+                soma.cm = cm.value_in(self.morphology, -1)
             else:
                 soma.cm = cm
             soma.Ra = Ra
-            for (x, y, z), d in zip(m.soma.points, m.soma.diameters):
+            soma_points = list(zip(m.soma.points, m.soma.diameters))
+            soma_attachment = DISTAL
+            if m.soma_type.name == "SOMA_NEUROMORPHO_THREE_POINT_CYLINDERS":
+                # The first point is the centre of the soma, the other two its ends.
+                # The soma is a cylinder from one end to the other, with the neurites
+                # attached at the centre, which is the root of the morphology (as in Arbor).
+                soma_points = [soma_points[1], soma_points[0], soma_points[2]]
+                soma_attachment = 0.5
+                self.root_location = (soma, 0.5)
+            for (x, y, z), d in soma_points:
                 h.pt3dadd(x, y, z, d, sec=soma)
             for root_section in m.root_sections:
                 for m_section in root_section.iter():
@@ -843,16 +861,17 @@ class NeuronTemplate(object):
                         h.pt3dadd(x, y, z, d, sec=nrn_section)
                     nrn_section.nseg = 1 + 2 * int((0.999 + nrn_section.L/(d_lambda * lambda_f(100, nrn_section)))/2)
                     if isinstance(cm, NeuriteDistribution):
-                        nrn_section.cm = cm.value_in(self.morphology, section.id)
+                        nrn_section.cm = cm.value_in(self.morphology, m_section.id)
                     else:
                         nrn_section.cm = cm
                     nrn_section.Ra = Ra
                     if m_section.is_root:
-                        nrn_section.connect(soma, DISTAL, PROXIMAL)
+                        nrn_section.connect(soma, soma_attachment, PROXIMAL)
                         # todo: connect basal dendrites, axon, apical dendrites to different points on the soma
                     else:
                         nrn_section.connect(self.sections[m_section.parent.id], DISTAL, PROXIMAL)
                     self.sections[m_section.id] = nrn_section
+                    self._morphology_indices[m_section.id] = m_section.id
                     self.section_labels[m_section.type.name].add(m_section.id)
         else:
             raise ValueError("{} not supported as a neuron morphology".format(type(morphology)))
@@ -862,7 +881,7 @@ class NeuronTemplate(object):
             parameters = other_parameters[name]
             mechanism_name = ion_channel.model
             conductance_density = parameters[ion_channel.conductance_density_parameter]
-            for index, id in enumerate(self.sections):
+            for id, index in self._morphology_indices.items():
                 if isinstance(conductance_density, float):
                     g = conductance_density
                 elif isinstance(conductance_density, IonChannelDistribution):
@@ -916,7 +935,7 @@ class NeuronTemplate(object):
                         raise
 
         for ion_name, parameters in self.ionic_species.items():
-            for index, id in enumerate(self.sections):
+            for id, index in self._morphology_indices.items():
                 section = self.sections[id]
                 set_in_section(section, index, "e{}".format(ion_name), parameters.reversal_potential)
                 if parameters.internal_concentration:
