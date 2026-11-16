@@ -38,11 +38,13 @@ def reset_nestml_state():
         from pyNN.nest import nestml
         nestml._compiled = False
         nestml._pending.clear()
+        nestml._installed_modules.clear()
     yield
     if have_nest:
         from pyNN.nest import nestml
         nestml._compiled = False
         nestml._pending.clear()
+        nestml._installed_modules.clear()
 
 
 def test_nestml_cell_type_vm_trace():
@@ -186,6 +188,28 @@ def test_nestml_cell_type_inline_string():
     assert np.ptp(vm) > 5.0, "No membrane potential dynamics — inline model may not have compiled"
 
     sim.end()
+
+
+def test_nestml_cell_type_available_after_second_setup():
+    """A NESTML model compiled at the first sim.setup() can still be used after another
+    sim.setup(), which resets the NEST kernel and so unloads extension modules."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    if not have_pynestml:
+        pytest.skip("pynestml not available")
+
+    from pyNN.nest import nestml as pynn_nestml
+    iaf_path = os.path.join(NESTML_MODEL_DIR, "iaf_psc_exp_neuron.nestml")
+    NestmlIAF = pynn_nestml.nestml_cell_type("iaf_psc_exp_neuron", iaf_path)
+
+    for i in range(2):
+        sim.setup(timestep=0.1, min_delay=1.0)
+        pop = sim.Population(1, NestmlIAF(I_e=400.0))
+        pop.record("V_m")
+        sim.run(100.0)
+        vm = pop.get_data().segments[0].filter(name="V_m")[0].magnitude
+        assert np.ptp(vm) > 5.0, f"No membrane potential dynamics after setup() call {i + 1}"
+        sim.end()
 
 
 def test_nestml_register_after_setup_raises():

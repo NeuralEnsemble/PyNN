@@ -67,6 +67,24 @@ def test_record_native_model():
     assert vm.max() > 0.0  # should have some spikes
 
 
+def test_extension_synapse_available_after_setup():
+    """Synapse models from the PyNN NEST extension module can be used after sim.setup(),
+    which resets the NEST kernel and so unloads extension modules, including after
+    repeated calls."""
+    if not have_nest:
+        pytest.skip("nest not available")
+    sim = pyNN.nest
+    for i in range(2):
+        sim.setup(timestep=0.1, min_delay=1.0)
+        source = sim.Population(1, sim.SpikeSourceArray(spike_times=[10.0, 20.0, 30.0]))
+        target = sim.Population(1, sim.IF_cond_exp())
+        prj = sim.Projection(source, target, sim.AllToAllConnector(),
+                             sim.StochasticTsodyksMarkramSynapse(U=0.5, weight=0.01))
+        assert prj.nest_synapse_model == "stochastic_stp_synapse_lbl"
+        sim.run(50.0)
+        sim.end()
+
+
 def test_native_stdp_model():
     if not have_nest:
         pytest.skip("nest not available")
