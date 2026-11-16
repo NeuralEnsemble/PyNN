@@ -175,14 +175,14 @@ NESTML models automatically at ``sim.setup()`` time.
 Installation
 ------------
 
-NESTML support requires the ``nestml`` package (imported as ``pynestml``), which is not
-installed by default:
+NESTML support requires version 9 or later of the ``nestml`` package (imported as
+``pynestml``), which is not installed by default:
 
 .. code-block:: bash
 
     pip install PyNN[nestml]   # installs PyNN together with nestml
     # or
-    pip install nestml         # installs nestml into an existing PyNN environment
+    pip install "nestml>=9"    # installs nestml into an existing PyNN environment
 
 Important: register models before ``sim.setup()``
 --------------------------------------------------

@@ -21,7 +21,6 @@ channels:
 dependencies:
   - python=3.12
   - nest-simulator=3.9
-  - nestml
   - brian2
   - numpy
   - scipy
@@ -37,7 +36,7 @@ dependencies:
     - morphio
     - neuron
     - nrnutils
-    - pynestml
+    - nestml>=9  # conda-forge does not yet have NESTML 9
     - Cheetah3
     - Jinja2
     - pytest

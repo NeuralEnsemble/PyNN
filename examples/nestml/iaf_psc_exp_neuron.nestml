@@ -86,7 +86,7 @@ model iaf_psc_exp_neuron:
         I_syn_exc' = -I_syn_exc / tau_syn_exc
         I_syn_inh' = -I_syn_inh / tau_syn_inh
         V_m' = -(V_m - E_L) / tau_m + (I_syn_exc - I_syn_inh + I_e + I_stim) / C_m
-        refr_t' = -1e3 * ms/s    # refractoriness is implemented as an ODE, representing a timer counting back down to zero. XXX: TODO: This should simply read ``refr_t' = -1 / s`` (see https://github.com/nest/nestml/issues/984)
+        refr_t' = -1    # refractoriness is implemented as an ODE, representing a timer counting back down to zero, at a rate of one (milli)second per (milli)second
 
     parameters:
         C_m pF = 250 pF           # Capacitance of the membrane
@@ -118,10 +118,10 @@ model iaf_psc_exp_neuron:
             integrate_odes(I_syn_exc, I_syn_inh, V_m)
 
     onReceive(exc_spikes):
-        I_syn_exc += exc_spikes * pA * s
+        I_syn_exc += exc_spikes * 1 pA * 1 s
 
     onReceive(inh_spikes):
-        I_syn_inh += inh_spikes * pA * s
+        I_syn_inh += inh_spikes * 1 pA * 1 s
 
     onCondition(refr_t <= 0 ms and V_m >= V_th):
         # threshold crossing
