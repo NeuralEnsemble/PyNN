@@ -294,8 +294,10 @@ class PointNeuronDynamics:
         ``initial_values`` maps the names of the cell's state variables to their
         initial values, as lazy arrays over the population."""
 
-    def place_reset(self, decor, i):
-        """Place the reset / dynamics point process at ``(root)``. May be a no-op."""
+    def place_reset(self, decor, i, initial_values):
+        """Place the reset / dynamics point process at ``(root)``. May be a no-op.
+
+        ``initial_values`` is as for :meth:`paint`."""
 
     def detector_threshold(self, i):
         """Membrane voltage [mV] at which the network-spike detector fires."""
@@ -324,7 +326,7 @@ class LIFDynamics(PointNeuronDynamics):
         # e is a GLOBAL parameter of pas, set via the mechanism name
         decor.paint("(all)", arbor.density(f"pas/e={p['E_L'][i]}", {"g": g_spec}))
 
-    def place_reset(self, decor, i):
+    def place_reset(self, decor, i, initial_values):
         p = self.neuron_parameters
         decor.place(
             "(root)",
@@ -359,7 +361,7 @@ class AdExpDynamics(PointNeuronDynamics):
         _c_spec, g_spec = self._specific_properties(p["C_m"][i], p["tau_m"][i])
         decor.paint("(all)", arbor.density(f"pas/e={p['E_L'][i]}", {"g": g_spec}))
 
-    def place_reset(self, decor, i):
+    def place_reset(self, decor, i, initial_values):
         p = self.neuron_parameters
         g_leak = p["C_m"][i] / p["tau_m"][i]  # whole-cell leak conductance [uS]
         decor.place(
@@ -385,11 +387,12 @@ class GsfaGrrDynamics(LIFDynamics):
 
     point_states = {"g_s": ("gsfa_grr_reset", "lif_gsfa_grr", "g_s"),
                     "g_r": ("gsfa_grr_reset", "lif_gsfa_grr", "g_r")}
+    initial_states = ("g_s", "g_r")
 
     native_names = LIFDynamics.native_names + (
         "E_s", "E_r", "tau_s", "tau_r", "q_s", "q_r")
 
-    def place_reset(self, decor, i):
+    def place_reset(self, decor, i, initial_values):
         p = self.neuron_parameters
         decor.place(
             "(root)",
@@ -398,7 +401,10 @@ class GsfaGrrDynamics(LIFDynamics):
                 "g_reset": LIF_RESET_CONDUCTANCE,
                 "E_s": p["E_s"][i], "E_r": p["E_r"][i],
                 "tau_s": p["tau_s"][i], "tau_r": p["tau_r"][i],
-                "q_s": p["q_s"][i], "q_r": p["q_r"][i]}),
+                "q_s": p["q_s"][i], "q_r": p["q_r"][i],
+                # initial values of the conductances, set in the mechanism's INITIAL block
+                **{f"{name}_init": initial_values[name][i]
+                   for name in self.initial_states if name in initial_values}}),
             "gsfa_grr_reset",
         )
 
@@ -459,7 +465,7 @@ class IzhikevichDynamics(PointNeuronDynamics):
     def specific_cm(self, i):
         return IZHIKEVICH_CM_NF * 1e-3 / _POINT_CELL_AREA_CM2
 
-    def place_reset(self, decor, i):
+    def place_reset(self, decor, i, initial_values):
         p = self.neuron_parameters
         decor.place(
             "(root)",
@@ -531,7 +537,7 @@ class PointCellDescriptionBuilder(BaseCellDescriptionBuilder):
         # neuron-specific decoration (membrane properties, leak/channels, reset)
         self.dynamics.set_property(decor, i, self.initial_values["v"][i])
         self.dynamics.paint(decor, i, self.initial_values)
-        self.dynamics.place_reset(decor, i)
+        self.dynamics.place_reset(decor, i, self.initial_values)
         # network spike source
         decor.place("(root)",
                     arbor.threshold_detector(self.dynamics.detector_threshold(i) * U.mV),

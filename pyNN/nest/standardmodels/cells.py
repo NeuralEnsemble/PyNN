@@ -158,9 +158,9 @@ class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
         ('q_rr',       'q_rr')
     )
     variable_map = {'v': 'V_m', 'gsyn_exc': 'g_ex', 'gsyn_inh': 'g_in',
-                    'g_rr': 'g_rr', 'g_sfa': 'g_sfa'}
+                    'g_r': 'g_rr', 'g_s': 'g_sfa'}
     scale_factors = {'v': 1, 'gsyn_exc': 0.001, 'gsyn_inh': 0.001,
-                     'g_rr': 0.001, 'g_sfa': 0.001}
+                     'g_r': 1, 'g_s': 1}  # g_r and g_s are in nS in both PyNN and NEST
     nest_name = {"on_grid": "iaf_cond_exp_sfa_rr",
                  "off_grid": "iaf_cond_exp_sfa_rr"}
     standard_receptor_type = True

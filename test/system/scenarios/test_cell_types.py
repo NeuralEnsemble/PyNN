@@ -516,13 +516,12 @@ def test_Izhikevich_regular_spiking(sim):
     assert 40.0 < isis[-1] < 50.0, isis
 
 
-@run_with_simulators("arbor", "neuron")
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
 def test_IF_cond_exp_gsfa_grr_adaptation(sim):
     """A constant supra-threshold current into IF_cond_exp_gsfa_grr produces spike-
     frequency adaptation from the g_s conductance: the ISIs lengthen and then settle
-    to a steady value. Arbor is cross-checked against NEURON to <0.01 ms on spike
-    times; nest/brian2 are excluded here because their gsfa_grr implementations
-    adapt differently for this strongly-driven regime."""
+    to a steady value. The backends agree to within 0.1 ms on the spike times
+    (checked here for the second spike, the first affected by g_s and g_r)."""
     sim.setup(timestep=0.01, min_delay=0.1)
     cell = sim.Population(1, sim.IF_cond_exp_gsfa_grr(
         v_rest=-65.0, v_reset=-65.0, v_thresh=-57.0, tau_m=10.0, cm=0.25,
@@ -540,6 +539,28 @@ def test_IF_cond_exp_gsfa_grr_adaptation(sim):
     assert isis[3] > isis[0], isis
     assert isis[-1] > 2.0 * isis[0], isis      # substantial adaptation
     assert abs(isis[-1] - isis[-2]) < 0.1, isis  # steady state reached
+    assert abs(st[1] - 15.06) < 0.1, st
+
+
+@run_with_simulators("arbor", "neuron", "nest", "brian2")
+def test_IF_cond_exp_gsfa_grr_initial_conductances(sim):
+    """The initial values of g_s and g_r are those given to PyNN, in nS, and can be
+    recorded; they then decay with time constants tau_sfa and tau_rr."""
+    sim.setup(timestep=0.01, min_delay=0.1)
+    cells = sim.Population(2, sim.IF_cond_exp_gsfa_grr(tau_sfa=100.0, tau_rr=2.0),
+                           initial_values={"g_s": [0.0, 7.0], "g_r": [5.0, 0.0]})
+    cells.record(["g_s", "g_r"])
+    sim.run(10.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+    g_s = data.filter(name="g_s")[0]
+    g_r = data.filter(name="g_r")[0]
+    assert g_s.units == pq.nS
+    assert_allclose(g_s.magnitude[0], [0.0, 7.0])
+    assert_allclose(g_r.magnitude[0], [5.0, 0.0])
+    i = int(round(4.0 / 0.01))  # t = 4 ms
+    assert_allclose(g_s.magnitude[i], [0.0, 7.0 * np.exp(-4.0 / 100.0)], rtol=1e-3)
+    assert_allclose(g_r.magnitude[i], [5.0 * np.exp(-4.0 / 2.0), 0.0], rtol=1e-3)
 
 
 @run_with_simulators("arbor", "neuron", "nest", "brian2")

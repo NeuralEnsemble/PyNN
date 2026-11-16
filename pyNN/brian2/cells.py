@@ -179,41 +179,15 @@ class AdaptiveReset2(object):
 class AdaptiveNeuronGroup2(BaseNeuronGroup):
 
     def __init__(self, n, equations, **parameters):
-        threshold = 'v >= {}*mV'.format(parameters["v_thresh"][0] / mV)
-        self._resetvalue = parameters.pop('v_reset')[0]
-        self._q_rvalue = parameters.pop('q_r')[0] * 10**9
-        self._q_svalue = parameters.pop('q_s')[0] * 10**9
-        self._refracvalue = parameters.pop('tau_refrac')[0]
-        reset = 'v = {}*mV; g_r+= {}*nS; g_s+={}*nS'.format(
-            self._resetvalue / mV, self._q_rvalue / nS, self._q_svalue / nS)
-        refractory = self._refracvalue
+        threshold = 'v >= v_thresh'
+        reset = 'v = v_reset; g_r += q_r; g_s += q_s'
+        equations += '''v_thresh : volt (constant)
+                        v_reset  : volt (constant)
+                        q_r      : siemens (constant)
+                        q_s      : siemens (constant)'''
         BaseNeuronGroup.__init__(self, n, equations,
-                                 threshold, reset=reset, refractory=refractory,
+                                 threshold, reset=reset,
                                  method="rk2", **parameters)
-
-    @property
-    def v_reset(self):
-        return self._resetvalue
-
-    @property
-    def q_r(self):
-        return self._q_rvalue
-
-    @property
-    def q_s(self):
-        return self._q_svalue
-
-    @property
-    def tau_refrac(self):
-        return self._refractory
-
-    @tau_refrac.setter
-    def tau_refrac(self, tau_refrac_value):
-        self._refractory = tau_refrac_value
-
-    @v_reset.setter
-    def v_reset(self, resetvalue):
-        self.event_codes['spike'] = 'v = {}*mV'.format(resetvalue / mV)
 
 
 # The below can be replaced by
