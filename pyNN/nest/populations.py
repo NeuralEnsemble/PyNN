@@ -56,7 +56,7 @@ class PopulationMixin(object):
             ps = component.reverse_translate(native_parameter_space)
             # extract values for this component from any ArrayParameters
             for name, value in ps.items():
-                if isinstance(value.base_value, ArrayParameter):
+                if component_label is not None and isinstance(value.base_value, ArrayParameter):
                     index = self.celltype.receptor_types.index(component_label)
                     ps[name] = LazyArray(value.base_value[index])
                     ps[name].operations = value.operations

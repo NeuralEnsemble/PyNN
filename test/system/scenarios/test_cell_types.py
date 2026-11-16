@@ -678,6 +678,21 @@ def test_composed_neuron_model_homogeneous_receptors(sim, plot_figure=False):
     # for now, just check this runs without errors, todo: add some asserts about the data
 
 
+@run_with_simulators("nest", "neuron")
+def test_GIF_cond_exp_get_array_parameters(sim):
+    """Array-valued parameters of GIF_cond_exp can be retrieved, whether they are
+    the same for all neurons or not."""
+    sim.setup()
+    cells = sim.Population(2, sim.GIF_cond_exp(
+        tau_eta=(1.0, 10.0, 100.0),
+        a_gamma=[(0.0, 0.0, 0.0), (5.0, 4.0, 3.0)]))
+    tau_eta, a_gamma = cells.get(["tau_eta", "a_gamma"])
+    sim.end()
+    assert_array_equal(tau_eta.value, [1.0, 10.0, 100.0])
+    assert_array_equal(a_gamma[0].value, [0.0, 0.0, 0.0])
+    assert_array_equal(a_gamma[1].value, [5.0, 4.0, 3.0])
+
+
 # todo: add test of Izhikevich model
 
 
