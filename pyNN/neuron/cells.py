@@ -409,6 +409,8 @@ class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
 
 
 class SingleCompartmentTraub(SingleCompartmentNeuron, StandardReceptorTypesMixin):
+    # paths to the gating variables, for recording
+    state_variable_paths = {"m": "seg.m_hh_traub", "h": "seg.h_hh_traub", "n": "seg.n_hh_traub"}
 
     def __init__(self, syn_type, syn_shape, c_m=1.0, e_leak=-65,
                  i_offset=0, tau_e=5, tau_i=5, e_e=0, e_i=-70,
@@ -443,6 +445,13 @@ class SingleCompartmentTraub(SingleCompartmentNeuron, StandardReceptorTypesMixin
     gbar_Na = _new_property('seg.hh_traub', 'gnabar')
     gbar_K = _new_property('seg.hh_traub', 'gkbar')
     g_leak = _new_property('seg.hh_traub', 'gl')
+
+    def memb_init(self):
+        super().memb_init()
+        # the mechanism's INITIAL block sets m, h and n from minit, hinit and ninit
+        for name in ("m", "h", "n"):
+            if name in self.initial_values:
+                setattr(self.seg.hh_traub, f"{name}init", self.initial_values[name])
 
     def get_threshold(self):
         return 10.0

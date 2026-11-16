@@ -70,6 +70,29 @@ def test_HH_cond_exp(sim, plot_figure=False):
     assert first_spike / pq.ms - 2.95 < 0.01
 
 
+@run_with_simulators("arbor", "nest", "neuron", "brian2")
+def test_HH_cond_exp_initial_gating_variables(sim):
+    """The initial values of m, h and n are those given to PyNN, and can be recorded.
+
+    With the sodium channels initially inactivated (h = 0), the first spike is later
+    than with the default h = 1. (The NEURON and Arbor backends used to start from
+    h = 0 regardless.)
+    """
+    sim.setup(timestep=0.01, min_delay=0.1)
+    cells = sim.Population(2, sim.HH_cond_exp(i_offset=1.0),
+                           initial_values={"v": -64.0, "m": [0.0, 0.1], "h": [1.0, 0.0]})
+    cells.record(["spikes", "m", "h", "n"])
+    sim.run(20.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+    initial = {name: data.filter(name=name)[0].magnitude[0] for name in ("m", "h", "n")}
+    assert_allclose(initial["m"], [0.0, 0.1])
+    assert_allclose(initial["h"], [1.0, 0.0])
+    assert_allclose(initial["n"], [0.0, 0.0])
+    first_spikes = [float(st[0]) for st in data.spiketrains]
+    assert first_spikes[1] > first_spikes[0] + 0.2, first_spikes
+
+
 # exclude brian2 - see issue 370
 @run_with_simulators("nest", "neuron")
 def issue367(sim, plot_figure=False):

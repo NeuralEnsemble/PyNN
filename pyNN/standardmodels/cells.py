@@ -367,7 +367,7 @@ class HH_cond_exp(StandardCellType):
         'i_offset':     0.0,   # nA
 
     }
-    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh']
+    recordable = ['spikes', 'v', 'gsyn_exc', 'gsyn_inh', 'm', 'h', 'n']
     receptor_types = ('excitatory', 'inhibitory', 'source_section.gap')
     default_initial_values = {
         'v': -65.0,  # 'v_rest',

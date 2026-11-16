@@ -41,17 +41,7 @@ cellparams = {
 
 hhcell = create(HH_cond_exp(**cellparams))
 initialize(hhcell, v=-64.0)
-record('v', hhcell, "Results/HH_cond_exp2_%s.pkl" % simulator_name)
-
-var_names = {
-    'neuron': {'m': "seg.m_hh_traub", 'h': "seg.h_hh_traub", 'n': "seg.n_hh_traub"},
-    'brian': {'m': 'm', 'h': 'h', 'n': 'n'},
-}
-if simulator_name in var_names:
-    hhcell.can_record = lambda x: True  # hack
-    for native_name in var_names[simulator_name].values():
-        hhcell.record(native_name)
-        hhcell.celltype.units[native_name] = ''
+record(['v', 'm', 'h', 'n'], hhcell, "Results/HH_cond_exp2_%s.pkl" % simulator_name)
 
 run(20.0)
 
@@ -67,12 +57,11 @@ if make_plot:
     plt.xlabel("time (ms)")
     plt.ylabel("Vm (mV)")
 
-    if simulator_name in var_names:
-        plt.figure(2)
-        for var_name, native_name in var_names[simulator_name].items():
-            signal = data.segments[0].analogsignals[signal_names.index(native_name)]
-            plt.plot(signal.times, signal, label=var_name)
-        plt.xlabel("time (ms)")
-        plt.legend()
+    plt.figure(2)
+    for var_name in ('m', 'h', 'n'):
+        signal = data.segments[0].analogsignals[signal_names.index(var_name)]
+        plt.plot(signal.times, signal, label=var_name)
+    plt.xlabel("time (ms)")
+    plt.legend()
 
 end()

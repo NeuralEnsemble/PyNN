@@ -3,14 +3,14 @@
 : hh_traub.mod: the TABLE statement is dropped (Arbor's modcc has no TABLE; the
 : rates are computed exactly each step) and the rate "trap" is written with Arbor's
 : exprelr (vtrap(x,y) = y*exprelr(x/y) = x/(exp(x/y)-1), singularity-safe). The
-: NEST-compatible initial state m = h = n = 0 is kept. Reversal potentials for Na/K
-: come from the ions (set per cell); the leak is a NONSPECIFIC_CURRENT.
+: initial state is given by minit, hinit and ninit, as in NEURON. Reversal potentials
+: for Na/K come from the ions (set per cell); the leak is a NONSPECIFIC_CURRENT.
 NEURON {
     SUFFIX hh_traub
     USEION na READ ena WRITE ina
     USEION k READ ek WRITE ik
     NONSPECIFIC_CURRENT il
-    RANGE gnabar, gkbar, gl, el, vT
+    RANGE gnabar, gkbar, gl, el, vT, minit, hinit, ninit
 }
 
 UNITS {
@@ -24,6 +24,10 @@ PARAMETER {
     gl     = 0.00001 (S/cm2)
     el     = -60.0   (mV)
     vT     = -63.0   (mV)
+    : initial values of the gating variables (the defaults are those of PyNN's HH_cond_exp)
+    minit  = 0
+    hinit  = 1
+    ninit  = 0
 }
 
 STATE { m h n }
@@ -36,10 +40,9 @@ BREAKPOINT {
 }
 
 INITIAL {
-    : for compatibility with NEST, start from m = h = n = 0
-    m = 0
-    h = 0
-    n = 0
+    m = minit
+    h = hinit
+    n = ninit
 }
 
 DERIVATIVE states {
