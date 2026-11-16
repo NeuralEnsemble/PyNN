@@ -166,6 +166,10 @@ class MorphIOMorphology(Morphology):
         self._morphology = morphio.Morphology(morphology_file)
         for neurite_type in (SectionType.axon, SectionType.basal_dendrite, SectionType.apical_dendrite):
             self.section_groups[neurite_type] = (self._morphology.section_types == neurite_type).nonzero()[0]
+        # MorphIO numbers the neurite sections from 0, and does not treat the soma as a section,
+        # so we give the soma index -1
+        self.section_groups[SectionType.soma] = np.array([-1])
+        self._soma_index = -1
 
 
 class NeuriteDistribution(object):
@@ -223,7 +227,11 @@ class any(IonChannelDistribution, SynapseDistribution):
 
 
 class MorphologyFilter(object):
-    pass
+
+    @property
+    def name(self):
+        """Name used in the labels of locations generated within this region."""
+        return self.__class__.__name__
 
 
 class dendrites(MorphologyFilter):
@@ -245,6 +253,12 @@ class basal_dendrites(MorphologyFilter):
 
 
 class axon(MorphologyFilter):
+
+    def __init__(self, fraction_along=None):
+        self.fraction_along = fraction_along
+
+
+class soma(MorphologyFilter):
 
     def __init__(self, fraction_along=None):
         self.fraction_along = fraction_along
@@ -274,6 +288,10 @@ class with_label(MorphologyFilter):
     def __init__(self, *labels):
         self.labels = labels
 
+    @property
+    def name(self):
+        return "+".join(self.labels)
+
 
 class LocationGenerator:
 
@@ -290,7 +308,19 @@ class LabelledLocations(LocationGenerator):
 
 
 class at_distances(LocationGenerator):
-    # fractional distances, 0-1
+    """
+    Locations at given path distances (in µm) from the root of the morphology
+    (the proximal end of the soma, or the centre of a three-point soma),
+    within the region given by `selector`.
+
+    There is a location on every branch of the region at each distance, so a
+    distance may give more than one location (or none, if the region does not
+    extend that far).
+
+    Example:
+
+    at_distances(apical_dendrites(), [50, 100, 150])
+    """
 
     def __init__(self, selector, distances):
         if isinstance(selector, MorphologyFilter):
@@ -300,6 +330,9 @@ class at_distances(LocationGenerator):
         else:
             raise TypeError("'selector' should be either a MorphologyFilter or a string")
         self.distances = distances
+
+    def location_label(self, distance):
+        return f"{self.selector.name}.{distance:g}um"
 
 
 class random_placement(LocationGenerator):

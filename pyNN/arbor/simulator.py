@@ -89,10 +89,8 @@ class NetworkRecipe(arbor.recipe):
         self._gid_lookup.append(n_gids_current + population.size)
 
     def add_projection(self, projection):
-        if hasattr(projection.post, "parent"):
-            postsynaptic_population = projection.post.parent
-        else:
-            postsynaptic_population = projection.post
+        # for a PopulationView, the Population at the root of the tree of views
+        postsynaptic_population = getattr(projection.post, "grandparent", projection.post)
         self._projection_map[id(postsynaptic_population)].append(projection)
 
     def _get_population_by_gid(self, gid):

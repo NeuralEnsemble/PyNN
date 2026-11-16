@@ -171,11 +171,12 @@ Current limitations
   that, but changing them afterwards raises :class:`NotImplementedError`; call
   :func:`reset` first. This also applies to changing the spike times of a
   :class:`SpikeSourceArray` or the rate of a :class:`SpikeSourcePoisson` between runs.
-* The postsynaptic side of a :class:`Projection` must be a :class:`Population`, not a
-  :class:`PopulationView`.
 * Synaptic weights and delays cannot be changed after a :class:`Projection` has been
   created.
 * Native (non-standard) cell and synapse models are not yet supported.
+* For multi-compartment neurons, :class:`random_placement`, :class:`random_section`,
+  :class:`by_distance` and :class:`by_diameter` are not yet supported
+  (see :doc:`../mc_api`).
 
 
 .. _Arbor: https://arbor-sim.org

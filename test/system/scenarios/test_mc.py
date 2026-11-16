@@ -29,17 +29,24 @@ import pytest
 from .fixtures import run_with_simulators
 
 
-def _build_mc_cell_type(sim):
+def _build_mc_cell_type(sim, synapse_locations=None):
     """A two-compartment (soma + dendrite) multicompartment cell type."""
     soma = Segment(proximal=P(x=18.8, y=0, z=0, diameter=18.8),
                    distal=P(x=0, y=0, z=0, diameter=18.8), name="soma", id=0)
     dend = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
                    distal=P(x=-500, y=0, z=0, diameter=2), name="dendrite",
                    parent=soma, id=1)
-    cell_class = sim.MultiCompartmentNeuron
-    cell_class.label = "MCTestNeuron"
-    cell_class.ion_channels = {'pas': sim.PassiveLeak, 'na': sim.NaChannel,
-                               'kdr': sim.KdrChannel}
+    synapses = {}
+    post_synaptic_entities = {}
+    if synapse_locations is not None:
+        post_synaptic_entities = {'AMPA': sim.CondExpPostSynapticResponse}
+        synapses["AMPA"] = {"locations": synapse_locations, "e_syn": 0.0, "tau_syn": 2.0}
+    # subclass, rather than modify sim.MultiCompartmentNeuron, which other tests use
+    cell_class = type("MCTestNeuron", (sim.MultiCompartmentNeuron,), {
+        "label": "MCTestNeuron",
+        "ion_channels": {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel},
+        "post_synaptic_entities": post_synaptic_entities,
+    })
     return cell_class(
         morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),
         cm=1.0, Ra=500.0,
@@ -49,6 +56,7 @@ def _build_mc_cell_type(sim):
              "e_rev": -54.3},
         na={"conductance_density": sim.morphology.uniform('soma', 0.120)},
         kdr={"conductance_density": sim.morphology.uniform('soma', 0.036)},
+        **synapses
     )
 
 
@@ -133,3 +141,206 @@ def test_mc_subthreshold_dc(sim):
     assert soma_v.max() > -60.0                     # but did depolarise
 
     sim.end()
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_recording_at_distances(sim):
+    """Record v at path distances from the root of the morphology.
+
+    The soma is 18.8 µm long, so 100 µm and 400 µm are in the dendrite.
+    A depolarisation injected at the soma attenuates along the dendrite.
+    """
+    if not have_morphio:
+        pytest.skip("morphio not available")
+    if not have_neuroml:
+        pytest.skip("libNeuroML not available")
+
+    sim.setup(timestep=0.01)
+    cell_type = _build_mc_cell_type(sim)
+    cells = sim.Population(1, cell_type, initial_values={'v': -60.0})
+    step = sim.DCSource(amplitude=0.04, start=50.0, stop=150.0)
+    step.inject_into(cells, location="soma")
+    cells.record('v', locations=["soma", sim.morphology.at_distances("dendrite", [100, 400])])
+
+    sim.run(150.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+
+    assert set(sig.name for sig in data.analogsignals) == {
+        "soma.v", "dendrite.100um.v", "dendrite.400um.v"}
+    depolarisation = {}
+    for name in ("soma.v", "dendrite.100um.v", "dendrite.400um.v"):
+        v = data.filter(name=name)[0].magnitude[:, 0]
+        depolarisation[name] = v[-1] - v[4999]  # at 150 ms relative to 50 ms
+    assert (depolarisation["soma.v"] > depolarisation["dendrite.100um.v"]
+            > depolarisation["dendrite.400um.v"] > 0)
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_synapse_at_distance(sim):
+    """A synapse placed with at_distances() gives a larger EPSP at its own location."""
+    if not have_morphio:
+        pytest.skip("morphio not available")
+    if not have_neuroml:
+        pytest.skip("libNeuroML not available")
+
+    sim.setup(timestep=0.025)
+    cell_type = _build_mc_cell_type(
+        sim, synapse_locations=sim.morphology.at_distances("dendrite", [450]))
+    cells = sim.Population(1, cell_type, initial_values={'v': -60.0})
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+    sim.Projection(source, cells, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=0.005, delay=1.0), receptor_type="AMPA")
+    cells.record('v', locations=sim.morphology.at_distances("dendrite", [100, 450]))
+
+    sim.run(50.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+
+    epsp = {}
+    for name in ("dendrite.100um.v", "dendrite.450um.v"):
+        v = data.filter(name=name)[0].magnitude[:, 0]
+        epsp[name] = v.max() - v[700]  # relative to v at 17.5 ms
+    assert epsp["dendrite.450um.v"] > epsp["dendrite.100um.v"] > 0
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_at_distances_on_branches(sim):
+    """A distance reached on more than one branch gives a location on each branch.
+
+    The dendrite has a 200 µm trunk and two branches, of length 141 µm and 224 µm.
+    """
+    if not have_neuroml:
+        pytest.skip("libNeuroML not available")
+
+    sim.setup(timestep=0.025)
+    soma = Segment(proximal=P(x=18.8, y=0, z=0, diameter=18.8),
+                   distal=P(x=0, y=0, z=0, diameter=18.8), name="soma", id=0)
+    trunk = Segment(proximal=P(x=0, y=0, z=0, diameter=2),
+                    distal=P(x=-200, y=0, z=0, diameter=2), name="dendrite", parent=soma, id=1)
+    branch1 = Segment(proximal=P(x=-200, y=0, z=0, diameter=1),
+                      distal=P(x=-300, y=100, z=0, diameter=1), name="dendrite", parent=trunk, id=2)
+    branch2 = Segment(proximal=P(x=-200, y=0, z=0, diameter=1),
+                      distal=P(x=-400, y=-100, z=0, diameter=1), name="dendrite", parent=trunk, id=3)
+    cell_class = type("BranchedNeuron", (sim.MultiCompartmentNeuron,), {
+        "label": "BranchedNeuron",
+        "ion_channels": {'pas': sim.PassiveLeak},
+        "post_synaptic_entities": {},
+    })
+    cell_type = cell_class(
+        morphology=NeuroMLMorphology(Morphology(segments=(soma, trunk, branch1, branch2))),
+        cm=1.0, Ra=100.0, ionic_species={},
+        pas={"conductance_density": sim.morphology.uniform('all', 0.0003), "e_rev": -65.0})
+    cells = sim.Population(1, cell_type, initial_values={'v': -65.0})
+    cells.record('v', locations=sim.morphology.at_distances("dendrite", [100, 300, 400, 500]))
+
+    sim.run(1.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+
+    assert set(sig.name for sig in data.analogsignals) == {
+        "dendrite.100um.v", "dendrite.300um#0.v", "dendrite.300um#1.v", "dendrite.400um.v"}
+
+
+# a NeuroMorpho-style three-point soma (centre first, then the two ends), with an apical
+# dendrite and a basal dendrite attached to the soma, each 300 µm long
+THREE_POINT_SOMA_SWC = """\
+1 1 0.0 0.0 0.0 10.0 -1
+2 1 0.0 10.0 0.0 10.0 1
+3 1 0.0 -10.0 0.0 10.0 1
+4 4 0.0 10.0 0.0 1.0 1
+5 4 0.0 160.0 0.0 1.0 4
+6 4 0.0 310.0 0.0 1.0 5
+7 3 0.0 -10.0 0.0 1.0 1
+8 3 0.0 -310.0 0.0 1.0 7
+"""
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_three_point_soma_swc(sim, tmp_path):
+    """A morphology with a three-point soma, loaded with MorphIO.
+
+    Guards: NEURON built such a soma as a path that doubled back on itself, and put the
+    spike detector on the first neurite rather than the soma; with more than one branch
+    at the root, Arbor's `at_distances` only followed the first.
+    """
+    if not have_morphio:
+        pytest.skip("morphio not available")
+    from pyNN.morphology import load_morphology
+
+    swc_file = tmp_path / "three_point_soma.swc"
+    swc_file.write_text(THREE_POINT_SOMA_SWC)
+
+    sim.setup(timestep=0.025)
+    cell_class = type("ThreePointSomaNeuron", (sim.MultiCompartmentNeuron,), {
+        "label": "ThreePointSomaNeuron",
+        "ion_channels": {'pas': sim.PassiveLeak, 'na': sim.NaChannel, 'kdr': sim.KdrChannel},
+        "post_synaptic_entities": {},
+    })
+    cell_type = cell_class(
+        morphology=load_morphology(str(swc_file), use_library="morphio"),
+        cm=1.0, Ra=100.0,
+        ionic_species={"na": IonicSpecies("na", reversal_potential=50.0),
+                       "k": IonicSpecies("k", reversal_potential=-77.0)},
+        pas={"conductance_density": sim.morphology.uniform('all', 0.0003), "e_rev": -54.3},
+        na={"conductance_density": sim.morphology.uniform('soma', 0.120)},
+        kdr={"conductance_density": sim.morphology.uniform('soma', 0.036)})
+    cells = sim.Population(1, cell_type, initial_values={'v': -65.0})
+    step = sim.DCSource(amplitude=1.0, start=10.0, stop=40.0)
+    step.inject_into(cells, location="soma")
+    cells.record('spikes')
+    cells.record('v', locations=["soma",
+                                 sim.morphology.at_distances(sim.morphology.apical_dendrites(), [100, 400])])
+
+    sim.run(50.0)
+    data = cells.get_data().segments[0]
+    sim.end()
+
+    # there is no apical dendrite 400 µm from the soma centre
+    assert set(sig.name for sig in data.analogsignals) == {"soma.v", "apical_dendrites.100um.v"}
+    soma_v = data.filter(name="soma.v")[0].magnitude[:, 0]
+    assert soma_v.max() > 20.0
+    assert len(data.spiketrains[0]) >= 1
+
+
+@run_with_simulators("arbor", "neuron")
+def test_mc_random_synapse_placement(sim):
+    """Synapses placed with random_placement(), and connections to a random_section().
+
+    The dendrite is 500 µm long, so a density of 0.1 synapses per µm gives 50 synapses.
+    Not yet supported by the Arbor backend, which should say so.
+    """
+    if not have_neuroml:
+        pytest.skip("libNeuroML not available")
+    m = sim.morphology
+
+    def build_and_run():
+        sim.setup(timestep=0.025)
+        cell_type = _build_mc_cell_type(
+            sim, synapse_locations=m.random_placement(m.uniform('dendrite', 0.1)))
+        cells = sim.Population(1, cell_type, initial_values={'v': -60.0})
+        source = sim.Population(1, sim.SpikeSourceArray(spike_times=[20.0]))
+        prj = sim.Projection(source, cells,
+                             sim.AllToAllConnector(location_selector=m.random_section(m.with_label("dendrite"))),
+                             sim.StaticSynapse(weight=0.005, delay=1.0), receptor_type="AMPA")
+        cells.record('v', locations="soma")
+        sim.run(50.0)
+        return cells, prj
+
+    if sim.__name__ == "pyNN.arbor":
+        with pytest.raises(NotImplementedError, match="not yet supported by the Arbor backend"):
+            build_and_run()
+        sim.end()
+        return
+
+    cells, prj = build_and_run()
+    data = cells.get_data().segments[0]
+    synapses = cells[0]._cell.synaptic_receptors["AMPA"]
+    sim.end()
+
+    # all 50 synapses are on the dendrite (segment 1)
+    assert {section_id: len(syns) for section_id, syns in synapses.items()} == {1: 50}
+    # the connection goes to one of them, and gives an EPSP at the soma
+    assert len(prj) == 1
+    v = data.filter(name="soma.v")[0].magnitude[:, 0]
+    assert v.max() - v[800] > 0.1  # relative to v at 20 ms

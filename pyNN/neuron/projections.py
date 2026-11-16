@@ -122,6 +122,9 @@ class Projection(common.Projection):
                 target = cell_obj.synaptic_receptors[self.receptor_type].get(sid, None)
                 if target:
                     target_objects.append(target[0])
+        elif location_selector is None and self.receptor_type in getattr(cell_obj, "synaptic_receptors", {}):
+            # multi-compartment neuron: connect to all synapses of this receptor type
+            target_objects = sum(cell_obj.synaptic_receptors[self.receptor_type].values(), [])
         elif location_selector is None:  # point neuron model
             if "." in self.receptor_type:
                 section, target = self.receptor_type.split(".")

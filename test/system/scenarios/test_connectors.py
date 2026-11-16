@@ -279,6 +279,28 @@ def test_issue622(sim):
                  ])
 
 
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_projection_to_population_view(sim):
+    """Only the cells in a postsynaptic PopulationView (including a view of a view)
+    receive synaptic input."""
+    sim.setup(timestep=0.1)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=[10.0]))
+    cells = sim.Population(6, sim.IF_cond_exp(), initial_values={'v': -65.0})
+    view = cells[1:5]          # cells 1, 2, 3, 4
+    view_of_view = view[2:4]   # cells 3, 4
+    sim.Projection(source, view[0:1], sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=0.01, delay=1.0), receptor_type="excitatory")
+    sim.Projection(source, view_of_view, sim.AllToAllConnector(),
+                   sim.StaticSynapse(weight=0.01, delay=1.0), receptor_type="excitatory")
+    cells.record('v')
+    sim.run(30.0)
+    v = cells.get_data().segments[0].filter(name='v')[0].magnitude
+    sim.end()
+    depolarised = (v.max(axis=0) - v[0]) > 0.1
+    assert depolarised.tolist() == [False, True, False, True, True, False]
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator()

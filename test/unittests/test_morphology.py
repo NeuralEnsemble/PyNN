@@ -6,6 +6,7 @@ Unit tests of the morphology module
 """
 
 import os
+import tempfile
 import unittest
 from math import sqrt
 import numpy as np
@@ -63,11 +64,12 @@ def setUpModule():
     if not have_neuroml:
         pytest.skip("libNeuroML not installed")
 
-    test_file = "morph_test.swc"
-    with open(test_file, "w") as fp:
-        fp.write(morph_data)
-    array_morph = load_morphology(test_file)
-    #os.remove(test_file)
+    # a separate directory for each test process, since tests may run in parallel
+    with tempfile.TemporaryDirectory() as tmpdir:
+        test_file = os.path.join(tmpdir, "morph_test.swc")
+        with open(test_file, "w") as fp:
+            fp.write(morph_data)
+        array_morph = load_morphology(test_file)
 
     soma = Segment(proximal=P(x=0, y=-10, z=0, diameter=20.0),
                        distal=P(x=0, y=10, z=0, diameter=20.0),

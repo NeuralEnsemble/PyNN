@@ -8,6 +8,10 @@ Multicompartmental modelling
     We encourage users to try them out, but at this stage we do not recommend publishing
     work using these extensions without very thorough checking and validation of results.
 
+Multi-compartment neurons are supported by the NEURON and Arbor backends.
+Not all of the features described below are available with both: see `Backend support`_.
+Some of the features described in the later sections (marked as "planned") are not yet implemented.
+
 
 Cell types
 ==========
@@ -72,6 +76,15 @@ e.g. :class:`NeuroMLMorphology`, :class:`BrianMorphology`.
 
 This standard interface for working with morphologies allows us to define tools for spatial parameterization,
 and, more generally, for specifying points and regions within the neurites, in a format-independent way.
+These tools (the morphology filters, distributions and location generators described below) are provided by
+the :mod:`morphology` module of each backend, e.g.:
+
+.. code-block:: python
+
+    import pyNN.neuron as sim
+
+    m = sim.morphology
+    m.uniform('all', 0.0003)
 
 The general principle is to present an interface to the user that treats the neuron as a continuous
 tree structure, and hides details of the spatial discretization, while mapping points and regions defined by the user
@@ -89,7 +102,7 @@ Thus, for example, if we specify a two-compartment neuron using NeuroML:
 
 .. code-block:: python
 
-    from neuroml import Segment, Point3DWithDiam as P
+    from neuroml import Morphology, Segment, Point3DWithDiam as P
     from pyNN.morphology import NeuroMLMorphology
 
     soma = Segment(proximal=P(x=0, y=0, z=0, diameter=18.8),
@@ -100,7 +113,7 @@ Thus, for example, if we specify a two-compartment neuron using NeuroML:
                    name="dendrite",
                    parent=soma)
 
-    cell_type = cell_class(morphology=NeuroMLMorphology(segments=(soma, dend)),
+    cell_type = cell_class(morphology=NeuroMLMorphology(Morphology(segments=(soma, dend))),
                            ...other parameters...)
     cells = sim.Population(n, cell_type)
 
@@ -128,7 +141,9 @@ We create such a morphology using, for example:
 
     from pyNN.morphology import load_morphology
 
-    pyr_morph = load_morphology("oi15rpy4-1.CNG.swc")
+    pyr_morph = load_morphology(
+        "http://neuromorpho.org/dableFiles/kisvarday/CNG%20version/oi15rpy4-1.CNG.swc",
+        use_library="morphio")
 
     class PyramidalCell(MultiCompartmentNeuron):
         ion_channels = {
@@ -142,10 +157,19 @@ We create such a morphology using, for example:
                                         ...other parameters...)
     pyramidal_cells = sim.Population(n, pyramidal_cell_type)
 
+:func:`load_morphology` accepts a local file name or a URL.
+SWC files should be loaded with ``use_library="morphio"``, which requires MorphIO_.
+A soma given in the NeuroMorpho three-point format (a centre point and two end points) is treated
+as a cylinder, with the neurites attached at its centre, which is then the root of the morphology.
+Other soma formats are not yet handled consistently by the different backends.
+
 
 We can select regions of the axonal and/or dendritic trees using a morphology filter.
 At present, the available filters are :class:`soma`, :class:`apical_dendrites`, :class:`basal_dendrites`,
-:class:`dendrites`, :class:`axon`, and :class:`all`.
+:class:`dendrites`, :class:`axon`, and :class:`with_label` (which selects sections or segments by
+their label in the morphology description, e.g. ``with_label("dendrite")``).
+In distributions and location generators, a label may be given as a string instead of a filter,
+and in distributions, ``'all'`` selects the whole cell.
 
 .. note:: identifying apical and basal dendrites depends on the morphology description file providing these labels.
           This is the case for SWC files, and it is also supported by NeuroML.
@@ -156,8 +180,8 @@ for example, distance along the dendrites from the soma:
 
 .. code-block:: python
 
-    kdr_conductance_density_apical = by_distance(apical_dendrites(), lambda d: 0.05 * d / 200.0)
-    kdr_conductance_density_basal = uniform(basal_dendrites(), lambda d: 0.07)
+    kdr_conductance_density_apical = m.by_distance(m.apical_dendrites(), lambda d: 0.05 * d / 200.0)
+    kdr_conductance_density_basal = m.uniform(m.basal_dendrites(), 0.07)
 
 
 To specify specific points within a region (for injecting current, placing synapses or recording state variables)
@@ -165,15 +189,46 @@ we specify a "location generator":
 
 .. code-block:: python
 
-    locations = at_distances(apical_dendrites(), [50, 100, 150, 200, 250])  # distances in µm
+    locations = m.at_distances(m.apical_dendrites(), [50, 100, 150, 200, 250])  # distances in µm
 
+The distances are measured along the path from the root of the morphology
+(the proximal end of the soma, or the centre of a three-point soma, see above).
 Note that this may specify more than five points, due to branching
-(i.e. there will be a point on each branch at 100 µm from the soma);
+(i.e. there will be a point on each branch at 100 µm from the root);
 equally, some branches may be shorter than 250 µm and so no point will be generated for that branch.
 
-In addition to :class:`at_distances`, PyNN currently provides :class:`centre` and :class:`random_placement`;
+In addition to :class:`at_distances`, PyNN currently provides :class:`centre` (the centre of a region)
+and :class:`random_placement` (random points with a given density, e.g.
+``m.random_placement(m.uniform('all', 0.05))`` for 0.05 points per µm);
 points can also be defined using labels provided in the morphology definition.
 Further location generator methods are planned.
+
+Location generators are used to place synapses (see `Projections`_), to inject current, e.g.:
+
+.. code-block:: python
+
+    step_current.inject_into(cells, location=m.at_distances(m.dendrites(), [50]))
+
+and to record, e.g.:
+
+.. code-block:: python
+
+    cells.record('v', locations=["soma", m.at_distances(m.apical_dendrites(), [100, 200])])
+
+Where a location generator gives more than one point, the current is injected at each of them
+(with the full amplitude at each point), and each is recorded separately.
+The name of a recorded signal is the label of the location followed by the name of the variable,
+e.g. ``soma.v`` or ``dendrite.v`` for labels in the morphology,
+``apical_dendrites.centre.v`` for ``m.centre(m.apical_dendrites())``,
+and ``apical_dendrites.100um.v`` for a distance of 100 µm.
+Where a distance gives more than one point, the names have a suffix ``#0``, ``#1``, ...,
+e.g. ``apical_dendrites.100um#0.v``.
+The order of these points is not necessarily the same with different backends.
+
+Ion channel state variables are recorded in the same way, using the name of the ion channel
+given in the cell type, e.g. ``cells.record(['na.m', 'kdr.n'], locations="soma")``.
+
+Spikes are detected at the soma, when the membrane potential crosses -10 mV.
 
 
 Projections
@@ -191,12 +246,20 @@ There are two possible strategies when placing the post-synaptic component of sy
 
 Both strategies are in fairly widespread use, so it would be worthwhile to support both approaches in PyNN.
 
-For Strategy 1, we specify the synaptic density when creating the cell type,
-as seen in the "pyramidal_cell" example above.
-It should also be possible to specify the placement of individual synapses in labelled sections,
-in the simple, few-compartment case (todo).
+For Strategy 1, we specify the locations of the synapses when creating the cell type, using a location generator,
+for example:
 
-For Strategy 2, post-synaptic parameters are specified in the :class:`Connector` class, see next section.
+.. code-block:: python
+
+    pyramidal_cell_type = PyramidalCell(
+        morphology=pyr_morph,
+        AMPA={"locations": m.random_placement(m.uniform('all', 0.05)),  # 0.05 synapses per µm
+              "e_syn": 0.0,
+              "tau_syn": 2.0},
+        ...other parameters...)
+
+Strategy 2, in which post-synaptic parameters are specified in the :class:`Connector` class (see next section),
+is planned but not yet implemented.
 
 
 In making synaptic connections *from* neurons with detailed morphologies,
@@ -206,7 +269,8 @@ Where the axon is not represented explicitly or is truncated, this location will
 or terminal point of the truncation.
 In this case the synaptic delay should include a distance-dependent component, where the distance could be
 as-the-crow-flies, or the path length along the original axon (before truncation).
-In both cases, this is specified using the `source` argument of the :class:`Projection` constructor.
+In both cases, this is specified using the `source` argument of the :class:`Projection` constructor
+(planned).
 
 
 Connectors
@@ -226,27 +290,52 @@ common however, so we also propose to extend the standard connectors from earlie
 .. code-block:: python
 
     sim.Projection(inputs, pyramidal_cells,
-                   connector=sim.AllToAllConnector(location_selector=sample(apical_dendrites())),
+                   connector=sim.AllToAllConnector(location_selector=m.random_section(m.apical_dendrites())),
                    synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
                    receptor_type="AMPA")
 
 This will connect all inputs to all pyramidal cells, selecting one synapse location at random from the apical dendrites
 (this random location would be different for each neuron in the pyramidal cell population).
+If no `location_selector` is given, each connection is made to all of the synapses of the given receptor type.
 
 If Strategy 1 (as described above) is being used,
 the random sample is over those post-synaptic mechanisms already placed in the apical dendrites.
 
-If Strategy 2 is being used, the random sample is over all possible locations in the apical dendrites,
+If Strategy 2 is being used (planned), the random sample is over all possible locations in the apical dendrites,
 and the post-synaptic mechanism is inserted at the same time as the connection is created.
 In this scenario, it should be possible to set post-synaptic model and parameters at the same time, for example:
 
 .. code-block:: python
 
         sim.Projection(inputs, pyramidal_cells,
-                   connector=sim.AllToAllConnector(location_selector=sample(apical_dendrites())),
+                   connector=sim.AllToAllConnector(location_selector=m.random_section(m.apical_dendrites())),
                    synapse_type=sim.StaticSynapse(weight=0.5, delay=0.5),
                    receptor_type=sim.CondExpPostSynapticResponse(tau_syn=RandomDistribution('normal', (0.2, 0.01))))
 
+
+
+Backend support
+===============
+
+The following features are not yet available with the Arbor backend:
+:class:`random_placement`, :class:`random_section` (and hence `location_selector` in connectors),
+:class:`by_distance` and :class:`by_diameter`, and :class:`with_label` with more than one label.
+Using them raises :class:`NotImplementedError`.
+
+With the NEURON backend, :class:`by_distance` is only available for morphologies loaded with
+``use_library="neuroml"``.
+
+The two backends discretize the neurites differently, so the results of simulations with NEURON
+and Arbor are close, but not identical.
+
+
+Examples
+========
+
+.. toctree::
+   :maxdepth: 1
+
+   mc_examples
 
 
 .. _libNeuroML: https://libneuroml.readthedocs.io/en/latest/

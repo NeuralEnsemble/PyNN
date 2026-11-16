@@ -2,49 +2,77 @@
 # the scripts would look nicer if we had just the top-level morphology module and
 # then used the function arguments to provide simulator-specificity
 
+import arbor
 from morphio import SectionType
 from .. import morphology as base_morphology
 
 
 # --- MorphologyFilters ---
 
+def _region_expression(selector, morphology):
+    """Return a region expression for `selector` that does not refer to labels.
+
+    Label references are not resolved in probe locsets (and can crash Arbor 0.12),
+    so where possible a label is replaced by the segments it refers to.
+    """
+    region = selector.get_region(morphology)
+    if region.startswith('"'):
+        return f"(region {region})"
+    return region
+
+
 class with_label(base_morphology.with_label):
 
-    def get_region(self):
+    def get_region(self, morphology=None):
         if len(self.labels) > 1:
-            raise NotImplementedError
+            raise NotImplementedError("with_label() with more than one label is not yet supported by the Arbor backend")
         assert len(self.labels) != 0
-        return f'"{self.labels[0]}"'
+        label = self.labels[0]
+        segments = getattr(morphology, "segments", None)  # NeuroML morphologies only
+        if segments:
+            # segment indices as in CellDescriptionBuilder._build_tree()
+            indices = [i for i, segment in enumerate(segments) if segment.name == label]
+            if len(indices) == 1:
+                return f"(segment {indices[0]})"
+            elif indices:
+                return "(join {})".format(" ".join(f"(segment {i})" for i in indices))
+        return f'"{label}"'
 
 
 class apical_dendrites(base_morphology.apical_dendrites):
 
-    def get_region(self):
+    def get_region(self, morphology=None):
         return f"(tag {SectionType.apical_dendrite.value})"
 
 
 class basal_dendrites(base_morphology.basal_dendrites):
 
-    def get_region(self):
+    def get_region(self, morphology=None):
         return f"(tag {SectionType.basal_dendrite.value})"
 
 
 class dendrites(base_morphology.dendrites):
 
-    def get_region(self):
+    def get_region(self, morphology=None):
         return f"(join (tag {SectionType.apical_dendrite.value}) (tag {SectionType.basal_dendrite.value}))"
 
 
 class axon(base_morphology.axon):
 
-    def get_region(self):
+    def get_region(self, morphology=None):
         return f"(tag {SectionType.axon.value})"
+
+
+class soma(base_morphology.soma):
+
+    def get_region(self, morphology=None):
+        return f"(tag {SectionType.soma.value})"
 
 
 class random_section(base_morphology.random_section):
 
-    def get_region(self):
-        raise NotImplementedError
+    def get_region(self, morphology=None):
+        raise NotImplementedError("random_section() is not yet supported by the Arbor backend")
 
 
 # --- IonChannelDistributions ---
@@ -70,13 +98,13 @@ class uniform(base_morphology.uniform, HasSelector):
 class by_distance(base_morphology.by_distance, HasSelector):
 
     def resolve(self):
-        raise NotImplementedError
+        raise NotImplementedError("by_distance() is not yet supported by the Arbor backend")
 
 
 class by_diameter(base_morphology.by_diameter, HasSelector):
 
     def resolve(self):
-        raise NotImplementedError
+        raise NotImplementedError("by_diameter() is not yet supported by the Arbor backend")
 
 
 # --- LocationGenerators ---
@@ -106,23 +134,58 @@ class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
 class at_distances(base_morphology.at_distances, HasSelector):
 
     def generate_locations(self, morphology, label):
+        # `distal-translate` moves a location that would be beyond the end of a branch
+        # to the branch terminal, so we evaluate the locset on the morphology and remove
+        # such points: they are the ones also found at a slightly shorter distance.
+        # The locations are then given explicitly, which also avoids label references.
+        # As with NEURON, a distance on more than one branch gives one label per point.
+        from .cells import build_segment_tree
 
-        region = self.selector.get_region()
-        locations = [
-            (f'(on-components {d} (region {region}))', f"{label}-{region}-{d}")
-            for d in self.distances
-        ]
+        tree, segment_labels = build_segment_tree(morphology)
+        labels = arbor.label_dict({name: expr for name, expr in segment_labels.items() if name})
+        arbor_morphology = arbor.morphology(tree)
+        cell = arbor.cable_cell(arbor_morphology, arbor.decor(), labels)
+        region = _region_expression(self.selector, morphology)
+        # `(distal-translate (root) d)` only follows the first branch, so when several
+        # branches start at the root (e.g. a soma given as two cylinders from its centre,
+        # with the neurites attached there), we translate from the start of each of them
+        root_branches = [
+            f"(location {b} 0)" for b in range(arbor_morphology.num_branches)
+            if arbor_morphology.branch_parent(b) == arbor.mnpos]
+        if len(root_branches) == 1:
+            start = root_branches[0]
+        else:
+            start = "(sum {})".format(" ".join(root_branches))
+
+        def points_at(d):
+            locset = f"(restrict-to (distal-translate {start} {d!r}) {region})"
+            return {(loc.branch, loc.pos) for loc in cell.locations(locset)}
+
+        locations = []
+        for d in self.distances:
+            points = points_at(d)
+            if d > 0:
+                points -= points_at(max(d - 1e-3, 0.0))
+            # one label per point, as with NEURON, so that each synapse can be a
+            # connection target
+            location_label = f"{label}-{self.location_label(d)}"
+            for i, (branch, pos) in enumerate(sorted(points)):
+                locations.append((
+                    f"(location {branch} {pos!r})",
+                    location_label if len(points) == 1 else f"{location_label}#{i}"
+                ))
         return locations
 
 
 class random_placement(base_morphology.random_placement, HasSelector):
 
     def generate_locations(self, morphology, label):
-        raise NotImplementedError
+        raise NotImplementedError("random_placement() is not yet supported by the Arbor backend")
 
 
 class centre(base_morphology.centre, HasSelector):
 
     def generate_locations(self, morphology, label):
-        region = self.selector.get_region()
-        return [(f'(on-components 0.5 (region {region}))', f"{label}-{region}-centre")]
+        region = _region_expression(self.selector, morphology)
+        return [(f'(on-components 0.5 {region})',
+                 f"{label}-{self.selector.name}.centre")]

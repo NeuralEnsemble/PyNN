@@ -4,8 +4,24 @@
 
 """
 
+from collections import defaultdict
+
 import numpy as np
+from neuron import h
+
 from .. import morphology as base_morphology
+
+
+def _root_location(cell):
+    """Return the root of the morphology, from which path distances are measured, as a NEURON
+    segment: the proximal end of the root section, unless the cell specifies otherwise."""
+    if getattr(cell, "root_location", None) is not None:
+        section, x = cell.root_location
+        return section(x)
+    for section in cell.sections.values():
+        if section.parentseg() is None:
+            return section(0)
+    raise ValueError("Cell has no root section")
 
 
 # --- MorphologyFilters ---
@@ -22,11 +38,12 @@ class with_label(base_morphology.with_label):
                 section_index = np.hstack((section_index, morphology.section_groups[label]))
                 labels.remove(label)
         if labels:
+            matched = set()
             for i, segment in enumerate(morphology.segments):
                 if segment.name in labels:
-                    # ids.append(id(segment))
                     section_index = np.hstack((section_index, np.array([i])))
-                    labels.remove(segment.name)
+                    matched.add(segment.name)
+            labels = [label for label in labels if label not in matched]
         if labels:
             raise ValueError("No sections or groups match label '{}'".format("', '".join(labels)))
         return section_index
@@ -96,7 +113,7 @@ class axon(base_morphology.axon):
             raise Exception("No neurites labelled as axon")
 
 
-class soma(base_morphology.axon):
+class soma(base_morphology.soma):
 
     def __call__(self, morphology, filter_by_section=False):
         from morphio import SectionType
@@ -207,18 +224,35 @@ class LabelledLocations(base_morphology.LabelledLocations, HasSelector):
 class at_distances(base_morphology.at_distances, HasSelector):
 
     def generate_locations(self, morphology, label_prefix, cell):
-        # todo: this only works for a single section at present
-        assert len(cell.sections) == 1, "not implemented"
-        section_index = self.selector(morphology)
-        assert len(section_index) == 1
-        section = cell.sections[section_index[0]]
+        tolerance = 1e-4  # µm; NEURON stores 3D points in single precision
+        root = _root_location(cell)
+        selected = set(self.selector(morphology))
+        points = defaultdict(list)
+        for section_id in sorted(selected):
+            section = cell.sections[section_id]
+            parent = section.parentseg()
+            parent_selected = parent is not None and any(
+                cell.sections[sid] == parent.sec for sid in selected)
+            # child sections are connected by their proximal end (x=0)
+            start = h.distance(root, section(0))
+            for d in self.distances:
+                offset = d - start
+                if abs(offset) <= tolerance:
+                    # a point at the start of the section belongs to the parent section,
+                    # unless that is outside the region
+                    if not parent_selected:
+                        points[d].append((section, section_id, 0.0))
+                elif 0 < offset <= section.L + tolerance:
+                    points[d].append((section, section_id, min(offset / section.L, 1.0)))
         locations = []
         for d in self.distances:
-            location_label = f"d-{d}"
+            location_label = self.location_label(d)
             if label_prefix:
                 location_label = f"{label_prefix}-{location_label}"
-            cell.locations[location_label] = Location(section, section_index, d, label=location_label)
-            locations.append(location_label)
+            for i, (section, section_id, position) in enumerate(points[d]):
+                label = location_label if len(points[d]) == 1 else f"{location_label}#{i}"
+                cell.locations[label] = Location(section, section_id, position, label=label)
+                locations.append(label)
         return locations
 
 
@@ -226,7 +260,7 @@ class random_placement(base_morphology.random_placement, HasSelector):
 
     def generate_locations(self, morphology, label_prefix, cell):
         locations = []
-        for index, section_id in enumerate(cell.sections):
+        for section_id, index in cell._morphology_indices.items():
             density = self.density_function.value_in(morphology, index)
             section = cell.sections[section_id]
             n_synapses = density * section.L
@@ -251,7 +285,7 @@ class centre(base_morphology.centre, HasSelector):
         section_index = self.selector(morphology)
         section_id = section_index[len(section_index)//2]
         section = cell.sections[section_id]
-        location_label = "centre"  # todo: add a part coming from selector
+        location_label = f"{self.selector.name}.centre"
         if label_prefix:
             location_label = f"{label_prefix}-{location_label}"
         cell.locations[location_label] = Location(section, section_id, 0.5, label=location_label)

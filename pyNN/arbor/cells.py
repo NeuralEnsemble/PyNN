@@ -26,6 +26,40 @@ def region_name_to_tag(name):
     return map.get(name, -1)
 
 
+def build_segment_tree(std_morphology):
+    """Build an Arbor segment tree from a PyNN morphology.
+
+    Returns the tree and a dict of region expressions for the named segments
+    (for NeuroML morphologies).
+    """
+    segment_labels = {}
+    if isinstance(std_morphology, NeuroMLMorphology):
+        tree = arbor.segment_tree()
+        for i, segment in enumerate(std_morphology.segments):
+            prox = convert_point(segment.proximal)
+            dist = convert_point(segment.distal)
+            tag = region_name_to_tag(segment.name)
+            if tag == -1 and std_morphology.section_groups:
+                for section_type, id_list in std_morphology.section_groups.items():
+                    if i in id_list:
+                        tag = section_type.value
+            if segment.parent is None:
+                parent = arbor.mnpos
+            else:
+                parent = segment.parent.id
+            tree.append(parent, prox, dist, tag=tag)
+            segment_labels.setdefault(segment.name, []).append(f"(segment {i})")
+        segment_labels = {
+            name: expressions[0] if len(expressions) == 1 else "(join {})".format(" ".join(expressions))
+            for name, expressions in segment_labels.items()
+        }
+    elif isinstance(std_morphology, MorphIOMorphology):
+        tree = arbor.load_swc_neuron(std_morphology.morphology_file).segment_tree
+    else:
+        raise ValueError("{} not supported as a neuron morphology".format(type(std_morphology)))
+    return tree, segment_labels
+
+
 class BaseCellDescriptionBuilder:
     """Shared protocol for the Arbor cable-cell builders consumed by
     :mod:`populations.py`.
@@ -105,28 +139,10 @@ class CellDescriptionBuilder(BaseCellDescriptionBuilder):
     def _build_tree(self, i):
         self.parameters["morphology"].dtype = Morphology
         std_morphology = self.parameters["morphology"]._partially_evaluate(i, simplify=True)  # evaluates the larray
-        if isinstance(std_morphology, NeuroMLMorphology):
-            tree = arbor.segment_tree()
-            for i, segment in enumerate(std_morphology.segments):
-                prox = convert_point(segment.proximal)
-                dist = convert_point(segment.distal)
-                tag = region_name_to_tag(segment.name)
-                if tag == -1 and std_morphology.section_groups:
-                    for section_type, id_list in std_morphology.section_groups.items():
-                        if i in id_list:
-                            tag = section_type.value
-                if segment.parent is None:
-                    parent = arbor.mnpos
-                else:
-                    parent = segment.parent.id
-                tree.append(parent, prox, dist, tag=tag)
-                if segment.name not in self.labels:
-                    self.labels[segment.name] = f"(segment {i})"
-        elif isinstance(std_morphology, MorphIOMorphology):
-            tree = arbor.load_swc_neuron(std_morphology.morphology_file).segment_tree
-        else:
-            raise ValueError("{} not supported as a neuron morphology".format(type(std_morphology)))
-
+        tree, segment_labels = build_segment_tree(std_morphology)
+        for name, expression in segment_labels.items():
+            if name not in self.labels:
+                self.labels[name] = expression
         return tree
 
     def _build_decor(self, i):

@@ -9,6 +9,7 @@ pyNN.mock backend.
 import unittest
 import numpy as np
 import os
+import tempfile
 import sys
 from numpy.testing import assert_array_equal
 
@@ -244,13 +245,11 @@ class ProjectionTest(unittest.TestCase):
     #    prj.get.assert_called_with('delay', 'list')
 
     def test_save_connections_with_gather(self, sim=sim):
-        filename = "test.connections"
-        if os.path.exists(filename):
-            os.remove(filename)
-        prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn3)
-        prj.save('connections', filename, gather=True)
-        assert os.path.exists(filename)
-        os.remove(filename)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filename = os.path.join(tmpdir, "test.connections")
+            prj = sim.Projection(self.p1, self.p2, connector=self.all2all, synapse_type=self.syn3)
+            prj.save('connections', filename, gather=True)
+            assert os.path.exists(filename)
 
     # def test_print_weights_as_list(self, sim=sim):
     #    filename = "test.weights"

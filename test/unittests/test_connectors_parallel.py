@@ -10,6 +10,8 @@ import unittest
 from pyNN import connectors, random, errors, space, recording
 import numpy as np
 import os
+import shutil
+import tempfile
 import sys
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from .mocks import MockRNG, MockRNG2
@@ -401,6 +403,8 @@ class TestFromListConnector(unittest.TestCase):
 class TestFromFileConnector(unittest.TestCase):
 
     def setUp(self, sim=sim):
+        # a separate directory for each test, since tests may run in parallel
+        self.tmpdir = tempfile.mkdtemp()
         sim.setup(num_processes=2, rank=1, min_delay=0.123)
         self.p1 = sim.Population(4, sim.IF_cond_exp(), structure=space.Line())
         self.p2 = sim.Population(5, sim.HH_cond_exp(), structure=space.Line())
@@ -414,16 +418,11 @@ class TestFromFileConnector(unittest.TestCase):
         ]
 
     def tearDown(self, sim=sim):
-        for path in ("test.connections", "test.connections.1", "test.connections.2"):
-            if os.path.exists(path):
-                try:
-                    os.remove(path)
-                except PermissionError:
-                    pass
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_connect_with_standard_text_file_not_distributed(self, sim=sim):
-        np.savetxt("test.connections", self.connection_list)
-        C = connectors.FromFileConnector("test.connections", distributed=False)
+        np.savetxt(os.path.join(self.tmpdir, "test.connections"), self.connection_list)
+        C = connectors.FromFileConnector(os.path.join(self.tmpdir, "test.connections"), distributed=False)
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
@@ -432,8 +431,8 @@ class TestFromFileConnector(unittest.TestCase):
 
     def test_connect_with_standard_text_file_distributed(self, sim=sim):
         local_connection_list = [c for c in self.connection_list if c[1] % 2 == 1]
-        np.savetxt("test.connections.1", local_connection_list)
-        C = connectors.FromFileConnector("test.connections", distributed=True)
+        np.savetxt(os.path.join(self.tmpdir, "test.connections.1"), local_connection_list)
+        C = connectors.FromFileConnector(os.path.join(self.tmpdir, "test.connections"), distributed=True)
         syn = sim.StaticSynapse()
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay"], format='list', gather=False),  # use gather False because we are faking the MPI
@@ -448,9 +447,9 @@ class TestFromFileConnector(unittest.TestCase):
             (2, 2, 0.4, 0.13, 130, 97),
             (0, 1, 0.5, 0.14, 140, 96),  # local
         ]
-        file = recording.files.StandardTextFile("test.connections.2", mode='w')
+        file = recording.files.StandardTextFile(os.path.join(self.tmpdir, "test.connections.2"), mode='w')
         file.write(connection_list, {"columns": ["i", "j", "weight", "delay", "U", "tau_rec"]})
-        C = connectors.FromFileConnector("test.connections.2", distributed=False)
+        C = connectors.FromFileConnector(os.path.join(self.tmpdir, "test.connections.2"), distributed=False)
         syn = sim.TsodyksMarkramSynapse(tau_facil=88.8)
         prj = sim.Projection(self.p1, self.p2, C, syn)
         self.assertEqual(prj.get(["weight", "delay", "U", "tau_rec", "tau_facil"], format='list', gather=False),  # use gather False because we are faking the MPI
