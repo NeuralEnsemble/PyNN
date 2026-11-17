@@ -317,5 +317,6 @@ class Projection(common.Projection):
         if isinstance(self.post, common.Assembly) or isinstance(self.pre, common.Assembly):
             raise NotImplementedError
         tau_syn_var = self.synapse_type.tau_syn_var[self.receptor_type]
-        self._brian2_synapses[0][0].tau_syn = self.post.get(
-            tau_syn_var)[self._brian2_synapses[0][0].j] * brian2.ms
+        # get() returns a single value, not an array, if the postsynaptic population has one cell
+        tau_syn = np.broadcast_to(self.post.get(tau_syn_var), (self.post.size,))
+        self._brian2_synapses[0][0].tau_syn = tau_syn[self._brian2_synapses[0][0].j] * brian2.ms

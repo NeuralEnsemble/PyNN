@@ -43,6 +43,63 @@ def test_simple_stochastic_synapse(sim, plot_figure=False):
         return data
 
 
+def _tsodyks_markram_releases(U, tau_rec, tau_facil, tau_syn, spike_times):
+    """Fraction of resources released by each spike, from the exact solution of the
+    Tsodyks-Markram model between spikes."""
+    y = z = u = 0.0
+    t_last = 0.0
+    releases = []
+    for t in spike_times:
+        h = t - t_last
+        z = (z * np.exp(-h / tau_rec)
+             + y * (np.exp(-h / tau_syn) - np.exp(-h / tau_rec)) / (tau_syn / tau_rec - 1))
+        y *= np.exp(-h / tau_syn)
+        x = 1 - y - z
+        if tau_facil > 0:
+            u *= np.exp(-h / tau_facil)
+            u += U * (1 - u)
+        else:
+            u = U
+        releases.append(x * u)
+        y += x * u
+        t_last = t
+    return np.array(releases)
+
+
+@run_with_simulators("nest", "neuron", "brian2")
+def test_tsodyks_markram_synapse(sim):
+    """The peak postsynaptic conductance after each presynaptic spike matches the exact
+    solution of the Tsodyks-Markram model, for a depressing synapse (tau_facil = 0)
+    and a facilitating one."""
+    dt, tau_syn, weight = 0.1, 5.0, 0.01
+    spike_times = np.arange(10.0, 100.0, 10.0)
+    parameters = {
+        "depressing": dict(U=0.5, tau_rec=800.0, tau_facil=0.0),
+        "facilitating": dict(U=0.04, tau_rec=100.0, tau_facil=1000.0),
+    }
+    sim.setup(timestep=dt)
+    source = sim.Population(1, sim.SpikeSourceArray(spike_times=spike_times))
+    targets = {}
+    for label, p in parameters.items():
+        targets[label] = sim.Population(1, sim.IF_cond_exp(tau_syn_I=tau_syn))
+        targets[label].record("gsyn_inh")
+        sim.Projection(source, targets[label], sim.AllToAllConnector(),
+                       sim.TsodyksMarkramSynapse(weight=weight, delay=0.5, **p),
+                       receptor_type="inhibitory")
+    sim.run(100.0)
+    for label, p in parameters.items():
+        gsyn = targets[label].get_data().segments[0].filter(name="gsyn_inh")[0].magnitude[:, 0]
+        peaks = np.array([gsyn[int(round(t / dt)):int(round((t + 10.0) / dt))].max()
+                          for t in spike_times])
+        releases = _tsodyks_markram_releases(tau_syn=tau_syn, spike_times=spike_times, **p)
+        expected = np.array([np.sum(weight * releases[:k + 1]
+                                    * np.exp(-(spike_times[k] - spike_times[:k + 1]) / tau_syn))
+                             for k in range(spike_times.size)])
+        # NEURON samples the peak one time step after it occurs, hence the tolerance
+        assert np.allclose(peaks, expected, rtol=0.03), (label, peaks, expected)
+    sim.end()
+
+
 if __name__ == '__main__':
     from pyNN.utility import get_simulator
     sim, args = get_simulator(("--plot-figure",
