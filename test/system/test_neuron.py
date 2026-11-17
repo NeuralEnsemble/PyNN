@@ -130,33 +130,38 @@ if have_neuron:
 
 
 def test_electrical_synapse():
-    pytest.skip("Skipping test for now as it produces a segmentation fault")
-    p1 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
-    p2 = pyNN.neuron.Population(4, pyNN.neuron.standardmodels.cells.HH_cond_exp())
-    syn = pyNN.neuron.ElectricalSynapse(weight=1.0)
-    C = pyNN.connectors.FromListConnector(np.array([[0, 0, 1.0],
-                                                       [0, 1, 1.0],
-                                                       [2, 2, 1.0],
-                                                       [3, 2, 1.0]]),
-                                          column_names=['weight'])
-    prj = pyNN.neuron.Projection(p1, p2, C, syn,
-                                 source='source_section.gap', receptor_type='source_section.gap')
-    current_source = pyNN.neuron.StepCurrentSource(amplitudes=[1.0], times=[100])
+    if not have_neuron:
+        pytest.skip("neuron not available")
+    sim = pyNN.neuron
+    sim.setup()
+    p1 = sim.Population(4, sim.HH_cond_exp())
+    p2 = sim.Population(4, sim.HH_cond_exp())
+    syn = sim.ElectricalSynapse(weight=1.0)
+    C = sim.FromListConnector(np.array([[0, 0, 1.0],
+                                        [0, 1, 1.0],
+                                        [2, 2, 1.0],
+                                        [3, 2, 1.0]]),
+                              column_names=['weight'])
+    prj = sim.Projection(p1, p2, C, syn,
+                         source='source_section.gap', receptor_type='source_section.gap')
+    current_source = sim.StepCurrentSource(amplitudes=[1.0], times=[100])
     p1[0:1].inject(current_source)
     p2[2:3].inject(current_source)
     p1.record('v')
     p2.record('v')
-    pyNN.neuron.run(200)
-    p1_trace = p1.get_data(('v',)).segments[0].analogsignals[0]
-    p2_trace = p2.get_data(('v',)).segments[0].analogsignals[0]
-    # Check the local forward connection
-    assert p2_trace[:, 0].max() - p2_trace[:, 0].min() > 50
-    # Check the remote forward connection
-    assert p2_trace[:, 1].max() - p2_trace[:, 1].min() > 50
-    # Check the local backward connection
-    assert p1_trace[:, 2].max() - p2_trace[:, 2].min() > 50
-    # Check the remote backward connection
-    assert p1_trace[:, 3].max() - p2_trace[:, 3].min() > 50
+    sim.run(200)
+    p1_trace = p1.get_data(('v',)).segments[0].analogsignals[0].magnitude
+    p2_trace = p2.get_data(('v',)).segments[0].analogsignals[0].magnitude
+    assert_array_equal(prj.get("weight", format="array"),
+                       np.array([[1.0, 1.0, np.nan, np.nan],
+                                 [np.nan, np.nan, np.nan, np.nan],
+                                 [np.nan, np.nan, 1.0, np.nan],
+                                 [np.nan, np.nan, 1.0, np.nan]]))
+    # the cells receiving current spike, and so do the cells coupled to them,
+    # in both directions across the junctions; the other cells stay at rest
+    assert (np.ptp(p1_trace, axis=0) > 50).tolist() == [True, False, True, True]
+    assert (np.ptp(p2_trace, axis=0) > 50).tolist() == [True, True, True, False]
+    sim.end()
 
 
 def test_record_native_model():

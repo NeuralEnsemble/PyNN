@@ -496,16 +496,11 @@ class GapJunction(object):
     interface that allows access to the connection's conductance attributes
     """
 
-    def __init__(self, projection, pre, post, **parameters):
+    def __init__(self, projection, pre, post, cell_obj, target_object, **parameters):
         self.presynaptic_index = pre
         self.postsynaptic_index = post
-        segment_name = projection.receptor_type
-        # Strip 'gap' string from receptor_type (not sure about this, it is currently appended to
-        # the available synapse types in the NCML model segments but is not really necessary and
-        # it feels a bit hacky but it makes the list of receptor types more comprehensible)
-        if segment_name.endswith('.gap'):
-            segment_name = segment_name[:-4]
-        self.segment = getattr(projection.post[post]._cell, segment_name)
+        # `target_object` is the section in which to create the gap junction
+        self.segment = target_object
         pre_post_vargid, post_pre_vargid = state.get_vargids(projection, pre, post)
         self._make_connection(self.segment, parameters.pop('weight'), pre_post_vargid,
                               post_pre_vargid, projection.pre[pre], projection.post[post])
@@ -517,7 +512,8 @@ class GapJunction(object):
                      .format(local_gid, remote_gid, local_to_remote_vargid,
                              state.mpi_rank))
         # Set up the source reference for the local->remote connection
-        state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid)
+        state.parallel_context.source_var(segment(0.5)._ref_v, local_to_remote_vargid,
+                                          sec=segment)
         # Create the gap_junction and set its weight
         self.gap = h.Gap(0.5, sec=segment)
         self.gap.g = weight
@@ -527,7 +523,7 @@ class GapJunction(object):
                      .format(local_gid, remote_gid, remote_to_local_vargid,
                              state.mpi_rank))
         # set up the target reference for the remote->local connection
-        state.parallel_context.target_var(self.gap._ref_vgap, remote_to_local_vargid)
+        state.parallel_context.target_var(self.gap, self.gap._ref_vgap, remote_to_local_vargid)
 
     def _set_weight(self, w):
         self.gap.g = w
