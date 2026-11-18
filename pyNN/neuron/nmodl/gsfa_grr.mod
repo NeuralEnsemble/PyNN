@@ -12,6 +12,7 @@ NEURON {
     RANGE vthresh
     RANGE q_r, q_s
     RANGE E_s, E_r, tau_s, tau_r
+    RANGE g_s_init, g_r_init
     NONSPECIFIC_CURRENT i
 }
 
@@ -30,6 +31,8 @@ PARAMETER {
     tau_r   = 1.97   (ms)   : time constant of relative refractory mechanism
     E_s     = -70    (mV)   : SFA reversal potential
     E_r     = -70    (mV)   : relative refractory period reversal potential
+    g_s_init = 0     (nS)   : initial value of g_s
+    g_r_init = 0     (nS)   : initial value of g_r
 }
 
 
@@ -44,8 +47,8 @@ STATE {
 }
 
 INITIAL {
-    g_s = 0
-    g_r = 0
+    g_s = g_s_init
+    g_r = g_r_init
     net_send(0,2)
 }
 

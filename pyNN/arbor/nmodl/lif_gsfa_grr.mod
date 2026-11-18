@@ -14,6 +14,7 @@
 NEURON {
     POINT_PROCESS lif_gsfa_grr
     RANGE v_reset, t_ref, g_reset, E_s, E_r, tau_s, tau_r, q_s, q_r
+    RANGE g_s_init, g_r_init
     NONSPECIFIC_CURRENT i
 }
 
@@ -35,6 +36,8 @@ PARAMETER {
     tau_r   = 2     (ms)
     q_s     = 15    (nS)
     q_r     = 3000  (nS)
+    g_s_init = 0    (nS)
+    g_r_init = 0    (nS)
 }
 
 STATE {
@@ -47,8 +50,8 @@ ASSIGNED { clamp }
 
 INITIAL {
     refrac = 0
-    g_s = 0
-    g_r = 0
+    g_s = g_s_init
+    g_r = g_r_init
     clamp = 0
 }
 

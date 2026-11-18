@@ -365,6 +365,8 @@ class Izhikevich_(SingleCompartmentNeuron):
 
 class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
     """docstring"""
+    # paths to the adaptation and relative refractory conductances, for recording
+    state_variable_paths = {"g_s": "gsfa_grr.g_s", "g_r": "gsfa_grr.g_r"}
 
     def __init__(self, syn_type, syn_shape, tau_m=10.0, c_m=1.0, v_rest=-70.0,
                  v_thresh=-57.0, t_refrac=0.1, i_offset=0.0,
@@ -392,6 +394,13 @@ class GsfaGrrIF(StandardIF, StandardReceptorTypesMixin):
     tau_rr = _new_property('gsfa_grr', 'tau_r')
     e_sfa = _new_property('gsfa_grr', 'E_s')
     e_rr = _new_property('gsfa_grr', 'E_r')
+
+    def memb_init(self):
+        super().memb_init()
+        # the mechanism's INITIAL block sets g_s and g_r from g_s_init and g_r_init
+        for name in ("g_s", "g_r"):
+            if name in self.initial_values:
+                setattr(self.gsfa_grr, f"{name}_init", self.initial_values[name])
 
     def __set_v_thresh(self, value):
         self.spike_reset.vthresh = value

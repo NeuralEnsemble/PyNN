@@ -55,11 +55,12 @@ adexp_iaf = brian2.Equations('''
     i_inj                   : amp
 ''')
 
-# g_r, g_s should be in uS for PyNN unit system consistency
+# g_r, g_s (and q_r, q_s) are in nS, as declared by the standard model, rather than
+# in uS as for other conductances in PyNN
 adapt_iaf = brian2.Equations('''
     dv/dt = (v_rest-v)/tau_m + (-g_r*(v-E_r) - g_s*(v-E_s) + i_syn + i_offset + i_inj)/c_m  : volt (unless refractory)  # noqa: E501
-    dg_s/dt = -g_s/tau_s    : siemens (unless refractory)
-    dg_r/dt = -g_r/tau_r    : siemens (unless refractory)
+    dg_s/dt = -g_s/tau_s    : siemens
+    dg_r/dt = -g_r/tau_r    : siemens
     tau_m                   : second
     tau_s                   : second
     tau_r                   : second
@@ -212,13 +213,13 @@ class AdExp(cells.AdExp):
 
 
 class IF_cond_exp_gsfa_grr(cells.IF_cond_exp_gsfa_grr):
-    eqs = adapt_iaf + conductance_based_alpha_synapses
+    eqs = adapt_iaf + conductance_based_exponential_synapses
     translations = deepcopy(adapt_iaf_translations)
     translations.update(conductance_based_synapse_translations)
     state_variable_translations = build_translations(
         ('v', 'v', mV),
-        ('g_s', 'g_s', uS),
-        ('g_r', 'g_r', uS),
+        ('g_s', 'g_s', nS),
+        ('g_r', 'g_r', nS),
         ('gsyn_exc', 'ge', uS),
         ('gsyn_inh', 'gi', uS))
     post_synaptic_variables = {'excitatory': 'ge', 'inhibitory': 'gi'}
