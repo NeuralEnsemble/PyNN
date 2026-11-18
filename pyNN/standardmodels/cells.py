@@ -685,6 +685,50 @@ class PointNeuron(StandardCellType):
         )
 
 
+class Kobayashi(StandardCellType):
+    """
+    Leaky integrate-and-fire neuron model with exponential PSCs and adaptive threshold.
+
+    Kobayashi, R., Tsubo, Y., & Shinomoto, S. (2009). Made-to-order
+    spiking neuron model equipped with a multi-timescale adaptive
+    threshold. Frontiers in computational neuroscience, 3, 9.
+
+    """
+
+    default_parameters = {
+        'cm': 0.1,
+        'tau_m': 5.0,
+        'tau_refrac': 0.1,
+        'v_rest': -70.0,
+        'i_offset': 0.0,
+        'tau_syn_E': 1.0,
+        'tau_syn_I': 3.0,
+        'tau_1': 10.0,
+        'tau_2': 200.0,
+        'alpha_1': 37.0,
+        'alpha_2': 2.0,
+        'v_thresh': 19.0 
+    }
+    recordable = ['spikes', 'v', 'v_th']
+    units = {
+        'cm': 'nF',
+        'tau_m': 'ms',
+        'tau_refrac': 'ms',
+        'v_rest': 'mV',
+        'i_offset': 'nA',
+        'tau_syn_E': 'ms',
+        'tau_syn_I': 'ms',
+        'tau_1': 'ms',
+        'tau_2': 'ms',
+        'alpha_1': 'mV',
+        'alpha_2': 'mV',
+        'v_thresh': 'mV',
+        'v': 'mV',
+        'v_th': 'mV',
+        'v_reset': 'mV'
+    }
+
+
 class Izhikevich(StandardCellType):
     """
     Izhikevich spiking model with a quadratic non-linearity according to:
