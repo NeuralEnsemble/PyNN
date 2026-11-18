@@ -235,11 +235,10 @@ class PoissonGroup(brian2.PoissonGroup):
 
     def __init__(self, n, equations, **parameters):
         self.start_time = simplify(parameters["start_time"])
-        self.firing_rate = parameters["firing_rate"]
         self.duration = simplify(parameters["duration"])
 
         brian2.PoissonGroup.__init__(self, n,
-                                     rates=self.firing_rate,
+                                     rates=parameters["firing_rate"],
                                      clock=simulator.state.network.clock)
         if is_listlike(self.start_time):
             self.variables.add_array('start_time', size=n, dimensions=second.dim)
@@ -253,6 +252,15 @@ class PoissonGroup(brian2.PoissonGroup):
             self.variables.add_constant('end_time', value=float(
                 self.start_time + self.duration), dimensions=second.dim)
         self.events = {'spike': '(t >= start_time) and (t <= end_time) and (rand() < rates * dt)'}
+
+    # the rate is held in Brian2's own variable, so that changes take effect
+    @property
+    def firing_rate(self):
+        return self.rates
+
+    @firing_rate.setter
+    def firing_rate(self, value):
+        self.rates[:] = value
 
     def initialize(self):
         pass

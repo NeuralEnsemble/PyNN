@@ -248,6 +248,25 @@ def test_SpikeSourcePoisson_sources_are_independent(sim):
     assert len({tuple(st.magnitude) for st in spiketrains}) == len(spiketrains)
 
 
+@run_with_simulators("nest", "neuron", "brian2")
+def test_SpikeSourcePoisson_rate_set_before_and_during_run(sim):
+    """The rate of a SpikeSourcePoisson can be changed before the first run (NEURON used
+    to fail here) and between runs, and the new rate takes effect."""
+    sim.setup()
+    sources = sim.Population(50, sim.SpikeSourcePoisson(rate=1.0))
+    sources.record('spikes')
+    sources.set(rate=100.0)
+    sim.run(1000.0)
+    sources.set(rate=10.0)
+    sim.run(1000.0)
+    spiketrains = sources.get_data().segments[0].spiketrains
+    sim.end()
+    n_first = sum(((st > 0.0) & (st <= 1000.0)).sum() for st in spiketrains)
+    n_second = sum(((st > 1000.0) & (st <= 2000.0)).sum() for st in spiketrains)
+    assert 4500 < n_first < 5500, n_first  # expect 5000
+    assert 400 < n_second < 600, n_second  # expect 500
+
+
 @run_with_simulators("nest", "neuron")
 def test_SpikeSourcePoissonRefractory(sim, plot_figure=False):
     try:

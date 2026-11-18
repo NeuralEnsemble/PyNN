@@ -38,7 +38,6 @@ def test_ticket168():
     Error setting firing rate of `SpikeSourcePoisson` after `reset()` in NEURON
     http://neuralensemble.org/trac/PyNN/ticket/168
     """
-    pytest.skip("core dump with latest NEURON")
     if not have_neuron:
         pytest.skip("neuron not available")
     pynn = pyNN.neuron

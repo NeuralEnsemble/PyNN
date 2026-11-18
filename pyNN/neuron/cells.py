@@ -580,6 +580,13 @@ class RandomSpikeSource(hclass(h.NetStimFD)):
         return super().__new__(cls, *arg, **kwargs)
 
     def _set_interval(self, value):
+        if not state.running:
+            # NEURON will be initialized at the start of the next run, which draws the
+            # first spike using the new interval; events cannot be sent before that
+            self.interval = value
+            return
+        # turn the spike sequence off and on again, so the next spike is drawn using the
+        # new interval rather than the one already scheduled
         self.switch.weight[0] = -1
         self.switch.event(h.t + 1e-12, 0)
         self.interval = value
