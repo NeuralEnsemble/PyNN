@@ -51,7 +51,7 @@ class PopulationMixin(object):
             ps = component.reverse_translate(native_parameter_space)
             # extract values for this component from any ArrayParameters
             for name, value in ps.items():
-                if isinstance(value.base_value, ArrayParameter):
+                if component_label is not None and isinstance(value.base_value, ArrayParameter):
                     index = self.celltype.receptor_types.index(component_label)
                     ps[name] = LazyArray(value.base_value[index])
                     ps[name].operations = value.operations
@@ -68,17 +68,17 @@ class PopulationMixin(object):
                         names_by_component[parts[0]].append(parts[1])
                     else:
                         raise ValueError("Invalid name: {}".format(name))
-                    if "neuron" in names_by_component:
-                        parameter_space = _get_component_parameters(
-                            self.celltype.neuron,
-                            names_by_component.pop("neuron"))
-                    else:
-                        parameter_space = ParameterSpace({})
-                    for component_label in names_by_component:
-                        parameter_space[component_label] = _get_component_parameters(
-                                self.celltype.post_synaptic_receptors[component_label],
-                                names_by_component[component_label],
-                                component_label)
+                if "neuron" in names_by_component:
+                    parameter_space = _get_component_parameters(
+                        self.celltype.neuron,
+                        names_by_component.pop("neuron"))
+                else:
+                    parameter_space = ParameterSpace({})
+                for component_label in names_by_component:
+                    parameter_space[component_label] = _get_component_parameters(
+                            self.celltype.post_synaptic_receptors[component_label],
+                            names_by_component[component_label],
+                            component_label)
             else:
                 parameter_space = _get_component_parameters(self.celltype, names)
         else:
