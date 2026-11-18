@@ -34,6 +34,7 @@ _MODULE_NAME = "pynnnestmlmodule"
 # Module-level registry — survives state.clear() so definitions persist across setup() calls
 _pending = []    # list of entry dicts, one per registered model
 _compiled = False  # True after the first successful compile + install
+_installed_modules = []  # NEST modules built from NESTML, to be reloaded after each kernel reset
 
 
 def _check_not_compiled():
@@ -241,10 +242,15 @@ def _compile_and_resolve():
     """
     Compile all pending NESTML models together and resolve their stub classes.
 
-    Called by sim.setup() after the NEST kernel is initialised. If no models have
-    been registered this is a no-op.
+    Called by sim.setup() after the NEST kernel is initialised. Modules compiled at
+    earlier calls are reloaded, since resetting the kernel unloads them.
     """
     global _compiled, _pending
+    import nest
+
+    # sim.setup() resets the NEST kernel, which unloads extension modules
+    for module_name in _installed_modules:
+        nest.Install(module_name)
 
     if not _pending:
         _compiled = True
@@ -252,7 +258,6 @@ def _compile_and_resolve():
 
     _check_nestml_version()
     from pynestml.frontend.pynestml_frontend import generate_nest_target
-    import nest
 
     tmpdirs = []
     input_paths = []
@@ -303,6 +308,7 @@ def _compile_and_resolve():
             codegen_opts=codegen_opts,
         )
         nest.Install(module_name)
+        _installed_modules.append(module_name)
     except nest.NESTErrors.DynamicModuleManagementError as e:
         missing_delay = [
             entry["name"] for entry in _pending

@@ -319,7 +319,11 @@ class _State(common.control.BaseState):
             pass
         # reset the simulation kernel
         nest.ResetKernel()
-        # but this reverts some of the PyNN settings, so we have to repeat them (see NEST #716)
+        # this also unloads extension modules, so we load ours again
+        # (NESTML modules are reloaded by nestml._compile_and_resolve())
+        if self.extensions_loaded:
+            nest.Install('pynn_extensions')
+        # resetting also reverts some of the PyNN settings, so we have to repeat them (see NEST #716)
         self.spike_precision = self._spike_precision
         # set tempdir
         tempdir = tempfile.mkdtemp()
