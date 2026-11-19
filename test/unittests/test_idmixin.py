@@ -89,6 +89,10 @@ class Test_IDMixin():
         assert self.id.foo == "bar"
         assert self.id_ns.foo == "bar"
 
+    def test_getattr_with_special_attr(self):
+        assert not hasattr(self.id, "__array_priority__")
+        assert not hasattr(self.id, "__foo__")
+
     def test_getattr_with_parent_not_set(self):
         del(self.id.parent)
         with pytest.raises(Exception):

@@ -49,6 +49,12 @@ class IDMixin(object):
     # (e.g., int) and from IDMixin.
 
     def __getattr__(self, name):
+        # No cell parameter name begins with a double underscore. Refusing such names
+        # before reading the parameters means that special-attribute lookups (e.g. NumPy
+        # looking for `__array_priority__` when an ID is compared with an array) do not
+        # fetch all the cell's parameters from the simulator.
+        if name.startswith("__"):
+            raise AttributeError(name)
         if name == "parent":
             raise Exception("parent is not set")
         elif name == "set":
@@ -912,14 +918,12 @@ class PopulationView(BasePopulation):
             >>> assert pv.id_to_index(pv[3]) == 3
         """
         if not np.iterable(id):
-            # NumPy may probe an ID's array attributes, which reads cell parameters.
-            cell_id = int(id) if isinstance(id, int) else id
             if self._is_sorted:
-                if cell_id not in self.all_cells:
+                if id not in self.all_cells:
                     raise IndexError("ID %s not present in the View" % id)
-                return np.searchsorted(self.all_cells, cell_id)
+                return np.searchsorted(self.all_cells, id)
             else:
-                result = np.where(self.all_cells == cell_id)[0]
+                result = np.where(self.all_cells == id)[0]
             if len(result) == 0:
                 raise IndexError("ID %s not present in the View" % id)
             else:
@@ -930,8 +934,7 @@ class PopulationView(BasePopulation):
             else:
                 result = np.array([], dtype=int)
                 for item in id:
-                    cell_id = int(item) if isinstance(item, int) else item
-                    data = np.where(self.all_cells == cell_id)[0]
+                    data = np.where(self.all_cells == item)[0]
                     if len(data) == 0:
                         raise IndexError("ID %s not present in the View" % item)
                     elif len(data) > 1:
