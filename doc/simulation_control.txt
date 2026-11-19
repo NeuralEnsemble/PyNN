@@ -74,7 +74,9 @@ the operation at the end of each step, e.g.::
 Alternatively, PyNN can take care of breaking the simulation into steps for you.
 :func:`run()` and :func:`run_until()` each accept an optional list of callbacks
 functions. Each callback should accept the current time as an argument, and
-return the next time it wishes to be called.
+return the next time it wishes to be called. A callback is called at most once
+per time step: if it asks to be called again less than one time step later, it
+will be called at the next time step.
 
     >>> def report_time(t):
     ...     print("The time is %g" % t)
