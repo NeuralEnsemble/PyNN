@@ -52,27 +52,33 @@ class TsodyksMarkramSynapse(synapses.TsodyksMarkramSynapse):
         ('tau_facil', 'tau_facil', ms),
         ('tau_syn', 'tau_syn', ms)
     )
+    # The state variables are updated only when a spike arrives, using the exact
+    # solution since the previous spike (as in the NEURON and NEST implementations):
+    # y (active fraction) decays with tau_syn into z (inactive), which recovers with
+    # tau_rec into x (available); u decays with tau_facil (u = U if tau_facil = 0).
     eqs = '''weight : %(weight_units)s
             U : 1
             tau_syn : second
             tau_rec : second
             tau_facil : second
-            dz/dt = z/tau_rec : 1 (event-driven)
-            dy/dt = -y/tau_syn  : 1 (event-driven)
-            du/dt = -u/tau_facil : 1 (event-driven)
-            x=1-y-z : 1
-
+            u : 1
+            y : 1
+            z : 1
+            t_last : second
             '''
     pre = '''
-
-            u +=  U*(1-u)
-            u = int(u > U)*U + int(u <= U)*u
+            h = t - t_last
+            z = z*exp(-h/tau_rec) + y*(exp(-h/tau_syn) - exp(-h/tau_rec))/(tau_syn/tau_rec - 1)
+            y = y*exp(-h/tau_syn)
+            x = 1 - y - z
+            u = int(tau_facil > 0*ms)*u*exp(-h/(tau_facil + int(tau_facil == 0*ms)*ms))
+            u = int(tau_facil > 0*ms)*(u + U*(1 - u)) + int(tau_facil == 0*ms)*U
             %(syn_var)s += weight*x*u
             y += x*u
-
-             '''
+            t_last = t
+            '''
     post = None
-    initial_conditions = {"u": 0.0, "x": 1.0, "y": 0.0, "z": 0.0}
+    initial_conditions = {"u": 0.0, "y": 0.0, "z": 0.0, "t_last": 0.0}
     tau_syn_var = {"excitatory": "tau_syn_E",
                    "inhibitory": "tau_syn_I"}
 
