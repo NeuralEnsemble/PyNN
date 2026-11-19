@@ -77,7 +77,9 @@ authors:
   family-names: "Gilke"
 - given-names: "Goran"
   family-names: "Jelic-Cizmek"
-version: "0.13.0"
+- given-names: "Dhairya"
+  family-names: "Jangir"
+version: "0.14.0"
 license: "CECILL-2.1"
 repository-code: "https://github.com/NeuralEnsemble/PyNN"
 identifiers:
