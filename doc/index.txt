@@ -28,6 +28,8 @@ PyNN: documentation
 
    This is the documentation for version |release|. Earlier versions:
 
+     - `version 0.13`_
+     - `version 0.12`_
      - `version 0.11`_
      - `version 0.10`_
      - `version 0.9`_
@@ -72,6 +74,8 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
+.. _`version 0.13`: https://neuralensemble.org/docs/PyNN/0.13/
+.. _`version 0.12`: https://neuralensemble.org/docs/PyNN/0.12/
 .. _`version 0.11`: http://neuralensemble.org/docs/PyNN/0.11/
 .. _`version 0.10`: http://neuralensemble.org/docs/PyNN/0.10/
 .. _`version 0.9`: http://neuralensemble.org/docs/PyNN/0.9/
