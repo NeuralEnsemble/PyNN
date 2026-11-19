@@ -15,11 +15,70 @@
   "releaseNotes": "http://neuralensemble.org/docs/PyNN/releases/0.13.0.html",
   "funding": "https://cordis.europa.eu/project/id/945539",
   "developmentStatus": "active",
-  "referencePublication": "https://doi.org/10.3389/neuro.11.011.2008",
+  "referencePublication": {
+    "@type": "ScholarlyArticle",
+    "@id": "https://doi.org/10.3389/neuro.11.011.2008",
+    "name": "PyNN: A Common Interface for Neuronal Network Simulators",
+    "author": [
+      {
+        "@type": "Person",
+        "@id": "https://orcid.org/0000-0002-4793-7541",
+        "givenName": "Andrew P.",
+        "familyName": "Davison"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Daniel",
+        "familyName": "Brüderle"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Jochen",
+        "familyName": "Eppler"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Jens",
+        "familyName": "Kremkow"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Eilif",
+        "familyName": "Muller"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Dejan",
+        "familyName": "Pecevski"
+      },
+      {
+        "@type": "Person",
+        "@id": "https://orcid.org/0000-0002-9536-010X",
+        "givenName": "Laurent",
+        "familyName": "Perrinet"
+      },
+      {
+        "@type": "Person",
+        "givenName": "Pierre",
+        "familyName": "Yger"
+      }
+    ],
+    "datePublished": "2009-01-27",
+    "isPartOf": {
+      "@type": "PublicationVolume",
+      "volumeNumber": "2",
+      "isPartOf": {
+        "@type": "Periodical",
+        "name": "Frontiers in Neuroinformatics"
+      }
+    },
+    "pagination": "11"
+  },
   "funder": {
     "@type": "Organization",
     "name": "European Commission"
   },
+  "keywords": ["neural simulation", "neuromorphic computing", "spiking neural networks"],
   "programmingLanguage": ["Python"],
   "operatingSystem": ["Linux", "Windows", "macOS"],
   "softwareRequirements": [
@@ -59,6 +118,7 @@
     },
     {
       "@type": "Person",
+      "@id": "https://orcid.org/0000-0002-9536-010X",
       "givenName": "Laurent",
       "familyName": "Perrinet"
     },
