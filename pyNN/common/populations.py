@@ -736,6 +736,8 @@ class Population(BasePopulation):
             if isinstance(id, PopulationView):
                 id = id.all_cells
             id = np.array(id)
+            if id.size == 0:  # e.g. no recorded cells on this MPI node
+                return np.array([], dtype=int)
             if (self.first_id > id.min()) or (self.last_id < id.max()):
                 raise ValueError("ids should be in the range [%d,%d], actually [%d, %d]" % (
                     self.first_id, self.last_id, id.min(), id.max()))

@@ -85,6 +85,13 @@ class PopulationTest(unittest.TestCase):
         p = sim.Population(11, sim.IF_curr_alpha())
         assert_array_equal(p.id_to_index(p.all_cells[3:9:2]), np.arange(3, 9, 2))
 
+    def test_id_to_index_with_empty_array(self, sim=sim):
+        # e.g. when no recorded cells are on this MPI node (#767)
+        p = sim.Population(11, sim.IF_curr_alpha())
+        index = p.id_to_index(np.array([], dtype=int))
+        assert index.size == 0
+        assert index.dtype.kind == "i"
+
     def test_id_to_index_with_populationview(self, sim=sim):
         p = sim.Population(11, sim.IF_curr_alpha())
         view = p[3:7]
@@ -493,6 +500,24 @@ class PopulationTest(unittest.TestCase):
         self.assertEqual(len(seg1.spiketrains), p.size)
         assert_array_equal(seg1.spiketrains[7],
                            np.array([p.first_id + 7, p.first_id + 7 + 5]) % t3)
+
+    def test_get_spikes_on_mpi_node_with_no_cells(self, sim=sim):
+        # MPI node 2 of 3 has neither of the two cells (#767)
+        sim.simulator.state.num_processes = 3
+        sim.simulator.state.mpi_rank = 2
+        try:
+            p = sim.Population(2, sim.IF_cond_exp())
+            self.assertFalse(p._mask_local.any())
+            p.record('spikes')
+            sim.run(10.0)
+            # spike times as (ids, times) arrays, as returned by pyNN.nest
+            empty = (np.array([], dtype=int), np.array([]))
+            with patch.object(type(p.recorder), "_get_spiketimes", return_value=empty):
+                data = p.get_data(gather=False)
+            self.assertEqual(len(data.segments[0].spiketrains), 0)
+        finally:
+            sim.simulator.state.num_processes = 1
+            sim.simulator.state.mpi_rank = 0
 
     # def test_get_data_no_gather(self, sim=sim):
     #    self.fail()
