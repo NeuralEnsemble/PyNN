@@ -215,8 +215,7 @@ class MapConnector(Connector):
                 if source_mask is True:
                     source_mask = np.arange(projection.pre.size, dtype=int)
                 elif source_mask.dtype == bool:
-                    # A single presynaptic cell can produce a scalar mask.
-                    source_mask = np.atleast_1d(source_mask).nonzero()[0]
+                    source_mask = source_mask.nonzero()[0]
 
                 # Evaluate the lazy arrays containing the synaptic parameters
                 connection_parameters = {}
