@@ -1,3 +1,4 @@
+import numpy as np
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal, assert_allclose
 from .fixtures import run_with_simulators
@@ -124,6 +125,44 @@ def test_run_until(sim):
     assert sim.get_current_time() == pytest.approx(99.9)  # places=10)
     with pytest.raises(ValueError):
         sim.run_until(88.8)
+    sim.end()
+
+
+def _callback(interval, times):
+    def callback(t):
+        times.append(t)
+        if len(times) > 1000:
+            raise RuntimeError(f"run() with callbacks is not advancing (t = {t})")
+        return t + interval
+    return callback
+
+
+@run_with_simulators("nest", "neuron", "brian2", "arbor")
+def test_run_with_callbacks(sim):
+    sim.setup(timestep=0.1)
+    sim.Population(1, sim.IF_cond_exp())
+    # a callback interval that is not a multiple of the time step
+    times = []
+    sim.run(10.0, callbacks=[_callback(0.3, times)])
+    assert sim.get_current_time() == pytest.approx(10.0)
+    assert len(times) == 35
+    assert times[-1] == pytest.approx(10.0)
+    # a callback interval shorter than the time step: called once per step
+    times = []
+    sim.run(1.0, callbacks=[_callback(0.05, times)])
+    assert sim.get_current_time() == pytest.approx(11.0)
+    assert_allclose(times, np.arange(10.0, 11.05, 0.1))
+    sim.end()
+
+
+@run_with_simulators("neuron", "brian2", "arbor")  # NEST does not accept off-grid times
+def test_run_with_callbacks_off_grid(sim):
+    sim.setup(timestep=0.1)
+    sim.Population(1, sim.IF_cond_exp())
+    times = []
+    sim.run(10.07, callbacks=[_callback(1.0, times)])
+    # some simulators stop at the last time step before an off-grid time, others after it
+    assert abs(sim.get_current_time() - 10.07) < 0.1
     sim.end()
 
 

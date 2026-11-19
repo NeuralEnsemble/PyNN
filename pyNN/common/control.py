@@ -88,8 +88,16 @@ def build_run(simulator):
                         abs(next - callback_events[-1][0]) < simulator.state.dt:
                     active_callbacks.append(callback_events.pop()[1])
 
-                next = min(next, time_point)
+                # Advance by at least one time step, so that a callback asking for less
+                # than a time step ahead cannot stall the loop, and not beyond time_point.
+                next = min(max(next, simulator.state.t + simulator.state.dt), time_point)
+                t_before = simulator.state.t
                 simulator.state.run_until(next)
+                if simulator.state.t <= t_before:
+                    # Some simulators (e.g. NEURON) stop at the last time step before
+                    # their target, so when time_point is off the time grid and less
+                    # than one step ahead, the simulation cannot advance any further.
+                    break
                 callback_events.extend((callback(simulator.state.t), callback)
                                        for callback in active_callbacks)
         else:
