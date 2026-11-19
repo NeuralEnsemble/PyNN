@@ -5,7 +5,7 @@
   "codeRepository": "https://github.com/NeuralEnsemble/PyNN",
   "contIntegration": "https://github.com/NeuralEnsemble/PyNN/actions",
   "dateModified": "2026-11-19",
-  "downloadUrl": null,
+  "downloadUrl": "https://files.pythonhosted.org/packages/95/5b/2e2c5684baa7dcf2300a267c5a19dbe2cc7a60416642e9c5a0aaf6553b47/pynn-0.14.0.tar.gz",
   "issueTracker": "https://github.com/NeuralEnsemble/PyNN/issues",
   "name": "PyNN",
   "version": "0.14.0",
