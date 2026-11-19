@@ -1,0 +1,107 @@
+=========================
+PyNN 0.14.0 release notes
+=========================
+
+November 19th 2026
+
+Welcome to PyNN 0.14.0!
+
+
+Arbor backend
+-------------
+
+The Arbor_ backend has been substantially extended, and is now close to parity
+with the NEST, NEURON and Brian 2 backends:
+
+- It works with Arbor 0.10.0 to 0.12.2 (previously only Arbor 0.9).
+- It supports point neurons (as single-compartment Arbor cable cells), and the
+  time-varying current sources. Point neurons can record synaptic conductances
+  and currents, and the state variables of their dynamics (e.g. ``w``, ``u``).
+- It supports distributed simulations with MPI. This needs an Arbor built with
+  MPI and mpi4py support; the wheels on PyPI have neither.
+- :func:`setup()` accepts ``threads`` and ``rng_seed``, as for :mod:`pyNN.nest`.
+- :file:`examples/VAbenchmarks.py` now gives the same synapse counts and closely
+  matching firing rates on Arbor and NEST.
+
+Some models are not yet available with Arbor, including ``GIF_cond_exp``,
+``Izhikevich`` as a synaptic target, ``TsodyksMarkramSynapse`` and STDP. Since Arbor
+builds its cells only once, changing cell parameters after the first :func:`run()`
+is not possible (raises ``NotImplementedError``). See :doc:`../backends/Arbor` for details.
+
+
+Multi-compartment models
+------------------------
+
+- :func:`at_distances()` now measures distances in µm along the path from the root
+  of the morphology, and gives a location on every branch at each distance.
+  Recorded signals are named after the selector (e.g. ``dendrite.100um.v``), the
+  same on both backends.
+- On NEURON, three-point somas (as used by NeuroMorpho.org) are built as in Arbor,
+  morphologies loaded with MorphIO are handled correctly, and spikes are detected
+  at −10 mV, as in Arbor.
+
+
+NESTML 9
+--------
+
+:mod:`pyNN.nest.nestml` now requires NESTML_ 9 or later, since NESTML 9 changed the
+syntax for physical units. Also, NESTML models are no longer lost when
+:func:`setup()` is called again in the same Python session.
+
+
+Standard models
+---------------
+
+- The gating variables ``m``, ``h`` and ``n`` of :class:`HH_cond_exp` can now be
+  recorded using these names on all backends, and their initial values are
+  respected on NEURON and Arbor.
+- :class:`IF_cond_exp_gsfa_grr` has been fixed on all backends.
+- :class:`TsodyksMarkramSynapse` now gives the correct dynamics on Brian 2, and
+  works with ``tau_facil = 0``.
+
+
+Bug fixes
+---------
+
+- With NEST, models from PyNN's NEST extensions (e.g.
+  :class:`StochasticTsodyksMarkramSynapse`) are no longer lost at :func:`setup()` 
+  (since NEST 3.7 and later unload extension modules when resetting the kernel).
+- Reading back the array-valued parameters of :class:`GIF_cond_exp` now works 
+  with NEST and NEURON.
+- Gap junctions (:class:`ElectricalSynapse`) have been fixed 
+  (still only available for NEURON).
+- With NEURON, setting the rate of a :class:`SpikeSourcePoisson` before the first
+  run now works; with Brian 2, changing the rate now takes effect.
+- With NEURON, :func:`run()` with callbacks could loop forever if the end time was
+  not a multiple of the time step, or if a callback asked to be called again less
+  than one time step later (#866). Callbacks are now called at most once per time
+  step.
+- With NEST, :meth:`get_data()` no longer hangs when a population had fewer cells than there
+  were MPI processes (#767).
+- With MPI, :meth:`get_data()` could fail when the recorded cells on a process had
+  non-contiguous indices (#836).
+- :class:`OneToOneConnector` now works with NumPy 2 when connecting single-cell
+  populations (#851).
+- Looking up cell IDs in a :class:`PopulationView`, and other operations that pass
+  cell IDs to NumPy, have been greatly speeded up (#693).
+- With NEST, :class:`IF_curr_delta` now respects the initial value of ``v``, 
+  and ``v`` can be recorded (#844).
+
+
+Other changes
+-------------
+
+- The documentation is now built on `Read the Docs`_.
+- A :file:`CITATION.cff` file has been added, so that GitHub shows how to cite PyNN.
+  It is generated from :file:`codemeta.json` by :file:`tools/codemeta2cff.py` (#868).
+- The NEST extensions now require CMake 3.19 or later to build.
+- libNeuroML 0.2.45 or later is required for the ``neuroml`` and ``arbor`` extras,
+  and pyNeuroML is now listed in the ``neuroml`` extra.
+
+Thanks to Andrew Davison, Dhairya Jangir and Laurent Perrinet for their contributions to this
+release.
+
+
+.. _Arbor: https://arbor-sim.org
+.. _NESTML: https://nestml.readthedocs.io
+.. _`Read the Docs`: https://pynn.readthedocs.io
