@@ -126,7 +126,10 @@ class Projection(common.Projection):
             # multi-compartment neuron: connect to all synapses of this receptor type
             target_objects = sum(cell_obj.synaptic_receptors[self.receptor_type].values(), [])
         elif location_selector is None:  # point neuron model
-            if "." in self.receptor_type:
+            if self.receptor_type.endswith(".gap"):
+                # for gap junctions, the target is the section in which the junction is created
+                target_objects = [getattr(cell_obj, self.receptor_type[:-4])]
+            elif "." in self.receptor_type:
                 section, target = self.receptor_type.split(".")
                 target_objects = [getattr(getattr(cell_obj, section), target)]
             else:
